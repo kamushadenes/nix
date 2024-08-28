@@ -40,11 +40,12 @@
     in
     {
       darwinConfigurations = {
-        "Kamus-Mac-Studio" = darwin.lib.darwinSystem {
+        "studio.hadenes.io" = darwin.lib.darwinSystem {
           system = "aarch64-darwin";
           specialArgs = {
             inherit inputs;
             platform = "aarch64-darwin";
+	    machine = "studio.hadenes.io";
           };
           modules = [
             ./darwin.nix
@@ -61,7 +62,7 @@
               {
                 home-manager.extraSpecialArgs = {
                   inherit inputs;
-                  machine = "Kamus-Mac-Studio";
+                  machine = "studio.hadenes.io";
                 };
                 home-manager.useGlobalPkgs = true;
                 home-manager.useUserPackages = true;
@@ -79,6 +80,7 @@
           specialArgs = {
             inherit inputs;
             platform = "x86_64-linux";
+	    machine = "nixos";
             hardware = ./nixos/hardware/nixos.nix;
           };
           modules = [
