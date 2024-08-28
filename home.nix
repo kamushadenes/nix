@@ -20,7 +20,7 @@ let
 
       OP_BIN_PATH = opBinPath;
 
-      FLAKE = "${config.home.homeDirectory}/.config/nix/config/";
+      FLAKE = "${config.home.homeDirectory}/.config/nix/config/?submodules=1";
     };
 
     launchctl = lib.concatMapStringsSep "\n" (var: ''
