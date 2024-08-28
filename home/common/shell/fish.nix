@@ -89,7 +89,7 @@ in
         {
           rebuild =
             if osConfig.programs.nh.enable then
-              ''nh os switch -H (hostname | sed s"/.local//g")''
+              ''nh os switch -H (hostname -s | sed s"/.local//g")''
             else if pkgs.stdenv.isDarwin then
               ''darwin-rebuild switch --flake "${globalVariables.base.FLAKE}"''
             else

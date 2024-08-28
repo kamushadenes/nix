@@ -40,7 +40,7 @@
     in
     {
       darwinConfigurations = {
-        "studio.hyades.io" = darwin.lib.darwinSystem {
+        "studio" = darwin.lib.darwinSystem {
           system = "aarch64-darwin";
           specialArgs = {
             inherit inputs;
