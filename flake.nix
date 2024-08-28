@@ -40,12 +40,12 @@
     in
     {
       darwinConfigurations = {
-        "studio.hadenes.io" = darwin.lib.darwinSystem {
+        "studio.hyades.io" = darwin.lib.darwinSystem {
           system = "aarch64-darwin";
           specialArgs = {
             inherit inputs;
             platform = "aarch64-darwin";
-	    machine = "studio.hadenes.io";
+            machine = "studio.hyades.io";
           };
           modules = [
             ./darwin.nix
@@ -62,7 +62,7 @@
               {
                 home-manager.extraSpecialArgs = {
                   inherit inputs;
-                  machine = "studio.hadenes.io";
+                  machine = "studio.hyades.io";
                 };
                 home-manager.useGlobalPkgs = true;
                 home-manager.useUserPackages = true;
@@ -80,7 +80,7 @@
           specialArgs = {
             inherit inputs;
             platform = "x86_64-linux";
-	    machine = "nixos";
+            machine = "nixos";
             hardware = ./nixos/hardware/nixos.nix;
           };
           modules = [
