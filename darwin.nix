@@ -2,6 +2,8 @@
 
 {
   imports = [
+    ./shared/cachix.nix
+
     ./darwin/backup.nix
     ./darwin/brew.nix
     ./darwin/browser.nix

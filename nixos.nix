@@ -8,6 +8,8 @@
   imports = [
     hardware
 
+    ./shared/cachix.nix
+
     ./nixos/audio.nix
     ./nixos/browser.nix
     ./nixos/display_gnome.nix
