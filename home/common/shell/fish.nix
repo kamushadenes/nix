@@ -128,7 +128,7 @@
           fish_add_path -a '${config.home.homeDirectory}/.krew/bin'
 
           # Move Nix paths back to the front
-          ${helpers.setProfilesPath};
+          ${helpers.fishProfilesPath};
 
           ${helpers.globalVariables.fishShell}
 
@@ -158,7 +158,7 @@
         '')
       ];
 
-      loginShellInit = helpers.setProfilesPath;
+      loginShellInit = helpers.fishProfilesPath;
 
       shellAliases = lib.mkMerge [
         {

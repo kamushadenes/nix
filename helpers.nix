@@ -6,8 +6,10 @@
   ...
 }:
 let
+  # 1Password Binary Path
   opBinPath = "${pkgs._1password}/bin/op";
 
+  # YAML reading functions
   fromYAML =
     yaml:
     builtins.fromJSON (
@@ -28,6 +30,7 @@ let
       )
     );
 
+  # Global Variables
   globalVariables = {
     base = {
       DOOMDIR = "${config.xdg.configHome}/doom";
@@ -56,12 +59,14 @@ let
   };
 in
 {
+  # YAML reading functions
   fromYAML = fromYAML;
   readYAML = path: fromYAML (builtins.readFile path);
-  #
+
   # Helper function to prevent email scraping
   mkEmail = user: domain: "${user}@${domain}";
 
+  # Helper function to generate conditional includes for GitHub
   mkConditionalGithubIncludes =
     org: contents:
     let
@@ -91,7 +96,8 @@ in
       }
     ];
 
-  setProfilesPath =
+  # Helper functions to generate profile paths for fish and kitty
+  fishProfilesPath =
     let
       dquote = str: "\"" + str + "\"";
 
@@ -123,7 +129,9 @@ in
       }
     '') (makeBinPathList osConfig.environment.profiles);
 
+  # Global Variables
   globalVariables = globalVariables;
 
+  # 1Password Binary Path
   opBinPath = opBinPath;
 }
