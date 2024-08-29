@@ -4,7 +4,7 @@
   fonts = {
     packages = with pkgs; [
       monaspace
-      nerdfonts
+      (nerdfonts.override { fonts = [ "NerdFontsSymbolsOnly" ]; })
       packages.monaspice
     ];
   };

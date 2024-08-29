@@ -8,7 +8,9 @@ let
   packages = import ./packages.nix { inherit pkgs; };
 in
 {
-  _module.args = [ packages ];
+  _module.args = {
+    inherit packages;
+  };
 
   imports = [
     hardware
