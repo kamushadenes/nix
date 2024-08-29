@@ -6,7 +6,6 @@
     "alt-tab"
     "hazel"
     "mountain-duck"
-    "notchnook"
     "pdf-expert"
     "qbittorrent"
     "raycast"

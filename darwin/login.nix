@@ -2,10 +2,6 @@
 
 {
   launchd.user.agents = {
-    notchnook = {
-      serviceConfig.ProgramArguments = [ "/Applications/NotchNook.app" ];
-      serviceConfig.RunAtLoad = true;
-    };
     parcel = {
       serviceConfig.ProgramArguments = [ "/Applications/Parcel.app" ];
       serviceConfig.RunAtLoad = true;

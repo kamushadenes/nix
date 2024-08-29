@@ -16,12 +16,18 @@ vim.opt.termguicolors = true
 
 vim.opt.shiftwidth = 2
 
--- Only trigger firenvim manually with C-e
-if vim.g.started_by_firenvim == true then
-  vim.g.firenvim_config.localSettings['.*'] = { takeover = 'never' }
+-- Make sure to access arc://extensions/shortcuts and set the Cmd+G shortcut as Global
+vim.g.firenvim_config = {
+    globalSettings = { alt = "all" },
+    localSettings = {
+        [".*"] = {
+            cmdline = 'firenvim',
+            takeover = "never"
+        }
+    }
+}
 
-  vim.api.nvim_create_autocmd({'BufEnter'}, {
-    pattern = "github.com_*.txt",
-    command = "set filetype=markdown"
-  })
-end
+vim.api.nvim_create_autocmd({'BufEnter'}, {
+  pattern = "github.com_*.txt",
+  command = "set filetype=markdown"
+})

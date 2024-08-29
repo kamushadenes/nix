@@ -25,6 +25,10 @@
       serviceConfig.ProgramArguments = [ "/Applications/Setapp/Magnet.app" ];
       serviceConfig.RunAtLoad = true;
     };
+    notchnook = {
+      serviceConfig.ProgramArguments = [ "/Applications/Setapp/NotchNook.app" ];
+      serviceConfig.RunAtLoad = true;
+    };
     oneswitch = {
       serviceConfig.ProgramArguments = [ "/Applications/Setapp/One Switch.app" ];
       serviceConfig.RunAtLoad = true;
