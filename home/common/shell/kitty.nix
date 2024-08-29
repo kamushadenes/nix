@@ -18,7 +18,7 @@
       ];
 
       font = {
-        name = "MonaspiceNe Nerd Font Mono";
+        name = "Monaspace Neon Var";
         size = 14;
       };
 
@@ -35,6 +35,9 @@
         mouse_map ctrl+shift+right press ungrabbed combine : mouse_select_command_output : kitty_scrollback_nvim --config ksb_builtin_last_visited_cmd_output
 
         ${helpers.kittyProfilesPath}
+
+        # Font Config
+        ${builtins.readFile ./resources/kitty/font-nerd-symbols.conf}
       '';
 
       settings = {

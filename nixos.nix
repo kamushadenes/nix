@@ -4,7 +4,12 @@
   hardware,
   ...
 }:
+let
+  packages = import ./packages.nix { inherit pkgs; };
+in
 {
+  _module.args = [ packages ];
+
   imports = [
     hardware
 

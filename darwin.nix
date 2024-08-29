@@ -1,6 +1,10 @@
 { pkgs, platform, ... }:
-
+let
+  packages = import ./packages.nix { inherit pkgs; };
+in
 {
+  _module.args = [ packages ];
+
   imports = [
     ./shared/cachix.nix
 
