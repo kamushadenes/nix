@@ -36,7 +36,14 @@ let
     '') (lib.attrNames globalVariables.base);
   };
 
-  helpers = import ./helpers.nix { inherit lib pkgs osConfig; };
+  helpers = import ./helpers.nix {
+    inherit
+      config
+      lib
+      pkgs
+      osConfig
+      ;
+  };
   packages = import ./packages.nix { inherit pkgs; };
   themes = import ./themes.nix { inherit pkgs; };
 

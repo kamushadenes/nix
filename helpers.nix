@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   osConfig,
@@ -73,4 +74,23 @@ in
       }
       set fish_user_paths $fish_user_paths
     '';
+
+  kittyProfilesPath =
+    let
+      makeBinPathList = map (path: path + "/bin");
+    in
+    lib.concatMapStringsSep "\n" (path: ''
+      exe_search_path ${
+        builtins.replaceStrings
+          [
+            "$HOME"
+            "$USER"
+          ]
+          [
+            config.home.homeDirectory
+            osConfig.users.users.kamushadenes.name
+          ]
+          path
+      }
+    '') (makeBinPathList osConfig.environment.profiles);
 }

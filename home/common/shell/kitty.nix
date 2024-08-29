@@ -3,6 +3,7 @@
   pkgs,
   lib,
   osConfig,
+  helpers,
   packages,
   ...
 }:
@@ -30,8 +31,10 @@
       theme = "Catppuccin-Macchiato";
 
       extraConfig = ''
-        action_alias kitty_scrollback_nvim kitten ${packages.kitty-scrollback}/python/kitty_scrollback_nvim.py
+        action_alias kitty_scrollback_nvim kitten ${pkgs.vimUtils.packDir config.programs.neovim.finalPackage.passthru.packpathDirs}/pack/myNeovimPackages/start/vimplugin-kitty-scrollback.nvim/python/kitty_scrollback_nvim.py
         mouse_map ctrl+shift+right press ungrabbed combine : mouse_select_command_output : kitty_scrollback_nvim --config ksb_builtin_last_visited_cmd_output
+
+        ${helpers.kittyProfilesPath}
       '';
 
       settings = {
@@ -104,8 +107,8 @@
         "cmd+shift+n" = "new_os_window";
         "cmd+d" = "launch --location=hsplit --cwd=current";
         "cmd+shift+d" = "launch --location=vsplit --cwd=current";
-        "cmd+h" = "kitty_scrollback_nvim";
-        "chm+shift+h" = "kitty_scrollback_nvim --config ksb_builtin_last_cmd_output";
+        "ctrl+h" = "kitty_scrollback_nvim";
+        "ctrl+shift+h" = "kitty_scrollback_nvim --config ksb_builtin_last_cmd_output";
       };
     };
   };
