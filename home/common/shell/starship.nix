@@ -30,7 +30,6 @@ in
           (builtins.fromTOML (builtins.readFile (starshipCatppuccin + "/themes/macchiato.toml"))).palettes;
 
         format = lib.concatStringsSep "" [
-          "$os"
           "$username"
           "$hostname"
           "$directory"
@@ -243,7 +242,7 @@ in
         };
 
         os = {
-          disabled = false;
+          disabled = true;
           symbols = {
             Windows = " ";
             Macos = " ";

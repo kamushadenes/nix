@@ -74,20 +74,6 @@
       };
 
       keybindings = {
-        "cmd+k" = "combine : clear_terminal scrollback active : send_text normal,application \x0c";
-        "alt+left" = "send_text all \x1b\x62";
-        "alt+right" = "send_text all \x1b\x66";
-        "cmd+left" = "send_text all \x01";
-        "cmd+right" = "send_text all \x05";
-        "cmd+1" = "goto_tab 1";
-        "cmd+2" = "goto_tab 2";
-        "cmd+3" = "goto_tab 3";
-        "cmd+4" = "goto_tab 4";
-        "cmd+5" = "goto_tab 5";
-        "cmd+6" = "goto_tab 6";
-        "cmd+7" = "goto_tab 7";
-        "cmd+8" = "goto_tab 8";
-        "cmd+9" = "goto_tab 9";
         "cmd+equal" = "change_font_size all +2.0";
         "cmd+minus" = "change_font_size all -2.0";
         "cmd+0" = "change_font_size all 0";
@@ -108,8 +94,8 @@
         "cmd+[" = "previous_window";
         "cmd+w" = "close_window";
         "cmd+shift+n" = "new_os_window";
-        "cmd+d" = "launch - location=hsplit - cwd=current";
-        "cmd+shift+d" = "launch - location=vsplit - cwd=current";
+        "cmd+d" = "launch --location=hsplit --cwd=current";
+        "cmd+shift+d" = "launch --location=vsplit --cwd=current";
       };
     };
   };

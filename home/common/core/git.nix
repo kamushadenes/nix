@@ -1,4 +1,9 @@
-{ pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 let
   gitSquash = pkgs.fetchFromGitHub {
     owner = "sheerun";
@@ -13,10 +18,44 @@ let
     rev = "b88f87aedbeb7dc74c38831cf385819b69b78cbe";
     hash = "sha256-/zLkxfpTkZ744hUNANFmm96q81ydFM7EcxOj+0GoaGU=";
   };
+
+  # Helper function to prevent email scraping
+  mkEmail = user: domain: "${user}@${domain}";
+
+  mkConditionalGithubIncludes =
+    org: contents:
+    let
+      lowercase = lib.strings.toLower org;
+    in
+    [
+      {
+        condition = "hasconfig:remote.*.url:https://github.com/${org}/**";
+        contents = contents;
+      }
+
+      {
+        condition = "hasconfig:remote.*.url:git@github.com:${org}/**";
+        contents = contents;
+      }
+    ]
+    ++ lib.optionals (lowercase != org) [
+
+      {
+        condition = "hasconfig:remote.*.url:https://github.com/${lowercase}/**";
+        contents = contents;
+      }
+
+      {
+        condition = "hasconfig:remote.*.url:git@github.com:${lowercase}/**";
+        contents = contents;
+      }
+    ];
 in
 {
   home.packages = with pkgs; [
     lefthook
+    onefetch
+    (writeScriptBin "git-info" "onefetch")
     (writeScriptBin "git-squash" (builtins.readFile (gitSquash + "/git-squash")))
   ];
 
@@ -28,14 +67,6 @@ in
   home.file."git_template_hooks" = {
     source = ./resources/git/hooks;
     target = "${config.xdg.configHome}/git/template/hooks";
-  };
-
-  home.file."git_altinity" = {
-    text = ''
-      [user]
-          email = hgoncalves@altinity.com
-    '';
-    target = "${config.xdg.configHome}/git/profiles/altinity";
   };
 
   programs.gh = {
@@ -83,7 +114,7 @@ in
     enable = true;
     package = pkgs.gitAndTools.gitFull;
 
-    userEmail = "kamus@hadenes.io";
+    userEmail = (mkEmail "kamus" "hadenes.io");
     userName = "Henrique Goncalves";
 
     delta = {
@@ -104,9 +135,22 @@ in
         if pkgs.stdenv.isDarwin then
           "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
         else
-          "/opt/1Password/op-ssh-sign";
+          "${pkgs._1password-gui}/bin/op-ssh-sign";
       signByDefault = true;
     };
+
+    includes =
+      [ { path = catppuccinDelta + "/catppuccin.gitconfig"; } ]
+      ++ (mkConditionalGithubIncludes "Altinity" {
+        user = {
+          email = (mkEmail "hgoncalves" "altinity.com");
+        };
+      })
+      ++ (mkConditionalGithubIncludes "stellarentropy" {
+        user = {
+          email = (mkEmail "kamus" "se.team");
+        };
+      });
 
     extraConfig = {
       core = {
@@ -152,19 +196,6 @@ in
 
       pull = {
         twohead = "ort";
-      };
-
-      includeIf = {
-        "gitdir:~/Dropbox/Projects/Altinity/" = {
-          path = "${config.xdg.configHome}/git/profiles/altinity";
-        };
-        "gitdir:/Volumes/DROPBOX/Projects/Altinity/" = {
-          path = "${config.xdg.configHome}/git/profiles/altinity";
-        };
-      };
-
-      include = {
-        path = catppuccinDelta + "/catppuccin.gitconfig";
       };
 
       transfer = {

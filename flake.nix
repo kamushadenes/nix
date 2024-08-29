@@ -6,10 +6,6 @@
       url = "github:nixos/nixpkgs/nixpkgs-24.05-darwin";
     };
 
-    nixpkgs-kitty-0-36 = {
-      url = "github:leiserfg/nixpkgs/c819a6d5bb2e53fe2e0256f5fa8fa13ed204c612";
-    };
-
     darwin = {
       url = "github:LnL7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -33,7 +29,6 @@
   outputs =
     inputs@{
       nixpkgs,
-      nixpkgs-kitty-0-36,
       home-manager,
       darwin,
       nh-darwin,
