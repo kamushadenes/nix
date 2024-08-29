@@ -40,6 +40,9 @@
       settings = {
         update_check_interval = 0;
 
+        scrollback_lines = 10000;
+        scrollback_pager_history_size = 10;
+
         term = "xterm-256color";
         allow_hyperklinks = "yes";
         editor = "nvim";
@@ -71,8 +74,7 @@
 
         active_border_color = "none";
 
-        # default layout is vertical splits only
-        enabled_layouts = "splits";
+        enabled_layouts = "*";
         enable_audio_bell = "no";
 
         allow_remote_control = "socket-only";
@@ -109,6 +111,7 @@
         "cmd+shift+d" = "launch --location=vsplit --cwd=current";
         "ctrl+h" = "kitty_scrollback_nvim";
         "ctrl+shift+h" = "kitty_scrollback_nvim --config ksb_builtin_last_cmd_output";
+        "ctrl+shift+l" = "next_layout";
       };
     };
   };
