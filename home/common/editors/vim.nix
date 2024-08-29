@@ -2,6 +2,7 @@
   inputs,
   pkgs,
   lib,
+  packages,
   ...
 }:
 {
@@ -27,6 +28,7 @@
         neogit
         plenary-nvim
         go-nvim
+        packages.kitty-scrollback
       ];
     };
   };

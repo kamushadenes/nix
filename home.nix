@@ -36,38 +36,17 @@ let
     '') (lib.attrNames globalVariables.base);
   };
 
-  fromYAML =
-    yaml:
-    builtins.fromJSON (
-      builtins.readFile (
-        pkgs.runCommand "from-yaml"
-          {
-            inherit yaml;
-            allowSubstitutes = false;
-            preferLocalBuild = true;
-          }
-          ''
-            ${pkgs.remarshal}/bin/remarshal  \
-              -if yaml \
-              -i <(echo "$yaml") \
-              -of json \
-              -o $out
-          ''
-      )
-    );
+  helpers = import ./helpers.nix { inherit lib pkgs osConfig; };
+  packages = import ./packages.nix { inherit pkgs; };
+  themes = import ./themes.nix { inherit pkgs; };
 
-  readYAML = path: fromYAML (builtins.readFile path);
 in
 {
   nixpkgs.config.allowUnfree = true;
 
   _module.args = {
-    inherit
-      globalVariables
-      opBinPath
-      fromYAML
-      readYAML
-      ;
+    inherit globalVariables opBinPath;
+    inherit helpers packages themes;
   };
 
   imports = [

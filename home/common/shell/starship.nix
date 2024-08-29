@@ -2,16 +2,9 @@
   config,
   lib,
   pkgs,
+  themes,
   ...
 }:
-let
-  starshipCatppuccin = pkgs.fetchFromGitHub {
-    owner = "catppuccin";
-    repo = "starship";
-    rev = "0cf91419f9649e9a47bb5c85797e4b83ecefe45c";
-    hash = "sha256-2JLybPsgFZ/Fzz4e0dd4Vo0lfi4tZVnRbw/jUCmN6Rw=";
-  };
-in
 {
   programs = {
     starship = {
@@ -27,7 +20,8 @@ in
         palette = "catppuccin_macchiato";
 
         palettes =
-          (builtins.fromTOML (builtins.readFile (starshipCatppuccin + "/themes/macchiato.toml"))).palettes;
+          (builtins.fromTOML (builtins.readFile (themes.starshipCatppuccin + "/themes/macchiato.toml")))
+          .palettes;
 
         format = lib.concatStringsSep "" [
           "$username"

@@ -1,16 +1,11 @@
 {
   pkgs,
   lib,
-  readYAML,
+  helpers,
+  themes,
   ...
 }:
 let
-  k9sCatppuccin = pkgs.fetchFromGitHub {
-    owner = "catppuccin";
-    repo = "k9s";
-    rev = "4432383da214face855a873d61d2aa914084ffa2";
-    hash = "sha256-GFWOldDhpn98X9eEaMVjhZtGDKxNukmSR2EZqAAOH6o=";
-  };
 in
 {
   home.packages = with pkgs; [
@@ -53,7 +48,7 @@ in
     };
 
     skins = {
-      catppuccin_macchiato = readYAML (k9sCatppuccin + "/dist/catppuccin-macchiato.yaml");
+      catppuccin_macchiato = helpers.readYAML (themes.k9sCatppuccin + "/dist/catppuccin-macchiato.yaml");
     };
 
     hotkey = {

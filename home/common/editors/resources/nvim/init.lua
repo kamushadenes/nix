@@ -8,6 +8,8 @@ require("catppuccin").setup({
     },
 })
 
+require('kitty-scrollback').setup()
+
 vim.cmd.colorscheme "catppuccin"
 
 vim.opt.number = true

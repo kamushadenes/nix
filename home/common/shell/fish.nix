@@ -5,22 +5,9 @@
   lib,
   osConfig,
   globalVariables,
+  helpers,
   ...
 }:
-let
-  setProfilesPath =
-    let
-      dquote = str: "\"" + str + "\"";
-
-      makeBinPathList = map (path: path + "/bin");
-    in
-    ''
-      fish_add_path --move --prepend --path ${
-        lib.concatMapStringsSep " " dquote (makeBinPathList osConfig.environment.profiles)
-      }
-      set fish_user_paths $fish_user_paths
-    '';
-in
 {
   home.sessionVariables = globalVariables.base;
 
@@ -142,7 +129,7 @@ in
           fish_add_path -a '${config.home.homeDirectory}/.krew/bin'
 
           # Move Nix paths back to the front
-          ${setProfilesPath};
+          ${helpers.setProfilesPath};
 
           ${globalVariables.fishShell}
 
@@ -172,7 +159,7 @@ in
         '')
       ];
 
-      loginShellInit = setProfilesPath;
+      loginShellInit = helpers.setProfilesPath;
 
       shellAliases = lib.mkMerge [
         {

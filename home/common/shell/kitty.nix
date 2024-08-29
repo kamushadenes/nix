@@ -3,6 +3,7 @@
   pkgs,
   lib,
   osConfig,
+  packages,
   ...
 }:
 {
@@ -27,6 +28,11 @@
       };
 
       theme = "Catppuccin-Macchiato";
+
+      extraConfig = ''
+        action_alias kitty_scrollback_nvim kitten ${packages.kitty-scrollback}/python/kitty_scrollback_nvim.py
+        mouse_map ctrl+shift+right press ungrabbed combine : mouse_select_command_output : kitty_scrollback_nvim --config ksb_builtin_last_visited_cmd_output
+      '';
 
       settings = {
         update_check_interval = 0;
@@ -66,6 +72,8 @@
         enabled_layouts = "splits";
         enable_audio_bell = "no";
 
+        allow_remote_control = "socket-only";
+
         # Performance
         input_delay = 0;
         repaint_delay = 2;
@@ -96,6 +104,8 @@
         "cmd+shift+n" = "new_os_window";
         "cmd+d" = "launch --location=hsplit --cwd=current";
         "cmd+shift+d" = "launch --location=vsplit --cwd=current";
+        "cmd+h" = "kitty_scrollback_nvim";
+        "chm+shift+h" = "kitty_scrollback_nvim --config ksb_builtin_last_cmd_output";
       };
     };
   };

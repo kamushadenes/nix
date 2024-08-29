@@ -2,61 +2,17 @@
   lib,
   pkgs,
   config,
+  packages,
+  helpers,
+  themes,
   ...
 }:
-let
-  gitSquash = pkgs.fetchFromGitHub {
-    owner = "sheerun";
-    repo = "git-squash";
-    rev = "e87fb1d410edceec3670101e2cf89297ecab5813";
-    hash = "sha256-yvufKIwjP7VcIzLi8mE228hN4jmaqk90c8oxJtkXEP8=";
-  };
-
-  catppuccinDelta = pkgs.fetchFromGitHub {
-    owner = "catppuccin";
-    repo = "delta";
-    rev = "b88f87aedbeb7dc74c38831cf385819b69b78cbe";
-    hash = "sha256-/zLkxfpTkZ744hUNANFmm96q81ydFM7EcxOj+0GoaGU=";
-  };
-
-  # Helper function to prevent email scraping
-  mkEmail = user: domain: "${user}@${domain}";
-
-  mkConditionalGithubIncludes =
-    org: contents:
-    let
-      lowercase = lib.strings.toLower org;
-    in
-    [
-      {
-        condition = "hasconfig:remote.*.url:https://github.com/${org}/**";
-        contents = contents;
-      }
-
-      {
-        condition = "hasconfig:remote.*.url:git@github.com:${org}/**";
-        contents = contents;
-      }
-    ]
-    ++ lib.optionals (lowercase != org) [
-
-      {
-        condition = "hasconfig:remote.*.url:https://github.com/${lowercase}/**";
-        contents = contents;
-      }
-
-      {
-        condition = "hasconfig:remote.*.url:git@github.com:${lowercase}/**";
-        contents = contents;
-      }
-    ];
-in
 {
   home.packages = with pkgs; [
     lefthook
     onefetch
     (writeScriptBin "git-info" "onefetch")
-    (writeScriptBin "git-squash" (builtins.readFile (gitSquash + "/git-squash")))
+    (writeScriptBin "git-squash" (builtins.readFile (packages.gitSquash + "/git-squash")))
   ];
 
   home.file."git_ignore_global" = {
@@ -114,7 +70,7 @@ in
     enable = true;
     package = pkgs.gitAndTools.gitFull;
 
-    userEmail = (mkEmail "kamus" "hadenes.io");
+    userEmail = (helpers.mkEmail "kamus" "hadenes.io");
     userName = "Henrique Goncalves";
 
     delta = {
@@ -140,15 +96,15 @@ in
     };
 
     includes =
-      [ { path = catppuccinDelta + "/catppuccin.gitconfig"; } ]
-      ++ (mkConditionalGithubIncludes "Altinity" {
+      [ { path = themes.deltaCatppuccin + "/catppuccin.gitconfig"; } ]
+      ++ (helpers.mkConditionalGithubIncludes "Altinity" {
         user = {
-          email = (mkEmail "hgoncalves" "altinity.com");
+          email = (helpers.mkEmail "hgoncalves" "altinity.com");
         };
       })
-      ++ (mkConditionalGithubIncludes "stellarentropy" {
+      ++ (helpers.mkConditionalGithubIncludes "stellarentropy" {
         user = {
-          email = (mkEmail "kamus" "se.team");
+          email = (helpers.mkEmail "kamus" "se.team");
         };
       });
 
