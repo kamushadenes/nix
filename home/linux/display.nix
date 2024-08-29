@@ -2,7 +2,7 @@
   config,
   pkgs,
   lib,
-  globalVariables,
+  helpers,
   ...
 }:
 {
@@ -34,10 +34,10 @@
 
       systemd = {
         enable = true;
-        variables = builtins.attrNames globalVariables/base;
+        variables = builtins.attrNames helpers.globalVariables.base;
       };
     };
   };
 
-  xsession = lib.mkIf pkgs.stdenv.isLinux { profileExtra = globalVariables.shell; };
+  xsession = lib.mkIf pkgs.stdenv.isLinux { profileExtra = helpers.globalVariables.shell; };
 }

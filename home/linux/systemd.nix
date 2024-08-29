@@ -1,9 +1,9 @@
-{ pkgs, globalVariables, ... }:
+{ pkgs, helpers, ... }:
 {
   systemd = {
     user = {
       enable = pkgs.stdenv.isLinux;
-      sessionVariables = globalVariables.base;
+      sessionVariables = helpers.globalVariables.base;
     };
   };
 }

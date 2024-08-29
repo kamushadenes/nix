@@ -6,6 +6,8 @@
   ...
 }:
 let
+  opBinPath = "${pkgs._1password}/bin/op";
+
   fromYAML =
     yaml:
     builtins.fromJSON (
@@ -25,6 +27,33 @@ let
           ''
       )
     );
+
+  globalVariables = {
+    base = {
+      DOOMDIR = "${config.xdg.configHome}/doom";
+      EMACSDIR = "${config.xdg.configHome}/emacs";
+      DOOMLOCALDIR = "${config.xdg.dataHome}/doom";
+      DOOMPROFILELOADFILE = "${config.xdg.stateHome}/doom-profiles-load.el";
+
+      NIX_HM_PROFILE = config.home.profileDirectory;
+
+      OP_BIN_PATH = opBinPath;
+
+      FLAKE = "${config.home.homeDirectory}/.config/nix/config/?submodules=1";
+    };
+
+    launchctl = lib.concatMapStringsSep "\n" (var: ''
+      run /bin/launchctl setenv ${var} "${globalVariables.base.${var}}"
+    '') (lib.attrNames globalVariables.base);
+
+    shell = lib.concatMapStringsSep "\n" (var: ''
+      export ${var}="${globalVariables.base.${var}}"
+    '') (lib.attrNames globalVariables.base);
+
+    fishShell = lib.concatMapStringsSep "\n" (var: ''
+      set -x ${var} "${globalVariables.base.${var}}"
+    '') (lib.attrNames globalVariables.base);
+  };
 in
 {
   fromYAML = fromYAML;
@@ -93,4 +122,8 @@ in
           path
       }
     '') (makeBinPathList osConfig.environment.profiles);
+
+  globalVariables = globalVariables;
+
+  opBinPath = opBinPath;
 }

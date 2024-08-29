@@ -7,35 +7,6 @@
   ...
 }:
 let
-  opBinPath = "${pkgs._1password}/bin/op";
-
-  globalVariables = {
-    base = {
-      DOOMDIR = "${config.xdg.configHome}/doom";
-      EMACSDIR = "${config.xdg.configHome}/emacs";
-      DOOMLOCALDIR = "${config.xdg.dataHome}/doom";
-      DOOMPROFILELOADFILE = "${config.xdg.stateHome}/doom-profiles-load.el";
-
-      NIX_HM_PROFILE = config.home.profileDirectory;
-
-      OP_BIN_PATH = opBinPath;
-
-      FLAKE = "${config.home.homeDirectory}/.config/nix/config/?submodules=1";
-    };
-
-    launchctl = lib.concatMapStringsSep "\n" (var: ''
-      run /bin/launchctl setenv ${var} "${globalVariables.base.${var}}"
-    '') (lib.attrNames globalVariables.base);
-
-    shell = lib.concatMapStringsSep "\n" (var: ''
-      export ${var}="${globalVariables.base.${var}}"
-    '') (lib.attrNames globalVariables.base);
-
-    fishShell = lib.concatMapStringsSep "\n" (var: ''
-      set -x ${var} "${globalVariables.base.${var}}"
-    '') (lib.attrNames globalVariables.base);
-  };
-
   helpers = import ./helpers.nix {
     inherit
       config
@@ -46,13 +17,11 @@ let
   };
   packages = import ./packages.nix { inherit pkgs; };
   themes = import ./themes.nix { inherit pkgs; };
-
 in
 {
   nixpkgs.config.allowUnfree = true;
 
   _module.args = {
-    inherit globalVariables opBinPath;
     inherit helpers packages themes;
   };
 
@@ -145,7 +114,7 @@ in
 
       # Darwin
       (lib.mkIf (isDarwin) {
-        doomEnv = lib.hm.dag.entryAfter [ "installPackages" ] globalVariables.launchctl;
+        doomEnv = lib.hm.dag.entryAfter [ "installPackages" ] helpers.globalVariables.launchctl;
       })
     ];
 

@@ -112,6 +112,8 @@
         "ctrl+h" = "kitty_scrollback_nvim";
         "ctrl+shift+h" = "kitty_scrollback_nvim --config ksb_builtin_last_cmd_output";
         "ctrl+shift+l" = "next_layout";
+        "ctrl+shift+z" = "scroll_to_prompt -1";
+        "ctrl+shift+x" = "scroll_to_prompt 1";
       };
     };
   };

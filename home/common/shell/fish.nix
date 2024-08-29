@@ -4,12 +4,11 @@
   pkgs,
   lib,
   osConfig,
-  globalVariables,
   helpers,
   ...
 }:
 {
-  home.sessionVariables = globalVariables.base;
+  home.sessionVariables = helpers.globalVariables.base;
 
   home.packages = with pkgs; [ terminal-notifier ];
 
@@ -131,7 +130,7 @@
           # Move Nix paths back to the front
           ${helpers.setProfilesPath};
 
-          ${globalVariables.fishShell}
+          ${helpers.globalVariables.fishShell}
 
           # Docker host running on a remote machine
           set -x DOCKER_HOST "tcp://10.23.23.204:2375"
@@ -167,9 +166,9 @@
             if osConfig.programs.nh.enable then
               ''nh os switch -H (hostname -s | sed s"/.local//g")''
             else if pkgs.stdenv.isDarwin then
-              ''darwin-rebuild switch --flake "${globalVariables.base.FLAKE}"''
+              ''darwin-rebuild switch --flake "${helpers.globalVariables.base.FLAKE}"''
             else
-              ''sudo nixos-rebuild switch --flake "${globalVariables.base.FLAKE}"'';
+              ''sudo nixos-rebuild switch --flake "${helpers.globalVariables.base.FLAKE}"'';
         }
 
         (lib.mkIf pkgs.stdenv.isDarwin { nh = "nh_darwin"; })
