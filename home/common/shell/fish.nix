@@ -130,6 +130,7 @@
           # Move Nix paths back to the front
           ${helpers.fishProfilesPath};
 
+          # Global Variables
           ${helpers.globalVariables.fishShell}
 
           # Docker host running on a remote machine
