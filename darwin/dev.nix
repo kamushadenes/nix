@@ -9,6 +9,5 @@
     "lens"
     "mqtt-explorer"
     "postman"
-    "zed"
   ];
 }

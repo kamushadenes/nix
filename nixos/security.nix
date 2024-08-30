@@ -3,7 +3,6 @@
 {
   environment.systemPackages = with pkgs; [
     burpsuite
-    maltego
     ngrok
     qFlipper
     wireshark

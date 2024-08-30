@@ -13,7 +13,6 @@
     "handbrake"
     "iina"
     "loopback"
-    "removebg"
     "screen-studio"
     "streamlabs"
     "vlc"

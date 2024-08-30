@@ -56,9 +56,8 @@ in
     ./home/common/dev/python.nix
 
     # Editors
-    ./home/common/editors/editor.nix
     ./home/common/editors/emacs.nix
-    ./home/common/editors/vim.nix
+    ./home/common/editors/nvim.nix
 
     # Infra
     ./home/common/infra/cloud.nix

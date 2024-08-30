@@ -42,6 +42,9 @@ let
 
       OP_BIN_PATH = opBinPath;
 
+      # Vim is better for quick edits
+      EDITOR = "nvim";
+
       FLAKE = "${config.home.homeDirectory}/.config/nix/config/?submodules=1";
     };
 

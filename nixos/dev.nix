@@ -7,6 +7,5 @@
     insomnia
     lens
     postman
-    zed-editor
   ];
 }

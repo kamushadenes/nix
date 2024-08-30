@@ -4,6 +4,5 @@
     infracost
     terraform
     packer
-    pulumi
   ];
 }
