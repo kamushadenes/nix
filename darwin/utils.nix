@@ -3,7 +3,6 @@
 {
   # Casks
   homebrew.casks = [
-    "alt-tab"
     "hazel"
     "mountain-duck"
     "pdf-expert"

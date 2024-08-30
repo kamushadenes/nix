@@ -29,7 +29,8 @@
       enable = true;
       enableBashIntegration = config.programs.bash.enable;
       enableZshIntegration = config.programs.zsh.enable;
-      enableFishIntegration = config.programs.fish.enable;
+      # Using evalcache
+      enableFishIntegration = false;
 
       flags = [ "--disable-up-arrow" ];
 
@@ -116,7 +117,8 @@
       enable = true;
       enableBashIntegration = config.programs.bash.enable;
       enableZshIntegration = config.programs.zsh.enable;
-      enableFishIntegration = config.programs.fish.enable;
+      # Using evalcache
+      enableFishIntegration = false;
       changeDirWidgetCommand = "fd --type d";
       defaultCommand = "fd --type f";
       fileWidgetCommand = "fd --type f";
@@ -141,7 +143,8 @@
       enable = true;
       enableBashIntegration = config.programs.bash.enable;
       enableZshIntegration = config.programs.zsh.enable;
-      enableFishIntegration = config.programs.fish.enable;
+      # Using evalcache
+      enableFishIntegration = false;
     };
 
     thefuck = {

@@ -97,24 +97,26 @@ in
 
   home.activation =
     let
-      inherit (pkgs.stdenv) isLinux isDarwin;
-
       fish = ''run ${pkgs.fish}/bin/fish -c'';
     in
     lib.mkMerge [
       # Common
       {
+        evalcacheClear = lib.hm.dag.entryAfter [ "installPackages" ] ''
+          ${fish} "_evalcache_clear"
+        '';
+
         doom = lib.hm.dag.entryAfter [ "doomEnv" ] ''
           ${fish} "${config.xdg.configHome}/emacs/bin/doom sync"
         '';
       }
 
       # Linux
-      (lib.mkIf (isLinux) { doomEnv = lib.hm.dag.entryAfter [ "installPackages" ] ''''; })
+      (lib.mkIf pkgs.stdenv.isLinux { doomEnv = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''''; })
 
       # Darwin
-      (lib.mkIf (isDarwin) {
-        doomEnv = lib.hm.dag.entryAfter [ "installPackages" ] helpers.globalVariables.launchctl;
+      (lib.mkIf pkgs.stdenv.isDarwin {
+        doomEnv = lib.hm.dag.entryAfter [ "evalcacheClear" ] helpers.globalVariables.launchctl;
       })
     ];
 

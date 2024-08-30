@@ -104,15 +104,31 @@
             hash = "sha256-J7y3BjqwuEH4zDQe4cWylLn+Vn2Q5pv0XwOSPwhw/Z0=";
           };
         }
+        {
+          name = "fish-evalcache";
+          src = fetchFromGitHub {
+            owner = "kamushadenes";
+            repo = "fish-evalcache";
+            rev = "54767fec7a928d747b5211131ed4d193d2a7e979";
+            hash = "sha256-G5zVzmAKWgZgJns3d4w5rC7/6uTwwfaYPwZhV0+QNO4=";
+          };
+        }
       ];
 
       shellInit = lib.mkMerge [
         # Darwin
+        # Cache homebrew init
         (lib.mkIf (pkgs.stdenv.isDarwin) ''
           # Setup homebrew
-          /opt/homebrew/bin/brew shellenv | source
+          _evalcache /opt/homebrew/bin/brew shellenv
         '')
 
+        # Force the use of terminal-notifier to work around Kitty broken notifications
+        (lib.mkIf (pkgs.stdenv.isDarwin && config.programs.kitty.enable) ''
+          set -U __done_notification_command "echo \"\$message\" | terminal-notifier -title \"\$title\" -sender \"\$__done_initial_window_id\" -sound default"
+        '')
+
+        # Common
         (lib.mkIf config.programs.yazi.enable ''
           if test $fish_key_bindings = fish_default_key_bindings
               bind \cf ya
@@ -121,7 +137,6 @@
           end
         '')
 
-        # Common
         ''
           fish_add_path -a '${config.home.homeDirectory}/.cargo/bin'
           fish_add_path -a '${config.home.homeDirectory}/.config/emacs/bin'
@@ -144,19 +159,46 @@
           set -x STARSHIP_LOG error
         '')
 
-        # Force the use of terminal-notifier to work around Kitty broken notifications
-        (lib.mkIf (pkgs.stdenv.isDarwin && config.programs.kitty.enable) ''
-          set -U __done_notification_command "echo \"\$message\" | terminal-notifier -title \"\$title\" -sender \"\$__done_initial_window_id\" -sound default"
+        # Cache navi init
+        (lib.mkIf (config.programs.navi.enable && !config.programs.navi.enableFishIntegration) ''
+          _evalcache ${pkgs.navi}/bin/navi widget fish
+        '')
+      ];
+
+      interactiveShellInit = lib.mkMerge [
+        # Cache fzf init
+        (lib.mkIf (config.programs.fzf.enable && !config.programs.fzf.enableFishIntegration) ''
+          _evalcache ${pkgs.fzf}/bin/fzf --fish
+        '')
+
+        # Cache atuin init
+        (lib.mkIf (config.programs.atuin.enable && !config.programs.atuin.enableFishIntegration) ''
+          _evalcache ${pkgs.atuin}/bin/atuin init fish ${lib.concatStringsSep " " config.programs.atuin.flags}
         '')
       ];
 
       shellInitLast = lib.mkMerge [
-        (lib.mkIf config.programs.starship.enable ''
-          # Fix fish-async-prompt
-          starship init fish | source
+        (lib.mkIf config.programs.starship.enable (
+          lib.mkMerge [
+            (lib.mkIf (!config.programs.starship.enableFishIntegration) (
+              lib.mkMerge [
+                # Cache starship init
+                ''
+                  # Fix fish-async-prompt
+                  _evalcache starship init fish
+                ''
 
-          set -U async_prompt_functions fish_right_prompt
-        '')
+                (lib.mkIf config.programs.starship.enableTransience ''
+                  enable_transience
+                '')
+              ]
+            ))
+
+            ''
+              set -U async_prompt_functions fish_right_prompt
+            ''
+          ]
+        ))
       ];
 
       loginShellInit = helpers.fishProfilesPath;

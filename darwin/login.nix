@@ -2,6 +2,10 @@
 
 {
   launchd.user.agents = {
+    magnet = {
+      serviceConfig.ProgramArguments = [ "/Applications/Magnet.app" ];
+      serviceConfig.RunAtLoad = true;
+    };
     parcel = {
       serviceConfig.ProgramArguments = [ "/Applications/Parcel.app" ];
       serviceConfig.RunAtLoad = true;
