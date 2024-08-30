@@ -94,3 +94,6 @@ coverage-final.json
 # Ignore Jupyter Notebook temporary files
 *.nbconvert/
 *.nb.html
+
+# Mise
+.mise.toml

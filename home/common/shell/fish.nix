@@ -117,6 +117,7 @@
 
       shellInit = lib.mkMerge [
         # Darwin
+
         # Cache homebrew init
         (lib.mkIf (pkgs.stdenv.isDarwin) ''
           # Setup homebrew
@@ -155,10 +156,6 @@
           ssh-add -q /Users/kamushadenes/.ssh/keys/id_ed25519
         ''
 
-        (lib.mkIf config.programs.starship.enable ''
-          set -x STARSHIP_LOG error
-        '')
-
         # Cache navi init
         (lib.mkIf (config.programs.navi.enable && !config.programs.navi.enableFishIntegration) ''
           _evalcache ${pkgs.navi}/bin/navi widget fish
@@ -180,6 +177,10 @@
       shellInitLast = lib.mkMerge [
         (lib.mkIf config.programs.starship.enable (
           lib.mkMerge [
+            ''
+              set -x STARSHIP_LOG error
+            ''
+
             (lib.mkIf (!config.programs.starship.enableFishIntegration) (
               lib.mkMerge [
                 # Cache starship init

@@ -5,7 +5,6 @@
   homebrew.masApps = {
     "1Password for Safari" = 1569813296;
     "Affinity Photo 2" = 1616822987;
-    "Fantastical" = 975937182;
     "GarageBand" = 682658836;
     "Grammarly for Safari" = 1462114288;
     "Keka" = 470158793;

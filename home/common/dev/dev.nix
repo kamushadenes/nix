@@ -19,8 +19,9 @@
 
     globalConfig = {
       tools = {
-        node = "lts";
+        node = [ "lts" ];
         python = [ "3.12" ];
+        usage = [ "0.3.1" ];
       };
     };
 

@@ -30,7 +30,7 @@ in
           "/System/Applications/Notes.app"
           "/Applications/Todoist.app"
           "/Applications/ClickUp.app"
-          "/Applications/Fantastical.app"
+          "/System/Applications/Calendar.app"
           "${pkgs.kitty}/Applications/kitty.app"
           "${pkgs.emacs29-pgtk}/Applications/Emacs.app"
           "/Applications/Setapp/TypingMind.app"
