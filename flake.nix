@@ -40,7 +40,7 @@
     in
     {
       darwinConfigurations = {
-        "studio" = darwin.lib.darwinSystem {
+        studio = darwin.lib.darwinSystem {
           system = "aarch64-darwin";
           specialArgs = {
             inherit inputs;
@@ -75,7 +75,7 @@
       };
 
       nixosConfigurations = {
-        "nixos" = nixpkgs.lib.nixosSystem {
+        nixos = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           specialArgs = {
             inherit inputs;

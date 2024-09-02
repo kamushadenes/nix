@@ -1,4 +1,9 @@
-{ pkgs, lib, ... }:
+{
+  pkgs,
+  lib,
+  osConfig,
+  ...
+}:
 {
   home.packages = with pkgs; [
     trash-cli
@@ -25,9 +30,14 @@
         ];
         cleanup = true;
       };
-      commands = {
-        "Run garbage collection on Nix store" = "nh clean all";
-      };
+      commands =
+        let
+          pkg = osConfig.programs.nh.package;
+        in
+        {
+          "Run garbage collection on Nix store" =
+            if pkgs.stdenv.isDarwin then "${pkg}/bin/nh_darwin clean all" else "${pkg}/bin/nh clean all";
+        };
     };
   };
 }
