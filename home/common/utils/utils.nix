@@ -14,14 +14,13 @@
     settings = {
       misc = {
         disable = [
-          "flutter"
-          "node"
-          "Emacs"
           "cargo"
-          "rustup"
-          "Containers"
+          "containers"
+          "emacs"
+          "flutter"
           "gcloud"
-          "Neovim"
+          "node"
+          "rustup"
           "vim"
         ];
         cleanup = true;
