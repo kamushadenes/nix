@@ -13,7 +13,6 @@ in
     ./darwin/backup.nix
     ./darwin/brew.nix
     ./darwin/browser.nix
-    ./darwin/capslock.nix
     ./darwin/db.nix
     ./darwin/dev.nix
     ./darwin/dock.nix

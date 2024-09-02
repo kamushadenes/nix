@@ -16,11 +16,18 @@
         disable = [
           "flutter"
           "node"
+          "Emacs"
+          "cargo"
+          "rustup"
+          "Containers"
+          "gcloud"
+          "Neovim"
+          "vim"
         ];
         cleanup = true;
       };
       commands = {
-        "Run garbage collection on Nix store" = "nix-collect-garbage";
+        "Run garbage collection on Nix store" = "nh clean all";
       };
     };
   };

@@ -4,8 +4,8 @@
   # App Store
   homebrew.masApps = {
     "1Password for Safari" = 1569813296;
+    "Canva" = 897446215;
     "GarageBand" = 682658836;
-    "Grammarly for Safari" = 1462114288;
     "Keynote" = 409183694;
     "MacFamilyTree 10" = 1567970985;
     "Magnet" = 441258766;
