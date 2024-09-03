@@ -39,6 +39,7 @@ in
     ./home/common/core/ssh.nix
 
     # Shell
+    ./home/common/shell/bash.nix
     ./home/common/shell/fish.nix
     ./home/common/shell/kitty.nix
     ./home/common/shell/misc.nix

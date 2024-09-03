@@ -54,6 +54,7 @@
       python312Packages.pytest
       python312Packages.cython
       python312Packages.grip
+      pyright
 
       # RST
       rstfmt

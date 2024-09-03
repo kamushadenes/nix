@@ -12,6 +12,12 @@
 (setq x-underline-at-descent-line t)
 (setq centaur-tabs-set-modified-marker t)
 
+;; Use Bash to spawn sub commands
+(setq shell-file-name (executable-find "bash"))
+
+;; Use fish for everything else
+(setq-default vterm-shell (executable-find "fish"))
+(setq-default explicit-shell-file-name (executable-find "fish"))
 
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
@@ -293,10 +299,10 @@
 (use-package! code-review
   :bind 
   (:map forge-topic-mode-map
-              ("C-c r" . #'code-review-forge-pr-at-point))
+        ("C-c r" . #'code-review-forge-pr-at-point))
   (:map code-review-mode-map
-              ("C-c C-n" . #'code-review-comment-jump-next)
-	      ("C-c C-p" . #'code-review-comment-jump-previous))
+        ("C-c C-n" . #'code-review-comment-jump-next)
+	("C-c C-p" . #'code-review-comment-jump-previous))
   :config
   (setq code-review-fill-column 80)
   (setq code-review-auth-login-marker 'forge)
@@ -305,3 +311,12 @@
             (lambda ()
               ;; include *Code-Review* buffer into current workspace
               (persp-add-buffer (current-buffer)))))
+
+;; Hugo
+(use-package! easy-hugo
+  :bind ("C-c C-e" . easy-hugo-menu)
+  (setq easy-hugo-basedir "~/Dropbox/Blog/")
+  (setq easy-hugo-url "https://blog.hadenes.io")
+  (setq easy-hugo-previewtime "300")
+  :config
+  (easy-hugo-enable-menu))

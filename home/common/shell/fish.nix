@@ -119,10 +119,7 @@
         # Darwin
 
         # Cache homebrew init
-        (lib.mkIf (pkgs.stdenv.isDarwin) ''
-          # Setup homebrew
-          _evalcache /opt/homebrew/bin/brew shellenv
-        '')
+        (lib.mkIf (pkgs.stdenv.isDarwin) "_evalcache /opt/homebrew/bin/brew shellenv")
 
         # Force the use of terminal-notifier to work around Kitty broken notifications
         (lib.mkIf (pkgs.stdenv.isDarwin && config.programs.kitty.enable) ''
@@ -157,16 +154,16 @@
         ''
 
         # Cache navi init
-        (lib.mkIf (config.programs.navi.enable && !config.programs.navi.enableFishIntegration) ''
-          _evalcache ${pkgs.navi}/bin/navi widget fish
-        '')
+        (lib.mkIf (
+          config.programs.navi.enable && !config.programs.navi.enableFishIntegration
+        ) "_evalcache ${pkgs.navi}/bin/navi widget fish")
       ];
 
       interactiveShellInit = lib.mkMerge [
         # Cache fzf init
-        (lib.mkIf (config.programs.fzf.enable && !config.programs.fzf.enableFishIntegration) ''
-          _evalcache ${pkgs.fzf}/bin/fzf --fish
-        '')
+        (lib.mkIf (
+          config.programs.fzf.enable && !config.programs.fzf.enableFishIntegration
+        ) "_evalcache ${pkgs.fzf}/bin/fzf --fish")
 
         # Cache atuin init
         (lib.mkIf (config.programs.atuin.enable && !config.programs.atuin.enableFishIntegration) ''
@@ -175,29 +172,21 @@
       ];
 
       shellInitLast = lib.mkMerge [
+        # Fix fish-async-prompt
         (lib.mkIf config.programs.starship.enable (
           lib.mkMerge [
-            ''
-              set -x STARSHIP_LOG error
-            ''
+            "set -x STARSHIP_LOG error"
 
             (lib.mkIf (!config.programs.starship.enableFishIntegration) (
               lib.mkMerge [
                 # Cache starship init
-                ''
-                  # Fix fish-async-prompt
-                  _evalcache starship init fish
-                ''
+                "_evalcache starship init fish"
 
-                (lib.mkIf config.programs.starship.enableTransience ''
-                  enable_transience
-                '')
+                (lib.mkIf config.programs.starship.enableTransience "enable_transience")
               ]
             ))
 
-            ''
-              set -U async_prompt_functions fish_right_prompt
-            ''
+            "set -U async_prompt_functions fish_right_prompt"
           ]
         ))
       ];

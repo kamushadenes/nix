@@ -35,3 +35,5 @@
 (package! ellama)
 
 (package! code-review)
+
+(package! easy-hugo)
