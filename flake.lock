@@ -11,17 +11,16 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1724270967,
-        "narHash": "sha256-KwPD7uZYrV4sUbDdUiSfoVk+Iva9/EO7ul+3/hcqwzg=",
-        "owner": "kamushadenes",
+        "lastModified": 1725344070,
+        "narHash": "sha256-YX2npWHeTV9SxfI7P4IcPqxkO7sp/twYpdo/SGxNTbk=",
+        "owner": "yaxitech",
         "repo": "ragenix",
-        "rev": "fe5b4e32fdf29c969200163ab4b14711ebdfd443",
+        "rev": "e977cf6d792e7959c8bb24d62a6b4bea14daa00f",
         "type": "github"
       },
       "original": {
-        "owner": "kamushadenes",
+        "owner": "yaxitech",
         "repo": "ragenix",
-        "rev": "fe5b4e32fdf29c969200163ab4b14711ebdfd443",
         "type": "github"
       }
     },
@@ -745,15 +744,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1723842898,
-        "narHash": "sha256-Md3AC532hisd6r6OXyU4EQQODmdW7M4l+GzMM83r10c=",
-        "owner": "kamushadenes",
+        "lastModified": 1720042825,
+        "narHash": "sha256-A0vrUB6x82/jvf17qPCpxaM+ulJnD8YZwH9Ci0BsAzE=",
+        "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "80de1f400eb05e779079c8c05f54abc0593bbb44",
+        "rev": "e1391fb22e18a36f57e6999c7a9f966dc80ac073",
         "type": "github"
       },
       "original": {
-        "owner": "kamushadenes",
+        "owner": "nix-community",
         "ref": "release-24.05",
         "repo": "home-manager",
         "type": "github"

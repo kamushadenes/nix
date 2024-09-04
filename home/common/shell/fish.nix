@@ -119,7 +119,7 @@
         # Darwin
 
         # Cache homebrew init
-        (lib.mkIf (pkgs.stdenv.isDarwin) "_evalcache /opt/homebrew/bin/brew shellenv")
+        (lib.mkIf (pkgs.stdenv.isDarwin) "_evalcache ${osConfig.homebrew.brewPrefix}/brew shellenv")
 
         # Force the use of terminal-notifier to work around Kitty broken notifications
         (lib.mkIf (pkgs.stdenv.isDarwin && config.programs.kitty.enable) ''

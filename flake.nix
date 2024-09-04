@@ -16,12 +16,12 @@
     };
 
     home-manager = {
-      url = "github:kamushadenes/home-manager/release-24.05";
+      url = "github:nix-community/home-manager/release-24.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     agenix = {
-      url = "github:kamushadenes/ragenix/fe5b4e32fdf29c969200163ab4b14711ebdfd443";
+      url = "github:yaxitech/ragenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
