@@ -5,7 +5,7 @@
   homebrew.brews = [
     {
       name = "backrest";
-      restart_service = "changed";
+      restart_service = true;
       start_service = true;
     }
   ];
