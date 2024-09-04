@@ -21,10 +21,6 @@
       serviceConfig.ProgramArguments = [ "/Applications/Setapp/HazeOver.app" ];
       serviceConfig.RunAtLoad = true;
     };
-    notchnook = {
-      serviceConfig.ProgramArguments = [ "/Applications/Setapp/NotchNook.app" ];
-      serviceConfig.RunAtLoad = true;
-    };
     paste = {
       serviceConfig.ProgramArguments = [ "/Applications/Setapp/Paste.app" ];
       serviceConfig.RunAtLoad = true;

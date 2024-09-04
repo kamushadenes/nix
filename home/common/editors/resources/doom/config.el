@@ -315,8 +315,8 @@
 ;; Hugo
 (use-package! easy-hugo
   :bind ("C-c C-e" . easy-hugo-menu)
+  :config
   (setq easy-hugo-basedir "~/Dropbox/Blog/")
   (setq easy-hugo-url "https://blog.hadenes.io")
   (setq easy-hugo-previewtime "300")
-  :config
   (easy-hugo-enable-menu))

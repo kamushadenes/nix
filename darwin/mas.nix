@@ -13,6 +13,7 @@
     "Microsoft PowerPoint" = 462062816;
     "Microsoft Remote Desktop" = 1295203466;
     "Microsoft Word" = 462054704;
+    "NotchDrop" = 6529528324;
     "Numbers" = 409203825;
     "Pages" = 409201541;
     "Parallels Desktop" = 1085114709;

@@ -6,6 +6,10 @@
       serviceConfig.ProgramArguments = [ "/Applications/Magnet.app" ];
       serviceConfig.RunAtLoad = true;
     };
+    notchdrop = {
+      serviceConfig.ProgramArguments = [ "/Applications/NotchDrop.app" ];
+      serviceConfig.RunAtLoad = true;
+    };
     parcel = {
       serviceConfig.ProgramArguments = [ "/Applications/Parcel.app" ];
       serviceConfig.RunAtLoad = true;
