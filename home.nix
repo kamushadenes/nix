@@ -117,6 +117,10 @@ in
       # Darwin
       (lib.mkIf pkgs.stdenv.isDarwin {
         doomEnv = lib.hm.dag.entryAfter [ "evalcacheClear" ] helpers.globalVariables.launchctl;
+        backrestRestart = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
+          ${fish} "type -q -f /tmp/.restart_backrest; and /opt/homebrew/bin/brew services restart backrest
+          ${fish} "type -q -f /tmp/.restart_backrest; and rm -f /tmp/.restart_backrest"
+        '';
       })
     ];
 

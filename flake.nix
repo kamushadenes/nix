@@ -68,6 +68,7 @@
                 home-manager.useUserPackages = true;
                 home-manager.users.kamushadenes = import ./home.nix;
                 home-manager.sharedModules = sharedModules;
+                home-manager.backupFileExtension = "hm.bkp";
               }
             )
           ];
@@ -103,6 +104,7 @@
                 home-manager.useUserPackages = true;
                 home-manager.users.kamushadenes = import ./home.nix;
                 home-manager.sharedModules = sharedModules;
+                home-manager.backupFileExtension = "hm.bkp";
               }
             )
           ];
