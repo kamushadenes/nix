@@ -46,6 +46,7 @@ let
       EDITOR = "nvim";
 
       FLAKE = "${config.home.homeDirectory}/.config/nix/config/?submodules=1";
+      DARWIN_USER_TEMP_DIR = lib.optionals pkgs.stdenv.isDarwin ''$(${pkgs.coreutils}/bin/printf '%s' "$(${lib.getExe pkgs.getconf} DARWIN_USER_TEMP_DIR)" | ${pkgs.coreutils}/bin/tr -d "\n")'';
     };
 
     launchctl = lib.concatMapStringsSep "\n" (var: ''
@@ -137,4 +138,11 @@ in
 
   # 1Password Binary Path
   opBinPath = opBinPath;
+
+  mkAgenixPathSubst =
+    path:
+    if pkgs.stdenv.isDarwin then
+      "\${DARWIN_USER_TEMP_DIR}${lib.concatStrings (lib.strings.match ".*\)(.*)" (builtins.toString path))}"
+    else
+      "\${XDG_RUNTIME_DIR}${lib.concatStrings (lib.strings.match ".[A-Z_]+\(.*\)" (builtins.toString path))}";
 }

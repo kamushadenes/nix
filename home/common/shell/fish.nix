@@ -150,7 +150,7 @@
           set -x DOCKER_HOST "tcp://10.23.23.204:2375"
 
           # SSH Keys
-          ssh-add -q /Users/kamushadenes/.ssh/keys/id_ed25519
+          ssh-add -q ${config.age.secrets."id_ed25519.age".path}
         ''
 
         # Cache navi init
