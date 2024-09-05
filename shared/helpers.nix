@@ -6,10 +6,14 @@
   ...
 }:
 let
-  # 1Password Binary Path
+  ########################################
+  # 1Password Path                       #
+  ########################################
   opBinPath = lib.getExe pkgs._1password;
 
-  # YAML reading functions
+  ########################################
+  # YAML Reading Functions               #
+  ########################################
   fromYAML =
     yaml:
     builtins.fromJSON (
@@ -30,7 +34,12 @@ let
       )
     );
 
-  # Global Variables
+  readYAML = path: fromYAML (builtins.readFile path);
+
+  ########################################
+  # Global Variables                     #
+  ########################################
+
   globalVariables = {
     base = {
       DOOMDIR = "${config.xdg.configHome}/doom";
@@ -61,16 +70,17 @@ let
       set -x ${var} "${globalVariables.base.${var}}"
     '') (lib.attrNames globalVariables.base);
   };
-in
-{
-  # YAML reading functions
-  fromYAML = fromYAML;
-  readYAML = path: fromYAML (builtins.readFile path);
 
-  # Helper function to prevent email scraping
+  ########################################
+  # Email Helper Functions               #
+  ########################################
+
   mkEmail = user: domain: "${user}@${domain}";
 
-  # Helper function to generate conditional includes for GitHub
+  ########################################
+  # Git Helper Functions                 #
+  ########################################
+
   mkConditionalGithubIncludes =
     org: contents:
     let
@@ -100,7 +110,10 @@ in
       }
     ];
 
-  # Helper functions to generate profile paths for fish and kitty
+  ########################################
+  # Fish Configuration Functions         #
+  ########################################
+
   fishProfilesPath =
     let
       dquote = str: "\"" + str + "\"";
@@ -113,6 +126,10 @@ in
       }
       set fish_user_paths $fish_user_paths
     '';
+
+  ########################################
+  # Kitty Configuration Functions        #
+  ########################################
 
   kittyProfilesPath =
     let
@@ -133,11 +150,9 @@ in
       }
     '') (makeBinPathList osConfig.environment.profiles);
 
-  # Global Variables
-  globalVariables = globalVariables;
-
-  # 1Password Binary Path
-  opBinPath = opBinPath;
+  ########################################
+  # Agenix Helper Functions              #
+  ########################################
 
   mkAgenixPathSubst =
     path:
@@ -145,4 +160,122 @@ in
       "\${DARWIN_USER_TEMP_DIR}${lib.concatStrings (lib.strings.match ".*\)(.*)" (builtins.toString path))}"
     else
       "\${XDG_RUNTIME_DIR}${lib.concatStrings (lib.strings.match ".[A-Z_]+\(.*\)" (builtins.toString path))}";
+
+  ########################################
+  # Backrest Configuration Functions     #
+  ########################################
+
+  mkBackrestConfig = machine: repos: plans: auth: {
+    modno = 1;
+    instance = machine;
+    repos = repos;
+    plans = plans;
+    auth = auth;
+  };
+
+  mkBackrestRepo = name: uri: passwordFile: prunePolicy: checkPolicy: {
+    id = name;
+    uri = uri;
+    env = [ "RESTIC_PASSWORD_FILE=${passwordFile}" ];
+    prunePolicy = lib.mkMerge [
+      {
+        schedule = {
+          maxFrequencyDays = 7;
+          onError = "ON_ERROR_IGNORE";
+        };
+      }
+      (lib.mkForce prunePolicy)
+    ];
+
+    checkPolicy = lib.mkMerge [
+      { readDataSubsetPercent = 0; }
+      (lib.mkForce checkPolicy)
+    ];
+  };
+
+  mkBackrestPlan = name: repo: paths: excludes: schedule: retention: flags: healthCheckId: {
+    id = name;
+    repo = repo;
+    paths = paths;
+    excludes = excludes;
+    schedule = schedule;
+    retention = lib.mkMerge [
+      {
+        policyTimeBucketed = {
+          hourly = 24;
+          daily = 7;
+          weekly = 4;
+          monthly = 3;
+        };
+      }
+      (lib.mkForce retention)
+    ];
+    backup_flags = [
+      "--exclude-if-present .nobackup"
+      "--exclude-caches"
+    ] ++ flags;
+    hooks = [
+      {
+        conditions = [ "CONDITION_SNAPSHOT_START" ];
+        actionCommand = {
+          command = "${lib.getExe pkgs.curl} -fsS --retry 3 https://hc-ping.com/${healthCheckId}/start";
+        };
+        onError = "ON_ERROR_IGNORE";
+      }
+      {
+        conditions = [ "CONDITION_SNAPSHOT_SUCCESS" ];
+        actionCommand = {
+          command = "${lib.getExe pkgs.curl} -fsS --retry 3 https://hc-ping.com/${healthCheckId}";
+        };
+        onError = "ON_ERROR_IGNORE";
+      }
+      {
+        conditions = [ "CONDITION_SNAPSHOT_ERROR" ];
+        actionCommand = {
+          command = "${lib.getExe pkgs.curl} -fsS --retry 3 https://hc-ping.com/${healthCheckId}/fail";
+        };
+        onError = "ON_ERROR_IGNORE";
+      }
+      (lib.mkIf pkgs.stdenv.isDarwin {
+        conditions = [ "CONDITION_SNAPSHOT_ERROR" ];
+        actionCommand = {
+          command = ''
+            /usr/bin/osascript -e 'display notification "{{ .ShellEscape .Task }} failed" with title "Backrest"'
+          '';
+        };
+        onError = "ON_ERROR_IGNORE";
+      })
+    ];
+  };
+in
+{
+  # 1Password Binary Path
+  opBinPath = opBinPath;
+
+  # YAML reading functions
+  fromYAML = fromYAML;
+  readYAML = readYAML;
+
+  # Global Variables
+  globalVariables = globalVariables;
+
+  # Email Helper Functions
+  mkEmail = mkEmail;
+
+  # Git Helper Functions
+  mkConditionalGithubIncludes = mkConditionalGithubIncludes;
+
+  # Fish Configuration Functions
+  fishProfilesPath = fishProfilesPath;
+
+  # Kitty Configuration Functions
+  kittyProfilesPath = kittyProfilesPath;
+
+  # Agenix Helper Functions
+  mkAgenixPathSubst = mkAgenixPathSubst;
+
+  # Backrest Configuration Functions
+  mkBackrestConfig = mkBackrestConfig;
+  mkBackrestRepo = mkBackrestRepo;
+  mkBackrestPlan = mkBackrestPlan;
 }

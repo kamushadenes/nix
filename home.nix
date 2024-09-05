@@ -7,6 +7,7 @@
   ...
 }:
 let
+  fishPlugins = import ./shared/fish-plugins.nix { inherit pkgs; };
   helpers = import ./shared/helpers.nix {
     inherit config;
     inherit lib;
@@ -15,7 +16,6 @@ let
   };
   packages = import ./shared/packages.nix { inherit pkgs; };
   themes = import ./shared/themes.nix { inherit pkgs; };
-  fishPlugins = import ./shared/fish-plugins.nix { inherit pkgs; };
 in
 {
   nixpkgs.config.allowUnfree = true;
