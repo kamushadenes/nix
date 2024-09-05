@@ -36,7 +36,10 @@
         in
         {
           "Run garbage collection on Nix store" =
-            if pkgs.stdenv.isDarwin then "${pkg}/bin/nh_darwin clean all" else "${pkg}/bin/nh clean all";
+            if pkgs.stdenv.isDarwin then
+              "${lib.getExe' pkg "nh_darwin"} clean all"
+            else
+              "${lib.getExe' pkg "nh"} clean all";
         };
     };
   };

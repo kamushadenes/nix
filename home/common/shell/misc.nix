@@ -113,23 +113,26 @@
       ];
     };
 
-    fzf = {
-      enable = true;
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
-      # Using evalcache
-      enableFishIntegration = false;
-      changeDirWidgetCommand = "fd --type d";
-      defaultCommand = "fd --type f";
-      fileWidgetCommand = "fd --type f";
-
-      # Catppuccin Macchiato
-      colors = themes.fzfCatppuccinMacchiato;
-      defaultOptions = [
-        "--multi"
-        "--border"
-      ];
-    };
+    fzf = lib.mkMerge [
+      {
+        enable = true;
+        enableBashIntegration = config.programs.bash.enable;
+        enableZshIntegration = config.programs.zsh.enable;
+        # Using evalcache
+        enableFishIntegration = false;
+        # Catppuccin Macchiato
+        colors = themes.fzfCatppuccinMacchiato;
+        defaultOptions = [
+          "--multi"
+          "--border"
+        ];
+      }
+      (lib.mkIf config.programs.fd.enable {
+        changeDirWidgetCommand = "${lib.getExe config.programs.fd.package} --type d";
+        defaultCommand = "${lib.getExe config.programs.fd.package} --type f";
+        fileWidgetCommand = "${lib.getExe config.programs.fd.package} --type f";
+      })
+    ];
 
     htop = {
       enable = true;

@@ -1,9 +1,4 @@
 { pkgs, lib, ... }:
 {
-  home.packages =
-    with pkgs;
-    lib.optionals pkgs.stdenv.isLinux [
-      alacritty
-      kitty
-    ];
+  home.packages = with pkgs; lib.optionals pkgs.stdenv.isLinux [ alacritty ];
 }

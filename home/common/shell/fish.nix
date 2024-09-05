@@ -29,10 +29,13 @@ in
             body = "";
           };
 
+        }
+
+        (lib.mkIf pkgs.stdenv.isDarwin {
           flushdns = {
             body = "sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder";
           };
-        }
+        })
 
         (lib.mkIf config.programs.starship.enable {
           starship_transient_prompt_func = {
@@ -71,7 +74,7 @@ in
 
         # Force the use of terminal-notifier to work around Kitty broken notifications
         (lib.mkIf (pkgs.stdenv.isDarwin && config.programs.kitty.enable) ''
-          set -U __done_notification_command "echo \"\$message\" | terminal-notifier -title \"\$title\" -sender \"\$__done_initial_window_id\" -sound default"
+          set -U __done_notification_command "echo \"\$message\" | ${lib.getExe pkgs.terminal-notifier} -title \"\$title\" -sender \"\$__done_initial_window_id\" -sound default"
         '')
 
         # Common
@@ -130,7 +133,7 @@ in
             (lib.mkIf (!config.programs.starship.enableFishIntegration) (
               lib.mkMerge [
                 # Cache starship init
-                "_evalcache starship init fish"
+                "_evalcache ${lib.getExe pkgs.starship} init fish"
 
                 (lib.mkIf config.programs.starship.enableTransience "enable_transience")
               ]

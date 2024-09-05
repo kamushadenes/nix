@@ -15,14 +15,12 @@
     (writeScriptBin "git-squash" (builtins.readFile (packages.gitSquash + "/git-squash")))
   ];
 
-  home.file."git_ignore_global" = {
+  xdg.configFile."git/ignore" = {
     source = ./resources/git/gitignore_global;
-    target = "${config.xdg.configHome}/git/ignore";
   };
 
-  home.file."git_template_hooks" = {
+  xdg.configFile."git/template/hooks" = {
     source = ./resources/git/hooks;
-    target = "${config.xdg.configHome}/git/template/hooks";
   };
 
   programs.gh = {
@@ -91,7 +89,7 @@
         if pkgs.stdenv.isDarwin then
           "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
         else
-          "${pkgs._1password-gui}/bin/op-ssh-sign";
+          (lib.getExe' pkgs._1password-gui "op-ssh-sign");
       signByDefault = true;
     };
 
@@ -111,7 +109,7 @@
     extraConfig = {
       core = {
         fsmonitor = true;
-        excludesFile = "${config.xdg.configHome}/git/ignore";
+        excludesFile = config.xdg.configFile."git/ignore".target;
       };
 
       github = {
@@ -120,7 +118,7 @@
 
       init = {
         defaultBranch = "main";
-        templatedir = "${config.xdg.configHome}/git/template";
+        templatedir = config.xdg.configFile."git/template/hooks".target;
       };
 
       merge = {
