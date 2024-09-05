@@ -7,7 +7,7 @@
   ...
 }:
 let
-  helpers = import ./helpers.nix {
+  helpers = import ./shared/helpers.nix {
     inherit
       config
       lib
@@ -15,14 +15,18 @@ let
       osConfig
       ;
   };
-  packages = import ./packages.nix { inherit pkgs; };
-  themes = import ./themes.nix { inherit pkgs; };
+  packages = import ./shared/packages.nix { inherit pkgs; };
+  themes = import ./shared/themes.nix { inherit pkgs; };
+  fishPlugins = import ./shared/fish-plugins.nix { inherit pkgs; };
 in
 {
   nixpkgs.config.allowUnfree = true;
 
   _module.args = {
-    inherit helpers packages themes;
+    inherit helpers;
+    inherit packages;
+    inherit themes;
+    inherit fishPlugins;
   };
 
   imports = [
