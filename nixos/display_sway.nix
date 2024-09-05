@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   security = {
@@ -45,7 +45,7 @@
     description = "kanshi daemon";
     serviceConfig = {
       Type = "simple";
-      ExecStart = ''${pkgs.kanshi}/bin/kanshi -c kanshi_config_file'';
+      ExecStart = "${lib.getExe pkgs.kanshi} -c kanshi_config_file";
     };
   };
 }

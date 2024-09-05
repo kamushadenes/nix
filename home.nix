@@ -8,12 +8,10 @@
 }:
 let
   helpers = import ./shared/helpers.nix {
-    inherit
-      config
-      lib
-      pkgs
-      osConfig
-      ;
+    inherit config;
+    inherit lib;
+    inherit pkgs;
+    inherit osConfig;
   };
   packages = import ./shared/packages.nix { inherit pkgs; };
   themes = import ./shared/themes.nix { inherit pkgs; };
@@ -101,7 +99,7 @@ in
 
   home.activation =
     let
-      fish = ''run ${pkgs.fish}/bin/fish -c'';
+      fish = ''run ${lib.getExe pkgs.fish} -c'';
     in
     lib.mkMerge [
       # Common

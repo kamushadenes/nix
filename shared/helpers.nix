@@ -7,7 +7,7 @@
 }:
 let
   # 1Password Binary Path
-  opBinPath = "${pkgs._1password}/bin/op";
+  opBinPath = lib.getExe pkgs._1password;
 
   # YAML reading functions
   fromYAML =
@@ -21,7 +21,7 @@ let
             preferLocalBuild = true;
           }
           ''
-            ${pkgs.remarshal}/bin/remarshal  \
+            ${lib.getExe pkgs.remarshal} \
               -if yaml \
               -i <(echo "$yaml") \
               -of json \

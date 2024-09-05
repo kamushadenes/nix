@@ -106,18 +106,18 @@ in
         # Cache navi init
         (lib.mkIf (
           config.programs.navi.enable && !config.programs.navi.enableFishIntegration
-        ) "_evalcache ${pkgs.navi}/bin/navi widget fish")
+        ) "_evalcache ${lib.getExe pkgs.navi} widget fish")
       ];
 
       interactiveShellInit = lib.mkMerge [
         # Cache fzf init
         (lib.mkIf (
           config.programs.fzf.enable && !config.programs.fzf.enableFishIntegration
-        ) "_evalcache ${pkgs.fzf}/bin/fzf --fish")
+        ) "_evalcache ${lib.getExe pkgs.fzf} --fish")
 
         # Cache atuin init
         (lib.mkIf (config.programs.atuin.enable && !config.programs.atuin.enableFishIntegration) ''
-          _evalcache ${pkgs.atuin}/bin/atuin init fish ${lib.concatStringsSep " " config.programs.atuin.flags}
+          _evalcache ${lib.getExe pkgs.atuin} init fish ${lib.concatStringsSep " " config.programs.atuin.flags}
         '')
       ];
 
