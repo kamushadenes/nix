@@ -46,7 +46,7 @@ let
       EDITOR = "nvim";
 
       FLAKE = "${config.home.homeDirectory}/.config/nix/config/?submodules=1";
-      DARWIN_USER_TEMP_DIR = lib.optionals pkgs.stdenv.isDarwin ''$(${pkgs.coreutils}/bin/printf '%s' "$(${lib.getExe pkgs.getconf} DARWIN_USER_TEMP_DIR)" | ${pkgs.coreutils}/bin/tr -d "\n")'';
+      DARWIN_USER_TEMP_DIR = lib.optionals pkgs.stdenv.isDarwin ''$(${lib.getExe' pkgs.coreutils "printf"} '%s' "$(${lib.getExe pkgs.getconf} DARWIN_USER_TEMP_DIR)" | ${lib.getExe' pkgs.coreutils "tr"} -d "\n")'';
     };
 
     launchctl = lib.concatMapStringsSep "\n" (var: ''
