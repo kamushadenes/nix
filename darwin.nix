@@ -1,6 +1,6 @@
 { pkgs, platform, ... }:
 let
-  packages = import ./packages.nix { inherit pkgs; };
+  packages = import ./shared/packages.nix { inherit pkgs; };
 in
 {
   _module.args = {
