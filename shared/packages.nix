@@ -43,33 +43,4 @@
       platforms = lib.platforms.all;
     };
   };
-
-  sbarlua = pkgs.stdenv.mkDerivation rec {
-    pname = "sbarlua";
-    version = "1.0.0";
-    src = pkgs.fetchFromGitHub {
-      owner = "FelixKratz";
-      repo = "SbarLua";
-      rev = "437bd2031da38ccda75827cb7548e7baa4aa9978";
-      hash = "sha256-F0UfNxHM389GhiPQ6/GFbeKQq5EvpiqQdvyf7ygzkPg=";
-    };
-
-    nativeBuildInputs = with pkgs; [
-      clang
-      gcc
-    ];
-    buildInputs = with pkgs; [ readline ];
-    outputs = [ "out" ];
-
-    installPhase = ''
-      mv bin "$out"
-    '';
-
-    meta = with pkgs; {
-      description = "A Lua API for SketchyBar";
-      homepage = "https://github.com/FelixKratz/SbarLua";
-      license = lib.licenses.gpl3;
-      platforms = lib.platforms.darwin;
-    };
-  };
 }

@@ -83,8 +83,6 @@ let
 
       # Work around https://github.com/Homebrew/brew/issues/13219
       HOMEBREW_SSH_CONFIG_PATH = "${config.xdg.configHome}/ssh/brew_config";
-
-      LUA_PATH = "${config.xdg.configHome}/sketchybar/?.lua;${config.xdg.configHome}/sketchybar_helpers/?/init.lua;./?.lua";
     };
 
     launchctl = lib.concatMapStringsSep "\n" (var: ''
