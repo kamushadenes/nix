@@ -12,7 +12,14 @@
       text = helpers.toTOML {
         after-login-command = [ ];
         after-startup-command = [
+          "exec-and-forget sketchybar"
           "exec-and-forget ${osConfig.homebrew.brewPrefix}/borders active_color=0xffe1e3e4 inactive_color=0xff494d64 width=5.0"
+        ];
+        # Notify Sketchybar about workspace change
+        exec-on-workspace-change = [
+          (lib.getExe pkgs.fish)
+          "-c"
+          ''"${osConfig.homebrew.brewPrefix}/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE"''
         ];
         start-at-login = true;
         enable-normalization-flatten-containers = true;
@@ -32,7 +39,7 @@
           outer.right = 0;
         };
 
-        mode.main.bindings = {
+        mode.main.binding = {
           alt-slash = "layout tiles horizontal vertical";
           alt-comma = "layout accordion horizontal vertical";
           alt-j = "focus left";

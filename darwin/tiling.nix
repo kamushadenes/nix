@@ -8,5 +8,8 @@
 
   homebrew.casks = [ "aerospace" ];
 
-  homebrew.brews = [ "borders" ];
+  homebrew.brews = [
+    "borders"
+    "sketchybar"
+  ];
 }

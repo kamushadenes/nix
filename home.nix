@@ -87,6 +87,7 @@ in
     # MacOS specific
     ./home/macos/aerospace.nix
     ./home/macos/dropbox.nix
+    ./home/macos/sketchybar.nix
 
     # Linux specific
     ./home/linux/display.nix
