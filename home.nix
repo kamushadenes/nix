@@ -85,6 +85,7 @@ in
     ./home/altinity/utils.nix
 
     # MacOS specific
+    ./home/macos/aerospace.nix
     ./home/macos/dropbox.nix
 
     # Linux specific

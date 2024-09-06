@@ -7,12 +7,16 @@
 }:
 let
   ########################################
+  #                                      #
   # 1Password Path                       #
+  #                                      #
   ########################################
   opBinPath = lib.getExe pkgs._1password;
 
   ########################################
+  #                                      #
   # YAML Reading Functions               #
+  #                                      #
   ########################################
   fromYAML =
     yaml:
@@ -25,11 +29,7 @@ let
             preferLocalBuild = true;
           }
           ''
-            ${lib.getExe pkgs.remarshal} \
-              -if yaml \
-              -i <(echo "$yaml") \
-              -of json \
-              -o $out
+            ${lib.getExe pkgs.remarshal} -if yaml -i <(echo "$yaml") -of json -o $out
           ''
       )
     );
@@ -37,7 +37,9 @@ let
   readYAML = path: fromYAML (builtins.readFile path);
 
   ########################################
+  #                                      #
   # Global Variables                     #
+  #                                      #
   ########################################
 
   globalVariables = {
@@ -56,6 +58,9 @@ let
 
       FLAKE = "${config.home.homeDirectory}/.config/nix/config/?submodules=1";
       DARWIN_USER_TEMP_DIR = lib.optionals pkgs.stdenv.isDarwin ''$(${lib.getExe' pkgs.coreutils "printf"} '%s' "$(${lib.getExe pkgs.getconf} DARWIN_USER_TEMP_DIR)" | ${lib.getExe' pkgs.coreutils "tr"} -d "\n")'';
+
+      # Work around https://github.com/Homebrew/brew/issues/13219
+      HOMEBREW_SSH_CONFIG_PATH = "${config.xdg.configHome}/ssh/brew_config";
     };
 
     launchctl = lib.concatMapStringsSep "\n" (var: ''
@@ -72,13 +77,17 @@ let
   };
 
   ########################################
+  #                                      #
   # Email Helper Functions               #
+  #                                      #
   ########################################
 
   mkEmail = user: domain: "${user}@${domain}";
 
   ########################################
+  #                                      #
   # Git Helper Functions                 #
+  #                                      #
   ########################################
 
   mkConditionalGithubIncludes =
@@ -111,7 +120,9 @@ let
     ];
 
   ########################################
+  #                                      #
   # Fish Configuration Functions         #
+  #                                      #
   ########################################
 
   fishProfilesPath =
@@ -128,7 +139,9 @@ let
     '';
 
   ########################################
+  #                                      #
   # Kitty Configuration Functions        #
+  #                                      #
   ########################################
 
   kittyProfilesPath =
@@ -151,7 +164,9 @@ let
     '') (makeBinPathList osConfig.environment.profiles);
 
   ########################################
+  #                                      #
   # Agenix Helper Functions              #
+  #                                      #
   ########################################
 
   mkAgenixPathSubst =
@@ -162,7 +177,9 @@ let
       "\${XDG_RUNTIME_DIR}${lib.concatStrings (lib.strings.match ".[A-Z_]+\(.*\)" (builtins.toString path))}";
 
   ########################################
+  #                                      #
   # Backrest Configuration Functions     #
+  #                                      #
   ########################################
 
   mkBackrestConfig = machine: repos: plans: auth: {

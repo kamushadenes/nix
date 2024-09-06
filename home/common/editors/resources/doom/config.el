@@ -262,7 +262,7 @@
   :init
   (require 'llm-openai)
   :custom
-  (magit-gptcommit-llm-provider (make-llm-openai :chat-model "gpt-4o" :key (get-openai-api-key)))
+  (magit-gptcommit-llm-provider (make-llm-openai :chat-model "gpt-4o-mini" :key (get-openai-api-key)))
   :config
   (magit-gptcommit-mode 1)
   (magit-gptcommit-status-buffer-setup)

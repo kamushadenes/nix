@@ -8,7 +8,6 @@
     "GarageBand" = 682658836;
     "Keynote" = 409183694;
     "MacFamilyTree 10" = 1567970985;
-    "Magnet" = 441258766;
     "Microsoft Excel" = 462058435;
     "Microsoft PowerPoint" = 462062816;
     "Microsoft Remote Desktop" = 1295203466;

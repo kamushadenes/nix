@@ -2,10 +2,6 @@
 
 {
   launchd.user.agents = {
-    magnet = {
-      serviceConfig.ProgramArguments = [ "/Applications/Magnet.app" ];
-      serviceConfig.RunAtLoad = true;
-    };
     notchdrop = {
       serviceConfig.ProgramArguments = [ "/Applications/NotchDrop.app" ];
       serviceConfig.RunAtLoad = true;

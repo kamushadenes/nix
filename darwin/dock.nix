@@ -17,6 +17,7 @@ in
         orientation = "bottom";
         show-process-indicators = true;
         show-recents = false;
+        expose-group-by-app = true;
 
         # Bottom right hot corner action = Lock Screen (13)
         wvous-br-corner = 13;
