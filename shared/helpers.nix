@@ -15,7 +15,7 @@ let
 
   ########################################
   #                                      #
-  # YAML Reading Functions               #
+  # YAML Functions                       #
   #                                      #
   ########################################
   fromYAML =
@@ -35,6 +35,28 @@ let
     );
 
   readYAML = path: fromYAML (builtins.readFile path);
+
+  ########################################
+  #                                      #
+  # TOML Functions                       #
+  #                                      #
+  ########################################
+  toTOML =
+    obj:
+    let
+      json = builtins.toJSON obj;
+    in
+    builtins.readFile (
+      pkgs.runCommand "to-toml"
+        {
+          inherit json;
+          allowSubstitutes = false;
+          preferLocalBuild = true;
+        }
+        ''
+          ${lib.getExe pkgs.remarshal} -if json -i <(echo "$json") -of toml -o $out
+        ''
+    );
 
   ########################################
   #                                      #
@@ -272,6 +294,9 @@ in
   # YAML reading functions
   fromYAML = fromYAML;
   readYAML = readYAML;
+
+  # TOML rendering functions
+  toTOML = toTOML;
 
   # Global Variables
   globalVariables = globalVariables;

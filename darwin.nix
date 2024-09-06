@@ -31,6 +31,7 @@ in
     ./darwin/setapp.nix
     ./darwin/sharing.nix
     ./darwin/shells.nix
+    ./darwin/tiling.nix
     ./darwin/users.nix
     ./darwin/utils.nix
   ];

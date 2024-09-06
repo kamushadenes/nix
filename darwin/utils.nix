@@ -1,11 +1,6 @@
 { pkgs, ... }:
 
 {
-  homebrew.taps = [
-    "nikitabobko/tap"
-    "FelixKratz/formulae"
-  ];
-
   # Casks
   homebrew.casks = [
     "hazel"
@@ -15,8 +10,5 @@
     "uhk-agent"
     "launchcontrol"
     "clickup"
-
-    "aerospace"
-    "borders"
   ];
 }

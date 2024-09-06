@@ -3,12 +3,13 @@
   pkgs,
   lib,
   osConfig,
+  helpers,
   ...
 }:
 {
   xdg.configFile = lib.mkIf pkgs.stdenv.isDarwin {
     "aerospace/aerospace.toml" = {
-      text = builtins.toTOML {
+      text = helpers.toTOML {
         after-login-command = [ ];
         after-startup-command = [
           "exec-and-forget ${osConfig.homebrew.brewPrefix}/borders active_color=0xffe1e3e4 inactive_color=0xff494d64 width=5.0"
