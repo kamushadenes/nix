@@ -30,6 +30,9 @@ in
 
         # Disable force click
         "com.apple.trackpad.forceClick" = false;
+
+        # Hide menubar to use SketchyBar
+        _HIHideMenuBar = true;
       };
 
       # Finder

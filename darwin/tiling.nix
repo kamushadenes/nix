@@ -1,15 +1,10 @@
 { pkgs, ... }:
 
 {
-  homebrew.taps = [
-    "nikitabobko/tap"
-    "FelixKratz/formulae"
-  ];
+  homebrew.taps = [ "nikitabobko/tap" ];
 
-  homebrew.casks = [ "aerospace" ];
-
-  homebrew.brews = [
-    "borders"
-    "sketchybar"
+  homebrew.casks = [
+    "aerospace"
+    "sf-symbols"
   ];
 }

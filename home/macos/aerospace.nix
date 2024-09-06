@@ -7,19 +7,21 @@
   ...
 }:
 {
+  home.packages = with pkgs; [ jankyborders ];
+
   xdg.configFile = lib.mkIf pkgs.stdenv.isDarwin {
     "aerospace/aerospace.toml" = {
       text = helpers.toTOML {
         after-login-command = [ ];
         after-startup-command = [
           "exec-and-forget sketchybar"
-          "exec-and-forget ${osConfig.homebrew.brewPrefix}/borders active_color=0xffe1e3e4 inactive_color=0xff494d64 width=5.0"
+          "exec-and-forget ${lib.getExe pkgs.jankyborders} active_color=0xffe1e3e4 inactive_color=0xff494d64 width=5.0"
         ];
         # Notify Sketchybar about workspace change
         exec-on-workspace-change = [
           (lib.getExe pkgs.fish)
           "-c"
-          ''"${osConfig.homebrew.brewPrefix}/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE"''
+          ''"${lib.getExe pkgs.sketchybar} --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE"''
         ];
         start-at-login = true;
         enable-normalization-flatten-containers = true;
@@ -31,10 +33,10 @@
         on-focused-monitor-changed = [ "move-mouse monitor-lazy-center" ];
 
         gaps = {
-          inner.horizontal = 0;
-          inner.vertical = 0;
+          inner.horizontal = 5;
+          inner.vertical = 5;
           outer.left = 0;
-          outer.bottom = 0;
+          outer.bottom = 33;
           outer.top = 0;
           outer.right = 0;
         };
