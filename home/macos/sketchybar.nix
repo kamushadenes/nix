@@ -6,20 +6,18 @@
   ...
 }:
 {
-  home.packages = with pkgs; [ sketchybar ];
+  home.packages =
+    with pkgs;
+    lib.mkIf pkgs.stdenv.isDarwin [
+      lua
+      sketchybar
+    ];
 
   xdg.configFile = lib.mkIf pkgs.stdenv.isDarwin {
     sketchybar = {
-      source = ./resources/sketchybar/sketchybarrc;
+      source = ./resources/sketchybar;
       recursive = true;
     };
-    "sketchybar/helpers/menus" = {
-      source = "${packages.tnixcdots}/menus";
-    };
-    "sketchybar/helpers/event_providers" = {
-      source = "${packages.tnixcdots}/event_providers";
-    };
-
   };
 
   home.file = lib.mkIf pkgs.stdenv.isDarwin {
