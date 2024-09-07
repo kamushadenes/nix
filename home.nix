@@ -125,6 +125,10 @@ in
         #backrestRestart = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
         #  ${fish} "test -f /tmp/.restart_backrest; and ${osConfig.homebrew.brewPrefix}/brew services restart backrest; and rm -f /tmp/.restart_backrest"
         #'';
+
+        sketchybarReload = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
+          ${fish} "${lib.getExe pkgs.sketchybar} --reload"
+        '';
       })
     ];
 

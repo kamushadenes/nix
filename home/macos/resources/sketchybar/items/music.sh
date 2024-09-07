@@ -2,7 +2,7 @@
 
 COLOR="$GREEN"
 
-sketchybar --add item music q \
+sketchybar --add item music right \
     --set music \
     scroll_texts=on \
     icon=󰎆 \
@@ -13,7 +13,7 @@ sketchybar --add item music q \
     background.corner_radius="$CORNER_RADIUS" \
     background.border_width="$BORDER_WIDTH" \
     background.border_color="$COLOR" \
-    background.padding_right=-5 \
+    background.padding_right=5 \
     background.drawing=on \
     label.padding_right=10 \
     label.max_chars=23 \
