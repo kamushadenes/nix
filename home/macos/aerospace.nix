@@ -36,8 +36,8 @@
           inner.horizontal = 5;
           inner.vertical = 5;
           outer.left = 0;
-          outer.bottom = 33;
-          outer.top = 0;
+          outer.bottom = 0;
+          outer.top = 41;
           outer.right = 0;
         };
 
