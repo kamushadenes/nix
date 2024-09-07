@@ -12,4 +12,6 @@
       font-awesome
     ];
   };
+
+  homebrew.casks = [ "font-jetbrains-mono-nerd-font" ];
 }

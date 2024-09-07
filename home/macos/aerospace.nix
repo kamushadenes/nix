@@ -19,9 +19,9 @@
         ];
         # Notify Sketchybar about workspace change
         exec-on-workspace-change = [
-          (lib.getExe pkgs.fish)
+          (lib.getExe pkgs.bash)
           "-c"
-          ''"${lib.getExe pkgs.sketchybar} --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE"''
+          "${lib.getExe pkgs.sketchybar} --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE"
         ];
         start-at-login = true;
         enable-normalization-flatten-containers = true;
@@ -33,12 +33,12 @@
         on-focused-monitor-changed = [ "move-mouse monitor-lazy-center" ];
 
         gaps = {
-          inner.horizontal = 5;
-          inner.vertical = 5;
-          outer.left = 0;
-          outer.bottom = 0;
-          outer.top = 41;
-          outer.right = 0;
+          inner.horizontal = 10;
+          inner.vertical = 10;
+          outer.left = 10;
+          outer.bottom = 10;
+          outer.top = 42;
+          outer.right = 10;
         };
 
         mode.main.binding = {
