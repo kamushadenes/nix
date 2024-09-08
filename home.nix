@@ -127,7 +127,7 @@ in
         #'';
 
         sketchybarReload = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
-          ${fish} "${lib.getExe pkgs.sketchybar} --reload"
+          ${fish} "${osConfig.homebrew.brewPrefix}/sketchybar --reload"
         '';
       })
     ];

@@ -40,11 +40,14 @@ source "$ITEM_DIR/spaces.sh"
 source "$ITEM_DIR/front_app.sh"
 
 # Center (of notch)
+sketchybar --add alias "Control Center,AudioVideoModule" center
+sketchybar --add alias "Control Center,Sound" center
 
 # Right
 source "$ITEM_DIR/clock.sh"
 source "$ITEM_DIR/calendar.sh"
 source "$ITEM_DIR/upcoming.sh"
+source "$ITEM_DIR/network.sh"
 source "$ITEM_DIR/memory.sh"
 source "$ITEM_DIR/cpu.sh"
 source "$ITEM_DIR/volume.sh"
