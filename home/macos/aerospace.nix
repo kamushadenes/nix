@@ -15,7 +15,7 @@
         after-login-command = [ ];
         after-startup-command = [
           "exec-and-forget sketchybar"
-          "exec-and-forget ${lib.getExe pkgs.jankyborders} active_color=0xffe1e3e4 inactive_color=0xff494d64 width=5.0"
+          "exec-and-forget ${lib.getExe pkgs.jankyborders} active_color=0xffe1e3e4 inactive_color=0xff494d64 width=3.0 order=a"
         ];
         # Notify Sketchybar about workspace change
         exec-on-workspace-change = [
