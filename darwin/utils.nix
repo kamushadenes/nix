@@ -1,6 +1,11 @@
 { pkgs, ... }:
 
 {
+  homebrew.taps = [
+    "nikitabobko/tap"
+    "FelixKratz/formulae"
+  ];
+
   # Casks
   homebrew.casks = [
     "hazel"
@@ -12,5 +17,12 @@
     "clickup"
   ];
 
-  homebrew.brews = [ "ical-buddy" ];
+  homebrew.brews = [
+    {
+      name = "sketchybar"; # Easier to grant permissions through brew
+      restart_service = false;
+      start_service = true;
+    }
+    "ical-buddy"
+  ];
 }

@@ -12,8 +12,8 @@ sketchybar --add item memory right \
     background.height=26 \
     background.corner_radius="$CORNER_RADIUS" \
     background.padding_right=5 \
-    background.border_width="$BORDER_WIDTH" \
+    \
     background.border_color="$COLOR" \
     background.color="$BAR_COLOR" \
     background.drawing=on \
-    script="$PLUGIN_DIR/memory.sh"
+    script="$PLUGIN_DIR/memory.sh" #background.border_width="$BORDER_WIDTH" \
