@@ -19,6 +19,6 @@ else
     LABEL="Not Connected"
 fi
 
-sketchybar --set $NAME background.color=$COLOR \
+sketchybar --set $NAME icon.color=$COLOR label.color=$COLOR \
     icon=$ICON \
     label="$LABEL"

@@ -11,8 +11,8 @@ sketchybar --add item ip_address right \
     background.color="$BAR_COLOR" \
     background.drawing=on \
     label.padding_right=10 \
-    icon.highlight=on \
-    label.highlight=on \
+    icon.color=$BLUE \
+    label.color=$BLUE \
     --subscribe ip_address wifi_change
 
 sketchybar --add item network.up right \
@@ -48,4 +48,4 @@ sketchybar --add item network.down right \
     label.color=$GREEN
 
 # Bracket
-sketchybar --add bracket status ip_address network.up network.down
+# sketchybar --add bracket status ip_address network.up network.down
