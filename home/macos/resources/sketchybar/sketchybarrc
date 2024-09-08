@@ -7,6 +7,7 @@ source "$HOME/.config/sketchybar/variables.sh" # Loads all defined colors
 sketchybar --bar height=30 \
 	color="$BAR_COLOR" \
 	shadow="$SHADOW" \
+	display="main" \
 	position=top \
 	sticky=on \
 	padding_right=0 \
@@ -43,6 +44,7 @@ source "$ITEM_DIR/front_app.sh"
 # Right
 source "$ITEM_DIR/clock.sh"
 source "$ITEM_DIR/calendar.sh"
+source "$ITEM_DIR/upcoming.sh"
 source "$ITEM_DIR/memory.sh"
 source "$ITEM_DIR/cpu.sh"
 source "$ITEM_DIR/volume.sh"

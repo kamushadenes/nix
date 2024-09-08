@@ -11,4 +11,6 @@
     "launchcontrol"
     "clickup"
   ];
+
+  homebrew.brews = [ "ical-buddy" ];
 }
