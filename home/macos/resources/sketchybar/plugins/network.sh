@@ -1,11 +1,11 @@
 #!/bin/bash
 
 function getBytes {
-    netstat -w1 > ~/.config/sketchybar/plugins/network.out & sleep 1; kill $!
+    netstat -w1 > /tmp/.network.out & sleep 1; kill $!
 }
 
 BYTES=$(getBytes > /dev/null)
-BYTES=$(cat ~/.config/sketchybar/plugins/network.out | grep '[0-9].*')
+BYTES=$(cat /tmp/.network.out | grep '[0-9].*')
 
 DOWN=$(echo $BYTES | awk '{print $3}')
 UP=$(echo $BYTES | awk '{print $6}')

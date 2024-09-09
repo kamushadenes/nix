@@ -2,8 +2,8 @@
 
 {
   launchd.user.agents = {
-    notchdrop = {
-      serviceConfig.ProgramArguments = [ "/Applications/NotchDrop.app" ];
+    microsnitch = {
+      serviceConfig.ProgramArguments = [ "/Applications/Micro Snitch.app" ];
       serviceConfig.RunAtLoad = true;
     };
     parcel = {

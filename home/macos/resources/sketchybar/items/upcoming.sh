@@ -2,7 +2,7 @@
 
 COLOR="$WHITE"
 
-sketchybar --add item upcoming right \
+sketchybar --add item upcoming center \
     --set upcoming \
     update_freq=20 \
     icon.color="$COLOR" \
