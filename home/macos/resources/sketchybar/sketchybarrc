@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-source "$HOME/.config/sketchybar/variables.sh" # Loads all defined colors
+source "$HOME/.config/sketchybar/variables.sh"
+. "$PLUGIN_DIR/nix_path.sh"
 
 # General bar and defaults
 

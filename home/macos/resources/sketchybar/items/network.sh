@@ -16,7 +16,7 @@ sketchybar --add item ip_address right \
 
 sketchybar --add item network.up right \
     --set network.up script="$PLUGIN_DIR/network.sh" \
-    update_freq=5 \
+    update_freq=2 \
     background.height=26 \
     background.corner_radius="$CORNER_RADIUS" \
     background.border_width="$BORDER_WIDTH" \
@@ -32,7 +32,7 @@ sketchybar --add item network.up right \
 
 sketchybar --add item network.down right \
     --set network.down script="$PLUGIN_DIR/network.sh" \
-    update_freq=5 \
+    update_freq=2 \
     background.height=26 \
     background.corner_radius="$CORNER_RADIUS" \
     background.border_width="$BORDER_WIDTH" \

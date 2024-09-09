@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source "$HOME/.config/sketchybar/variables.sh"
+
 function getBytes {
     netstat -w1 > /tmp/.network.out & sleep 1; kill $!
 }

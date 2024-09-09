@@ -48,3 +48,5 @@ CORNER_RADIUS=12
 BORDER_WIDTH=0
 
 SHADOW=on
+
+source "$(dirname "$0")/nix_path.sh"
