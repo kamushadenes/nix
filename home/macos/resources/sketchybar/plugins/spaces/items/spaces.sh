@@ -6,13 +6,13 @@ source "$HOME/.config/sketchybar/colors.sh"
 SPACE_ICONS=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10")
 
 space=(
-	icon.font="$NERD_FONT:Bold:16.0"
+	icon.font="$NERD_FONT:Bold:14.0"
 	icon.padding_left=7
 	icon.padding_right=7
 	background.padding_left=2
 	background.padding_right=2
 	label.padding_right=20
-	label.font="$NERD_FONT:Regular:16.0"
+	label.font="$NERD_FONT:Regular:14.0"
 	label.background.height=26
 	label.background.drawing=on
 	label.background.color="$SURFACE1"
@@ -34,12 +34,12 @@ for sid in $(aerospace list-workspaces --all); do
 		--subscribe space.$sid mouse.clicked
 done
 
-spaces_bracket=(
-	background.color="$SURFACE0"
-	background.border_color="$SURFACE1"
-	background.border_width=2
-	background.drawing=on
-)
+#spaces_bracket=(
+#	background.color="$SURFACE0"
+#	background.border_color="$SURFACE1"
+#	background.border_width=2
+#	background.drawing=on
+#)
 
-sketchybar --add bracket spaces '/space\..*/' \
-	--set spaces "${spaces_bracket[@]}"
+#sketchybar --add bracket spaces '/space\..*/' \
+#	--set spaces "${spaces_bracket[@]}"

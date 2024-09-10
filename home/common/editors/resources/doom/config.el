@@ -2,7 +2,7 @@
       user-mail-address "kamus@hadenes.io")
 
 (setq doom-font (font-spec :family "MonaspiceNe Nerd Font Mono" :size 14 :weight 'medium))
-(setq doom-unicode-font doom-font)
+(setq doom-symbol-font (font-spec :family "Noto Sans Symbols"))
 
 (setq catppuccin-flavor 'macchiato)
 (setq doom-theme 'catppuccin)

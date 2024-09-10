@@ -27,5 +27,6 @@
     "ical-buddy"
     "ifstat"
     "cava"
+    "switchaudio-osx"
   ];
 }

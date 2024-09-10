@@ -5,6 +5,7 @@ stats=(
 	cpu.percent
 	memory
 	disk
+	ip_address
 	network.up
 	network.down
 )

@@ -2,6 +2,7 @@
 
 source "$HOME/.config/sketchybar/nix_path.sh"
 source "$HOME/.config/sketchybar/colors.sh"
+source "$HOME/.config/sketchybar/icons.sh"
 
 volume_slider=(
   script="$PLUGIN_DIR/volume/scripts/volume.sh"
@@ -24,7 +25,7 @@ volume_icon=(
   icon.width=0
   icon.align=left
   icon.color=$GREY
-  icon.font="$NERD_FONT:Regular:14.0"
+  icon.font="$FONT:Regular:14.0"
   label.width=25
   label.align=left
   label.font="$FONT:Regular:14.0"
@@ -45,6 +46,3 @@ sketchybar --add slider volume right            \
                                                 \
            --add item volume_icon right         \
            --set volume_icon "${volume_icon[@]}"
-
-sketchybar --add bracket status brew github.bell volume_icon \
-           --set status "${status_bracket[@]}"

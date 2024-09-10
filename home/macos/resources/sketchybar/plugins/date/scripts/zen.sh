@@ -10,9 +10,13 @@ zen_items=(
 	front_app
 	disk
 	memory
-	bluetooth.alias
 	separator_left
 	separator_right
+	volume
+	volume_icon
+	network_up
+	network_down
+	ip_address
 	github.bell
 	network.up
 	network.down

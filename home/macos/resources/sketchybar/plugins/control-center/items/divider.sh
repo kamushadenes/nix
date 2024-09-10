@@ -9,5 +9,5 @@ divider=(
 	background.padding_right=10
 )
 
-sketchybar --add bracket status github.bell bluetooth.alias wifi.alias battery \
+sketchybar --add bracket status volume_icon volume github.bell wifi.alias battery \
 	--set status "${divider[@]}"

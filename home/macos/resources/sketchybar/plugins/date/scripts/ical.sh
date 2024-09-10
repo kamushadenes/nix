@@ -9,7 +9,7 @@ update() {
 	COUNTER=0
 	EVENTS="$(icalBuddy -ea -nc -nrd -eed -iep datetime,title -b '' -ps "|${SEP}|" eventsToday)"
 
-	args+=(--remove '/ical.event\.*/')
+	args+=(--remove '/calendar.date.event\.*/')
 
 	# Comment this if-section out if you don't want the time of the next event next to the icon
 	# if [ "${EVENTS}" != "" ]; then
@@ -40,11 +40,11 @@ update() {
 			icon="$time"
 			icon.color="$YELLOW"
 			click_script="sketchybar --set "$NAME" popup.drawing=off"
-			position=popup.ical
+			position=popup.calendar.date
 			drawing=on
 		)
-		args+=(--clone ical.event."$COUNTER" ical.details
-			--set ical.event."$COUNTER" "${ical_event[@]}")
+		args+=(--clone calendar.date.event."$COUNTER" calendar.date.details
+			--set calendar.date.event."$COUNTER" "${ical_event[@]}")
 
 	done <<<"$(echo "$EVENTS")"
 
@@ -58,6 +58,8 @@ update() {
 popup() {
 	sketchybar --set "$NAME" popup.drawing="$1"
 }
+
+sketchybar --set "$NAME" icon="$(date '+%a %d. %b')" label="$(date '+%H:%M')"
 
 case "$SENDER" in
 "routine" | "forced")
