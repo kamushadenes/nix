@@ -28,9 +28,10 @@ export GIT_PULL_REQUEST=󰓂
 export GIT_COMMIT=
 export GIT_INDICATOR=
 
-# Spotify Icons
-export SPOTIFY_BACK=
-export SPOTIFY_PLAY_PAUSE=󰐎
-export SPOTIFY_NEXT=
-export SPOTIFY_SHUFFLE=
-export SPOTIFY_REPEAT=
+# Media Icons
+export MEDIA=󰎆
+export MEDIA_BACK=
+export MEDIA_PLAY_PAUSE=󰐎
+export MEDIA_NEXT=
+export MEDIA_SHUFFLE=
+export MEDIA_REPEAT=
