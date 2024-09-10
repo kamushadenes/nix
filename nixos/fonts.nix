@@ -3,9 +3,7 @@
   # Fonts
   fonts = {
     packages = with pkgs; [
-      monaspace
-      (nerdfonts.override { fonts = [ "NerdFontsSymbolsOnly" ]; })
-      packages.monaspice
+      nerdfonts
       noto-fonts
       noto-fonts-cjk
       noto-fonts-emoji

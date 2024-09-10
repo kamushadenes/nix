@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 
 source "$HOME/.config/sketchybar/variables.sh"
+source "$HOME/.config/sketchybar/colors.sh"
+source "$HOME/.config/sketchybar/icons.sh"
+
+export PATH
+
+export PLUGIN_DIR="$HOME/.config/sketchybar/plugins" # Directory where all the plugins are stored
+# Setting up and starting the helper process
+source "$HOME/.config/sketchybar/helper/helper.sh"
 
 # General bar and defaults
 bar_config=(
@@ -9,14 +17,15 @@ bar_config=(
 	corner_radius=9
 	height=40
 	margin=10
-	notch_width=0
+	notch_width=200
 	padding_left=18
 	padding_right=10
 	position=top
 	shadow=on
 	sticky=on
 	topmost=off
-	y_offset=10
+	y_offset=5
+	display="main"
 )
 
 icon_defaults=(

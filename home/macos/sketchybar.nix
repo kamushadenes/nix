@@ -11,4 +11,9 @@
       source = ./resources/sketchybar;
     };
   };
+
+  home.packages = with pkgs; [
+    blueutil
+    ifstat-legacy
+  ];
 }
