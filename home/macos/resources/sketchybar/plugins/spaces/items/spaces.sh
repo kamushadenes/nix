@@ -12,22 +12,23 @@ space=(
 	background.padding_left=2
 	background.padding_right=2
 	label.padding_right=20
-	label.font="sketchybar-app-font:Regular:16.0"
+	label.font="$NERD_FONT:Regular:16.0"
 	label.background.height=26
 	label.background.drawing=on
 	label.background.color="$SURFACE1"
 	label.background.corner_radius=8
 	label.drawing=off
-	click_script="aerospace workspace $sid"
-	script="$PLUGIN_DIR/spaces/scripts/space.sh $sid"
 )
 
 sketchybar --add event aerospace_workspace_change
 
 for sid in $(aerospace list-workspaces --all); do
 	sketchybar --add space space.$sid left \
+		--subscribe space.$sid aerospace_workspace_change \
 		--set space.$sid associated_space=$sid \
-		icon="${SPACE_ICONS[i]}" \
+		click_script="aerospace workspace $sid" \
+		script="$PLUGIN_DIR/spaces/scripts/space.sh $sid" \
+		icon="${SPACE_ICONS[sid - 1]}" \
 		icon.highlight_color="$(getRandomCatColor)" \
 		"${space[@]}" \
 		--subscribe space.$sid mouse.clicked

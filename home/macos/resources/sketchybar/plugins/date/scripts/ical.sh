@@ -7,7 +7,7 @@ update() {
 	args=()
 	SEP="%"
 	COUNTER=0
-	EVENTS="$(icalBuddy -nc -nrd -eed -iep datetime,title -b '' -ps "|${SEP}|" eventsToday)"
+	EVENTS="$(icalBuddy -ea -nc -nrd -eed -iep datetime,title -b '' -ps "|${SEP}|" eventsToday)"
 
 	args+=(--remove '/ical.event\.*/')
 

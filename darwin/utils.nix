@@ -15,6 +15,7 @@
     "uhk-agent"
     "launchcontrol"
     "clickup"
+    "background-music"
   ];
 
   homebrew.brews = [
@@ -25,5 +26,6 @@
     }
     "ical-buddy"
     "ifstat"
+    "cava"
   ];
 }

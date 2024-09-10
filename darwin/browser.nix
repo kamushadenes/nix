@@ -13,7 +13,7 @@
     # Launch Eloston Chromium (Ungoogled) with the correct flags.
     (writeScriptBin "chromium" ''
       #!/bin/bash
-      exec /Applications/Chromium.app/Contents/MacOS/Chromium "$@"
+      exec /Applications/Chromium.app/Contents/MacOS/Chromium $@
     '')
   ];
 }

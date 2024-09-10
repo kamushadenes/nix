@@ -5,19 +5,33 @@ UPDOWN=$(ifstat -i "en0" -b 0.1 1 | tail -n1)
 DOWN=$(echo "$UPDOWN" | awk "{ print \$1 }" | cut -f1 -d ".")
 UP=$(echo "$UPDOWN" | awk "{ print \$2 }" | cut -f1 -d ".")
 
-DOWN_FORMAT=""
-if [ "$DOWN" -gt "999" ]; then
-	DOWN_FORMAT=$(echo "$DOWN" | awk '{ printf "%03.0f Mbps", $1 / 1000}')
-else
-	DOWN_FORMAT=$(echo "$DOWN" | awk '{ printf "%03.0f kbps", $1}')
-fi
+function human_readable() {
+	local abbrevs=(
+		$((1 << 60)):ZiB
+		$((1 << 50)):EiB
+		$((1 << 40)):TiB
+		$((1 << 30)):GiB
+		$((1 << 20)):MiB
+		$((1 << 10)):KiB
+		$((1)):B
+	)
 
-UP_FORMAT=""
-if [ "$UP" -gt "999" ]; then
-	UP_FORMAT=$(echo "$UP" | awk '{ printf "%03.0f Mbps", $1 / 1000}')
-else
-	UP_FORMAT=$(echo "$UP" | awk '{ printf "%03.0f kbps", $1}')
-fi
+	local bytes="$(echo ${1} \* 1000 | bc)"
+	local precision="${2}"
+
+	for item in "${abbrevs[@]}"; do
+		local factor="${item%:*}"
+		local abbrev="${item#*:}"
+		if [[ "${bytes}" -ge "${factor}" ]]; then
+			local size="$(bc -l <<<"${bytes} / ${factor}")"
+			printf "%.*f %s\n" "${precision}" "${size}" "${abbrev}"
+			break
+		fi
+	done
+}
+
+DOWN_FORMAT=$(human_readable $DOWN 1)
+UP_FORMAT=$(human_readable $UP 1)
 
 sketchybar -m --set network.down label="$DOWN_FORMAT" icon.highlight=$(if [ "$DOWN" -gt "0" ]; then echo "on"; else echo "off"; fi) \
 	--set network.up label="$UP_FORMAT" icon.highlight=$(if [ "$UP" -gt "0" ]; then echo "on"; else echo "off"; fi)

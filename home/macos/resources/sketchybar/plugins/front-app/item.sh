@@ -6,7 +6,7 @@ COLOR="$WHITE"
 
 sketchybar \
     --add item front_app left \
-    --set front_app script="$PLUGIN_DIR/front_app/scripts/front_app.sh" \
+    --set front_app script="$PLUGIN_DIR/front-app/scripts/front_app.sh" \
     icon.drawing=off \
     background.height=26 \
     background.padding_left=0 \
