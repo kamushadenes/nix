@@ -13,43 +13,46 @@ weather_icon_map() {
 	if [ "$1" = "true" ]; then # Daytime
 		case $2 in
 		*Snow*)
-			icon_result=""
+			icon_result="󰖘"
 			;;
 		*Rain*)
-			icon_result=""
+			icon_result="󰖗"
 			;;
 		*"Partly Sunny"* | *"Partly Cloudy"*)
-			icon_result=""
+			icon_result="󰖕"
 			;;
 		*Sunny*)
-			icon_result=""
+			icon_result="󰖙"
 			;;
 		*Cloudy*)
-			icon_result=""
+			icon_result="󰖐"
+			;;
+		*Fog*)
+			icon_result=""
 			;;
 		*)
-			icon_result=""
+			icon_result="󰖙"
 			;;
 		esac
 	else
 		case $2 in # Night
 		*Snow*)
-			icon_result=""
+			icon_result="󰖘"
 			;;
 		*Rain*)
-			icon_result=""
+			icon_result="󰖗"
 			;;
 		*Clear*)
 			icon_result=""
 			;;
 		*Cloudy*)
-			icon_result=""
+			icon_result="󰖐"
 			;;
 		*Fog*)
 			icon_result=""
 			;;
 		*)
-			icon_result=""
+			icon_result="󰖔"
 			;;
 		esac
 	fi

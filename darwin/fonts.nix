@@ -1,9 +1,4 @@
-{
-  pkgs,
-  packages,
-  inputs,
-  ...
-}:
+{ pkgs, packages, ... }:
 {
   # Fonts
   fonts = {
@@ -14,8 +9,13 @@
       noto-fonts-emoji
       font-awesome
       sketchybar-app-font
-      inputs.apple-fonts.packages.${pkgs.system}.sf-pro
-      inputs.apple-fonts.packages.${pkgs.system}.sf-mono-nerd
     ];
   };
+
+  homebrew.casks = [
+    "font-ligature-symbols"
+    "font-sf-pro"
+    "font-sf-mono"
+    "font-sf-mono-for-powerline"
+  ];
 }

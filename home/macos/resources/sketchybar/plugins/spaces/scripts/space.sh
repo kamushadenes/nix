@@ -1,7 +1,8 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 source "$HOME/.config/sketchybar/nix_path.sh"
 #SPACE_ICONS=(" " " " " " "" "" "" " " " ")
+#
 SPACE_ICONS=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10")
 
 workspace=${FOCUSED_WORKSPACE:-$1}

@@ -3,8 +3,8 @@
 source "$HOME/.config/sketchybar/nix_path.sh"
 
 calendar_date=(
-	icon=date
-	icon.font="$FONT:Black:14.0"
+	icon=
+	icon.font="$NERD_FONT:Bold:14.0"
 	icon.align=right
 	icon.padding_right=0
 	width=30
@@ -15,8 +15,8 @@ calendar_date=(
 )
 
 calendar_clock=(
-	icon=clock
-	icon.font="$FONT:Bold:12.0"
+	icon=
+	icon.font="$NERD_FONT:Bold:12.0"
 	icon.align=right
 	icon.padding_right=0
 	background.padding_right=-20

@@ -24,5 +24,6 @@
       start_service = true;
     }
     "ical-buddy"
+    "ifstat"
   ];
 }

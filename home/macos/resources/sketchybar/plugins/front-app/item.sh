@@ -1,35 +1,23 @@
 #!/usr/bin/env bash
 
 source "$HOME/.config/sketchybar/nix_path.sh"
-FRONT_APP_SCRIPT='sketchybar --set "$NAME" label="$INFO"'
 
-system_yabai=(
-    script="$PLUGIN_DIR/front-app/scripts/yabai.sh"
-    icon.font="$FONT:Bold:16.0"
-    label.drawing=off
-    icon.width=30
-    icon="$YABAI_GRID"
-    icon.color="$PEACH"
-    associated_display=active
-)
+COLOR="$WHITE"
 
-front_app=(
-    script="$FRONT_APP_SCRIPT"
-    icon.drawing=off
-    background.padding_left=0
-    label.color="$TEXT"
-    label.font="$FONT:Black:12.0"
-    associated_display=active
-)
-
-sketchybar --add event window_focus \
-    --add event windows_on_spaces \
-    --add item system.yabai left \
-    --set system.yabai "${system_yabai[@]}" \
-    --subscribe system.yabai window_focus \
-    windows_on_spaces \
-    mouse.clicked \
-    \
+sketchybar \
     --add item front_app left \
-    --set front_app "${front_app[@]}" \
+    --set front_app script="$PLUGIN_DIR/front_app/scripts/front_app.sh" \
+    icon.drawing=off \
+    background.height=26 \
+    background.padding_left=0 \
+    background.padding_right=10 \
+    background.border_width="$BORDER_WIDTH" \
+    background.border_color="$COLOR" \
+    background.corner_radius="$CORNER_RADIUS" \
+    background.color="$BAR_COLOR" \
+    label.color="$TEXT" \
+    label.font="$FONT:Black:12.0" \
+    label.padding_left=10 \
+    label.padding_right=10 \
+    associated_display=active \
     --subscribe front_app front_app_switched

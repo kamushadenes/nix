@@ -24,11 +24,6 @@
       url = "github:yaxitech/ragenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    apple-fonts = {
-      url = "github:Lyndeno/apple-fonts.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -38,7 +33,6 @@
       darwin,
       nh-darwin,
       agenix,
-      apple-fonts,
       ...
     }:
     let

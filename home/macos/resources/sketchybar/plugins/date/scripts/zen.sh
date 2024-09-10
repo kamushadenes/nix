@@ -6,16 +6,11 @@ zen_items=(
 	apple.logo
 	'/cpu.*/'
 	calendar
-	system.yabai
 	separator
 	front_app
-	spotify.anchor
-	spotify.play
-	battery
 	disk
 	memory
 	bluetooth.alias
-	wifi.alias
 	separator_left
 	separator_right
 	github.bell

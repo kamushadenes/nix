@@ -6,7 +6,7 @@ source "$HOME/.config/sketchybar/colors.sh"
 SPACE_ICONS=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10")
 
 space=(
-	icon.font="Liga SFMono Nerd Font:Bold:16.0"
+	icon.font="$NERD_FONT:Bold:16.0"
 	icon.padding_left=7
 	icon.padding_right=7
 	background.padding_left=2
@@ -19,7 +19,7 @@ space=(
 	label.background.corner_radius=8
 	label.drawing=off
 	click_script="aerospace workspace $sid"
-	script="$PLUGIN_DIR/spaces/scripts/space.sh"
+	script="$PLUGIN_DIR/spaces/scripts/space.sh $sid"
 )
 
 sketchybar --add event aerospace_workspace_change
