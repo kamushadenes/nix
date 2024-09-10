@@ -9,6 +9,7 @@
       noto-fonts-emoji
       font-awesome
       sketchybar-app-font
+      monaspace
     ];
   };
 

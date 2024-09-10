@@ -1,8 +1,8 @@
 (setq user-full-name "Henrique Goncalves"
       user-mail-address "kamus@hadenes.io")
 
-(setq doom-font (font-spec :family "MonaspiceNe Nerd Font Mono" :size 14 :weight 'medium))
-(setq doom-symbol-font (font-spec :family "Noto Sans Symbols"))
+(setq doom-font (font-spec :family "Monaspace Neon" :size 14 :weight 'medium))
+(setq doom-symbol-font (font-spec :family "Symbols Nerd Font Mono"))
 
 (setq catppuccin-flavor 'macchiato)
 (setq doom-theme 'catppuccin)

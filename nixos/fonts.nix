@@ -11,6 +11,7 @@
       source-han-sans
       source-han-sans-japanese
       source-han-serif-japanese
+      monaspace
     ];
   };
 }
