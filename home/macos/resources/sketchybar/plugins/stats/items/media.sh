@@ -7,6 +7,7 @@ source "$HOME/.config/sketchybar/colors.sh"
 media=(
 	label.font="$FONT:Heavy:12"
 	label.color="$TEXT"
+    label.max_chars=23
 	icon="$MEDIA"
 	icon.font="$NERD_FONT:Bold:16.0"
 	icon.color="$PEACH"

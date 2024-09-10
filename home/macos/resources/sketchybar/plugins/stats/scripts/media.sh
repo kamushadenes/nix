@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+source "$HOME/.config/sketchybar/nix_path.sh"
+source "$HOME/.config/sketchybar/icons.sh"
+source "$HOME/.config/sketchybar/colors.sh"
+
 STATE="$(echo "$INFO" | jq -r '.state')"
 #APP="$(echo "$INFO" | jq -r '.app')"
 
