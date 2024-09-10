@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+source "$HOME/.config/sketchybar/nix_path.sh"
 POPUP_CLICK_SCRIPT="sketchybar --set weather popup.drawing=toggle"
 
 weather_icon=(
@@ -36,14 +37,14 @@ weather_details=(
 	icon.background.y_offset=-12
 )
 
-sketchybar 	--add item weather.icon right 								\
-						--set weather.icon "${weather_icon[@]}" 			\
-																													\
-						--add item weather.temp right 								\
-						--set weather.temp "${weather_temp[@]}" 			\
-																													\
-						--add item weather.details popup.weather.temp \
-						--set weather.details "${weather_details[@]}" \
-						--subscribe weather.temp mouse.entered 				\
-																		 mouse.exited 				\
-																		 mouse.exited.global
+sketchybar --add item weather.icon right \
+	--set weather.icon "${weather_icon[@]}" \
+	\
+	--add item weather.temp right \
+	--set weather.temp "${weather_temp[@]}" \
+	\
+	--add item weather.details popup.weather.temp \
+	--set weather.details "${weather_details[@]}" \
+	--subscribe weather.temp mouse.entered \
+	mouse.exited \
+	mouse.exited.global

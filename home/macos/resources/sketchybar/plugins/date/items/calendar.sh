@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source "$HOME/.config/sketchybar/nix_path.sh"
+
 calendar_date=(
 	icon=date
 	icon.font="$FONT:Black:14.0"
@@ -26,10 +28,10 @@ calendar_clock=(
 	label.padding_left=-50
 )
 
-sketchybar 	--add item calendar.date right 								\
-						--set calendar.date "${calendar_date[@]}" 		\
-						--subscribe calendar.date system_woke 				\
-																													\
-						--add item calendar.clock right 							\
-						--set calendar.clock "${calendar_clock[@]}" 	\
-						--subscribe calendar.clock system_woke
+sketchybar --add item calendar.date right \
+	--set calendar.date "${calendar_date[@]}" \
+	--subscribe calendar.date system_woke \
+	\
+	--add item calendar.clock right \
+	--set calendar.clock "${calendar_clock[@]}" \
+	--subscribe calendar.clock system_woke

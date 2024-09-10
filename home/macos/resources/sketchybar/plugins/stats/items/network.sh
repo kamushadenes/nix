@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+source "$HOME/.config/sketchybar/nix_path.sh"
 source "$HOME/.config/sketchybar/icons.sh"
 source "$HOME/.config/sketchybar/colors.sh"
 
@@ -27,7 +28,7 @@ network_up=(
 	script="$PLUGIN_DIR/stats/scripts/network.sh"
 )
 
-sketchybar 	--add item network.down right 						\
-						--set network.down "${network_down[@]}" 	\
-						--add item network.up right 							\
-						--set network.up "${network_up[@]}"
+sketchybar --add item network.down right \
+	--set network.down "${network_down[@]}" \
+	--add item network.up right \
+	--set network.up "${network_up[@]}"

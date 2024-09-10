@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+source "$HOME/.config/sketchybar/nix_path.sh"
+
 STATE=$(blueutil -p)
 
 if [ "$STATE" = "0" ]; then

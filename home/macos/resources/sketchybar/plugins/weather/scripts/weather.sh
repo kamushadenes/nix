@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+source "$HOME/.config/sketchybar/nix_path.sh"
 source "$HOME/.config/sketchybar/colors.sh"
 
 # False = night

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+source "$HOME/.config/sketchybar/nix_path.sh"
 stats=(
 	cpu.percent
 	memory

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source "$HOME/.config/sketchybar/nix_path.sh"
+
 zen_items=(
 	apple.logo
 	'/cpu.*/'
@@ -9,7 +11,6 @@ zen_items=(
 	front_app
 	spotify.anchor
 	spotify.play
-	brew
 	battery
 	disk
 	memory
