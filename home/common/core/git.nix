@@ -109,7 +109,7 @@
     extraConfig = {
       core = {
         fsmonitor = true;
-        excludesFile = config.xdg.configFile."git/ignore".target;
+        excludesFile = "${config.home.homeDirectory}/${config.xdg.configFile."git/ignore".target}";
       };
 
       github = {
@@ -118,7 +118,7 @@
 
       init = {
         defaultBranch = "main";
-        templatedir = config.xdg.configFile."git/template/hooks".target;
+        templatedir = "${config.home.homeDirectory}/${config.xdg.configFile."git/template/hooks".target}";
       };
 
       merge = {

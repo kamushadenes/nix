@@ -7,8 +7,8 @@ calendar_date=(
 	icon.font="$NERD_FONT:Bold:14.0"
 	icon.align=right
 	icon.padding_right=0
-	width=30
-	y_offset=6
+	#width=30
+	#y_offset=6
 	update_freq=120
 	script="$PLUGIN_DIR/date/scripts/date.sh"
 	click_script="$PLUGIN_DIR/date/scripts/zen.sh"
@@ -21,11 +21,11 @@ calendar_clock=(
 	icon.padding_right=0
 	background.padding_right=-20
 	background.padding_left=0
-	y_offset=-8
+	#y_offset=-8
 	update_freq=15
 	script="$PLUGIN_DIR/date/scripts/clock.sh"
 	click_script="$PLUGIN_DIR/date/scripts/zen.sh"
-	label.padding_left=-50
+	#label.padding_left=-50
 )
 
 sketchybar --add item calendar.date right \

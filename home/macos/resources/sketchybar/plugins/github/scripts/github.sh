@@ -55,7 +55,7 @@ render_popup() {
 
 		if [ "$IMPORTANT" != "" ]; then
 			COLOR=$RED
-			ICON=􀁞
+			ICON=
 			args+=(--set github.bell icon.color="$COLOR")
 		fi
 
