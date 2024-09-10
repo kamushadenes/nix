@@ -17,6 +17,6 @@ media=(
 	script="$PLUGIN_DIR/stats/scripts/media.sh"
 )
 
-sketchybar --add item media right \
+sketchybar --add item media center \
 	--set media "${media[@]}" \
     --subscribe media media_change
