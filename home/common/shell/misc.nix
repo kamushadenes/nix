@@ -44,10 +44,13 @@
 
     bat = {
       enable = true;
-      config = {
-        map-syntax = [ "*.ino:C++" ];
-        theme = "Catppuccin Macchiato";
-      };
+      config = lib.mkMerge [
+        {
+          map-syntax = [ "*.ino:C++" ];
+          theme = "Catppuccin Macchiato";
+        }
+        (lib.mkIf config.programs.less.enable { pager = lib.getExe pkgs.less; })
+      ];
       extraPackages = with pkgs.bat-extras; [
         batdiff
         batman
@@ -139,6 +142,10 @@
     };
 
     jq = {
+      enable = true;
+    };
+
+    less = {
       enable = true;
     };
 

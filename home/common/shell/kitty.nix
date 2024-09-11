@@ -18,7 +18,7 @@
       ];
 
       font = {
-        name = "Monaspace Neon";
+        name = "Monaspace Neon Regular";
         size = 14;
       };
 
@@ -36,7 +36,7 @@
 
         ${helpers.kittyProfilesPath}
 
-        ${builtins.readFile ./resources/kitty/font-nerd-symbols.conf}
+        include ${./resources/kitty/font-nerd-symbols.conf}
       '';
 
       settings = {
@@ -48,6 +48,9 @@
         term = "xterm-256color";
         allow_hyperklinks = "yes";
         editor = "nvim";
+
+        font_features = "MonaspaceNeon-Regular +calt +liga +ss01 +ss02 +ss03 +ss04 +ss05 +ss06 +ss07 +ss08 +ss09";
+        disable_ligatures = "cursor";
 
         tab_bar_style = "powerline";
         tab_powerline_style = "slanted";

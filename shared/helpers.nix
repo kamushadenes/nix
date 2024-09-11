@@ -83,6 +83,9 @@ let
 
       # Work around https://github.com/Homebrew/brew/issues/13219
       HOMEBREW_SSH_CONFIG_PATH = "${config.xdg.configHome}/ssh/brew_config";
+
+      # Work around https://github.com/sharkdp/bat/issues/2578
+      LESSUTFCHARDEF = "E000-F8FF:p,F0000-FFFFD:p,100000-10FFFD:p";
     };
 
     launchctl = lib.concatMapStringsSep "\n" (var: ''

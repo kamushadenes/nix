@@ -18,6 +18,7 @@ space=(
 	label.background.color="$SURFACE1"
 	label.background.corner_radius=8
 	label.drawing=off
+	y_offset=-2
 )
 
 sketchybar --add event aerospace_workspace_change

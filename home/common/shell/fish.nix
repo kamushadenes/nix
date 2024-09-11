@@ -37,6 +37,12 @@ in
           };
         })
 
+        (lib.mkIf config.programs.bat.enable {
+          help = {
+            body = ''"$argv" --help 2>&1 | bat --plain --language=help'';
+          };
+        })
+
         (lib.mkIf config.programs.starship.enable {
           starship_transient_prompt_func = {
             body = "starship module character";
@@ -159,7 +165,10 @@ in
 
         (lib.mkIf pkgs.stdenv.isDarwin { nh = "nh_darwin"; })
 
-        (lib.mkIf config.programs.bat.enable { cat = "bat -p"; })
+        (lib.mkIf config.programs.bat.enable {
+          cat = "bat -p";
+          man = "batman";
+        })
         (lib.mkIf config.programs.broot.enable { tree = "broot"; })
         (lib.mkIf config.programs.eza.enable { ls = "eza --icons -F -H --group-directories-first --git"; })
         (lib.mkIf config.programs.kitty.enable {

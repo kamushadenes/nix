@@ -10,18 +10,16 @@ export LOGOUT=󰍃
 export POWER=
 export REBOOT=
 export SLEEP=⏾
-#export BELL=
-#export BELL_DOT=
-export BELL=􀋚
-export BELL_DOT=􀝗
+export BELL=
+export BELL_DOT=
 
 export BATTERY=
 export CPU=
 export DISK=
 export MEMORY=
 export NETWORK=
-export NETWORK_DOWN=
-export NETWORK_UP=
+export NETWORK_DOWN=󰶡
+export NETWORK_UP=󰶣
 
 # Git Icons
 export GIT_ISSUE=

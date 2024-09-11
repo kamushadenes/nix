@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 export FONT="SF Pro" # Needs to have Regular, Bold, Semibold, Heavy and Black variants
-export NERD_FONT="Symbols Nerd Font Mono"
+export NERD_FONT="MonaspiceNe Nerd Font"
 
 export PADDINGS=3
 
@@ -15,7 +15,7 @@ export P_DYNAMIC_ISLAND_DISPLAY=main
 
 # Needs to have Regular, Bold, Semibold, Heavy and Black variants
 export P_DYNAMIC_ISLAND_FONT="SF Pro"
-export P_DYNAMIC_ISLAND_NERD_FONT="Symbols Nerd Font Mono"
+export P_DYNAMIC_ISLAND_NERD_FONT="MonaspiceNe Nerd Font"
 
 # Notch Size
 P_DYNAMIC_ISLAND_DEFAULT_HEIGHT=44
