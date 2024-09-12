@@ -13,7 +13,7 @@ cpu_percent=(
 	icon="$CPU"
 	icon.color="$BLUE"
 	update_freq=2
-	mach_helper="$HELPER"
+	script="$PLUGIN_DIR/stats/scripts/cpu.sh"
 )
 
 sketchybar --add item cpu.percent right \
