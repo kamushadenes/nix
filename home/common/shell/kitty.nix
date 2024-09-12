@@ -18,7 +18,7 @@
       ];
 
       font = {
-        name = "Monaspace Neon Regular";
+        name = "Monaspace Neon";
         size = 14;
       };
 
@@ -36,6 +36,13 @@
 
         ${helpers.kittyProfilesPath}
 
+        font_features MonaspaceNeon-Light +calt +liga +ss01 +ss02 +ss03 +ss04 +ss05 +ss06 +ss07 +ss08 +ss09
+        font_features MonaspaceNeon-Regular +calt +liga +ss01 +ss02 +ss03 +ss04 +ss05 +ss06 +ss07 +ss08 +ss09
+        font_features MonaspaceNeon-Medium +calt +liga +ss01 +ss02 +ss03 +ss04 +ss05 +ss06 +ss07 +ss08 +ss09
+        font_features MonaspaceNeon-Black +calt +liga +ss01 +ss02 +ss03 +ss04 +ss05 +ss06 +ss07 +ss08 +ss09
+        font_features MonaspaceNeon-Heavy +calt +liga +ss01 +ss02 +ss03 +ss04 +ss05 +ss06 +ss07 +ss08 +ss09
+        font_features MonaspaceNeon-Bold +calt +liga +ss01 +ss02 +ss03 +ss04 +ss05 +ss06 +ss07 +ss08 +ss09
+
         include ${./resources/kitty/font-nerd-symbols.conf}
       '';
 
@@ -49,7 +56,6 @@
         allow_hyperklinks = "yes";
         editor = "nvim";
 
-        font_features = "MonaspaceNeon-Regular +calt +liga +ss01 +ss02 +ss03 +ss04 +ss05 +ss06 +ss07 +ss08 +ss09";
         disable_ligatures = "cursor";
 
         tab_bar_style = "powerline";
