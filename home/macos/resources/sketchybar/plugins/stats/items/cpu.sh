@@ -2,6 +2,7 @@
 
 source "$HOME/.config/sketchybar/nix_path.sh"
 source "$HOME/.config/sketchybar/colors.sh"
+source "$HOME/.config/sketchybar/userconfig.sh"
 
 cpu_percent=(
 	background.padding_left=0
