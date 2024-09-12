@@ -1,5 +1,5 @@
 #include "cpu.h"
-#include "sketchybarhelper/sketchybar.h"
+#include "sketchybar.h"
 
 struct cpu g_cpu;
 
