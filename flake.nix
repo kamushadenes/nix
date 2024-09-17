@@ -6,6 +6,10 @@
       url = "github:nixos/nixpkgs/nixpkgs-24.05-darwin";
     };
 
+    nixpkgs-unstable = {
+      url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    };
+
     darwin = {
       url = "github:LnL7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -29,6 +33,7 @@
   outputs =
     inputs@{
       nixpkgs,
+      nixpkgs-unstable,
       home-manager,
       darwin,
       nh-darwin,
@@ -40,75 +45,99 @@
     in
     {
       darwinConfigurations = {
-        studio = darwin.lib.darwinSystem {
-          system = "aarch64-darwin";
-          specialArgs = {
-            inherit inputs;
-            platform = "aarch64-darwin";
+        studio =
+          let
+            system = "aarch64-darwin";
             machine = "studio.hyades.io";
+          in
+          darwin.lib.darwinSystem {
+            system = system;
+            specialArgs = {
+              inherit inputs;
+              inherit machine;
+              pkgs-unstable = import nixpkgs-unstable {
+                inherit system;
+                config.allowUnfree = true;
+              };
+              platform = system;
+            };
+            modules = [
+              ./darwin.nix
+              nh-darwin.nixDarwinModules.prebuiltin
+              agenix.darwinModules.default
+              home-manager.darwinModules.home-manager
+              (
+                {
+                  pkgs,
+                  pkgs-unstable,
+                  config,
+                  inputs,
+                  machine,
+                  ...
+                }:
+                {
+                  home-manager.extraSpecialArgs = {
+                    inherit inputs;
+                    inherit pkgs-unstable;
+                    inherit machine;
+                  };
+                  home-manager.useGlobalPkgs = true;
+                  home-manager.useUserPackages = true;
+                  home-manager.users.kamushadenes = import ./home.nix;
+                  home-manager.sharedModules = sharedModules;
+                  home-manager.backupFileExtension = "hm.bkp";
+                }
+              )
+            ];
           };
-          modules = [
-            ./darwin.nix
-            nh-darwin.nixDarwinModules.prebuiltin
-            agenix.darwinModules.default
-            home-manager.darwinModules.home-manager
-            (
-              {
-                pkgs,
-                config,
-                inputs,
-                ...
-              }:
-              {
-                home-manager.extraSpecialArgs = {
-                  inherit inputs;
-                  machine = "studio.hyades.io";
-                };
-                home-manager.useGlobalPkgs = true;
-                home-manager.useUserPackages = true;
-                home-manager.users.kamushadenes = import ./home.nix;
-                home-manager.sharedModules = sharedModules;
-                home-manager.backupFileExtension = "hm.bkp";
-              }
-            )
-          ];
-        };
       };
 
       nixosConfigurations = {
-        nixos = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = {
-            inherit inputs;
-            platform = "x86_64-linux";
+        nixos =
+          let
+            system = "x86_64-linux";
             machine = "nixos";
-            hardware = ./nixos/hardware/nixos.nix;
+          in
+          nixpkgs.lib.nixosSystem {
+            system = system;
+            specialArgs = {
+              inherit inputs;
+              inherit machine;
+              pkgs-unstable = import nixpkgs-unstable {
+                inherit system;
+                config.allowUnfree = true;
+              };
+              platform = system;
+              hardware = ./nixos/hardware/nixos.nix;
+            };
+            modules = [
+              ./nixos.nix
+              agenix.nixosModules.default
+              home-manager.nixosModules.home-manager
+              (
+                {
+                  pkgs,
+                  pkgs-unstable,
+                  config,
+                  inputs,
+                  machine,
+                  ...
+                }:
+                {
+                  home-manager.extraSpecialArgs = {
+                    inherit inputs;
+                    inherit pkgs-unstable;
+                    inherit machine;
+                  };
+                  home-manager.useGlobalPkgs = true;
+                  home-manager.useUserPackages = true;
+                  home-manager.users.kamushadenes = import ./home.nix;
+                  home-manager.sharedModules = sharedModules;
+                  home-manager.backupFileExtension = "hm.bkp";
+                }
+              )
+            ];
           };
-          modules = [
-            ./nixos.nix
-            agenix.nixosModules.default
-            home-manager.nixosModules.home-manager
-            (
-              {
-                pkgs,
-                config,
-                inputs,
-                ...
-              }:
-              {
-                home-manager.extraSpecialArgs = {
-                  inherit inputs;
-                  machine = "nixos";
-                };
-                home-manager.useGlobalPkgs = true;
-                home-manager.useUserPackages = true;
-                home-manager.users.kamushadenes = import ./home.nix;
-                home-manager.sharedModules = sharedModules;
-                home-manager.backupFileExtension = "hm.bkp";
-              }
-            )
-          ];
-        };
       };
     };
 }

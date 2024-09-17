@@ -2,6 +2,7 @@
   config,
   inputs,
   pkgs,
+  pkgs-unstable,
   lib,
   osConfig,
   ...
@@ -128,6 +129,12 @@ in
 
         sketchybarReload = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
           ${fish} "${osConfig.homebrew.brewPrefix}/sketchybar --reload"
+        '';
+
+        betterTouchToolRestart = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
+          ${fish} "osascript -e 'quit app BetterTouchTool'"
+          ${fish} "defaults write com.hegenberg.BetterTouchTool BTTAutoLoadPath ${config.xdg.configHome}/bettertouchtool/default_preset.json"
+          ${fish} "open -a BetterTouchTool"
         '';
       })
     ];

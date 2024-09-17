@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, pkgs-unstable, ... }:
 {
   programs.go = {
     enable = true;
@@ -6,8 +6,8 @@
 
   home.packages = with pkgs; [
     cobra-cli
-    gopls
-    golangci-lint
-    govulncheck
+    pkgs-unstable.gopls
+    pkgs-unstable.golangci-lint
+    pkgs-unstable.govulncheck
   ];
 }
