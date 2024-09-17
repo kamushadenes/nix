@@ -40,7 +40,7 @@ export ROSEWATER=0xfff4dbd6
 export RANDOM_CAT_COLOR=("$BLUE" "$LAVENDER" "$SAPPHIRE" "$SKY" "$TEAL" "$GREEN" "$YELLOW" "$PEACH" "$MAROON" "$RED" "$MAUVE" "$PINK" "$FLAMINGO" "$ROSEWATER")
 
 function getRandomCatColor() {
-  echo "${RANDOM_CAT_COLOR[ $RANDOM % ${#RANDOM_CAT_COLOR[@]} ]}"
+    echo "${RANDOM_CAT_COLOR[$RANDOM % ${#RANDOM_CAT_COLOR[@]}]}"
 }
 
 #
@@ -52,5 +52,9 @@ export TRANSPARENT=0x00000000
 
 # General bar colors
 export BAR_COLOR=$BASE
-export ICON_COLOR=$TEXT # Color of all icons
+export ICON_COLOR=$TEXT  # Color of all icons
 export LABEL_COLOR=$TEXT # Color of all labels
+
+# Extra colors
+export AIRPODS_MAX=0xff585f68
+export MAGIC_TRACKPAD=0xff343537

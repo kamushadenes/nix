@@ -20,6 +20,8 @@ zen_items=(
 	github.bell
 	network.up
 	network.down
+	bluetooth.battery.airpodsmax
+	bluetooth.battery.magic_trackpad
 )
 
 zen_on() {
