@@ -4,12 +4,14 @@ source "$HOME/.config/sketchybar/nix_path.sh"
 
 magic_trackpad=(
 	update_freq=30
-	icon.font="$NERD_FONT:Bold:15.0"
 	icon="󰟸"
 	icon.color="$GREY"
-	label="..."
-	label.highlight_color="$BLUE"
-	script="$PLUGIN_DIR/bluetooth-battery/scripts/magic_trackpad.sh"
+	background.padding_left=0
+	background.padding_right=0
+	label.font="$FONT:Heavy:12"
+	label=CPU%
+	label.color="$TEXT"
+	script="$PLUGIN_DIR/stats/scripts/magic_trackpad.sh"
 )
 
 sketchybar --add item bluetooth.battery.magic_trackpad right \
@@ -17,12 +19,15 @@ sketchybar --add item bluetooth.battery.magic_trackpad right \
 
 airpodsmax=(
 	update_freq=30
-	icon.font="$NERD_FONT:Bold:15.0"
 	icon=""
 	icon.color="$GREY"
 	label="..."
-	label.highlight_color="$BLUE"
-	script="$PLUGIN_DIR/bluetooth-battery/scripts/airpodsmax.py"
+	background.padding_left=0
+	background.padding_right=0
+	label.font="$FONT:Heavy:12"
+	label=CPU%
+	label.color="$TEXT"
+	script="$PLUGIN_DIR/stats/scripts/airpodsmax.py"
 )
 
 sketchybar --add item bluetooth.battery.airpodsmax right \

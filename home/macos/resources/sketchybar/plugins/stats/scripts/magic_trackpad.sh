@@ -10,7 +10,7 @@ update() {
 
 	PREV_PERCENT=$(sketchybar --query bluetooth.battery.magic_trackpad | jq -r .label.value)
 
-	if [ "${PERCENT//%/}" -lt "${PREV_PERCENT//%/}" ] 2>/dev/null || [ "$SENDER" = "forced" ]; then
+	if [ "${PERCENT//%/}" -ne "${PREV_PERCENT//%/}" ] 2>/dev/null || [ "$SENDER" = "forced" ]; then
 		sketchybar --animate tanh 15 --set bluetooth.battery.magic_trackpad label.y_offset=5 label.y_offset=0 icon="󰟸" label="$PERCENT"
 	fi
 }

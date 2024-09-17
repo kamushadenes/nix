@@ -1,5 +1,5 @@
 (setenv "PATH" (concat (getenv "PATH") ":" (getenv "NIX_HM_PROFILE") "/bin"))
-(setq exec-path (append exec-path (list (concat (getenv "NIX_HM_PROFILE") "/bin")))
+(setq exec-path (append exec-path (list (concat (getenv "NIX_HM_PROFILE") "/bin"))))
 
 (setq user-full-name "Henrique Goncalves"
       user-mail-address "kamus@hadenes.io")

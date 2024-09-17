@@ -174,9 +174,13 @@ def run():
     parsed_json = json.loads(command_output)
 
     # Extract the value you're interested in
-    prev_percent = int(parsed_json["label"]["value"].replace("%", ""))
+    p = parsed_json["label"]["value"]
+    if p == "...":
+        prev_percent = 0
+    else:
+        prev_percent = int(parsed_json["label"]["value"].replace("%", ""))
 
-    if charge < prev_percent or os.environ.get("SENDER") == "forced":
+    if charge != prev_percent or os.environ.get("SENDER") == "forced":
         subprocess.run(["sketchybar"] + args)
 
 

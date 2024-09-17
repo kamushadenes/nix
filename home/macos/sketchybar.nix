@@ -3,6 +3,7 @@
   pkgs,
   lib,
   osConfig,
+  packages,
   ...
 }:
 {
@@ -45,6 +46,7 @@
 
   home.packages = with pkgs; [
     blueutil
+    # python312Packages.bleak # currently broken on Darwin
     (writeScriptBin "dynamic-island-sketchybar" ''
       #!/bin/bash
       exec -a "$0" ${osConfig.homebrew.brewPrefix}/sketchybar $@

@@ -15,7 +15,7 @@ let
     inherit pkgs;
     inherit osConfig;
   };
-  packages = import ./shared/packages.nix { inherit pkgs; };
+  packages = import ./shared/packages.nix { inherit lib pkgs; };
   themes = import ./shared/themes.nix { inherit pkgs; };
 in
 {

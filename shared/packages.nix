@@ -1,5 +1,6 @@
-{ pkgs, ... }:
-{
+{ lib, pkgs, ... }:
+let
+
   gitSquash = pkgs.fetchFromGitHub {
     owner = "sheerun";
     repo = "git-squash";
@@ -16,4 +17,8 @@
       hash = "sha256-6aU9lXfRtxJA/MYkaJ4iRQYAnpBBSGI1R6Ny048aJx8=";
     };
   };
+in
+{
+  gitSquash = gitSquash;
+  kitty-scrollback = kitty-scrollback;
 }
