@@ -87,6 +87,7 @@ in
 
     # MacOS specific
     ./home/macos/aerospace.nix
+    ./home/macos/bettertouchtool.nix
     ./home/macos/dropbox.nix
     ./home/macos/sketchybar.nix
 
@@ -132,7 +133,7 @@ in
         '';
 
         betterTouchToolRestart = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
-          ${fish} "osascript -e 'quit app BetterTouchTool'"
+          ${fish} "osascript -e 'quit app \"BetterTouchTool\"'"
           ${fish} "defaults write com.hegenberg.BetterTouchTool BTTAutoLoadPath ${config.xdg.configHome}/bettertouchtool/default_preset.json"
           ${fish} "open -a BetterTouchTool"
         '';
