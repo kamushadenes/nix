@@ -4,7 +4,7 @@ import os
 import json
 from bleak import discover
 from asyncio import new_event_loop, set_event_loop, get_event_loop
-from time import time_ns
+from time import sleep, time_ns
 from binascii import hexlify
 from datetime import datetime
 import subprocess
@@ -141,7 +141,12 @@ def is_flipped(raw):
 
 
 def run():
-    data = get_data()
+    data = None
+    while True:
+        data = get_data()
+        if data["status"] == 1:
+            break
+        sleep(UPDATE_DURATION)
 
     args = [
         "--animate",

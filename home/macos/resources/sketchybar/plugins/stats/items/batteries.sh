@@ -9,7 +9,7 @@ magic_trackpad=(
 	background.padding_left=0
 	background.padding_right=0
 	label.font="$FONT:Heavy:12"
-	label=CPU%
+	label="..."
 	label.color="$TEXT"
 	script="$PLUGIN_DIR/stats/scripts/magic_trackpad.sh"
 )
@@ -25,9 +25,9 @@ airpodsmax=(
 	background.padding_left=0
 	background.padding_right=0
 	label.font="$FONT:Heavy:12"
-	label=CPU%
+	label="..."
 	label.color="$TEXT"
-	script="$PLUGIN_DIR/stats/scripts/airpodsmax.py"
+	script="python3 $PLUGIN_DIR/stats/scripts/airpodsmax.py"
 )
 
 sketchybar --add item bluetooth.battery.airpodsmax right \
