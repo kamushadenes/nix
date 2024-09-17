@@ -144,7 +144,7 @@ def run():
     data = None
     while True:
         data = get_data()
-        if data["status"] == 1:
+        if data.get("status") == 1:
             break
         sleep(UPDATE_DURATION)
 

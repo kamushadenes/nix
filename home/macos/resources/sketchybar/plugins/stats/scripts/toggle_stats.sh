@@ -8,6 +8,8 @@ stats=(
 	ip_address
 	network.up
 	network.down
+	bluetooth.battery.airpodsmax
+	bluetooth.battery.magic_trackpad
 )
 
 hide_stats() {
