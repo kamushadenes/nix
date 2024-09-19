@@ -46,6 +46,10 @@
       # Nix
       nixfmt-rfc-style
 
+      # PHP
+      php83
+      php83Packages.composer
+
       # Python
       python312Packages.pyflakes
       python312Packages.isort

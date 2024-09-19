@@ -29,7 +29,7 @@ let
             preferLocalBuild = true;
           }
           ''
-            ${lib.getExe pkgs.remarshal} -if yaml -i <(echo "$yaml") -of json -o $out
+            ${lib.getExe' pkgs.remarshal "remarshal"} -if yaml -i <(echo "$yaml") -of json -o $out
           ''
       )
     );
@@ -54,7 +54,7 @@ let
           preferLocalBuild = true;
         }
         ''
-          ${lib.getExe pkgs.remarshal} -if json -i <(echo "$json") -of toml -o $out
+          ${lib.getExe' pkgs.remarshal "remarshal"} -if json -i <(echo "$json") -of toml -o $out
         ''
     );
 

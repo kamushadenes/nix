@@ -80,7 +80,7 @@ in
 
         # Force the use of terminal-notifier to work around Kitty broken notifications
         (lib.mkIf (pkgs.stdenv.isDarwin && config.programs.kitty.enable) ''
-          set -U __done_notification_command "echo \"\$message\" | ${lib.getExe pkgs.terminal-notifier} -title \"\$title\" -sender \"\$__done_initial_window_id\" -sound default"
+          set -U __done_notification_command "echo \"\$message\" | ${lib.getExe' pkgs.terminal-notifier "terminal-notifier"} -title \"\$title\" -sender \"\$__done_initial_window_id\" -sound default"
         '')
 
         # Common
@@ -96,6 +96,7 @@ in
           fish_add_path -a '${config.home.homeDirectory}/.cargo/bin'
           fish_add_path -a '${config.home.homeDirectory}/.config/emacs/bin'
           fish_add_path -a '${config.home.homeDirectory}/.krew/bin'
+          fish_add_path -a '${config.home.homeDirectory}/.config/composer/vendor/bin'
 
           # Move Nix paths back to the front
           ${helpers.fishProfilesPath};
@@ -161,6 +162,8 @@ in
               ''darwin-rebuild switch --flake "${helpers.globalVariables.base.FLAKE}"''
             else
               ''sudo nixos-rebuild switch --flake "${helpers.globalVariables.base.FLAKE}"'';
+
+          unlock-gpg = "rm -f ~/.gnupg/public-keys.d/pubring.db.lock";
         }
 
         (lib.mkIf pkgs.stdenv.isDarwin { nh = "nh_darwin"; })
