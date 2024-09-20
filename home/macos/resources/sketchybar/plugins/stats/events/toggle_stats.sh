@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 source "$HOME/.config/sketchybar/nix_path.sh"
+
 sketchybar --add event hide_stats \
     --add event show_stats \
     --add event toggle_stats \

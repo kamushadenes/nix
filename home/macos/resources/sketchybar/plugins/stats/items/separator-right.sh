@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 source "$HOME/.config/sketchybar/nix_path.sh"
+
 separator_right=(
 	icon=
 	icon.font="$NERD_FONT:Regular:16.0"

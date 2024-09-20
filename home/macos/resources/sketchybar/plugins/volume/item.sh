@@ -31,18 +31,12 @@ volume_icon=(
   label.font="$FONT:Regular:14.0"
 )
 
-status_bracket=(
-  background.color=$SURFACE0
-  background.border_color=$SURFACE1
-  background.border_width=2
-)
-
-sketchybar --add slider volume right            \
-           --set volume "${volume_slider[@]}"   \
-           --subscribe volume volume_change     \
-                              mouse.clicked     \
-                              mouse.entered     \
-                              mouse.exited      \
-                                                \
-           --add item volume_icon right         \
-           --set volume_icon "${volume_icon[@]}"
+sketchybar --add slider volume right \
+  --set volume "${volume_slider[@]}" \
+  --subscribe volume volume_change \
+  mouse.clicked \
+  mouse.entered \
+  mouse.exited \
+  \
+  --add item volume_icon right \
+  --set volume_icon "${volume_icon[@]}"

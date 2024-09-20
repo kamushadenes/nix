@@ -1,9 +1,30 @@
 #!/usr/bin/env bash
 
 source "$HOME/.config/sketchybar/nix_path.sh"
-UPDOWN=$(ifstat -i "en0" -b 0.1 1 | tail -n1)
-DOWN=$(echo "$UPDOWN" | awk "{ print \$1 }" | cut -d. -f1)
-UP=$(echo "$UPDOWN" | awk "{ print \$2 }" | cut -d. -f1)
+
+interfaces=($(ifconfig -l | tr ' ' '\n' | grep -E '^(en|vlan)'))
+
+# Initialize counters
+DOWN=0
+UP=0
+
+# Run `ifstat` for each interface and sum the results
+for iface in "${interfaces[@]}"; do
+	# Run the ifstat command and get the last line of output
+	output=$(ifstat -i $iface -b 0.1 1 | tail -n 1)
+
+	# Split the output into incoming and outgoing traffic
+	in=$(echo $output | awk '{print $1}')
+	out=$(echo $output | awk '{print $2}')
+
+	# Convert to integers for summing
+	in=${in%.*}
+	out=${out%.*}
+
+	# Sum the incoming and outgoing traffic
+	DOWN=$((DOWN + in))
+	UP=$((UP + out))
+done
 
 function human_readable() {
 	local abbrevs=(
