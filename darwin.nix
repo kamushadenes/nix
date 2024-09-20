@@ -1,11 +1,12 @@
 {
   config,
+  lib,
   pkgs,
   platform,
   ...
 }:
 let
-  packages = import ./shared/packages.nix { inherit pkgs; };
+  packages = import ./shared/packages.nix { inherit lib pkgs; };
 in
 {
   _module.args = {
@@ -40,6 +41,8 @@ in
     ./darwin/tiling.nix
     ./darwin/users.nix
     ./darwin/utils.nix
+
+    ./darwin/activation.nix
   ];
 
   # Allow unfree packages to be installed.
@@ -66,5 +69,5 @@ in
   # Timezone
   time.timeZone = "America/Sao_Paulo";
 
-  age.identityPaths = [ "${config.home.homeDirectory}/.age/age.pem" ];
+  age.identityPaths = [ "${config.users.users.kamushadenes.home}/.age/age.pem" ];
 }
