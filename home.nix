@@ -88,7 +88,6 @@ in
     # MacOS specific
     ./home/macos/aerospace.nix
     ./home/macos/bettertouchtool.nix
-    ./home/macos/dropbox.nix
     ./home/macos/sketchybar.nix
 
     # Linux specific

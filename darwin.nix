@@ -1,4 +1,9 @@
-{ pkgs, platform, ... }:
+{
+  config,
+  pkgs,
+  platform,
+  ...
+}:
 let
   packages = import ./shared/packages.nix { inherit pkgs; };
 in
@@ -16,6 +21,7 @@ in
     ./darwin/db.nix
     ./darwin/dev.nix
     ./darwin/dock.nix
+    ./darwin/dropbox.nix
     ./darwin/finance.nix
     ./darwin/fonts.nix
     ./darwin/imaging.nix
@@ -59,4 +65,6 @@ in
 
   # Timezone
   time.timeZone = "America/Sao_Paulo";
+
+  age.identityPaths = [ "${config.home.homeDirectory}/.age/age.pem" ];
 }
