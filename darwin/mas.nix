@@ -3,6 +3,7 @@
 {
   # App Store
   homebrew.masApps = {
+    "com.kagimacOS.Kagi-Search" = 1622835804;
     "1Password for Safari" = 1569813296;
     "Canva" = 897446215;
     "GarageBand" = 682658836;
