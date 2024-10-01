@@ -265,6 +265,15 @@ let
         onError = "ON_ERROR_IGNORE";
       }
       {
+        conditions = [ "CONDITION_SNAPSHOT_START" ];
+        actionCommand = {
+          command = ''
+            mkdir -p ${config.xdg.configHome}/backrest/status 2>/dev/null; echo running $(date "+%Y-%m-%dT%H:%M:%S") > ${config.xdg.configHome}/backrest/status/${name}
+          '';
+        };
+        onError = "ON_ERROR_IGNORE";
+      }
+      {
         conditions = [ "CONDITION_SNAPSHOT_SUCCESS" ];
         actionCommand = {
           command = "${lib.getExe pkgs.curl} -fsS --retry 3 https://hc-ping.com/${healthCheckId}";
@@ -272,9 +281,27 @@ let
         onError = "ON_ERROR_IGNORE";
       }
       {
+        conditions = [ "CONDITION_SNAPSHOT_SUCCESS" ];
+        actionCommand = {
+          command = ''
+            mkdir -p ${config.xdg.configHome}/backrest/status 2>/dev/null; echo success $(date "+%Y-%m-%dT%H:%M:%S") > ${config.xdg.configHome}/backrest/status/${name}
+          '';
+        };
+        onError = "ON_ERROR_IGNORE";
+      }
+      {
         conditions = [ "CONDITION_SNAPSHOT_ERROR" ];
         actionCommand = {
           command = "${lib.getExe pkgs.curl} -fsS --retry 3 https://hc-ping.com/${healthCheckId}/fail";
+        };
+        onError = "ON_ERROR_IGNORE";
+      }
+      {
+        conditions = [ "CONDITION_SNAPSHOT_ERROR" ];
+        actionCommand = {
+          command = ''
+            mkdir -p ${config.xdg.configHome}/backrest/status 2>/dev/null; echo error $(date "+%Y-%m-%dT%H:%M:%S") > ${config.xdg.configHome}/backrest/status/${name}
+          '';
         };
         onError = "ON_ERROR_IGNORE";
       }

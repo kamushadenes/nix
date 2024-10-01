@@ -17,8 +17,13 @@
       gnugrep
       unzip
       yq-go
+      glances
     ]
     ++ (with pkgs.unixtools; [ watch ]);
+
+  xdg.configFile."btop/themes/catppuccin_macchiato.theme" = {
+    source = themes.btopCatppuccin + "/themes/catppuccin_macchiato.theme";
+  };
 
   programs = {
     aria2 = {
@@ -69,6 +74,13 @@
       enableBashIntegration = config.programs.bash.enable;
       enableZshIntegration = config.programs.zsh.enable;
       enableFishIntegration = config.programs.fish.enable;
+    };
+
+    btop = {
+      enable = true;
+      settings = {
+        color_theme = "catppuccin_macchiato";
+      };
     };
 
     dircolors = {

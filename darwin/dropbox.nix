@@ -1,1 +1,7 @@
-../private/darwin/dropbox.nix
+{
+  config,
+  pkgs,
+  packages,
+  ...
+}:
+{}

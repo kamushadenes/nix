@@ -31,7 +31,7 @@
 
 ;;(define-key org-mode-map "\<" 'org-insert-structure-template)
 
-(setq projectile-project-search-path '(("~/Dropbox/Projects/" . 2)))
+(setq projectile-project-search-path '(("~/Dropbox/Projects" . 2)))
 
 (after! flycheck
   (setq flycheck-check-syntax-automatically '(save idle-change new-line mode-enabled)))

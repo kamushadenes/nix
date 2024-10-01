@@ -3,16 +3,6 @@
 
   system = {
     activationScripts = {
-      autoSmb = {
-        enable = true;
-        text = ''
-          source ${packages.colorScript}
-          _iNote "Enabling auto_smb"
-
-          /usr/bin/sudo /run/current-system/sw/bin/enable_auto_smb
-        '';
-      };
-
       postUserActivation = {
         text = ''
           source ${packages.colorScript}

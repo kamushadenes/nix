@@ -12,6 +12,7 @@
     hugo
     stuntman
     neofetch
+    parallel-full
   ];
 
   programs.topgrade = {
