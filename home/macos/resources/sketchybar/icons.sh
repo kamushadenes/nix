@@ -42,6 +42,7 @@ export VOLUME_10=􀊡
 export VOLUME_0=􀊣
 
 # Backrest
+export BACKREST=󰁯
 export BACKREST_SUCCESS=
 export BACKREST_ERROR=
 export BACKREST_RUNNING=
