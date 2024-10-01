@@ -24,7 +24,7 @@ render_bar_item() {
         date="$(echo "$output" | awk '{print $2}')"
 
         # Accumulate backup statuses for the popup
-        BACKUP_STATUS+="$plan: $status ($date)\n"
+        BACKUP_STATUS+="$(printf "%-25s" "$plan")\t$(printf "%-10s" "$status")\t$date\n"
 
         case $status in
             "success")
@@ -90,7 +90,7 @@ render_popup() {
         plan_status="$(echo "$line" | sed -e "s/^'//" -e "s/'$//")"
 
         # Determine the color based on status
-        status="$(echo "$plan_status" | awk -F': ' '{print $2}' | awk '{print $1}')"
+        status="$(echo "$plan_status" | awk '{print $2}')"
 
         case $status in
             "success")
