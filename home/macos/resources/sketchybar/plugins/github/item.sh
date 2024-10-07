@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 
 source "$HOME/.config/sketchybar/nix_path.sh"
+
+if ! command -v gh 2>&1 >/dev/null; then
+	echo "gh could not be found"
+	exit 0
+fi
+
 POPUP_CLICK_SCRIPT="sketchybar --set \$NAME popup.drawing=toggle"
 
 github_bell=(

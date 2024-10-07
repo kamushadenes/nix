@@ -208,6 +208,7 @@ let
   ########################################
 
   mkBackrestConfig = machine: repos: plans: auth: {
+    version = 3;
     modno = 1;
     instance = machine;
     repos = repos;
@@ -219,20 +220,8 @@ let
     id = name;
     uri = uri;
     env = [ "RESTIC_PASSWORD_FILE=${passwordFile}" ];
-    prunePolicy = lib.mkMerge [
-      {
-        schedule = {
-          maxFrequencyDays = 7;
-          onError = "ON_ERROR_IGNORE";
-        };
-      }
-      (lib.mkForce prunePolicy)
-    ];
-
-    checkPolicy = lib.mkMerge [
-      { readDataSubsetPercent = 0; }
-      (lib.mkForce checkPolicy)
-    ];
+    prunePolicy = prunePolicy;
+    checkPolicy = checkPolicy;
   };
 
   mkBackrestPlan = name: repo: paths: excludes: schedule: retention: flags: healthCheckId: {
@@ -241,17 +230,7 @@ let
     paths = paths;
     excludes = excludes;
     schedule = schedule;
-    retention = lib.mkMerge [
-      {
-        policyTimeBucketed = {
-          hourly = 24;
-          daily = 7;
-          weekly = 4;
-          monthly = 3;
-        };
-      }
-      (lib.mkForce retention)
-    ];
+    retention = retention;
     backup_flags = [
       "--exclude-if-present .nobackup"
       "--exclude-caches"

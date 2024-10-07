@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 
 source "$HOME/.config/sketchybar/nix_path.sh"
+
+if ! command -v backrest 2>&1 >/dev/null; then
+	echo "backrest could not be found"
+	exit 0
+fi
+
 source "$HOME/.config/sketchybar/colors.sh"
 source "$HOME/.config/sketchybar/userconfig.sh"
 
@@ -12,7 +18,7 @@ backrest_config=(
 	icon="$BACKREST"
 	icon.color="$GREY"
 	update_freq=5
-    script="$PLUGIN_DIR/stats/scripts/backrest.sh"
+	script="$PLUGIN_DIR/stats/scripts/backrest.sh"
 )
 
 backrest_details=(
@@ -25,9 +31,9 @@ backrest_details=(
 )
 
 sketchybar --add item backrest right \
-    --set backrest "${backrest_config[@]}" \
+	--set backrest "${backrest_config[@]}" \
 	--subscribe backrest \
 	mouse.entered \
 	mouse.exited \
 	mouse.exited.global \
-    --add item backrest.details popup.backrest --set backrest.details "${backrest_details[@]}"
+	--add item backrest.details popup.backrest --set backrest.details "${backrest_details[@]}"

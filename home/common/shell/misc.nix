@@ -104,6 +104,7 @@
 
       config = {
         load_dotenv = true;
+        hide_env_diff = true;
       };
     };
 
