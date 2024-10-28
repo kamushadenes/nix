@@ -13,6 +13,7 @@
     stuntman
     neofetch
     parallel-full
+    ripgrep-all
   ];
 
   programs.topgrade = {

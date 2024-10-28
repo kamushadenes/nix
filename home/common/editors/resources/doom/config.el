@@ -326,3 +326,19 @@
   (setq easy-hugo-url "https://blog.hadenes.io")
   (setq easy-hugo-previewtime "300")
   (easy-hugo-enable-menu))
+
+;; shfmt
+(set-formatter! 'shfmt '("shfmt" "-ci" "-sr" "-filename" filepath "-ln"
+                         (cl-case
+                             (bound-and-true-p sh-shell)
+                           (sh "posix")
+                           (t "bash"))
+                         (when apheleia-formatters-respect-indent-level
+                           (list "-i"
+                                 (number-to-string
+                                  (cond
+                                   (indent-tabs-mode 0)
+                                   ((boundp 'sh-basic-offset)
+                                    sh-basic-offset)
+                                   (t 4)))))
+                         "-"))
