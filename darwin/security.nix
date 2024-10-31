@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   # Casks
@@ -14,7 +14,15 @@
 
   security = {
     # Auth sudo with Touch ID
-    pam.enableSudoTouchIdAuth = true;
+    pam = {
+      enableSudoTouchIdAuth = true;
+    };
+
+    sudo = {
+      extraConfig = with config.users.users; ''
+        %brewers ALL=(${kamushadenes.name}) NOPASSWD: ${config.homebrew.brewPrefix}/brew *
+      '';
+    };
   };
 
   system = {

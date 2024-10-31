@@ -49,12 +49,14 @@
           let
             system = "aarch64-darwin";
             machine = "studio.hyades.io";
+            shared = false;
           in
           darwin.lib.darwinSystem {
             system = system;
             specialArgs = {
               inherit inputs;
               inherit machine;
+              inherit shared;
               pkgs-unstable = import nixpkgs-unstable {
                 inherit system;
                 config.allowUnfree = true;
@@ -73,6 +75,8 @@
                   config,
                   inputs,
                   machine,
+                  platform,
+                  shared,
                   ...
                 }:
                 {
@@ -80,10 +84,65 @@
                     inherit inputs;
                     inherit pkgs-unstable;
                     inherit machine;
+                    inherit platform;
+                    inherit shared;
                   };
                   home-manager.useGlobalPkgs = true;
                   home-manager.useUserPackages = true;
                   home-manager.users.kamushadenes = import ./home.nix;
+                  home-manager.users.yjrodrigues = import ./home_other.nix;
+                  home-manager.sharedModules = sharedModules;
+                  home-manager.backupFileExtension = "hm.bkp";
+                }
+              )
+            ];
+          };
+        MacBook-M3-Pro =
+          let
+            system = "aarch64-darwin";
+            machine = "macbook-m3-pro.hyades.io";
+            shared = true;
+          in
+          darwin.lib.darwinSystem {
+            system = system;
+            specialArgs = {
+              inherit inputs;
+              inherit machine;
+              inherit shared;
+              pkgs-unstable = import nixpkgs-unstable {
+                inherit system;
+                config.allowUnfree = true;
+              };
+              platform = system;
+            };
+            modules = [
+              ./darwin.nix
+              nh-darwin.nixDarwinModules.prebuiltin
+              agenix.darwinModules.default
+              home-manager.darwinModules.home-manager
+              (
+                {
+                  pkgs,
+                  pkgs-unstable,
+                  config,
+                  inputs,
+                  machine,
+                  platform,
+                  shared,
+                  ...
+                }:
+                {
+                  home-manager.extraSpecialArgs = {
+                    inherit inputs;
+                    inherit pkgs-unstable;
+                    inherit machine;
+                    inherit platform;
+                    inherit shared;
+                  };
+                  home-manager.useGlobalPkgs = true;
+                  home-manager.useUserPackages = true;
+                  home-manager.users.kamushadenes = import ./home.nix;
+                  home-manager.users.yjrodrigues = import ./home_other.nix;
                   home-manager.sharedModules = sharedModules;
                   home-manager.backupFileExtension = "hm.bkp";
                 }
