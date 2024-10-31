@@ -16,7 +16,6 @@
     "launchcontrol"
     "clickup"
     "background-music"
-    "hoppscotch"
   ];
 
   homebrew.brews = [

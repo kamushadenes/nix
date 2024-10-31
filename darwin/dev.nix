@@ -4,10 +4,9 @@
   # Casks
   homebrew.casks = [
     "arduino-ide"
+    "hoppscotch"
     "imhex"
-    "insomnia"
     "lens"
     "mqtt-explorer"
-    "postman"
   ];
 }

@@ -90,7 +90,6 @@
                   home-manager.useGlobalPkgs = true;
                   home-manager.useUserPackages = true;
                   home-manager.users.kamushadenes = import ./home.nix;
-                  home-manager.users.yjrodrigues = import ./home_other.nix;
                   home-manager.sharedModules = sharedModules;
                   home-manager.backupFileExtension = "hm.bkp";
                 }
