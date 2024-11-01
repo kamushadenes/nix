@@ -41,6 +41,12 @@ Edit the outputs inputs:
 outputs = inputs@{ self, nix-darwin, nixpkgs, nh-darwin }:
 ```
 
+Enable nh:
+
+``` nix
+programs.nh.enable = true;
+```
+
 And finally the module:
 
 ``` nix
