@@ -15,14 +15,39 @@ mkdir -p ~/.config/nix
 
 echo 'experimental-features = nix-command flakes' > ~/.config/nix/nix.conf
 
-git clone git@github.com:kamushadenes/nix.git ~/.config/nix/config/
+git clone --recursive git@github.com:kamushadenes/nix.git ~/.config/nix/config/
 ```
 
 ### Darwin
 
-```sh
-nix run nix-darwin -- switch --flake ~/.config/nix/config/
+You need to install a default nix-darwin first, otherwise it won't recognize the private submodules.
+
+``` sh
+mkdir -p ~/.config/nix-darwin
+cd ~/.config/nix-darwin
+nix flake init -t nix-darwin
+sed -i '' "s/simple/$(scutil --get LocalHostName)/" flake.nix
 ```
+
+Make sure to fix the platform in flake.nix, then run the initial switch.
+
+``` sh
+nix run nix-darwin -- switch --flake ~/.config/nix-darwin
+```
+
+Logout and login again, then, run the real install.
+
+```sh
+darwin-rebuild switch --flake ~/.config/nix/config/\?submodules=1
+```
+
+Then cleanup.
+
+``` sh
+rm -rf ~/.config/nix-darwin
+```
+
+`
 
 ### NixOS
 
