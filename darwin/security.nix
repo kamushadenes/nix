@@ -5,7 +5,7 @@
   homebrew.casks = [
     "1password"
     "burp-suite"
-    "malwarebytes"
+    #"malwarebytes"
     "ngrok"
     "qflipper"
     "wireshark"

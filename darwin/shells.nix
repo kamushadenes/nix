@@ -2,7 +2,7 @@
 
 {
   # Casks
-  homebrew.casks = [ "git-credential-manager" ];
+  #homebrew.casks = [ "git-credential-manager" ];
 
   programs = {
     bash = {
