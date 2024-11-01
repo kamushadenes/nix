@@ -42,6 +42,16 @@
     }:
     let
       sharedModules = [ agenix.homeManagerModules.default ];
+      hmDefaults = {
+        useGlobalPkgs = true;
+        useUserPackages = true;
+        users.kamushadenes = import ./home.nix;
+        sharedModules = sharedModules;
+        backupFileExtension = "hm.bkp";
+      };
+      hmShared = {
+        users.yjrodrigues = import ./home_other.nix;
+      };
     in
     {
       darwinConfigurations = {
@@ -80,18 +90,19 @@
                   ...
                 }:
                 {
-                  home-manager.extraSpecialArgs = {
-                    inherit inputs;
-                    inherit pkgs-unstable;
-                    inherit machine;
-                    inherit platform;
-                    inherit shared;
-                  };
-                  home-manager.useGlobalPkgs = true;
-                  home-manager.useUserPackages = true;
-                  home-manager.users.kamushadenes = import ./home.nix;
-                  home-manager.sharedModules = sharedModules;
-                  home-manager.backupFileExtension = "hm.bkp";
+                  home-manager = pkgs.lib.mkMerge [
+                    {
+                      extraSpecialArgs = {
+                        inherit inputs;
+                        inherit pkgs-unstable;
+                        inherit machine;
+                        inherit platform;
+                        inherit shared;
+                      };
+                    }
+                    hmDefaults
+                    (pkgs.lib.mkIf shared hmShared)
+                  ];
                 }
               )
             ];
@@ -131,19 +142,19 @@
                   ...
                 }:
                 {
-                  home-manager.extraSpecialArgs = {
-                    inherit inputs;
-                    inherit pkgs-unstable;
-                    inherit machine;
-                    inherit platform;
-                    inherit shared;
-                  };
-                  home-manager.useGlobalPkgs = true;
-                  home-manager.useUserPackages = true;
-                  home-manager.users.kamushadenes = import ./home.nix;
-                  home-manager.users.yjrodrigues = import ./home_other.nix;
-                  home-manager.sharedModules = sharedModules;
-                  home-manager.backupFileExtension = "hm.bkp";
+                  home-manager = pkgs.lib.mkMerge [
+                    {
+                      extraSpecialArgs = {
+                        inherit inputs;
+                        inherit pkgs-unstable;
+                        inherit machine;
+                        inherit platform;
+                        inherit shared;
+                      };
+                    }
+                    hmDefaults
+                    (pkgs.lib.mkIf shared hmShared)
+                  ];
                 }
               )
             ];
@@ -155,12 +166,14 @@
           let
             system = "x86_64-linux";
             machine = "nixos";
+            shared = false;
           in
           nixpkgs.lib.nixosSystem {
             system = system;
             specialArgs = {
               inherit inputs;
               inherit machine;
+              inherit shared;
               pkgs-unstable = import nixpkgs-unstable {
                 inherit system;
                 config.allowUnfree = true;
@@ -179,19 +192,22 @@
                   config,
                   inputs,
                   machine,
+                  shared,
                   ...
                 }:
                 {
-                  home-manager.extraSpecialArgs = {
-                    inherit inputs;
-                    inherit pkgs-unstable;
-                    inherit machine;
-                  };
-                  home-manager.useGlobalPkgs = true;
-                  home-manager.useUserPackages = true;
-                  home-manager.users.kamushadenes = import ./home.nix;
-                  home-manager.sharedModules = sharedModules;
-                  home-manager.backupFileExtension = "hm.bkp";
+                  home-manager = pkgs.lib.mkMerge [
+                    {
+                      extraSpecialArgs = {
+                        inherit inputs;
+                        inherit pkgs-unstable;
+                        inherit machine;
+                        inherit shared;
+                      };
+                    }
+                    hmDefaults
+                    (pkgs.lib.mkIf shared hmShared)
+                  ];
                 }
               )
             ];
