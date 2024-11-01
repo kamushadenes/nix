@@ -20,7 +20,7 @@ git clone --recursive git@github.com:kamushadenes/nix.git ~/.config/nix/config/
 
 ### Darwin
 
-You need to install a default nix-darwin first, otherwise it won't recognize the private submodules.
+You need to install a default nix-darwin first, because we need nh-darwin.
 
 ``` sh
 mkdir -p ~/.config/nix-darwin
@@ -29,19 +29,40 @@ nix flake init -t nix-darwin
 sed -i '' "s/simple/$(scutil --get LocalHostName)/" flake.nix
 ```
 
-Make sure to fix the platform in flake.nix, then run the initial switch.
+Edit flake.nix, and add the following input:
+
+``` nix
+nh-darwin.url = "github:ToyVo/nh_darwin";
+```
+
+Edit the outputs inputs:
+
+``` nix
+outputs = inputs@{ self, nix-darwin, nixpkgs, nh-darwin }:
+```
+
+And finally the module:
+
+``` nix
+modules = [ configuration nh-darwin.nixDarwinModules.prebuiltin ];
+
+```
+
+Also, make sure to fix the platform.
+
+Now, run the initial switch:
 
 ``` sh
 nix run nix-darwin -- switch --flake ~/.config/nix-darwin
 ```
 
-Logout and login again, then, run the real install.
+Logout and login again, then run the real install (will take some time):
 
 ```sh
-darwin-rebuild switch --flake ~/.config/nix/config/\?submodules=1
+nh os switch -H (hostname -s | sed s"/.local//g")
 ```
 
-Then cleanup.
+Then cleanup:
 
 ``` sh
 rm -rf ~/.config/nix-darwin

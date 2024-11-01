@@ -2,11 +2,6 @@
   description = "Machine Configuration";
 
   inputs = {
-    private = {
-      url = "git+file:private#main";
-      flake = false;
-    };
-
     nixpkgs = {
       url = "github:nixos/nixpkgs/nixpkgs-24.05-darwin";
     };
