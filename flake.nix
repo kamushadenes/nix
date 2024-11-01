@@ -3,7 +3,7 @@
 
   inputs = {
     private = {
-      url = "git+file:private";
+      url = "git+file:private#main";
       flake = false;
     };
 
