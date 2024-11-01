@@ -107,7 +107,7 @@
               )
             ];
           };
-        MacBook-M3-Pro =
+        macbook-m3-pro =
           let
             system = "aarch64-darwin";
             machine = "macbook-m3-pro.hyades.io";

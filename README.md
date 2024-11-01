@@ -51,7 +51,6 @@ And finally the module:
 
 ``` nix
 modules = [ configuration nh-darwin.nixDarwinModules.prebuiltin ];
-
 ```
 
 Also, make sure to fix the platform.
@@ -65,6 +64,7 @@ nix run nix-darwin -- switch --flake ~/.config/nix-darwin
 Logout and login again, then run the real install (will take some time):
 
 ```sh
+export FLAKE="$HOME/.config/nix/config/?submodules=1"
 nh os switch -H (hostname -s | sed s"/.local//g")
 ```
 
