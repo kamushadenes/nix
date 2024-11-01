@@ -68,8 +68,6 @@ Then cleanup:
 rm -rf ~/.config/nix-darwin
 ```
 
-`
-
 ### NixOS
 
 ```sh
