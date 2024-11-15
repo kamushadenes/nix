@@ -186,8 +186,6 @@ in
           unlock-gpg = "rm -f ~/.gnupg/public-keys.d/pubring.db.lock";
         }
 
-        (lib.mkIf pkgs.stdenv.isDarwin { nh = "nh_darwin"; })
-
         (lib.mkIf config.programs.bat.enable {
           cat = "bat -p";
           man = "batman";
