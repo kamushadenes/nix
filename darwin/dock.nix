@@ -33,7 +33,7 @@
           "/System/Applications/Calendar.app"
           "${pkgs.kitty}/Applications/kitty.app"
           "${pkgs.emacs29-pgtk}/Applications/Emacs.app"
-          "/Applications/Hoppscotch.app"
+          "/Applications/Setapp/RapidAPI.app"
           "/Applications/Setapp/TypingMind.app"
           "/Applications/Camo Studio.app"
           "/Applications/Screen Studio.app"

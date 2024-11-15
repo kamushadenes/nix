@@ -26,6 +26,7 @@ in
     inherit packages;
     inherit themes;
     inherit fishPlugins;
+    inherit pkgs-unstable;
   };
 
   imports = [

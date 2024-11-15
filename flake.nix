@@ -10,6 +10,11 @@
       url = "github:nixos/nixpkgs/nixpkgs-unstable";
     };
 
+    lix-module = {
+      url = "https://git.lix.systems/lix-project/nixos-module/archive/2.91.1-1.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     darwin = {
       url = "github:LnL7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -34,6 +39,7 @@
     inputs@{
       nixpkgs,
       nixpkgs-unstable,
+      lix-module,
       home-manager,
       darwin,
       nh-darwin,
@@ -77,6 +83,7 @@
               ./darwin.nix
               nh-darwin.nixDarwinModules.prebuiltin
               agenix.darwinModules.default
+              lix-module.nixosModules.default
               home-manager.darwinModules.home-manager
               (
                 {
@@ -129,6 +136,7 @@
               ./darwin.nix
               nh-darwin.nixDarwinModules.prebuiltin
               agenix.darwinModules.default
+              lix-module.nixosModules.default
               home-manager.darwinModules.home-manager
               (
                 {
@@ -185,6 +193,7 @@
               ./nixos.nix
               agenix.nixosModules.default
               home-manager.nixosModules.home-manager
+              lix-module.nixosModules.default
               (
                 {
                   pkgs,

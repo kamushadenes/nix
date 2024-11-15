@@ -1,5 +1,6 @@
 {
   pkgs,
+  pkgs-unstable,
   lib,
   osConfig,
   ...
@@ -14,6 +15,7 @@
     neofetch
     parallel-full
     ripgrep-all
+    pkgs-unstable.fabric-ai
   ];
 
   programs.topgrade = {
@@ -37,7 +39,7 @@
           pkg = osConfig.programs.nh.package;
         in
         {
-          "Run garbage collection on Nix store" =
+          "Nix store garbage collection" =
             if pkgs.stdenv.isDarwin then
               "${lib.getExe' pkg "nh_darwin"} clean all"
             else

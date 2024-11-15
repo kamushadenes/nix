@@ -4,9 +4,10 @@
   # Casks
   homebrew.casks = [
     "arduino-ide"
-    "hoppscotch"
+    "gitkraken"
     "imhex"
     "lens"
     "mqtt-explorer"
+    "qemu"
   ];
 }

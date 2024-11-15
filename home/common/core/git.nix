@@ -11,8 +11,10 @@
   home.packages = with pkgs; [
     lefthook
     onefetch
+    gitnr
     (writeScriptBin "git-info" "onefetch")
     (writeScriptBin "git-squash" (builtins.readFile (packages.gitSquash + "/git-squash")))
+    (writeScriptBin "git-ignore" "gitnr")
   ];
 
   xdg.configFile."git/ignore" = {
