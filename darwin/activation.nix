@@ -5,6 +5,7 @@
     activationScripts = {
       postUserActivation = {
         text = ''
+          # shellcheck disable=SC1091
           source ${packages.colorScript}
           _iNote "Activating settings"
 
@@ -14,6 +15,7 @@
 
       restartDock = {
         text = ''
+          # shellcheck disable=SC1091
           source ${packages.colorScript}
           _iNote "Restarting Dock"
 
