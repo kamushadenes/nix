@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  pkgs-unstable,
   packages,
   ...
 }:
@@ -31,8 +32,8 @@
           "/Applications/Todoist.app"
           "/Applications/ClickUp.app"
           "/System/Applications/Calendar.app"
-          "${pkgs.kitty}/Applications/kitty.app"
-          "${pkgs.emacs29-pgtk}/Applications/Emacs.app"
+          "${pkgs-unstable.kitty}/Applications/kitty.app"
+          "${pkgs-unstable.emacs30-pgtk}/Applications/Emacs.app"
           "/Applications/Setapp/RapidAPI.app"
           "/Applications/Setapp/TypingMind.app"
           "/Applications/Camo Studio.app"

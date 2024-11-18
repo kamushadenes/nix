@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  pkgs-unstable,
   lib,
   ...
 }:
@@ -8,12 +9,12 @@
   programs = {
     emacs = {
       enable = true;
-      package = pkgs.emacs29-pgtk;
+      package = pkgs-unstable.emacs30-pgtk;
     };
   };
 
   home.packages =
-    with pkgs;
+    with pkgs-unstable;
     [
       # GNU Tools
       coreutils-prefixed
@@ -54,7 +55,6 @@
       python312Packages.pyflakes
       python312Packages.isort
       pipenv
-      python312Packages.pynose
       python312Packages.pytest
       python312Packages.cython
       python312Packages.grip
@@ -93,7 +93,7 @@
 
   xdg.configFile."emacs".source = builtins.fetchGit {
     url = "https://github.com/doomemacs/doomemacs.git";
-    rev = "8b9168de6e6a9cabf13d1c92558e2ef71aa37a72";
+    rev = "7bc39f2c1402794e76ea10b781dfe586fed7253b";
   };
 
   xdg.configFile."doom".source = ./resources/doom;

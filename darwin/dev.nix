@@ -1,6 +1,10 @@
 { pkgs, ... }:
 
 {
+  homebrew.brews = [
+    "qemu"
+  ];
+
   # Casks
   homebrew.casks = [
     "arduino-ide"
@@ -8,6 +12,5 @@
     "imhex"
     "lens"
     "mqtt-explorer"
-    "qemu"
   ];
 }

@@ -184,6 +184,7 @@ in
               ''sudo nixos-rebuild switch --flake "${helpers.globalVariables.base.FLAKE}"'';
 
           unlock-gpg = "rm -f ~/.gnupg/public-keys.d/pubring.db.lock";
+          renice-baldur = "sudo renice -n -20 -p $(pgrep -f Baldur)";
         }
 
         (lib.mkIf config.programs.bat.enable {

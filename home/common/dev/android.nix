@@ -1,8 +1,13 @@
-{ pkgs, lib, ... }:
+{
+  pkgs,
+  pkgs-unstable,
+  lib,
+  ...
+}:
 {
   home.packages = with pkgs; [
     android-tools
-    apktool
-    #jadx
+    pkgs-unstable.apktool
+    pkgs-unstable.jadx
   ];
 }

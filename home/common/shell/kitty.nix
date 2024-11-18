@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  pkgs-unstable,
   lib,
   osConfig,
   helpers,
@@ -11,6 +12,7 @@
   programs = {
     kitty = {
       enable = true;
+      package = pkgs-unstable.kitty;
 
       darwinLaunchOptions = [
         "--single-instance"
