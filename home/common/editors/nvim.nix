@@ -6,6 +6,15 @@
   ...
 }:
 {
+
+  xdg.configFile."nvim/lua" = {
+    source = ./resources/lazyvim/lua;
+    recursive = true;
+  };
+
+  xdg.configFile."nvim/.neoconf.json".source = ./resources/lazyvim/.neoconf.json;
+  xdg.configFile."nvim/stylua.toml".source = ./resources/lazyvim/stylua.toml;
+
   programs = {
     neovim = {
       enable = true;
@@ -14,22 +23,11 @@
       vimAlias = true;
       vimdiffAlias = true;
 
-      extraLuaConfig = builtins.readFile ./resources/nvim/init.lua;
+      extraLuaConfig = builtins.readFile ./resources/lazyvim/init.lua;
+    };
 
-      coc = {
-        enable = true;
-      };
-
-      plugins = with pkgs.vimPlugins; [
-        catppuccin-nvim
-        firenvim
-        nvim-autopairs
-        nerdtree
-        neogit
-        plenary-nvim
-        go-nvim
-        packages.kitty-scrollback
-      ];
+    neovide = {
+      enable = true;
     };
   };
 }
