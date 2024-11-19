@@ -25,9 +25,5 @@
 
       extraLuaConfig = builtins.readFile ./resources/lazyvim/init.lua;
     };
-
-    neovide = {
-      enable = true;
-    };
   };
 }
