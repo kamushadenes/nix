@@ -1,6 +1,7 @@
 {
   inputs,
   pkgs,
+  pkgs-unstable,
   lib,
   packages,
   ...
@@ -8,6 +9,31 @@
 {
   home.packages = with pkgs; [
     neovide
+
+    # Lua
+    lua5_1
+    lua51Packages.luarocks
+
+    # Git
+    lazygit
+
+    # tree-sitter
+    tree-sitter
+
+    # Python
+    python312Packages.pynvim
+
+    # Markdown
+    markdownlint-cli2
+
+    # SQL
+    sqlfluff
+
+    # Latex
+    texliveBasic
+
+    # Misc
+    ast-grep
   ];
 
   xdg.configFile."nvim/lua" = {
@@ -22,7 +48,7 @@
   programs = {
     neovim = {
       enable = true;
-      package = pkgs.neovim-unwrapped;
+      package = pkgs-unstable.neovim-unwrapped;
 
       viAlias = true;
       vimAlias = true;
