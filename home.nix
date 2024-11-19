@@ -140,6 +140,13 @@ in
 
         neovideTrampoline = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
           ${fish} "nix run github:hraban/mac-app-util -- mktrampoline ${lib.getExe pkgs.neovide} ~/Applications/Neovide.app"
+          ${fish} "cp ${
+            config.xdg.configFile."nvim/app/Neovide.icns".target
+          } ~/Applications/Neovide.app/Contents/Resources/applet.icns"
+        '';
+
+        reloadDock = lib.hm.dag.entryAfter [ "neovideTrampoline" ] ''
+          ${fish} "/usr/bin/killall Dock
         '';
       })
     ];
