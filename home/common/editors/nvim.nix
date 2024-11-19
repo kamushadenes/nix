@@ -6,6 +6,9 @@
   ...
 }:
 {
+  home.packages = with pkgs; [
+    neovide
+  ];
 
   xdg.configFile."nvim/lua" = {
     source = ./resources/lazyvim/lua;
@@ -19,6 +22,7 @@
   programs = {
     neovim = {
       enable = true;
+      package = pkgs.neovim-unwrapped;
 
       viAlias = true;
       vimAlias = true;
