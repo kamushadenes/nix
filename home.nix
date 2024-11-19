@@ -137,6 +137,10 @@ in
           ${fish} "defaults write com.hegenberg.BetterTouchTool BTTAutoLoadPath ${config.xdg.configHome}/bettertouchtool/default_preset.json"
           ${fish} "open -a BetterTouchTool"
         '';
+
+        neovideTrampoline = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
+          ${fish} "nix run github:hraban/mac-app-util -- mktrampoline ${lib.getExe pkgs.neovide} ~/Applications/Neovide.app"
+        '';
       })
     ];
 

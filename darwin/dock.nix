@@ -34,6 +34,7 @@
           "/System/Applications/Calendar.app"
           "${pkgs-unstable.kitty}/Applications/kitty.app"
           "${pkgs-unstable.emacs30-pgtk}/Applications/Emacs.app"
+          "${config.users.users.kamushadenes.home}/Applications/Neovide.app"
           "/Applications/Setapp/RapidAPI.app"
           "/Applications/Setapp/TypingMind.app"
           "/Applications/Camo Studio.app"

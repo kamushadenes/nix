@@ -33,6 +33,10 @@
       url = "github:yaxitech/ragenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    mac-app-util = {
+      url = "github:hraban/mac-app-util";
+    };
   };
 
   outputs =
@@ -44,17 +48,91 @@
       darwin,
       nh-darwin,
       agenix,
+      mac-app-util,
       ...
     }:
     let
-      sharedModules = [ agenix.homeManagerModules.default ];
+      darwinModules = [
+        ./darwin.nix
+        nh-darwin.nixDarwinModules.prebuiltin
+        agenix.darwinModules.default
+        lix-module.nixosModules.default
+        home-manager.darwinModules.home-manager
+        #mac-app-util.darwinModules.default
+        (
+          {
+            pkgs,
+            pkgs-unstable,
+            config,
+            inputs,
+            machine,
+            platform,
+            shared,
+            ...
+          }:
+          {
+            home-manager = pkgs.lib.mkMerge [
+              {
+                extraSpecialArgs = {
+                  inherit inputs;
+                  inherit pkgs-unstable;
+                  inherit machine;
+                  inherit platform;
+                  inherit shared;
+                };
+              }
+              hmDefaults
+              (pkgs.lib.mkIf shared hmShared)
+            ];
+          }
+        )
+      ];
+
+      nixosModules = [
+        ./nixos.nix
+        agenix.nixosModules.default
+        home-manager.nixosModules.home-manager
+        lix-module.nixosModules.default
+        (
+          {
+            pkgs,
+            pkgs-unstable,
+            config,
+            inputs,
+            machine,
+            shared,
+            ...
+          }:
+          {
+            home-manager = pkgs.lib.mkMerge [
+              {
+                extraSpecialArgs = {
+                  inherit inputs;
+                  inherit pkgs-unstable;
+                  inherit machine;
+                  inherit shared;
+                };
+              }
+              hmDefaults
+              (pkgs.lib.mkIf shared hmShared)
+            ];
+          }
+        )
+      ];
+
+      hmModules = [
+        agenix.homeManagerModules.default
+        mac-app-util.homeManagerModules.default
+      ];
+
       hmDefaults = {
         useGlobalPkgs = true;
         useUserPackages = true;
         users.kamushadenes = import ./home.nix;
-        sharedModules = sharedModules;
+        sharedModules = hmModules;
         backupFileExtension = "hm.bkp";
       };
+
       hmShared = {
         users.yjrodrigues = import ./home_other.nix;
       };
@@ -79,40 +157,7 @@
               };
               platform = system;
             };
-            modules = [
-              ./darwin.nix
-              nh-darwin.nixDarwinModules.prebuiltin
-              agenix.darwinModules.default
-              lix-module.nixosModules.default
-              home-manager.darwinModules.home-manager
-              (
-                {
-                  pkgs,
-                  pkgs-unstable,
-                  config,
-                  inputs,
-                  machine,
-                  platform,
-                  shared,
-                  ...
-                }:
-                {
-                  home-manager = pkgs.lib.mkMerge [
-                    {
-                      extraSpecialArgs = {
-                        inherit inputs;
-                        inherit pkgs-unstable;
-                        inherit machine;
-                        inherit platform;
-                        inherit shared;
-                      };
-                    }
-                    hmDefaults
-                    (pkgs.lib.mkIf shared hmShared)
-                  ];
-                }
-              )
-            ];
+            modules = darwinModules;
           };
         macbook-m3-pro =
           let
@@ -132,40 +177,7 @@
               };
               platform = system;
             };
-            modules = [
-              ./darwin.nix
-              nh-darwin.nixDarwinModules.prebuiltin
-              agenix.darwinModules.default
-              lix-module.nixosModules.default
-              home-manager.darwinModules.home-manager
-              (
-                {
-                  pkgs,
-                  pkgs-unstable,
-                  config,
-                  inputs,
-                  machine,
-                  platform,
-                  shared,
-                  ...
-                }:
-                {
-                  home-manager = pkgs.lib.mkMerge [
-                    {
-                      extraSpecialArgs = {
-                        inherit inputs;
-                        inherit pkgs-unstable;
-                        inherit machine;
-                        inherit platform;
-                        inherit shared;
-                      };
-                    }
-                    hmDefaults
-                    (pkgs.lib.mkIf shared hmShared)
-                  ];
-                }
-              )
-            ];
+            modules = darwinModules;
           };
       };
 
@@ -189,37 +201,7 @@
               platform = system;
               hardware = ./nixos/hardware/nixos.nix;
             };
-            modules = [
-              ./nixos.nix
-              agenix.nixosModules.default
-              home-manager.nixosModules.home-manager
-              lix-module.nixosModules.default
-              (
-                {
-                  pkgs,
-                  pkgs-unstable,
-                  config,
-                  inputs,
-                  machine,
-                  shared,
-                  ...
-                }:
-                {
-                  home-manager = pkgs.lib.mkMerge [
-                    {
-                      extraSpecialArgs = {
-                        inherit inputs;
-                        inherit pkgs-unstable;
-                        inherit machine;
-                        inherit shared;
-                      };
-                    }
-                    hmDefaults
-                    (pkgs.lib.mkIf shared hmShared)
-                  ];
-                }
-              )
-            ];
+            modules = nixosModules;
           };
       };
     };
