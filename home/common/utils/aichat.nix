@@ -1,16 +1,35 @@
 {
   config,
   pkgs,
-  themes,
+  lib,
   ...
 }:
+let
+  themeName = config.programs.bat.config.theme;
+  batThemeSrc = config.programs.bat.themes."${themeName}".src;
+  batTheme = "${batThemeSrc}/themes/${themeName}.tmTheme";
+in
 {
   home.packages = with pkgs; [
     aichat
   ];
 
+  home.file = lib.mkMerge [
+    (lib.mkIf pkgs.stdenv.isDarwin {
+      "Library/Application Support/aichat" = {
+        source = config.lib.file.mkOutOfStoreSymlink "${config.xdg.configHome}/aichat";
+      };
+    })
+  ];
+
+  age.secrets = {
+    "openai.key.age" = {
+      file = ./resources/aichat/openai.key.age;
+    };
+  };
+
   # https://github.com/sigoden/aichat/wiki/Custom-Theme
-  xdg.configFile."aichat/dark.tmTheme".source = themes.batCatppuccinMacchiato;
+  xdg.configFile."aichat/dark.tmTheme".source = batTheme;
 
   xdg.configFile."aichat/config.yaml".text =
     # yaml
@@ -18,9 +37,9 @@
       model: openai:gpt-4o
       clients:
       - type: openai
-        # api_key comes from $OPENAI_API_KEY env var
-        # See: https://github.com/sigoden/aichat/wiki/Environment-Variables#client-related-envs
-        api_key: null
+        api_key: ${
+          builtins.readFile config.age.secrets."openai.key.age".path
+        } # Anti-pattern, but whatever
       stream: true
       save: true
       keybindings: vi

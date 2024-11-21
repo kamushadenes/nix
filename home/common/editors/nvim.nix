@@ -11,9 +11,6 @@
     pkgs.lua5_1
     pkgs.lua51Packages.luarocks
 
-    # Git
-    lazygit
-
     # tree-sitter
     tree-sitter
 
