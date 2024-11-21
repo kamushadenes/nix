@@ -7,12 +7,12 @@
   ...
 }:
 {
-  home.packages = with pkgs; [
+  home.packages = with pkgs-unstable; [
     neovide
 
     # Lua
-    lua5_1
-    lua51Packages.luarocks
+    pkgs.lua5_1
+    pkgs.lua51Packages.luarocks
 
     # Git
     lazygit

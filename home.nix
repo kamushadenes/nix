@@ -112,9 +112,14 @@ in
           ${fish} "_evalcache_clear"
         '';
 
-        doom = lib.hm.dag.entryAfter [ "doomEnv" ] ''
-          ${fish} "${config.xdg.configHome}/emacs/bin/doom sync"
-        '';
+        doom = lib.hm.dag.entryAfter [ "doomEnv" ] (
+          if config.programs.emacs.enable then
+            ''
+              ${fish} "${config.xdg.configHome}/emacs/bin/doom sync"
+            ''
+          else
+            ''''
+        );
       }
 
       # Linux
@@ -136,17 +141,6 @@ in
           ${fish} "osascript -e 'quit app \"BetterTouchTool\"'"
           ${fish} "defaults write com.hegenberg.BetterTouchTool BTTAutoLoadPath ${config.xdg.configHome}/bettertouchtool/default_preset.json"
           ${fish} "open -a BetterTouchTool"
-        '';
-
-        neovideTrampoline = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
-          ${fish} "nix run github:hraban/mac-app-util -- mktrampoline ${lib.getExe pkgs.neovide} ~/Applications/Neovide.app"
-          ${fish} "cp ${
-            config.xdg.configFile."nvim/app/Neovide.icns".target
-          } ~/Applications/Neovide.app/Contents/Resources/applet.icns"
-        '';
-
-        reloadDock = lib.hm.dag.entryAfter [ "neovideTrampoline" ] ''
-          ${fish} "/usr/bin/killall Dock
         '';
       })
     ];

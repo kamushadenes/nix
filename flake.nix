@@ -33,10 +33,6 @@
       url = "github:yaxitech/ragenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    mac-app-util = {
-      url = "github:hraban/mac-app-util";
-    };
   };
 
   outputs =
@@ -48,7 +44,6 @@
       darwin,
       nh-darwin,
       agenix,
-      mac-app-util,
       ...
     }:
     let
@@ -58,7 +53,6 @@
         agenix.darwinModules.default
         lix-module.nixosModules.default
         home-manager.darwinModules.home-manager
-        #mac-app-util.darwinModules.default
         (
           {
             pkgs,
@@ -122,7 +116,6 @@
 
       hmModules = [
         agenix.homeManagerModules.default
-        mac-app-util.homeManagerModules.default
       ];
 
       hmDefaults = {

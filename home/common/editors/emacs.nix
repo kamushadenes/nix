@@ -8,7 +8,7 @@
 {
   programs = {
     emacs = {
-      enable = true;
+      enable = false; # Temporarily disable
       package = pkgs-unstable.emacs30-pgtk;
     };
   };
