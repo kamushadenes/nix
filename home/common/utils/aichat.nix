@@ -23,27 +23,15 @@ in
   ];
 
   age.secrets = {
-    "openai.key.age" = {
-      file = ./resources/aichat/openai.key.age;
+    "config.yaml.age" = {
+      file = ./resources/aichat/config.yaml.age;
     };
   };
 
   # https://github.com/sigoden/aichat/wiki/Custom-Theme
   xdg.configFile."aichat/dark.tmTheme".source = batTheme;
 
-  xdg.configFile."aichat/config.yaml".text =
-    # yaml
-    ''
-      model: openai:gpt-4o
-      clients:
-      - type: openai
-        api_key: ${
-          builtins.readFile config.age.secrets."openai.key.age".path
-        } # Anti-pattern, but whatever
-      stream: true
-      save: true
-      keybindings: vi
-    '';
+  xdg.configFile."aichat/config.yaml".source = config.age.secrets."config.yaml.age".path;
 
   xdg.configFile."aichat/roles.yaml".text =
     # yaml
