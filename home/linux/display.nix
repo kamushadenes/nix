@@ -25,7 +25,7 @@
   wayland = lib.mkIf pkgs.stdenv.isLinux {
     windowManager.sway = {
       enable = true;
-      config = rec {
+      config = {
         modifier = "Mod4";
         terminal = "alacritty";
         startup = [ { command = "firefox"; } ];

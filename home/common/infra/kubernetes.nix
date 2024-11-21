@@ -4,8 +4,6 @@
   themes,
   ...
 }:
-let
-in
 {
   home.packages = with pkgs; [
     argocd
