@@ -26,7 +26,6 @@
           "/System/Applications/Launchpad.app"
           "/Applications/Arc.app"
           "/System/Applications/Mail.app"
-          "/Applications/Discord.app"
           "/Applications/Slack.app"
           "/System/Applications/Notes.app"
           "/Applications/Todoist.app"

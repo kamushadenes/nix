@@ -45,9 +45,6 @@
   xdg.configFile."nvim/stylua.toml".source = ./resources/lazyvim/stylua.toml;
   xdg.configFile."nvim/lazyvim.json".source = ./resources/lazyvim/lazyvim.json;
 
-  # Just so we can copy it to the trampoline app later
-  xdg.configFile."nvim/app/Neovide.icns".source = ./resources/neovide/Neovide.icns;
-
   programs = {
     neovim = {
       enable = true;
