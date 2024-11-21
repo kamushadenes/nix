@@ -1,5 +1,4 @@
 { pkgs, ... }:
-
 {
   # Casks
   #homebrew.casks = [ "git-credential-manager" ];

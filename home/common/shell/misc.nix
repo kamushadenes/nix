@@ -1,9 +1,7 @@
 {
-  inputs,
   config,
   pkgs,
   lib,
-  osConfig,
   themes,
   ...
 }:

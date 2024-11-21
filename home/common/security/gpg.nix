@@ -1,4 +1,4 @@
-{ pkgs, config, ... }:
+{ config, ... }:
 {
   age.secrets = {
     "341C34CD6BED86F0FFC045609BFB331DE0590F01.key.age" = {

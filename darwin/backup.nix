@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ ... }:
 {
   homebrew.taps = [ "garethgeorge/homebrew-backrest-tap" ];
 

@@ -2,10 +2,7 @@
   config,
   pkgs,
   pkgs-unstable,
-  lib,
-  osConfig,
   helpers,
-  packages,
   ...
 }:
 {

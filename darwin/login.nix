@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ ... }:
 
 {
   launchd.user.agents = {

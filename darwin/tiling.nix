@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-
+{ ... }:
 {
   homebrew.taps = [ "nikitabobko/tap" ];
 

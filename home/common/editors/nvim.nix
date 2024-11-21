@@ -1,9 +1,6 @@
 {
-  inputs,
   pkgs,
   pkgs-unstable,
-  lib,
-  packages,
   ...
 }:
 {

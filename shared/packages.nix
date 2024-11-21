@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ pkgs, ... }:
 let
   gitSquash = pkgs.fetchFromGitHub {
     owner = "sheerun";
