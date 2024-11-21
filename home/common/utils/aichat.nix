@@ -25,13 +25,11 @@ in
   age.secrets = {
     "config.yaml.age" = {
       file = ./resources/aichat/config.yaml.age;
+      path = "${config.xdg.configHome}/aichat/config.yaml";
     };
   };
 
-  # https://github.com/sigoden/aichat/wiki/Custom-Theme
   xdg.configFile."aichat/dark.tmTheme".source = batTheme;
-
-  xdg.configFile."aichat/config.yaml".source = config.age.secrets."config.yaml.age".path;
 
   xdg.configFile."aichat/roles.yaml".text =
     # yaml
