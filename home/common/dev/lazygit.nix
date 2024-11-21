@@ -4,10 +4,6 @@
   ...
 }:
 {
-  home.packages = with pkgs; [
-    bun
-  ];
-
   age.secrets = {
     "lazycommit.age" = {
       file = ./resources/lazygit/lazycommit.age;
