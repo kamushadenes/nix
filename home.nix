@@ -80,6 +80,7 @@ in
     ./home/common/security/tools.nix
 
     # Utils
+    ./home/common/utils/aichat.nix
     ./home/common/utils/utils.nix
 
     # Altinity
