@@ -9,6 +9,7 @@
   home.packages = with pkgs; [
     trash-cli
     asciinema
+    glow
     httpie
     hugo
     stuntman
