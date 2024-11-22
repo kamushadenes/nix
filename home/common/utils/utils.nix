@@ -24,6 +24,7 @@
     settings = {
       misc = {
         disable = [
+          "bun"
           "cargo"
           "containers"
           "emacs"
@@ -40,11 +41,7 @@
           pkg = osConfig.programs.nh.package;
         in
         {
-          "Nix store garbage collection" =
-            if pkgs.stdenv.isDarwin then
-              "${lib.getExe' pkg "nh_darwin"} clean all"
-            else
-              "${lib.getExe' pkg "nh"} clean all";
+          "Nix store garbage collection" = "${lib.getExe' pkg "nh"} clean all";
         };
     };
   };

@@ -19,14 +19,15 @@
   ];
 
   homebrew.brews = [
+    "cava"
+    "dockutil"
+    "ical-buddy"
+    "ifstat"
     {
-      name = "sketchybar"; # Easier to grant permissions through brew
+      name = "sketchybar"; # It's easier to grant permissions through brew than home-manager
       restart_service = false;
       start_service = true;
     }
-    "ical-buddy"
-    "ifstat"
-    "cava"
     "switchaudio-osx"
   ];
 }

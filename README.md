@@ -20,9 +20,9 @@ git clone --recursive git@github.com:kamushadenes/nix.git ~/.config/nix/config/
 
 ### Darwin
 
-You need to install a default nix-darwin first, because we need nh-darwin.
+You need to install a default nix-darwin first, because we need nh-plus.
 
-``` sh
+```sh
 mkdir -p ~/.config/nix-darwin
 cd ~/.config/nix-darwin
 nix flake init -t nix-darwin
@@ -31,33 +31,33 @@ sed -i '' "s/simple/$(scutil --get LocalHostName)/" flake.nix
 
 Edit flake.nix, and add the following input:
 
-``` nix
-nh-darwin.url = "github:ToyVo/nh_darwin";
+```nix
+nh-plus.url = "github:ToyVo/nh_darwin";
 ```
 
 Edit the outputs inputs:
 
-``` nix
-outputs = inputs@{ self, nix-darwin, nixpkgs, nh-darwin }:
+```nix
+outputs = inputs@{ self, nix-darwin, nixpkgs, nh-plus }:
 ```
 
 Enable nh:
 
-``` nix
+```nix
 programs.nh.enable = true;
 ```
 
 And finally the module:
 
-``` nix
-modules = [ configuration nh-darwin.nixDarwinModules.prebuiltin ];
+```nix
+modules = [ configuration nh-plus.nixDarwinModules.prebuiltin ];
 ```
 
 Also, make sure to fix the platform.
 
 Now, run the initial switch:
 
-``` sh
+```sh
 nix run nix-darwin -- switch --flake ~/.config/nix-darwin
 ```
 
@@ -70,7 +70,7 @@ nh os switch -H (hostname -s | sed s"/.local//g")
 
 Then cleanup:
 
-``` sh
+```sh
 rm -rf ~/.config/nix-darwin
 ```
 
