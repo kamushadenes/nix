@@ -30,9 +30,6 @@ in
   };
 
   imports = [
-    # Backup
-    ./home/common/backup/backup.nix
-
     # Core
     inputs.agenix.homeManagerModules.default
     ./home/common/core/agenix.nix
