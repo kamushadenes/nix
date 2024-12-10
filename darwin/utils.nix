@@ -16,6 +16,7 @@
     "launchcontrol"
     "clickup"
     "background-music"
+    "obsidian"
   ];
 
   homebrew.brews = [

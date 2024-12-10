@@ -17,6 +17,8 @@
     parallel-full
     ripgrep-all
     pkgs-unstable.fabric-ai
+    poppler_utils
+    tesseract
   ];
 
   programs.topgrade = {
