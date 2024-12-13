@@ -10,7 +10,7 @@
     kubebuilder
     kubectl
     kubectx
-    kubelogin
+    kubelogin-oidc
     kubernetes-helm
     kubeseal
   ];
