@@ -38,6 +38,7 @@
   xdg.configFile."nvim/.neoconf.json".source = ./resources/lazyvim/.neoconf.json;
   xdg.configFile."nvim/stylua.toml".source = ./resources/lazyvim/stylua.toml;
   xdg.configFile."nvim/lazyvim.json".source = ./resources/lazyvim/lazyvim.json;
+  xdg.configFile."nvim/lazy-lock.json".source = ./resources/lazyvim/lazy-lock.json;
 
   programs = {
     neovim = {

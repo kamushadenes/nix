@@ -5,5 +5,6 @@
     qbittorrent
     uhk-agent
     uhk-udev-rules
+    xpipe
   ];
 }

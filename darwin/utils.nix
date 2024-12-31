@@ -4,6 +4,7 @@
   homebrew.taps = [
     "nikitabobko/tap"
     "FelixKratz/formulae"
+    "xpipe-io/tap"
   ];
 
   # Casks
@@ -17,6 +18,7 @@
     "clickup"
     "background-music"
     "obsidian"
+    "xpipe"
   ];
 
   homebrew.brews = [
