@@ -3,6 +3,7 @@
 {
   # Casks
   homebrew.casks = [
+    "adapter"
     "audacity"
     "audio-hijack"
     "camo-studio"

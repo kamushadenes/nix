@@ -9,6 +9,7 @@
 
   # Casks
   homebrew.casks = [
+    "dockside"
     "hazel"
     "pdf-expert"
     "qbittorrent"

@@ -116,15 +116,13 @@ in
           fish_add_path -a '${config.home.homeDirectory}/.config/emacs/bin'
           fish_add_path -a '${config.home.homeDirectory}/.krew/bin'
           fish_add_path -a '${config.home.homeDirectory}/.config/composer/vendor/bin'
+          fish_add_path -a '${config.home.homeDirectory}/.orbstack/bin'
 
           # Move Nix paths back to the front
           ${helpers.fishProfilesPath};
 
           # Global Variables
           ${helpers.globalVariables.fishShell}
-
-          # Docker host running on a remote machine
-          set -x DOCKER_HOST "tcp://10.23.23.204:2375"
         ''
 
         ''

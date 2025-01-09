@@ -12,5 +12,6 @@
     "imhex"
     "lens"
     "mqtt-explorer"
+    "orbstack"
   ];
 }
