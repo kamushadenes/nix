@@ -23,6 +23,9 @@
     "geekbench"
     "geekbench-ai"
     "ollama"
+
+    # Tmp
+    "ghostty"
   ];
 
   homebrew.brews = [

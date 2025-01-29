@@ -20,6 +20,7 @@ let
 in
 {
   nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.allowBroken = true;
 
   _module.args = {
     inherit helpers;

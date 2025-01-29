@@ -110,9 +110,9 @@ in
 
         (lib.mkIf config.programs.yazi.enable ''
           if test $fish_key_bindings = fish_default_key_bindings
-              bind \cf ya
+              bind \cf yazi
           else
-              bind -M insert \cf ya
+              bind -M insert \cf yazi
           end
         '')
 
@@ -139,6 +139,16 @@ in
         (lib.mkIf (
           config.programs.navi.enable && !config.programs.navi.enableFishIntegration
         ) "_evalcache ${lib.getExe pkgs.navi} widget fish")
+
+        # Cache ghostty init
+        ''
+          # Set GHOSTTY_RESOURCES_DIR if not set
+          if test -z "$GHOSTTY_RESOURCES_DIR"
+              set -x GHOSTTY_RESOURCES_DIR "/Applications/Ghostty.app/Contents/Resources/ghostty"
+          end
+
+          _evalcache cat "$GHOSTTY_RESOURCES_DIR"/shell-integration/fish/vendor_conf.d/ghostty-shell-integration.fish
+        ''
       ];
 
       interactiveShellInit = lib.mkMerge [
