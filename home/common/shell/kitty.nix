@@ -27,7 +27,7 @@
         enableFishIntegration = config.programs.fish.enable;
       };
 
-      theme = "Catppuccin-Macchiato";
+      themeFile = "Catppuccin-Macchiato";
 
       extraConfig = ''
         action_alias kitty_scrollback_nvim kitten ${pkgs.vimUtils.packDir config.programs.neovim.finalPackage.passthru.packpathDirs}/pack/myNeovimPackages/start/vimplugin-kitty-scrollback.nvim/python/kitty_scrollback_nvim.py

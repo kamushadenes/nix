@@ -112,7 +112,7 @@
       enableZshIntegration = config.programs.zsh.enable;
       enableFishIntegration = config.programs.fish.enable;
       git = true;
-      icons = true;
+      icons = "auto";
     };
 
     fastfetch = {

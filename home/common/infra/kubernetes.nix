@@ -13,6 +13,8 @@
     kubelogin-oidc
     kubernetes-helm
     kubeseal
+    kubeshark
+    kubetail
   ];
 
   programs.k9s = {

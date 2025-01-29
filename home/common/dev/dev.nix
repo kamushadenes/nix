@@ -5,8 +5,9 @@
 {
   home.packages = with pkgs; [
     act
-    parca
+    #parca
     protobuf
+    svu
     wakatime
   ];
 }

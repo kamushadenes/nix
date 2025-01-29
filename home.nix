@@ -42,6 +42,7 @@ in
     # Shell
     ./home/common/shell/bash.nix
     ./home/common/shell/fish.nix
+    ./home/common/shell/ghostty.nix
     ./home/common/shell/kitty.nix
     ./home/common/shell/misc.nix
     ./home/common/shell/starship.nix

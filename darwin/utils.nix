@@ -20,6 +20,9 @@
     "background-music"
     "obsidian"
     "xpipe"
+    "geekbench"
+    "geekbench-ai"
+    "ollama"
   ];
 
   homebrew.brews = [

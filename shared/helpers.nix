@@ -11,7 +11,7 @@ let
   # 1Password Path                       #
   #                                      #
   ########################################
-  opBinPath = lib.getExe pkgs._1password;
+  opBinPath = lib.getExe pkgs._1password-cli;
 
   ########################################
   #                                      #

@@ -103,6 +103,11 @@ in
         '')
 
         # Common
+        ''
+          # Increase escape-period tolerance
+          set -g fish_escape_delay_ms 300
+        ''
+
         (lib.mkIf config.programs.yazi.enable ''
           if test $fish_key_bindings = fish_default_key_bindings
               bind \cf ya
