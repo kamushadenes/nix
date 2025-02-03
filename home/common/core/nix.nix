@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  pkgs-unstable,
   ...
 }:
 {
@@ -19,6 +20,7 @@
     nix-tree
     nixpkgs-fmt
     nurl
+    pkgs-unstable.nh
   ];
 
   manual.manpages.enable = false;

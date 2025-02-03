@@ -78,7 +78,7 @@ let
       # Vim is better for quick edits
       EDITOR = "nvim";
 
-      FLAKE = "${config.home.homeDirectory}/.config/nix/config/?submodules=1";
+      NH_FLAKE = "${config.home.homeDirectory}/.config/nix/config/?submodules=1";
       DARWIN_USER_TEMP_DIR = lib.optionals pkgs.stdenv.isDarwin ''$(${lib.getExe' pkgs.coreutils "printf"} '%s' "$(${lib.getExe pkgs.getconf} DARWIN_USER_TEMP_DIR)" | ${lib.getExe' pkgs.coreutils "tr"} -d "\n")'';
 
       # Work around https://github.com/Homebrew/brew/issues/13219

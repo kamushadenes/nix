@@ -189,7 +189,7 @@ in
         {
           rebuild =
             if pkgs.stdenv.isDarwin then
-              ''nh darwin switch -H (hostname -s | sed s"/.local//g")''
+              ''nix shell github:viperML/nh --command nh darwin switch -H (hostname -s | sed s"/.local//g")'' # TODO: fix this when 4.0.0 gets merged in nixpkgs
             else
               ''nh os switch -H (hostname -s | sed s"/.local//g")'';
 
