@@ -205,10 +205,10 @@ in
         })
         (lib.mkIf config.programs.broot.enable { tree = "broot"; })
         (lib.mkIf config.programs.eza.enable { ls = "eza --icons -F -H --group-directories-first --git"; })
-        (lib.mkIf config.programs.kitty.enable {
-          ssh = "kitten ssh";
-          sudo = ''sudo TERMINFO="$TERMINFO"'';
-        })
+        #(lib.mkIf config.programs.kitty.enable {
+        #  ssh = "kitten ssh";
+        #  sudo = ''sudo TERMINFO="$TERMINFO"'';
+        #})
       ];
     };
   };

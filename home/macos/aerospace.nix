@@ -113,17 +113,48 @@ in
               "mode main"
             ];
           };
-        }) # Fix Ghostty
+        })
         ''
+          # Fix Ghostty
           [[on-window-detected]]
           if.app-id="com.mitchellh.ghostty"
-            run = [
-              # FIX: this is a workaround for https://github.com/nikitabobko/AeroSpace/issues/68
-              # this was also observed in:
-              # - https://github.com/ghostty-org/ghostty/issues/1840
-              # - https://github.com/ghostty-org/ghostty/issues/2006
-              "layout floating",
-            ]
+          run = [
+            # FIX: this is a workaround for https://github.com/nikitabobko/AeroSpace/issues/68
+            # this was also observed in:
+            # - https://github.com/ghostty-org/ghostty/issues/1840
+            # - https://github.com/ghostty-org/ghostty/issues/2006
+            "layout floating",
+            "move-node-to-workspace 1",
+          ]
+        ''
+        ''
+          # Mail keeps freezing
+          [[on-window-detected]]
+          if.app-id="com.apple.mail"
+          run = [
+            "layout floating",
+          ]
+        ''
+        ''
+          [[on-window-detected]]
+          if.app-id="com.tinyspeck.slackmacgap"
+          run = [
+            "move-node-to-workspace 2",
+          ]
+        ''
+        ''
+          [[on-window-detected]]
+          if.app-id="net.whatsapp.WhatsApp"
+          run = [
+            "move-node-to-workspace 2",
+          ]
+        ''
+        ''
+          [[on-window-detected]]
+          if.app-id="com.neovide.neovide"
+          run = [
+            "move-node-to-workspace 1",
+          ]
         ''
       ];
     };

@@ -6,5 +6,6 @@
     docker-compose
     docker-credential-helpers
     skopeo
+    lazydocker
   ];
 }

@@ -60,6 +60,8 @@
 
       desktop-notifications = true
 
+      cursor-click-to-move = true
+
       auto-update = off
     '';
   };
