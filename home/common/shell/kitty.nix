@@ -8,7 +8,7 @@
 {
   programs = {
     kitty = {
-      enable = true;
+      enable = false;
       package = pkgs-unstable.kitty;
 
       darwinLaunchOptions = [
