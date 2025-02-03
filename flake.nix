@@ -20,10 +20,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nh-plus = {
-      url = "github:ToyVo/nh_plus";
-    };
-
     home-manager = {
       url = "github:nix-community/home-manager/release-24.11";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -42,14 +38,12 @@
       lix-module,
       home-manager,
       darwin,
-      nh-plus,
       agenix,
       ...
     }:
     let
       darwinModules = [
         ./darwin.nix
-        nh-plus.nixDarwinModules.prebuiltin
         agenix.darwinModules.default
         lix-module.nixosModules.default
         home-manager.darwinModules.home-manager

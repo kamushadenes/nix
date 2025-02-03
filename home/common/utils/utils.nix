@@ -2,7 +2,6 @@
   pkgs,
   pkgs-unstable,
   lib,
-  osConfig,
   ...
 }:
 {
@@ -38,13 +37,9 @@
         ];
         cleanup = true;
       };
-      commands =
-        let
-          pkg = osConfig.programs.nh.package;
-        in
-        {
-          "Nix store garbage collection" = "${lib.getExe' pkg "nh"} clean all";
-        };
+      commands = {
+        "Nix store garbage collection" = "${lib.getExe' pkgs.nh "nh"} clean all";
+      };
     };
   };
 }

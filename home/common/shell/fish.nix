@@ -188,12 +188,10 @@ in
       shellAliases = lib.mkMerge [
         {
           rebuild =
-            if osConfig.programs.nh.enable then
-              ''nh os switch -H (hostname -s | sed s"/.local//g")''
-            else if pkgs.stdenv.isDarwin then
-              ''darwin-rebuild switch --flake "${helpers.globalVariables.base.FLAKE}"''
+            if pkgs.stdenv.isDarwin then
+              ''nh darwin switch -H (hostname -s | sed s"/.local//g")''
             else
-              ''sudo nixos-rebuild switch --flake "${helpers.globalVariables.base.FLAKE}"'';
+              ''nh os switch -H (hostname -s | sed s"/.local//g")'';
 
           unlock-gpg = "rm -f ~/.gnupg/public-keys.d/pubring.db.lock";
           renice-baldur = "sudo renice -n -20 -p $(pgrep -f Baldur)";
