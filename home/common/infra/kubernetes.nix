@@ -15,6 +15,7 @@
     kubeseal
     kubeshark
     kubetail
+    kind
   ];
 
   programs.k9s = {
