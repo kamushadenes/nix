@@ -1,6 +1,10 @@
-{ ... }:
+{ pkgs, ... }:
 
 {
+  environment.systemPackages = with pkgs; [
+    darwin.apple_sdk.frameworks.Security
+  ];
+
   homebrew.taps = [
     "nikitabobko/tap"
     "FelixKratz/formulae"
