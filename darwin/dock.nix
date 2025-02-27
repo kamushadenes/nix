@@ -21,7 +21,7 @@
 
         persistent-apps = [
           "/System/Applications/Launchpad.app"
-          "/Applications/Arc.app"
+          "/Applications/Orion.app"
           #"/System/Applications/Mail.app"
           "/Applications/Setapp/Canary Mail.app"
           "/Applications/Slack.app"
@@ -38,7 +38,7 @@
           "/Applications/Camo Studio.app"
           "/Applications/Screen Studio.app"
           "/Applications/Portal.app"
-          "/System/Applications/Music.app"
+          "/Applications/Spotify.app"
           "/System/Applications/App Store.app"
           "/System/Applications/System Settings.app"
         ];

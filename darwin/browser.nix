@@ -7,6 +7,7 @@
     "chromedriver"
     "eloston-chromium"
     "firefox"
+    "orion"
   ];
 
   environment.systemPackages = with pkgs; [
