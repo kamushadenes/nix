@@ -13,5 +13,6 @@
     "lens"
     "mqtt-explorer"
     "orbstack"
+    "rapidapi"
   ];
 }
