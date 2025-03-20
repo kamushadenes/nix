@@ -156,6 +156,14 @@ in
             "move-node-to-workspace 1",
           ]
         ''
+        ''
+          # Fix Orion
+          [[on-window-detected]]
+          if.window-title-regex-substring = "Orion Preview"
+          run = [
+            "move-node-to-workspace 1",
+          ]
+        ''
       ];
     };
   };

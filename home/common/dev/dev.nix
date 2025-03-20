@@ -9,5 +9,7 @@
     protobuf
     svu
     wakatime
+    graphqurl
+    aider-chat
   ];
 }

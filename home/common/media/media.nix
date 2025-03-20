@@ -5,5 +5,6 @@
     imagemagick
     graphviz
     exiftool
+    yt-dlp
   ];
 }
