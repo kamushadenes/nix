@@ -15,6 +15,7 @@
     "iina"
     "loopback"
     "screen-studio"
+    "spotify"
     "streamlabs"
     "vlc"
   ];
