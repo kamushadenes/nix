@@ -1,6 +1,8 @@
 return {
   {
     "yetone/avante.nvim",
+    -- version = "0.0.23",
+    commit = "d82eb85",
     event = "VeryLazy",
     dependencies = {
       "stevearc/dressing.nvim",
@@ -11,11 +13,18 @@ return {
       hints = { enabled = false },
 
       ---@alias AvanteProvider "claude" | "openai" | "azure" | "gemini" | "cohere" | "copilot" | string
-      provider = "openrouter_claude_sonnet", -- Recommend using openrouter
+      provider = "openrouter_claude_sonnet",
+      openai = {
+        endpoint = "https://api.openai.com/v1",
+        model = "o3-mini", -- your desired model (or use gpt-4o, etc.)
+        api_key_name = "cmd:op item get wlg5ynxr5jzlieh5cwc2qqajyi --reveal --fields avante",
+        timeout = 30000, -- Timeout in milliseconds, increase this for reasoning models
+        temperature = 0,
+      },
       auto_suggestions_provider = "copilot", -- Since auto-suggestions are a high-frequency operation and therefore expensive, it is recommended to specify an inexpensive provider or even a free provider: copilot
       web_search_engine = {
         provider = "kagi",
-        api_key_name = "cmd: op item get fb7aoio7k4amhoealvjm5bvw6e --reveal --fields api_key",
+        api_key_name = "cmd:op item get fb7aoio7k4amhoealvjm5bvw6e --reveal --fields api_key",
       },
       vendors = {
         openrouter_claude_sonnet = {
