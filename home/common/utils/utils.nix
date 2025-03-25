@@ -18,6 +18,7 @@
     pkgs-unstable.fabric-ai
     poppler_utils
     tesseract
+    qpdf
   ];
 
   programs.topgrade = {

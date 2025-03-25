@@ -11,14 +11,19 @@ return {
       hints = { enabled = false },
 
       ---@alias AvanteProvider "claude" | "openai" | "azure" | "gemini" | "cohere" | "copilot" | string
-      provider = "openrouter", -- Recommend using openrouter
+      provider = "openrouter_claude_sonnet", -- Recommend using openrouter
       auto_suggestions_provider = "copilot", -- Since auto-suggestions are a high-frequency operation and therefore expensive, it is recommended to specify an inexpensive provider or even a free provider: copilot
+      web_search_engine = {
+        provider = "kagi",
+        api_key_name = "cmd: op item get fb7aoio7k4amhoealvjm5bvw6e --reveal --fields api_key",
+      },
       vendors = {
-        openrouter = {
+        openrouter_claude_sonnet = {
           __inherited_from = "openai",
           endpoint = "https://openrouter.ai/api/v1",
           api_key_name = "cmd:op item get bxb4loone7wltv7nziuttxl4u4 --reveal --fields credential",
           model = "anthropic/claude-3.7-sonnet",
+          --max_completion_tokens = 200000,
         },
       },
 
