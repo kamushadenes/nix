@@ -11,5 +11,6 @@
     wakatime
     graphqurl
     aider-chat
+    just
   ];
 }
