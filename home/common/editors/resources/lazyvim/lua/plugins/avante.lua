@@ -21,7 +21,10 @@ return {
         timeout = 30000, -- Timeout in milliseconds, increase this for reasoning models
         temperature = 0,
       },
-      auto_suggestions_provider = "", -- Since auto-suggestions are a high-frequency operation and therefore expensive, it is recommended to specify an inexpensive provider or even a free provider: copilot
+      auto_suggestions_provider = "copilot", -- Since auto-suggestions are a high-frequency operation and therefore expensive, it is recommended to specify an inexpensive provider or even a free provider: copilot
+      behaviour = {
+        auto_suggestions = false,
+      },
       web_search_engine = {
         provider = "kagi",
         api_key_name = "cmd:op item get fb7aoio7k4amhoealvjm5bvw6e --reveal --fields api_key",

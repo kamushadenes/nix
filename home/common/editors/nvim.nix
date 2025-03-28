@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   pkgs-unstable,
   ...
@@ -28,7 +29,18 @@
 
     # Misc
     ast-grep
+
+    # nvim-staging
+    (writeScriptBin "nvim-staging" ''
+      #!/bin/bash
+      export NVIM_APPNAME=nvim-staging
+      exec nvim $@
+    '')
   ];
+
+  # Use NVIM_APPNAME=nvim-staging to be able to update packages, then rebuild
+  home.file."${config.xdg.configHome}/nvim-staging".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.config/nix/config/home/common/editors/resources/lazyvim";
 
   xdg.configFile."nvim/lua" = {
     source = ./resources/lazyvim/lua;
