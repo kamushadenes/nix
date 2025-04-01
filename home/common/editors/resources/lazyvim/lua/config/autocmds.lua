@@ -2,6 +2,11 @@
 -- Default autocmds that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/autocmds.lua
 -- Add any additional autocmds here
 
+-- Performance
+vim.lsp.set_log_level("off")
+vim.g.matchparen_timeout = 2
+vim.g.matchparen_insert_timeout = 2
+
 -- prefil edit window with common scenarios to avoid repeating query and submit immediately
 local prefill_edit_window = function(request)
   require("avante.api").edit()

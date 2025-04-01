@@ -35,8 +35,6 @@
           #"${pkgs-unstable.emacs30-pgtk}/Applications/Emacs.app"
           "${pkgs-unstable.neovide}/Applications/Neovide.app"
           "/Applications/Setapp/RapidAPI.app"
-          #"/Applications/Msty.app"
-          "/Applications/Setapp/TypingMind.app"
           "/Applications/Camo Studio.app"
           "/Applications/Screen Studio.app"
           "/Applications/Portal.app"
