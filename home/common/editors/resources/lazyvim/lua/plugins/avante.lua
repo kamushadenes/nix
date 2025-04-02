@@ -2,8 +2,8 @@ return {
   {
     "yetone/avante.nvim",
     -- version = "0.0.23",
-    enabled = false,
-    commit = "cd13eeb",
+    enabled = true,
+    commit = "06757e8",
     event = "VeryLazy",
     dependencies = {
       "stevearc/dressing.nvim",
