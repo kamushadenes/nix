@@ -8,6 +8,7 @@ return {
     dependencies = {
       "stevearc/dressing.nvim",
       "ibhagwan/fzf-lua",
+      "ravitemer/mcphub.nvim",
     },
     opts = {
       -- Default configuration
