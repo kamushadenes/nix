@@ -57,6 +57,7 @@ in
     ./home/common/dev/go.nix
     ./home/common/dev/java.nix
     ./home/common/dev/lazygit.nix
+    ./home/common/dev/mcphub.nix
     ./home/common/dev/node.nix
     ./home/common/dev/python.nix
 
