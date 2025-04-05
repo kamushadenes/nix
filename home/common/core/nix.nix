@@ -21,6 +21,7 @@
     nixpkgs-fmt
     nurl
     pkgs-unstable.nh
+    node2nix
   ];
 
   manual.manpages.enable = false;

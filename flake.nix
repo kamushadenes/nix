@@ -29,6 +29,11 @@
       url = "github:yaxitech/ragenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    mcp-hub = {
+      url = "github:ravitemer/mcp-hub";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -39,6 +44,7 @@
       home-manager,
       darwin,
       agenix,
+      mcp-hub,
       ...
     }:
     let

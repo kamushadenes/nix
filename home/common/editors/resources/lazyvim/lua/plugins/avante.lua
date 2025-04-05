@@ -3,7 +3,7 @@ return {
     "yetone/avante.nvim",
     -- version = "0.0.23",
     enabled = true,
-    commit = "06757e8",
+    commit = "89a86f0",
     event = "VeryLazy",
     dependencies = {
       "stevearc/dressing.nvim",
@@ -14,70 +14,77 @@ return {
       hints = { enabled = false },
 
       ---@alias AvanteProvider "claude" | "openai" | "azure" | "gemini" | "cohere" | "copilot" | string
-      provider = "openrouter_claude_sonnet",
-      openai = {
-        endpoint = "https://api.openai.com/v1",
-        model = "o3-mini", -- your desired model (or use gpt-4o, etc.)
-        api_key_name = "cmd:op item get wlg5ynxr5jzlieh5cwc2qqajyi --reveal --fields avante",
-        timeout = 30000, -- Timeout in milliseconds, increase this for reasoning models
-        temperature = 0,
-      },
+      provider = "claude_sonnet",
+      cursor_applying_provider = "llama_3_3_70b",
       auto_suggestions_provider = "copilot", -- Since auto-suggestions are a high-frequency operation and therefore expensive, it is recommended to specify an inexpensive provider or even a free provider: copilot
       behaviour = {
         auto_suggestions = false,
+        enable_cursor_planning_mode = true,
+        embed_image_as_base64 = false,
+        prompt_for_file_name = false,
+        drag_and_drop = {
+          insert_mode = true,
+        },
+        use_absolute_path = true,
       },
       web_search_engine = {
         provider = "kagi",
         api_key_name = "cmd:op item get fb7aoio7k4amhoealvjm5bvw6e --reveal --fields api_key",
       },
       vendors = {
-        openrouter_claude_sonnet = {
+        claude_sonnet = {
           __inherited_from = "openai",
-          endpoint = "https://openrouter.ai/api/v1",
+          endpoint = "https://gateway.ai.cloudflare.com/v1/f6934f56ce237241104dbe9302cee786/hadenes/openrouter/v1",
           api_key_name = "cmd:op item get bxb4loone7wltv7nziuttxl4u4 --reveal --fields credential",
           model = "anthropic/claude-3.7-sonnet",
         },
-        openrouter_openai_o1 = {
+        openai_o1 = {
           __inherited_from = "openai",
-          endpoint = "https://openrouter.ai/api/v1",
+          endpoint = "https://gateway.ai.cloudflare.com/v1/f6934f56ce237241104dbe9302cee786/hadenes/openrouter/v1",
           api_key_name = "cmd:op item get bxb4loone7wltv7nziuttxl4u4 --reveal --fields credential",
           model = "openai/o1",
         },
-        openrouter_openai_o3 = {
+        openai_o3 = {
           __inherited_from = "openai",
-          endpoint = "https://openrouter.ai/api/v1",
+          endpoint = "https://gateway.ai.cloudflare.com/v1/f6934f56ce237241104dbe9302cee786/hadenes/openrouter/v1",
           api_key_name = "cmd:op item get bxb4loone7wltv7nziuttxl4u4 --reveal --fields credential",
           model = "openai/o3-mini",
         },
-        openrouter_deepseek_v3 = {
+        deepseek_v3 = {
           __inherited_from = "openai",
-          endpoint = "https://openrouter.ai/api/v1",
+          endpoint = "https://gateway.ai.cloudflare.com/v1/f6934f56ce237241104dbe9302cee786/hadenes/openrouter/v1",
           api_key_name = "cmd:op item get bxb4loone7wltv7nziuttxl4u4 --reveal --fields credential",
-          model = "deepseek/deepseek-chat:free",
+          model = "deepseek/deepseek-chat",
         },
-        openrouter_deepseek_r1 = {
+        deepseek_r1 = {
           __inherited_from = "openai",
-          endpoint = "https://openrouter.ai/api/v1",
+          endpoint = "https://gateway.ai.cloudflare.com/v1/f6934f56ce237241104dbe9302cee786/hadenes/openrouter/v1",
           api_key_name = "cmd:op item get bxb4loone7wltv7nziuttxl4u4 --reveal --fields credential",
-          model = "deepseek/deepseek-r1:free",
+          model = "deepseek/deepseek-r1",
         },
-        openrouter_qwen_2_5_coder_32b = {
+        qwen_2_5_coder_32b = {
           __inherited_from = "openai",
-          endpoint = "https://openrouter.ai/api/v1",
+          endpoint = "https://gateway.ai.cloudflare.com/v1/f6934f56ce237241104dbe9302cee786/hadenes/openrouter/v1",
           api_key_name = "cmd:op item get bxb4loone7wltv7nziuttxl4u4 --reveal --fields credential",
-          model = "qwen/qwen-2.5-coder-32b-instruct:free",
+          model = "qwen/qwen-2.5-coder-32b-instruct",
         },
-        openrouter_qwen_2_5_72b = {
+        qwen_2_5_72b = {
           __inherited_from = "openai",
-          endpoint = "https://openrouter.ai/api/v1",
+          endpoint = "https://gateway.ai.cloudflare.com/v1/f6934f56ce237241104dbe9302cee786/hadenes/openrouter/v1",
           api_key_name = "cmd:op item get bxb4loone7wltv7nziuttxl4u4 --reveal --fields credential",
-          model = "qwen/qwen-2.5-72b-instruct:free",
+          model = "qwen/qwen-2.5-72b-instruct",
         },
-        openrouter_qwq_32b = {
+        qwq_32b = {
           __inherited_from = "openai",
-          endpoint = "https://openrouter.ai/api/v1",
+          endpoint = "https://gateway.ai.cloudflare.com/v1/f6934f56ce237241104dbe9302cee786/hadenes/openrouter/v1",
           api_key_name = "cmd:op item get bxb4loone7wltv7nziuttxl4u4 --reveal --fields credential",
-          model = "qwen/qwq-32b:free",
+          model = "qwen/qwq-32b",
+        },
+        llama_3_3_70b = {
+          __inherited_from = "openai",
+          endpoint = "https://gateway.ai.cloudflare.com/v1/f6934f56ce237241104dbe9302cee786/hadenes/openrouter/v1",
+          api_key_name = "cmd:op item get bxb4loone7wltv7nziuttxl4u4 --reveal --fields credential",
+          model = "meta-llama/llama-3.3-70b-instruct",
         },
       },
 
@@ -86,6 +93,28 @@ return {
       file_selector = {
         provider = "fzf", -- Avoid native provider issues
         provider_opts = {},
+      },
+
+      system_prompt = function()
+        local hub = require("mcphub").get_hub_instance()
+        return hub:get_active_servers_prompt()
+      end,
+      custom_tools = function()
+        return {
+          require("mcphub.extensions.avante").mcp_tool(),
+        }
+      end,
+      disabled_tools = {
+        "list_files",
+        "search_files",
+        "read_file",
+        "create_file",
+        "rename_file",
+        "delete_file",
+        "create_dir",
+        "rename_dir",
+        "delete_dir",
+        "bash",
       },
     },
     build = LazyVim.is_win() and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false" or "make",
@@ -127,14 +156,12 @@ return {
     },
   },
   {
+    -- Make sure to set this up properly if you have lazy=true
     "MeanderingProgrammer/render-markdown.nvim",
-    optional = true,
-    ft = function(_, ft)
-      vim.list_extend(ft, { "Avante" })
-    end,
-    opts = function(_, opts)
-      opts.file_types = vim.list_extend(opts.file_types or {}, { "Avante" })
-    end,
+    opts = {
+      file_types = { "markdown", "Avante" },
+    },
+    ft = { "markdown", "Avante" },
   },
   {
     "folke/which-key.nvim",

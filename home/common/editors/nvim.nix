@@ -1,5 +1,6 @@
 {
   config,
+  inputs,
   pkgs,
   pkgs-unstable,
   ...
@@ -36,6 +37,9 @@
       export NVIM_APPNAME=nvim-staging
       exec nvim $@
     '')
+
+    # AI
+    inputs.mcp-hub.packages."${system}".default
   ];
 
   # Use NVIM_APPNAME=nvim-staging to be able to update packages, then rebuild
@@ -64,4 +68,5 @@
       extraLuaConfig = builtins.readFile ./resources/lazyvim/init.lua;
     };
   };
+
 }
