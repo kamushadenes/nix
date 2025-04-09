@@ -3,7 +3,7 @@ return {
     "yetone/avante.nvim",
     -- version = "0.0.23",
     enabled = true,
-    commit = "89a86f0",
+    commit = "87ea15b",
     event = "VeryLazy",
     dependencies = {
       "stevearc/dressing.nvim",
@@ -20,6 +20,7 @@ return {
       auto_suggestions_provider = "copilot", -- Since auto-suggestions are a high-frequency operation and therefore expensive, it is recommended to specify an inexpensive provider or even a free provider: copilot
       behaviour = {
         auto_suggestions = false,
+        auto_apply_diff_after_generation = true,
         enable_cursor_planning_mode = true,
         embed_image_as_base64 = false,
         prompt_for_file_name = false,
@@ -96,6 +97,7 @@ return {
         provider_opts = {},
       },
 
+      --[[
       system_prompt = function()
         local hub = require("mcphub").get_hub_instance()
         return hub:get_active_servers_prompt()
@@ -117,6 +119,7 @@ return {
         "delete_dir",
         "bash",
       },
+      ]]
     },
     build = LazyVim.is_win() and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false" or "make",
   },

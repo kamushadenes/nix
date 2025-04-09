@@ -151,6 +151,7 @@
       };
 
       pull = {
+        rebase = true;
         twohead = "ort";
       };
 
