@@ -64,6 +64,7 @@ in
     # Editors
     ./home/common/editors/emacs.nix
     ./home/common/editors/nvim.nix
+    ./home/common/editors/vscode.nix
 
     # Infra
     ./home/common/infra/cloud.nix

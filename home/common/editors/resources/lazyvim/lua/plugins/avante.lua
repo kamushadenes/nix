@@ -97,7 +97,16 @@ return {
         provider_opts = {},
       },
 
-      --[[
+      rag_service = {
+        enabled = true, -- Enables the RAG service
+        host_mount = "/Users/kamushadenes/Dropbox/Projects", -- Host mount path for the rag service
+        provider = "ollama", -- The provider to use for RAG service (e.g. openai or ollama)
+        llm_model = "", -- The LLM model to use for RAG service
+        embed_model = "", -- The embedding model to use for RAG service
+        -- endpoint = "https://api.openai.com/v1", -- The API endpoint for RAG service
+        endpoint = "http://localhost:11434",
+      },
+
       system_prompt = function()
         local hub = require("mcphub").get_hub_instance()
         return hub:get_active_servers_prompt()
@@ -107,19 +116,18 @@ return {
           require("mcphub.extensions.avante").mcp_tool(),
         }
       end,
-      disabled_tools = {
-        "list_files",
-        "search_files",
-        "read_file",
-        "create_file",
-        "rename_file",
-        "delete_file",
-        "create_dir",
-        "rename_dir",
-        "delete_dir",
-        "bash",
-      },
-      ]]
+      --disabled_tools = {
+      --  "list_files",
+      --  "search_files",
+      --  "read_file",
+      --  "create_file",
+      --  "rename_file",
+      --  "delete_file",
+      --  "create_dir",
+      --  "rename_dir",
+      --  "delete_dir",
+      --  "bash",
+      --},
     },
     build = LazyVim.is_win() and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false" or "make",
   },
