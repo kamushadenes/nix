@@ -2,7 +2,7 @@ return {
   {
     "yetone/avante.nvim",
     -- version = "0.0.23",
-    enabled = true,
+    enabled = false,
     commit = "87ea15b",
     event = "VeryLazy",
     dependencies = {

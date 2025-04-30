@@ -1,5 +1,6 @@
 {
   pkgs,
+  pkgs-unstable,
   ...
 }:
 {
@@ -12,5 +13,6 @@
     graphqurl
     aider-chat
     just
+    pkgs-unstable.supabase-cli
   ];
 }

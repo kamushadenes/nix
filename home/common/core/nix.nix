@@ -15,7 +15,7 @@
   };
 
   home.packages = with pkgs; [
-    devbox
+    pkgs-unstable.devbox
     nix-search-cli
     nix-tree
     nixpkgs-fmt
