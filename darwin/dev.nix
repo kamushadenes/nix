@@ -3,6 +3,7 @@
 {
   homebrew.brews = [
     "qemu"
+    "cloudflare-wrangler"
   ];
 
   # Casks
