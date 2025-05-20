@@ -9,8 +9,18 @@
 {
   # Manage user accounts.
   users = {
+    knownUsers = [ "homebrew" ];
+    knownGroups = [ "brewers" ];
     users = lib.mkMerge [
       {
+        homebrew = {
+          uid = 505;
+          gid = 505;
+          name = "homebrew";
+          home = "/opt/homebrew";
+          shell = pkgs.zsh;
+          createHome = false;
+        };
         kamushadenes = {
           name = "kamushadenes";
           home = "/Users/kamushadenes";
@@ -28,6 +38,7 @@
     ];
     groups = {
       brewers = {
+        gid = 505;
         name = "brewers";
         description = "Homebrew users";
         members =

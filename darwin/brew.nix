@@ -1,8 +1,9 @@
-{ ... }:
+{ config, ... }:
 
 {
   # Homebrew
   homebrew.enable = true;
+  homebrew.user = config.users.users.homebrew.name;
 
   # Disable auto-update
   homebrew.global.autoUpdate = false;

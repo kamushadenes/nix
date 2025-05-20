@@ -1,8 +1,11 @@
 {
+  config,
   ...
 }:
 {
+
   system = {
+    primaryUser = config.users.users.kamushadenes.name;
     defaults = {
       NSGlobalDomain = {
         # Use metric units

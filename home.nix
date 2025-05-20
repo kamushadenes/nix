@@ -19,9 +19,6 @@ let
   themes = import ./shared/themes.nix { inherit pkgs; };
 in
 {
-  nixpkgs.config.allowUnfree = true;
-  nixpkgs.config.allowBroken = true;
-
   _module.args = {
     inherit helpers;
     inherit packages;

@@ -16,7 +16,6 @@
       unzip
       yq-go
       glances
-      diskonaut
     ]
     ++ (with pkgs.unixtools; [ watch ]);
 

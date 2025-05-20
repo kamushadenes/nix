@@ -87,7 +87,7 @@
 
     signing = {
       key = config.age.secrets."id_ed25519.pub.age".path;
-      gpgPath =
+      signer =
         if pkgs.stdenv.isDarwin then
           "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
         else
@@ -112,6 +112,7 @@
       core = {
         fsmonitor = true;
         excludesFile = "${config.home.homeDirectory}/${config.xdg.configFile."git/ignore".target}";
+        untrackedCache = "keep";
       };
 
       github = {
