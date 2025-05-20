@@ -30,10 +30,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    mcp-hub = {
-      url = "github:ravitemer/mcp-hub";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    #mcp-hub = {
+    #  url = "github:ravitemer/mcp-hub";
+    #  inputs.nixpkgs.follows = "nixpkgs";
+    #};
   };
 
   outputs =
@@ -44,7 +44,7 @@
       home-manager,
       darwin,
       agenix,
-      mcp-hub,
+      #mcp-hub,
       ...
     }:
     let
@@ -53,6 +53,18 @@
         agenix.darwinModules.default
         lix-module.nixosModules.default
         home-manager.darwinModules.home-manager
+        # https://github.com/NixOS/nixpkgs/issues/402079
+        (
+          { pkgs, ... }:
+          {
+            nixpkgs.overlays = [
+              (final: prev: {
+                nodejs = final.nodejs_22;
+                nodejs-slim = final.nodejs-slim_22;
+              })
+            ];
+          }
+        )
         (
           {
             pkgs,

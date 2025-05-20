@@ -5,6 +5,13 @@
   pkgs-unstable,
   ...
 }:
+let
+  neovim-unwrapped = pkgs-unstable.neovim-unwrapped.overrideAttrs (old: {
+    meta = old.meta or { } // {
+      maintainers = [ ];
+    };
+  });
+in
 {
   home.packages = with pkgs-unstable; [
     neovide
@@ -56,7 +63,7 @@
   programs = {
     neovim = {
       enable = true;
-      package = pkgs-unstable.neovim-unwrapped;
+      package = neovim-unwrapped;
 
       viAlias = true;
       vimAlias = true;

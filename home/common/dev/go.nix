@@ -9,5 +9,6 @@
     pkgs-unstable.gopls
     pkgs-unstable.golangci-lint
     pkgs-unstable.govulncheck
+    pkgs-unstable.gotestsum
   ];
 }

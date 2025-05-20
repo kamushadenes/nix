@@ -14,5 +14,6 @@
     aider-chat
     just
     pkgs-unstable.supabase-cli
+    pkgs-unstable.wrangler
   ];
 }

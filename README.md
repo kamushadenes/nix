@@ -13,7 +13,7 @@ Make sure that both `~/.age/age.pem` and `~/.ssh/keys/id_ed25519` are in place.
 ```sh
 mkdir -p ~/.config/nix
 
-echo 'experimental-features = nix-command flakes' > ~/.config/nix/nix.conf
+echo 'experimental-features = nix-command flakes repl-flake' > ~/.config/nix/nix.conf
 
 git clone --recursive git@github.com:kamushadenes/nix.git ~/.config/nix/config/
 ```
