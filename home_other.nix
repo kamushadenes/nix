@@ -17,6 +17,11 @@
         '')
       ];
     };
+    bash = {
+      enable = true;
+      enableCompletion = true;
+      enableVteIntegration = true;
+    };
   };
 
   home.stateVersion = "24.05";
