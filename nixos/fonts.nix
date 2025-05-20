@@ -3,13 +3,9 @@
   # Fonts
   fonts = {
     packages = with pkgs; [
-      (nerdfonts.override {
-        fonts = [
-          "FiraCode"
-          "Monaspace"
-          "NerdFontsSymbolsOnly"
-        ];
-      })
+      nerd-fonts.fira-mono
+      nerd-fonts.monaspace
+      nerd-fonts.symbols-only
       noto-fonts
       noto-fonts-cjk-sans
       noto-fonts-emoji

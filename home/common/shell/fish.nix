@@ -13,7 +13,14 @@ in
 {
   home.sessionVariables = helpers.globalVariables.base;
 
-  home.packages = with pkgs; [ terminal-notifier ];
+  home.packages = with pkgs; [
+    terminal-notifier
+    (writeScriptBin "brew" ''
+      #!/usr/bin/env bash
+      cd "${osConfig.homebrew.brewPrefix}"
+      sudo -Hu "${osConfig.homebrew.user}" "${osConfig.homebrew.brewPrefix}/brew" "$@"
+    '')
+  ];
 
   programs = {
     fish = {

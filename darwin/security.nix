@@ -15,12 +15,16 @@
   security = {
     # Auth sudo with Touch ID
     pam = {
-      enableSudoTouchIdAuth = true;
+      services = {
+        sudo_local = {
+          touchIdAuth = true;
+        };
+      };
     };
 
     sudo = {
       extraConfig = with config.users.users; ''
-        %brewers ALL=(${kamushadenes.name}) NOPASSWD: ${config.homebrew.brewPrefix}/brew *
+        %brewers ALL=(${config.users.users.homebrew.name}) NOPASSWD: ${config.homebrew.brewPrefix}/brew *
       '';
     };
   };
