@@ -107,27 +107,6 @@
         "type": "github"
       }
     },
-    "flake-parts": {
-      "inputs": {
-        "nixpkgs-lib": [
-          "mcp-hub",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1743550720,
-        "narHash": "sha256-hIshGgKZCgWh6AYJpJmRgFdR3WUbkY04o82X05xqQiY=",
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
-        "rev": "c621e8422220273271f52058f618c94e405bb0f5",
-        "type": "github"
-      },
-      "original": {
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
-        "type": "github"
-      }
-    },
     "flake-utils": {
       "inputs": {
         "systems": "systems_2"
@@ -257,27 +236,6 @@
         "url": "https://git.lix.systems/lix-project/nixos-module/archive/2.92.0-3.tar.gz"
       }
     },
-    "mcp-hub": {
-      "inputs": {
-        "flake-parts": "flake-parts",
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1747411805,
-        "narHash": "sha256-0ZzuCYc3Umi342ZEQdlq3Icm9TYi/zVPz37B3B+9MAo=",
-        "owner": "ravitemer",
-        "repo": "mcp-hub",
-        "rev": "e3bce4eb6ff446a236c9a87082f9f4e0063d6f05",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ravitemer",
-        "repo": "mcp-hub",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1747726630,
@@ -316,7 +274,6 @@
         "darwin": "darwin_2",
         "home-manager": "home-manager_2",
         "lix-module": "lix-module",
-        "mcp-hub": "mcp-hub",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable"
       }
