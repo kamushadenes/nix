@@ -20,6 +20,7 @@
           home = "/opt/homebrew";
           shell = pkgs.zsh;
           createHome = false;
+          isHidden = true;
         };
         kamushadenes = {
           name = "kamushadenes";
@@ -40,10 +41,14 @@
       brewers = {
         gid = 505;
         name = "brewers";
-        description = "Homebrew users";
+        description = "homebrew users";
         members =
           with config.users.users;
-          [ kamushadenes.name ] ++ (lib.optionals shared [ yjrodrigues.name ]);
+          [
+            kamushadenes.name
+            homebrew.name
+          ]
+          ++ (lib.optionals shared [ yjrodrigues.name ]);
       };
     };
   };

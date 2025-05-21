@@ -25,6 +25,7 @@
     sudo = {
       extraConfig = with config.users.users; ''
         %brewers ALL=(${config.users.users.homebrew.name}) NOPASSWD: ${config.homebrew.brewPrefix}/brew *
+        ${config.users.users.homebrew.name} ALL=(ALL:ALL) ALL
       '';
     };
   };
