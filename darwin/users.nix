@@ -14,8 +14,8 @@
     users = lib.mkMerge [
       {
         homebrew = {
-          uid = 505;
-          gid = 505;
+          uid = 555;
+          gid = 555;
           name = "homebrew";
           home = "/opt/homebrew";
           shell = pkgs.zsh;
@@ -39,7 +39,7 @@
     ];
     groups = {
       brewers = {
-        gid = 505;
+        gid = 555;
         name = "brewers";
         description = "homebrew users";
         members =
