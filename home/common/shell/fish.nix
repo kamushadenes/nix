@@ -15,7 +15,7 @@ in
 
   home.packages = with pkgs; [
     terminal-notifier
-    (writeScriptBin "brew" ''
+    (writeScriptBin "sbrew" ''
       #!/usr/bin/env bash
       cd "${osConfig.homebrew.brewPrefix}"
       sudo -Hu "${osConfig.homebrew.user}" "${osConfig.homebrew.brewPrefix}/brew" "$@"
@@ -196,7 +196,7 @@ in
         {
           rebuild =
             if pkgs.stdenv.isDarwin then
-              ''nix shell github:viperML/nh --command nh darwin switch -H (hostname -s | sed s"/.local//g")'' # TODO: fix this when 4.0.0 gets merged in nixpkgs
+              ''nh darwin switch -H (hostname -s | sed s"/.local//g")''
             else
               ''nh os switch -H (hostname -s | sed s"/.local//g")'';
 
