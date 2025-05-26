@@ -18,7 +18,7 @@
           source ${packages.colorScript}
           _iNote "Fixing sketchybar"
 
-          chown -R g+w /opt/homebrew/var/log/sketchybar
+          chown -R kamushadenes g+w /opt/homebrew/var/log/sketchybar
           /opt/homebrew/bin/brew services start sketchybar --sudo-service-user kamushadenes
         '';
       };
