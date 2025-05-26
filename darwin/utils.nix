@@ -37,8 +37,8 @@
     "ifstat"
     {
       name = "sketchybar"; # It's easier to grant permissions through brew than home-manager
-      restart_service = "changed";
-      start_service = true;
+      restart_service = false;
+      start_service = false;
     }
     "switchaudio-osx"
   ];

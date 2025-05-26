@@ -18,8 +18,9 @@
           source ${packages.colorScript}
           _iNote "Fixing sketchybar"
 
+          #/opt/homebrew/bin/brew services start sketchybar --sudo-service-user kamushadenes
           chown -R kamushadenes g+w /opt/homebrew/var/log/sketchybar
-          /opt/homebrew/bin/brew services start sketchybar --sudo-service-user kamushadenes
+          sudo -u kamushadenes brew services start sketchybar
         '';
       };
     };
