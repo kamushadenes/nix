@@ -234,7 +234,8 @@ let
     backup_flags = [
       "--exclude-if-present .nobackup"
       "--exclude-caches"
-    ] ++ flags;
+    ]
+    ++ flags;
     hooks = [
       {
         conditions = [ "CONDITION_SNAPSHOT_START" ];

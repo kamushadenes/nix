@@ -95,18 +95,19 @@
       signByDefault = true;
     };
 
-    includes =
-      [ { path = themes.deltaCatppuccin + "/catppuccin.gitconfig"; } ]
-      ++ (helpers.mkConditionalGithubIncludes "Altinity" {
-        user = {
-          email = (helpers.mkEmail "hgoncalves" "altinity.com");
-        };
-      })
-      ++ (helpers.mkConditionalGithubIncludes "stellarentropy" {
-        user = {
-          email = (helpers.mkEmail "kamus" "se.team");
-        };
-      });
+    includes = [
+      { path = themes.deltaCatppuccin + "/catppuccin.gitconfig"; }
+    ]
+    ++ (helpers.mkConditionalGithubIncludes "Altinity" {
+      user = {
+        email = (helpers.mkEmail "hgoncalves" "altinity.com");
+      };
+    })
+    ++ (helpers.mkConditionalGithubIncludes "stellarentropy" {
+      user = {
+        email = (helpers.mkEmail "kamus" "se.team");
+      };
+    });
 
     extraConfig = {
       core = {
