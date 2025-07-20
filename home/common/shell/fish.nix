@@ -35,6 +35,72 @@ in
             body = "";
           };
 
+          add_go_build_tags = {
+            description = "Adds a custom Go build constraint to the beginning of .go files recursively.";
+            body = ''
+              if test -z "$argv[1]"
+                  echo "Usage: add_go_build_tags '<BUILD_CONSTRAINT_STRING>'"
+                  echo "Example: add_go_build_tags 'customtag || (another && !ignorethis)'"
+                  echo "Error: BUILD_CONSTRAINT_STRING argument is missing."
+                  return 1
+              end
+
+              set -l constraint_string "$argv[1]"
+
+              # The Go compiler will ultimately validate the syntax of the constraint_string.
+              # We'll proceed assuming the user provides a valid or intended string.
+
+              set -l new_build_directive "//go:build $constraint_string"
+
+              # Find all .go files recursively from the current directory.
+              for go_file in (find . -type f -name "*.go")
+                  # Read the first line of the current Go file
+                  set -l first_line ""
+                  if test -s "$go_file" # Check if file is not empty
+                      set first_line (head -n 1 "$go_file")
+                  end
+
+                  if test "$first_line" = "$new_build_directive"
+                      echo "Skipping (already has directive): $go_file"
+                      continue
+                  end
+
+                  echo "Processing: $go_file"
+
+                  # Create a temporary file to hold the new content
+                  set -l temp_file (mktemp --tmpdir go_build_update.XXXXXX)
+                  if test $status -ne 0 -o ! -f "$temp_file"
+                      echo "Error: Could not create temporary file for $go_file."
+                      if test -f "$temp_file"; rm -f "$temp_file"; end # Attempt cleanup
+                      continue
+                  end
+
+                  # Write the new build directive, then a blank line, then the original file content.
+                  # The blank line after the '//go:build' directive is crucial for Go's syntax.
+                  echo "$new_build_directive" > "$temp_file"
+                  echo "" >> "$temp_file" # Blank line
+                  cat "$go_file" >> "$temp_file"
+                  
+                  if test $status -ne 0 # Check status of cat or echo redirection
+                      echo "Error: Failed to prepare new content for $go_file."
+                      rm -f "$temp_file" # Clean up the temporary file
+                      continue
+                  end
+                  
+                  # Replace the original file with the temporary file.
+                  if mv "$temp_file" "$go_file"
+                      # Successfully moved
+                  else
+                      echo "Error: Could not move temporary file to replace $go_file."
+                      # If mv failed, the temp_file might still exist.
+                      rm -f "$temp_file" # Try to clean it up.
+                  end
+              end
+
+              echo "Finished processing Go files."
+            '';
+          };
+
           rga-fzf = {
             body = ''
               set RG_PREFIX 'rga --files-with-matches'

@@ -73,7 +73,7 @@
       # Web
       stylelint
       jsbeautifier
-      nodePackages.prettier
+      #nodePackages.prettier
     ]
     ++ lib.optionals pkgs.stdenv.isDarwin [
       # Org
