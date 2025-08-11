@@ -15,5 +15,6 @@
     "mqtt-explorer"
     "orbstack"
     "rapidapi"
+    "godot"
   ];
 }
