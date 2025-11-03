@@ -1,5 +1,6 @@
 {
   pkgs,
+  pkgs-unstable,
   ...
 }:
 {
@@ -10,5 +11,7 @@
     nuclei-templates
     rustscan
     tfsec
+    pkgs-unstable.fleetctl
+    pkgs-unstable.age
   ];
 }

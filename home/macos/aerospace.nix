@@ -16,15 +16,15 @@ in
       text = lib.strings.concatStringsSep "\n" [
         (helpers.toTOML {
           after-login-command = [ ];
-          after-startup-command = [
-            ''exec-and-forget ${lib.getExe pkgs.jankyborders} active_color=0xffe1e3e4 inactive_color=0xff494d64 width=3.0 order=a blacklist="${lib.concatStringsSep "," bordersBlacklist}"''
-          ];
+          #after-startup-command = [
+          #  ''exec-and-forget ${lib.getExe pkgs.jankyborders} active_color=0xffe1e3e4 inactive_color=0xff494d64 width=3.0 order=a blacklist="${lib.concatStringsSep "," bordersBlacklist}"''
+          #];
           # Notify Sketchybar about workspace change
-          exec-on-workspace-change = [
-            (lib.getExe pkgs.bash)
-            "-c"
-            "${osConfig.homebrew.brewPrefix}/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE"
-          ];
+          #exec-on-workspace-change = [
+          #  (lib.getExe pkgs.bash)
+          #  "-c"
+          #  "${osConfig.homebrew.brewPrefix}/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE"
+          #];
           start-at-login = true;
           enable-normalization-flatten-containers = true;
           enable-normalization-opposite-orientation-for-nested-containers = true;

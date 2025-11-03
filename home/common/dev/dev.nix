@@ -5,7 +5,7 @@
 }:
 {
   home.packages = with pkgs; [
-    act
+    pkgs-unstable.act
     #parca
     protobuf
     svu
