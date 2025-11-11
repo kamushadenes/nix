@@ -65,7 +65,10 @@ Logout and login again, then run the real install (will take some time):
 
 ```sh
 export NH_FLAKE="$HOME/.config/nix/config/?submodules=1"
+
 nh os switch -H (hostname -s | sed s"/.local//g")
+# OR 
+nh darwin switch -H (hostname -s | sed s"/.local//g")
 ```
 
 Then cleanup:
