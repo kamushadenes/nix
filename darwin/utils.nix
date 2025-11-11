@@ -20,9 +20,9 @@
     "background-music"
     "obsidian"
     "xpipe"
-    "geekbench"
-    "geekbench-ai"
-    "ollama"
+    #"geekbench"
+    #"geekbench-ai"
+    #"ollama"
     "xquartz"
 
     # Tmp

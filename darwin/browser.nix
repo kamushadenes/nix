@@ -5,9 +5,9 @@
   homebrew.casks = [
     "arc"
     "chromedriver"
-    "eloston-chromium"
+    "ungoogled-chromium"
     "firefox"
-    "orion"
+    #"orion"
   ];
 
   environment.systemPackages = with pkgs; [

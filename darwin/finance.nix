@@ -4,6 +4,6 @@
   # Casks
   homebrew.casks = [
     "itau"
-    "ledger-live"
+    "ledger-wallet"
   ];
 }

@@ -6,13 +6,13 @@
     "com.kagimacOS.Kagi-Search" = 1622835804;
     "1Password for Safari" = 1569813296;
     "Canva" = 897446215;
-    "GarageBand" = 682658836;
+    #"GarageBand" = 682658836;
     "Keynote" = 409183694;
     "MacFamilyTree 10" = 1567970985;
-    "Microsoft Excel" = 462058435;
-    "Microsoft PowerPoint" = 462062816;
-    "Microsoft Remote Desktop" = 1295203466;
-    "Microsoft Word" = 462054704;
+    #"Microsoft Excel" = 462058435;
+    #"Microsoft PowerPoint" = 462062816;
+    #"Microsoft Remote Desktop" = 1295203466;
+    #"Microsoft Word" = 462054704;
     "Micro Snitch" = 972028355;
     "Numbers" = 409203825;
     "Pages" = 409201541;
@@ -25,6 +25,6 @@
     "Todoist" = 585829637;
     "WhatsApp" = 310633997;
     "Xcode" = 497799835;
-    "Yubico Authenticator" = 1497506650;
+    #"Yubico Authenticator" = 1497506650;
   };
 }

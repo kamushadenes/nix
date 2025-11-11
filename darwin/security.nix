@@ -8,8 +8,8 @@
     #"malwarebytes"
     "ngrok"
     "qflipper"
-    "wireshark"
-    "yubico-yubikey-manager"
+    "wireshark-app"
+    #"yubico-yubikey-manager"
   ];
 
   security = {

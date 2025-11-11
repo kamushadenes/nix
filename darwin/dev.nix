@@ -11,10 +11,10 @@
     "arduino-ide"
     "gitkraken"
     "imhex"
-    "lens"
+    #"lens"
     "mqtt-explorer"
     "orbstack"
     "rapidapi"
-    "godot"
+    #"godot"
   ];
 }
