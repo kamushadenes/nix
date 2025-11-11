@@ -184,6 +184,26 @@
             };
             modules = darwinModules;
           };
+        w-henrique =
+          let
+            system = "aarch64-darwin";
+            machine = "w-henrique.hyades.io";
+            shared = false;
+          in
+          darwin.lib.darwinSystem {
+            system = system;
+            specialArgs = {
+              inherit inputs;
+              inherit machine;
+              inherit shared;
+              pkgs-unstable = import nixpkgs-unstable {
+                inherit system;
+                config.allowUnfree = true;
+              };
+              platform = system;
+            };
+            modules = darwinModules;
+          };
       };
 
       nixosConfigurations = {
