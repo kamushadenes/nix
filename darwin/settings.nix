@@ -59,7 +59,7 @@
       };
 
       spaces = {
-        spans-displays = false;
+        spans-displays = true;
       };
 
       CustomUserPreferences = {
