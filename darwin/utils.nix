@@ -27,7 +27,6 @@
 
     # Tmp
     "ghostty"
-
   ];
 
   homebrew.brews = [

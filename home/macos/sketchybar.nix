@@ -23,7 +23,7 @@
   };
 
   home.packages = with pkgs; [
-    blueutil
+    #blueutil
     # python312Packages.bleak # currently broken on Darwin
   ];
 }

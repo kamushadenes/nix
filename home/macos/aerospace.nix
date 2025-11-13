@@ -9,7 +9,7 @@ let
   bordersBlacklist = [ "iPhone Mirroring" ];
 in
 {
-  home.packages = with pkgs; [ jankyborders ];
+  #home.packages = with pkgs; [ jankyborders ];
 
   xdg.configFile = lib.mkIf pkgs.stdenv.isDarwin {
     "aerospace/aerospace.toml" = {

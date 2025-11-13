@@ -5,10 +5,6 @@
   homebrew.casks = [ "setapp" ];
 
   launchd.user.agents = {
-    apptamer = {
-      serviceConfig.ProgramArguments = [ "/Applications/Setapp/App Tamer.app" ];
-      serviceConfig.RunAtLoad = true;
-    };
     bartender = {
       serviceConfig.ProgramArguments = [ "/Applications/Setapp/Bartender.app" ];
       serviceConfig.RunAtLoad = true;

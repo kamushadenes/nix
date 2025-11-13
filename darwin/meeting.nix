@@ -4,7 +4,7 @@
   # Casks
   homebrew.casks = [
     "discord"
-    "jump-desktop-connect"
+    "nomachine"
     "teamviewer"
     "zoom"
   ];
