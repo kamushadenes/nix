@@ -101,3 +101,7 @@ coverage-final.json
 # Dropbox
 .dropbox
 .dropbox.cache
+
+.envrc.local
+*.rsls
+*.rslsc

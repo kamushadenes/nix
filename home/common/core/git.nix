@@ -103,9 +103,9 @@
         email = (helpers.mkEmail "hgoncalves" "altinity.com");
       };
     })
-    ++ (helpers.mkConditionalGithubIncludes "stellarentropy" {
+    ++ (helpers.mkConditionalGithubIncludes "Iniciador-de-Pagamentos" {
       user = {
-        email = (helpers.mkEmail "kamus" "se.team");
+        email = (helpers.mkEmail "henrique" "iniciador.com.br");
       };
     });
 
