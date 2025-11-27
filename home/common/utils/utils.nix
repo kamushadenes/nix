@@ -12,13 +12,14 @@
     httpie
     hugo
     stuntman
-    neofetch
+    pkgs-unstable.neofetch
     parallel-full
-    ripgrep-all
+    pkgs-unstable.ripgrep-all
     pkgs-unstable.fabric-ai
     poppler_utils
     tesseract
     qpdf
+    pkgs-unstable.ncdu
   ];
 
   programs.topgrade = {

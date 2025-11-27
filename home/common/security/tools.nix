@@ -5,6 +5,7 @@
 }:
 {
   home.packages = with pkgs; [
+    age-plugin-yubikey
     _1password-cli
     nmap
     nuclei
