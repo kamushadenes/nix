@@ -9,7 +9,7 @@
   home.packages =
     with pkgs;
     [
-      du-dust
+      dust
       duf
       gawk
       gnugrep
@@ -168,7 +168,7 @@
       enableFishIntegration = false;
     };
 
-    thefuck = {
+    pay-respects = {
       enable = true;
       enableBashIntegration = config.programs.bash.enable;
       enableZshIntegration = config.programs.zsh.enable;

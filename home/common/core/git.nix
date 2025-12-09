@@ -66,20 +66,18 @@
     };
   };
 
+  programs.delta = {
+    enable = true;
+    enableGitIntegration = true;
+    package = pkgs.delta;
+    options = {
+      features = "catppuccin-macchiato";
+    };
+  };
+
   programs.git = {
     enable = true;
-    package = pkgs.gitAndTools.gitFull;
-
-    userEmail = (helpers.mkEmail "kamus" "hadenes.io");
-    userName = "Henrique Goncalves";
-
-    delta = {
-      enable = true;
-      package = pkgs.delta;
-      options = {
-        features = "catppuccin-macchiato";
-      };
-    };
+    package = pkgs.gitFull;
 
     lfs = {
       enable = true;
@@ -109,7 +107,12 @@
       };
     });
 
-    extraConfig = {
+    settings = {
+      user = {
+        email = (helpers.mkEmail "kamus" "hadenes.io");
+        name = "Henrique Goncalves";
+      };
+
       core = {
         fsmonitor = true;
         excludesFile = "${config.home.homeDirectory}/${config.xdg.configFile."git/ignore".target}";

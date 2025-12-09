@@ -9,7 +9,7 @@
     #parca
     protobuf
     svu
-    wakatime
+    wakatime-cli
     graphqurl
     aider-chat
     just

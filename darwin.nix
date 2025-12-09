@@ -70,4 +70,17 @@ in
   time.timeZone = "America/Sao_Paulo";
 
   age.identityPaths = [ "${config.users.users.kamushadenes.home}/.age/age.pem" ];
+
+  nixpkgs.overlays = [
+    (final: prev: {
+      inherit (prev.lixPackageSets.stable)
+        nixpkgs-review
+        nix-eval-jobs
+        nix-fast-build
+        colmena
+        ;
+    })
+  ];
+
+  nix.package = pkgs.lixPackageSets.stable.lix;
 }

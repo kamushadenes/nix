@@ -30,14 +30,15 @@
     };
   };
 
+  networking = {
+    applicationFirewall = {
+      enable = true;
+      enableStealthMode = true;
+    };
+  };
+
   system = {
     defaults = {
-      # Application Firewall
-      alf = {
-        globalstate = 1;
-        stealthenabled = 1;
-      };
-
       # Screensaver
       screensaver = {
         askForPassword = true;

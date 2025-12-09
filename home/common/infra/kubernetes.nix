@@ -51,7 +51,7 @@
       catppuccin_macchiato = helpers.readYAML (themes.k9sCatppuccin + "/dist/catppuccin-macchiato.yaml");
     };
 
-    hotkey = {
+    hotKeys = {
       hotKey = {
         shift-0 = {
           shortCut = "Shift-0";
@@ -61,7 +61,7 @@
       };
     };
 
-    plugin = {
+    plugins = {
       fred = {
         shortCut = "Ctrl-L";
         description = "Pod logs";

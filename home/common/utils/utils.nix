@@ -16,7 +16,7 @@
     parallel-full
     pkgs-unstable.ripgrep-all
     pkgs-unstable.fabric-ai
-    poppler_utils
+    poppler-utils
     tesseract
     qpdf
     pkgs-unstable.ncdu

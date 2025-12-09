@@ -8,7 +8,7 @@
       nerd-fonts.symbols-only
       noto-fonts
       noto-fonts-cjk-sans
-      noto-fonts-emoji
+      noto-fonts-color-emoji
       font-awesome
       source-han-sans
       source-han-sans-japanese

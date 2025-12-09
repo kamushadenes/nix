@@ -3,6 +3,10 @@
 
   inputs = {
     nixpkgs = {
+      url = "github:nixos/nixpkgs/nixpkgs-25.11-darwin";
+    };
+
+    nixpkgs_2505 = {
       url = "github:nixos/nixpkgs/nixpkgs-25.05-darwin";
     };
 
@@ -10,24 +14,19 @@
       url = "github:nixos/nixpkgs/nixpkgs-unstable";
     };
 
-    lix-module = {
-      url = "https://git.lix.systems/lix-project/nixos-module/archive/2.92.0-3.tar.gz";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     darwin = {
-      url = "github:LnL7/nix-darwin/nix-darwin-25.05";
+      url = "github:LnL7/nix-darwin/nix-darwin-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.05";
+      url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     agenix = {
       url = "github:kamushadenes/ragenix";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs_2505";
     };
 
     #mcp-hub = {
@@ -40,7 +39,6 @@
     inputs@{
       nixpkgs,
       nixpkgs-unstable,
-      lix-module,
       home-manager,
       darwin,
       agenix,
@@ -51,20 +49,7 @@
       darwinModules = [
         ./darwin.nix
         agenix.darwinModules.default
-        lix-module.nixosModules.default
         home-manager.darwinModules.home-manager
-        # https://github.com/NixOS/nixpkgs/issues/402079
-        (
-          { pkgs, ... }:
-          {
-            nixpkgs.overlays = [
-              (final: prev: {
-                nodejs = final.nodejs_22;
-                nodejs-slim = final.nodejs-slim_22;
-              })
-            ];
-          }
-        )
         (
           {
             pkgs,
@@ -98,7 +83,6 @@
         ./nixos.nix
         agenix.nixosModules.default
         home-manager.nixosModules.home-manager
-        lix-module.nixosModules.default
         (
           {
             pkgs,
