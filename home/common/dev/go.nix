@@ -11,5 +11,6 @@
     pkgs-unstable.govulncheck
     pkgs-unstable.gotestsum
     pkgs-unstable.go-outline
+    pkgs-unstable.wails
   ];
 }

@@ -14,6 +14,7 @@
     aider-chat
     just
     pkgs-unstable.supabase-cli
+    pkgs-unstable.biome
     #pkgs-unstable.wrangler
   ];
 }
