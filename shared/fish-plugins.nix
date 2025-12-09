@@ -66,4 +66,13 @@ in
       hash = "sha256-cRSZeqtXSaEKuHeTSk3Kpmwf98mKJ986x1KSxa/HggU=";
     };
   };
+  fish_ssh_agent = {
+    name = "fish_ssh_agent";
+    src = fetchFromGitHub {
+      owner = "ivakyb";
+      repo = "fish_ssh_agent";
+      rev = "c7aa080d5210f5f525d078df6fdeedfba8db7f9b";
+      hash = "sha256-v9VZY5DCo+iWZawRKVgFvsi33UKwtriSpUzrMhL0S14=";
+    };
+  };
 }

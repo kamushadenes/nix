@@ -162,6 +162,7 @@ in
         autopair
         fish-async-prompt
         evalcache
+        fish_ssh_agent
       ];
 
       shellInit = lib.mkMerge [
