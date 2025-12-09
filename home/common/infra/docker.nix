@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, pkgs-unstable, ... }:
 {
   home.packages = with pkgs; [
     docker-client
@@ -7,5 +7,6 @@
     docker-credential-helpers
     skopeo
     lazydocker
+    pkgs-unstable.dive
   ];
 }
