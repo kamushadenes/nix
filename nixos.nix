@@ -15,6 +15,7 @@ in
   imports = [
     hardware
 
+    ./shared/build.nix
     ./shared/cache.nix
 
     ./nixos/audio.nix

@@ -14,6 +14,7 @@ in
   };
 
   imports = [
+    ./shared/build.nix
     ./shared/cache.nix
 
     ./darwin/backup.nix
