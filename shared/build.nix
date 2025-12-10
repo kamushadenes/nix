@@ -62,5 +62,18 @@
     optimise = {
       automatic = true;
     };
+    settings = {
+      substituters =
+        [ ]
+        ++ lib.optionals (machine != "studio.hyades.io") [
+          "ssh-ng://studio.hyades.io"
+        ]
+        ++ lib.optionals (machine != "macbook-m3-pro.hyades.io") [
+          "ssh-ng://mac.hyades.io"
+        ]
+        ++ lib.optionals (machine != "w-henrique.hyades.io") [
+          "ssh-ng://w-henrique.hyades.io"
+        ];
+    };
   };
 }
