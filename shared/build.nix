@@ -8,6 +8,12 @@
 
 {
   nix = {
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 30d";
+    };
+
     buildMachines =
       [ ]
       ++ lib.optionals (machine != "studio.hyades.io") [
