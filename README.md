@@ -13,7 +13,11 @@ Make sure that both `~/.age/age.pem` and `~/.ssh/keys/id_ed25519` are in place.
 ```sh
 mkdir -p ~/.config/nix
 
-echo 'experimental-features = nix-command flakes repl-flake' > ~/.config/nix/nix.conf
+echo > ~/.config/nix/nix.conf <<EOF
+experimental-features = nix-command flakes
+substituters = http://ncps.hyades.io:8501 https://nix-community.cachix.org https://cache.nixos.org
+trusted-public-keys = ncps.hyades.io:/02vviGNLGYhW28GFzmPFupnP6gZ4uDD4G3kRnXuutE= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+EOF
 
 git clone --recursive git@github.com:kamushadenes/nix.git ~/.config/nix/config/
 ```
@@ -67,7 +71,7 @@ Logout and login again, then run the real install (will take some time):
 export NH_FLAKE="$HOME/.config/nix/config/?submodules=1"
 
 nh os switch -H (hostname -s | sed s"/.local//g")
-# OR 
+# OR
 nh darwin switch -H (hostname -s | sed s"/.local//g")
 ```
 

@@ -83,4 +83,9 @@ in
   ];
 
   nix.package = pkgs.lixPackageSets.stable.lix;
+
+  nix.settings.trusted-users = [
+    "root"
+    "kamushadenes"
+  ];
 }

@@ -134,9 +134,9 @@ in
         #  ${fish} "test -f /tmp/.restart_backrest; and ${osConfig.homebrew.brewPrefix}/brew services restart backrest; and rm -f /tmp/.restart_backrest"
         #'';
 
-        sketchybarReload = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
-          ${fish} "${osConfig.homebrew.brewPrefix}/sketchybar --reload"
-        '';
+        #sketchybarReload = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
+        #  ${fish} "${osConfig.homebrew.brewPrefix}/sketchybar --reload"
+        #'';
 
         betterTouchToolRestart = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
           ${fish} "osascript -e 'quit app \"BetterTouchTool\"'"
