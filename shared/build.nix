@@ -65,7 +65,7 @@
           mandatoryFeatures = [ ];
         }
       ];
-    distributedBuilds = true;
+    distributedBuilds = false;
     extraOptions = ''
       	  builders-use-substitutes = true
       	'';
