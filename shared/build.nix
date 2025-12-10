@@ -10,7 +10,12 @@
   nix = {
     gc = {
       automatic = true;
-      dates = "weekly";
+      interval = [
+        {
+          Hour = 0;
+          Minute = 0;
+        }
+      ];
       options = "--delete-older-than 30d";
     };
 
