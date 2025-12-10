@@ -15,8 +15,6 @@
     ];
     trusted-substituters = [
       "http://ncps.hyades.io:8501"
-      "https://nix-community.cachix.org"
-      "https://cache.nixos.org"
     ];
     trusted-users = [
       "kamushadenes"
