@@ -17,6 +17,7 @@ echo > ~/.config/nix/nix.conf <<EOF
 experimental-features = nix-command flakes
 substituters = http://ncps.hyades.io:8501 https://nix-community.cachix.org https://cache.nixos.org
 trusted-public-keys = ncps.hyades.io:/02vviGNLGYhW28GFzmPFupnP6gZ4uDD4G3kRnXuutE= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+secret-key-files = /Users/kamushadenes/.config/nix/config/private/cache-priv-key.pem
 EOF
 
 git clone --recursive git@github.com:kamushadenes/nix.git ~/.config/nix/config/
