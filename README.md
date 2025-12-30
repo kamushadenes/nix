@@ -2,7 +2,7 @@
 
 This is my Nix configuration for both Darwin and NixOS.
 
-The `private` folder is a submodule pointing to a private repo that contains encrypted keys and stuff. It's symlinked to from other places around the config, meaning that the config won't work as-is for someone that doesn't have access to that private repo (hopefully no one but me).
+The `private` folder is a git submodule pointing to a private repo that contains encrypted secrets. Modules access it via the `private` variable passed through `specialArgs`, meaning the config won't work as-is for someone without access to that private repo (hopefully no one but me).
 
 Still, the config has some niceties so I thought it would be cool to share. Enjoy!
 
@@ -25,7 +25,7 @@ git clone --recursive git@github.com:kamushadenes/nix.git ~/.config/nix/config/
 
 ### Darwin
 
-You need to install a default nix-darwin first, because we need nh-plus.
+You need to install a default nix-darwin first to bootstrap the system.
 
 ```sh
 mkdir -p ~/.config/nix-darwin
@@ -34,31 +34,13 @@ nix flake init -t nix-darwin
 sed -i '' "s/simple/$(scutil --get LocalHostName)/" flake.nix
 ```
 
-Edit flake.nix, and add the following input:
-
-```nix
-nh-plus.url = "github:ToyVo/nh_darwin";
-```
-
-Edit the outputs inputs:
-
-```nix
-outputs = inputs@{ self, nix-darwin, nixpkgs, nh-plus }:
-```
-
-Enable nh:
+Edit flake.nix to enable nh:
 
 ```nix
 programs.nh.enable = true;
 ```
 
-And finally the module:
-
-```nix
-modules = [ configuration nh-plus.nixDarwinModules.prebuiltin ];
-```
-
-Also, make sure to fix the platform.
+Also, make sure to fix the platform for your system.
 
 Now, run the initial switch:
 
@@ -69,11 +51,7 @@ nix run nix-darwin -- switch --flake ~/.config/nix-darwin
 Logout and login again, then run the real install (will take some time):
 
 ```sh
-export NH_FLAKE="$HOME/.config/nix/config/?submodules=1"
-
-nh os switch -H (hostname -s | sed s"/.local//g")
-# OR
-nh darwin switch -H (hostname -s | sed s"/.local//g")
+nh darwin switch --impure
 ```
 
 Then cleanup:
