@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS systems with home-manager for user-level configuration. It uses agenix for secrets management with age encryption.
 
 **Machines:**
+
 - Darwin: `studio`, `macbook-m3-pro`, `w-henrique` (all aarch64-darwin)
 - NixOS: x86_64-linux
 
@@ -64,6 +65,7 @@ flake.nix              # Entry point - defines inputs and machine configurations
 **Module specialArgs:** Each configuration receives `machine`, `shared`, `pkgs-unstable`, `inputs`, and `platform` parameters for per-machine customization.
 
 **Helpers (`shared/helpers.nix`):**
+
 - `globalVariables.base` - Environment variables (EDITOR, DOOMDIR, NH_FLAKE)
 - `globalVariables.launchctl` / `globalVariables.shell` - Platform-specific variable exports
 - `mkConditionalGithubIncludes` - Git config per GitHub organization

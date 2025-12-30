@@ -48,6 +48,7 @@ in
     # Development
     ./home/common/dev/android.nix
     ./home/common/dev/clang.nix
+    ./home/common/dev/claude-code.nix
     ./home/common/dev/clojure.nix
     ./home/common/dev/dev.nix
     ./home/common/dev/embedded.nix
@@ -80,7 +81,6 @@ in
 
     # Utils
     ./home/common/utils/aichat.nix
-    ./home/common/utils/claude-code.nix
     ./home/common/utils/utils.nix
 
     # Altinity
