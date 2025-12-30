@@ -77,6 +77,7 @@
                   inherit machine;
                   inherit platform;
                   inherit shared;
+                  inherit private;
                 };
               }
               hmDefaults

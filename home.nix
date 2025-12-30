@@ -5,6 +5,7 @@
   pkgs-unstable,
   lib,
   osConfig,
+  private,
   ...
 }:
 let
@@ -35,7 +36,7 @@ in
     ./home/common/core/git.nix
     ./home/common/core/network.nix
     ./home/common/core/nix.nix
-    ./home/common/core/ssh.nix
+    "${private}/home/common/core/ssh.nix"
 
     # Shell
     ./home/common/shell/bash.nix
