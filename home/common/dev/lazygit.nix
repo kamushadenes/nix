@@ -1,17 +1,18 @@
 {
   config,
+  private,
   ...
 }:
 {
   age.secrets = {
     "lazycommit.age" = {
-      file = ./resources/lazygit/lazycommit.age;
+      file = "${private}/home/common/dev/resources/lazygit/lazycommit.age";
       path = "${config.home.homeDirectory}/.lazycommit";
     };
   };
 
   home.file.".lazycommit-template" = {
-    source = ./resources/lazygit/lazycommit-template;
+    source = "${private}/home/common/dev/resources/lazygit/lazycommit-template";
   };
 
   programs.lazygit = {
