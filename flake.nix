@@ -46,9 +46,10 @@
       ...
     }:
     let
-      # Fetch private submodule with git submodules enabled
+      # Fetch private submodule from local path with submodules enabled
+      # Uses absolute path because flake source is copied to nix store without submodules
       private = builtins.fetchGit {
-        url = "file://${builtins.toString ./.}";
+        url = "file:///Users/kamushadenes/.config/nix/config";
         submodules = true;
         allRefs = true;
       } + "/private";
