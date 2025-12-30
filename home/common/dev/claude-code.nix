@@ -60,7 +60,7 @@ let
             size: Size percentage for the new pane (1-99)
 
         Returns:
-            Pane identifier in session:window.pane format
+            Stable pane ID (e.g., "%5") that persists until the pane is killed
         """
         # Map direction to tmux flags
         dir_flags = {
@@ -71,9 +71,9 @@ let
         }
         flags = dir_flags.get(direction, ["-h"])
 
-        # Create split with size, print pane info
+        # Create split with size, return stable pane ID
         args = ["split-window"] + flags + ["-l", f"{size}%", "-P", "-F",
-               "#{session_name}:#{window_index}.#{pane_index}", command]
+               "#{pane_id}", command]
         output, code = run_tmux(*args)
 
         if code != 0:
@@ -87,7 +87,7 @@ let
         Send text/keystrokes to a tmux pane.
 
         Args:
-            pane: Pane identifier (e.g., "1" or "main:0.1")
+            pane: Pane identifier - use stable ID from tmux_split (e.g., "%5")
             text: Text to send
             enter: Whether to press Enter after the text
 
@@ -110,7 +110,7 @@ let
         Capture output from a tmux pane.
 
         Args:
-            pane: Pane identifier (e.g., "1" or "main:0.1")
+            pane: Pane identifier - use stable ID from tmux_split (e.g., "%5")
             lines: Number of lines to capture from scrollback (default: 100)
 
         Returns:
@@ -166,9 +166,9 @@ let
         Returns:
             Success message or error
         """
-        # Safety: prevent killing own pane
+        # Safety: prevent killing own pane (using stable pane IDs)
         current = get_current_pane()
-        if pane == current or pane.endswith(f".{current}"):
+        if pane == current:
             return "Error: Cannot kill Claude's own pane!"
 
         output, code = run_tmux("kill-pane", "-t", pane)
@@ -259,9 +259,9 @@ let
     Launch a shell first, then run commands. Direct command execution loses output on exit:
 
     ```
-    # Correct workflow
-    pane = mcp__tmux__tmux_split(command="zsh", direction="right")  # Returns "main:0.1"
-    mcp__tmux__tmux_send(pane="1", text="python script.py")
+    # Correct workflow - save the stable pane ID
+    pane_id = mcp__tmux__tmux_split(command="zsh", direction="right")  # Returns "%5"
+    mcp__tmux__tmux_send(pane=pane_id, text="python script.py")
 
     # Wrong - output lost if script exits/errors
     mcp__tmux__tmux_split(command="python script.py")
@@ -269,28 +269,30 @@ let
 
     ## Pane Identifiers
 
-    Use any of these formats:
-    - Index: `"1"`, `"2"` (simplest, within current window)
-    - Full: `"session:window.pane"` (e.g., `"main:0.1"`)
-    - ID: `"%5"` (tmux internal)
+    **Always use the stable pane ID returned by `tmux_split`** (e.g., `"%5"`). These IDs:
+    - Never change when other panes are created or killed
+    - Persist until the pane itself is destroyed
+    - Are the only reliable way to reference panes across operations
+
+    Legacy formats (index `"1"` or `"main:0.1"`) still work but shift when panes are killed.
 
     ## Standard Workflow
 
     ```
-    # 1. Create pane with shell
-    pane = mcp__tmux__tmux_split(command="zsh", direction="right", size=40)
+    # 1. Create pane with shell - SAVE THE RETURNED ID
+    pane_id = mcp__tmux__tmux_split(command="zsh", direction="right", size=40)  # Returns "%5"
 
-    # 2. Run command
-    mcp__tmux__tmux_send(pane="1", text="npm run build")
+    # 2. Run command using the stable ID
+    mcp__tmux__tmux_send(pane=pane_id, text="npm run build")
 
     # 3. Wait for completion
-    mcp__tmux__tmux_wait_idle(pane="1", idle_seconds=2.0)  # Returns "idle" or "timeout"
+    mcp__tmux__tmux_wait_idle(pane=pane_id, idle_seconds=2.0)  # Returns "idle" or "timeout"
 
     # 4. Get output
-    output = mcp__tmux__tmux_capture(pane="1", lines=50)
+    output = mcp__tmux__tmux_capture(pane=pane_id, lines=50)
 
-    # 5. Cleanup
-    mcp__tmux__tmux_kill(pane="1")
+    # 5. Cleanup - safe even if other panes were killed
+    mcp__tmux__tmux_kill(pane=pane_id)
     ```
 
     ## Split Directions
@@ -305,6 +307,7 @@ let
     - Cannot kill own pane (server prevents this)
     - Use `tmux_interrupt` to stop runaway processes
     - Check `is_claude` field in `tmux_list` to identify your pane
+    - **Always store and reuse the pane ID from `tmux_split`** - indices shift when panes are killed
   '';
 
   # Global user memory - applies to all projects

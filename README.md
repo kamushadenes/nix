@@ -13,7 +13,7 @@ Make sure that both `~/.age/age.pem` and `~/.ssh/keys/id_ed25519` are in place.
 ```sh
 mkdir -p ~/.config/nix
 
-echo > ~/.config/nix/nix.conf <<EOF
+cat > ~/.config/nix/nix.conf <<EOF
 experimental-features = nix-command flakes
 substituters = http://ncps.hyades.io:8501 https://nix-community.cachix.org https://cache.nixos.org
 trusted-public-keys = ncps.hyades.io:/02vviGNLGYhW28GFzmPFupnP6gZ4uDD4G3kRnXuutE= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
@@ -21,7 +21,13 @@ secret-key-files = /Users/kamushadenes/.config/nix/config/private/cache-priv-key
 EOF
 
 git clone --recursive git@github.com:kamushadenes/nix.git ~/.config/nix/config/
+
+# Decrypt the cache signing key (required for pushing to cache)
+age -d -i ~/.age/age.pem ~/.config/nix/config/private/cache-priv-key.pem.age > ~/.config/nix/config/private/cache-priv-key.pem
+chmod 600 ~/.config/nix/config/private/cache-priv-key.pem
 ```
+
+**Note:** The `rebuild` function will automatically decrypt the cache key if it's missing, so manual decryption is only needed for the initial bootstrap.
 
 ### Darwin
 
@@ -72,7 +78,10 @@ sudo nixos-rebuild switch --flake ~/.config/nix/config/
 rebuild
 ```
 
-**Note:** The `rebuild` alias automatically includes `--impure` which is required for the `private/` submodule access via `builtins.fetchGit`.
+The `rebuild` function:
+- Automatically decrypts the cache signing key (`private/cache-priv-key.pem.age`) if needed
+- Includes `--impure` which is required for the `private/` submodule access via `builtins.fetchGit`
+- Uses `nh` for a better rebuild experience
 
 If rebuilding manually:
 

@@ -35,6 +35,40 @@ in
             body = "";
           };
 
+          rebuild = {
+            description = "Rebuild nix configuration (decrypts cache key if needed)";
+            body =
+              let
+                cacheKeyPath = "$HOME/.config/nix/config/private/cache-priv-key.pem";
+                cacheKeyAgePath = "$HOME/.config/nix/config/private/cache-priv-key.pem.age";
+                ageIdentity = "$HOME/.age/age.pem";
+                nhCommand =
+                  if pkgs.stdenv.isDarwin then
+                    ''nh darwin switch --impure -H (hostname -s | sed 's/.local//g')''
+                  else
+                    ''nh os switch --impure -H (hostname -s | sed 's/.local//g')'';
+              in
+              ''
+                # Decrypt cache signing key if needed
+                if test -f ${cacheKeyAgePath}; and not test -f ${cacheKeyPath}
+                    echo "Decrypting cache signing key..."
+                    if test -f ${ageIdentity}
+                        ${pkgs.age}/bin/age -d -i ${ageIdentity} ${cacheKeyAgePath} > ${cacheKeyPath}
+                        if test $status -ne 0
+                            echo "Failed to decrypt cache key"
+                            return 1
+                        end
+                        chmod 600 ${cacheKeyPath}
+                    else
+                        echo "Warning: Age identity not found at ${ageIdentity}, skipping cache key decryption"
+                    end
+                end
+
+                # Run the rebuild
+                ${nhCommand}
+              '';
+          };
+
           add_go_build_tags = {
             description = "Adds a custom Go build constraint to the beginning of .go files recursively.";
             body = ''
@@ -262,12 +296,6 @@ in
 
       shellAliases = lib.mkMerge [
         {
-          rebuild =
-            if pkgs.stdenv.isDarwin then
-              ''nh darwin switch -H (hostname -s | sed s"/.local//g")''
-            else
-              ''nh os switch -H (hostname -s | sed s"/.local//g")'';
-
           unlock-gpg = "rm -f ~/.gnupg/public-keys.d/pubring.db.lock";
           renice-baldur = "sudo renice -n -20 -p $(pgrep -f Baldur)";
         }
