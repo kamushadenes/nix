@@ -105,3 +105,6 @@ coverage-final.json
 .envrc.local
 *.rsls
 *.rslsc
+
+.claude/tdd-guard/
+.claude/settings.local.json

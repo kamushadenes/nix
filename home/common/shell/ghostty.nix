@@ -63,6 +63,8 @@
       cursor-click-to-move = true
 
       auto-update = off
+
+      keybind = shift+enter=text:\x1b\r
     '';
   };
 }

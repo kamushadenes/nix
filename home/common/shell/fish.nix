@@ -196,6 +196,7 @@ in
           fish_add_path -a '${config.home.homeDirectory}/.krew/bin'
           fish_add_path -a '${config.home.homeDirectory}/.config/composer/vendor/bin'
           fish_add_path -a '${config.home.homeDirectory}/.orbstack/bin'
+          fish_add_path -a '${config.home.homeDirectory}/go/bin'
 
           # Move Nix paths back to the front
           ${helpers.fishProfilesPath};
