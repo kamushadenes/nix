@@ -2,8 +2,6 @@
   description = "Machine Configuration";
 
   inputs = {
-    # Enable git submodules for the private submodule
-    self.submodules = true;
     nixpkgs = {
       url = "github:nixos/nixpkgs/nixpkgs-25.11-darwin";
     };
