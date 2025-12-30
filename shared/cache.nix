@@ -1,4 +1,4 @@
-{ lib, machine, ... }:
+{ lib, ... }:
 {
   nix = {
     settings = {

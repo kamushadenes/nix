@@ -22,8 +22,4 @@ let
     sha256 = "90ea66d50804f355801cd8786642b46991fc4f4b76180f7a72aed02439b67d08";
   };
 in
-{
-  gitSquash = gitSquash;
-  kitty-scrollback = kitty-scrollback;
-  colorScript = colorScript;
-}
+{ inherit gitSquash kitty-scrollback colorScript; }

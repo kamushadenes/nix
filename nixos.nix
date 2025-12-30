@@ -5,7 +5,8 @@
   ...
 }:
 let
-  packages = import ./shared/packages.nix { inherit pkgs; };
+  packages = import ./shared/packages.nix { inherit pkgs; lib = pkgs.lib; };
+  overlays = import ./shared/overlays.nix;
 in
 {
   _module.args = {
@@ -59,16 +60,7 @@ in
   # Timezone
   time.timeZone = "America/Sao_Paulo";
 
-  nixpkgs.overlays = [
-    (final: prev: {
-      inherit (prev.lixPackageSets.stable)
-        nixpkgs-review
-        nix-eval-jobs
-        nix-fast-build
-        colmena
-        ;
-    })
-  ];
+  nixpkgs.overlays = [ overlays.lixOverlay ];
 
   nix.package = pkgs.lixPackageSets.stable.lix;
 }

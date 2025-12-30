@@ -2,17 +2,9 @@
   description = "Machine Configuration";
 
   inputs = {
-    nixpkgs = {
-      url = "github:nixos/nixpkgs/nixpkgs-25.11-darwin";
-    };
-
-    nixpkgs_2505 = {
-      url = "github:nixos/nixpkgs/nixpkgs-25.05-darwin";
-    };
-
-    nixpkgs-unstable = {
-      url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    };
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-25.11-darwin";
+    nixpkgs_2505.url = "github:nixos/nixpkgs/nixpkgs-25.05-darwin";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
     darwin = {
       url = "github:LnL7/nix-darwin/nix-darwin-25.11";
@@ -28,11 +20,6 @@
       url = "github:kamushadenes/ragenix";
       inputs.nixpkgs.follows = "nixpkgs_2505";
     };
-
-    #mcp-hub = {
-    #  url = "github:ravitemer/mcp-hub";
-    #  inputs.nixpkgs.follows = "nixpkgs";
-    #};
   };
 
   outputs =
@@ -42,7 +29,6 @@
       home-manager,
       darwin,
       agenix,
-      #mcp-hub,
       ...
     }:
     let
@@ -53,31 +39,59 @@
         submodules = true;
         allRefs = true;
       } + "/private";
+
+      # Helper to create Darwin host configurations
+      mkDarwinHost =
+        {
+          machine,
+          shared ? false,
+          system ? "aarch64-darwin",
+        }:
+        darwin.lib.darwinSystem {
+          inherit system;
+          specialArgs = {
+            inherit inputs machine shared private;
+            pkgs-unstable = import nixpkgs-unstable {
+              inherit system;
+              config.allowUnfree = true;
+            };
+            platform = system;
+          };
+          modules = darwinModules;
+        };
+
+      # Helper to create NixOS host configurations
+      mkNixosHost =
+        {
+          machine,
+          hardware,
+          shared ? false,
+          system ? "x86_64-linux",
+        }:
+        nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = {
+            inherit inputs machine shared private hardware;
+            pkgs-unstable = import nixpkgs-unstable {
+              inherit system;
+              config.allowUnfree = true;
+            };
+            platform = system;
+          };
+          modules = nixosModules;
+        };
+
       darwinModules = [
         ./darwin.nix
         agenix.darwinModules.default
         home-manager.darwinModules.home-manager
         (
-          {
-            pkgs,
-            pkgs-unstable,
-            config,
-            inputs,
-            machine,
-            platform,
-            shared,
-            ...
-          }:
+          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, ... }:
           {
             home-manager = pkgs.lib.mkMerge [
               {
                 extraSpecialArgs = {
-                  inherit inputs;
-                  inherit pkgs-unstable;
-                  inherit machine;
-                  inherit platform;
-                  inherit shared;
-                  inherit private;
+                  inherit inputs pkgs-unstable machine platform shared private;
                 };
               }
               hmDefaults
@@ -92,23 +106,12 @@
         agenix.nixosModules.default
         home-manager.nixosModules.home-manager
         (
-          {
-            pkgs,
-            pkgs-unstable,
-            config,
-            inputs,
-            machine,
-            shared,
-            ...
-          }:
+          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, private, ... }:
           {
             home-manager = pkgs.lib.mkMerge [
               {
                 extraSpecialArgs = {
-                  inherit inputs;
-                  inherit pkgs-unstable;
-                  inherit machine;
-                  inherit shared;
+                  inherit inputs pkgs-unstable machine platform shared private;
                 };
               }
               hmDefaults
@@ -136,93 +139,16 @@
     in
     {
       darwinConfigurations = {
-        studio =
-          let
-            system = "aarch64-darwin";
-            machine = "studio.hyades.io";
-            shared = false;
-          in
-          darwin.lib.darwinSystem {
-            system = system;
-            specialArgs = {
-              inherit inputs;
-              inherit machine;
-              inherit shared;
-              inherit private;
-              pkgs-unstable = import nixpkgs-unstable {
-                inherit system;
-                config.allowUnfree = true;
-              };
-              platform = system;
-            };
-            modules = darwinModules;
-          };
-        macbook-m3-pro =
-          let
-            system = "aarch64-darwin";
-            machine = "macbook-m3-pro.hyades.io";
-            shared = true;
-          in
-          darwin.lib.darwinSystem {
-            system = system;
-            specialArgs = {
-              inherit inputs;
-              inherit machine;
-              inherit shared;
-              inherit private;
-              pkgs-unstable = import nixpkgs-unstable {
-                inherit system;
-                config.allowUnfree = true;
-              };
-              platform = system;
-            };
-            modules = darwinModules;
-          };
-        w-henrique =
-          let
-            system = "aarch64-darwin";
-            machine = "w-henrique.hyades.io";
-            shared = false;
-          in
-          darwin.lib.darwinSystem {
-            system = system;
-            specialArgs = {
-              inherit inputs;
-              inherit machine;
-              inherit shared;
-              inherit private;
-              pkgs-unstable = import nixpkgs-unstable {
-                inherit system;
-                config.allowUnfree = true;
-              };
-              platform = system;
-            };
-            modules = darwinModules;
-          };
+        studio = mkDarwinHost { machine = "studio.hyades.io"; };
+        macbook-m3-pro = mkDarwinHost { machine = "macbook-m3-pro.hyades.io"; shared = true; };
+        w-henrique = mkDarwinHost { machine = "w-henrique.hyades.io"; };
       };
 
       nixosConfigurations = {
-        nixos =
-          let
-            system = "x86_64-linux";
-            machine = "nixos";
-            shared = false;
-          in
-          nixpkgs.lib.nixosSystem {
-            system = system;
-            specialArgs = {
-              inherit inputs;
-              inherit machine;
-              inherit shared;
-              pkgs-unstable = import nixpkgs-unstable {
-                inherit system;
-                config.allowUnfree = true;
-              };
-              platform = system;
-              hardware = ./nixos/hardware/nixos.nix;
-            };
-            modules = nixosModules;
-          };
+        nixos = mkNixosHost {
+          machine = "nixos";
+          hardware = ./nixos/hardware/nixos.nix;
+        };
       };
     };
 }

@@ -8,6 +8,7 @@
 }:
 let
   packages = import ./shared/packages.nix { inherit lib pkgs; };
+  overlays = import ./shared/overlays.nix;
 in
 {
   _module.args = {
@@ -73,16 +74,7 @@ in
 
   age.identityPaths = [ "${config.users.users.kamushadenes.home}/.age/age.pem" ];
 
-  nixpkgs.overlays = [
-    (final: prev: {
-      inherit (prev.lixPackageSets.stable)
-        nixpkgs-review
-        nix-eval-jobs
-        nix-fast-build
-        colmena
-        ;
-    })
-  ];
+  nixpkgs.overlays = [ overlays.lixOverlay ];
 
   nix.package = pkgs.lixPackageSets.stable.lix;
 }

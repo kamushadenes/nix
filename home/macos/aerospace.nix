@@ -5,9 +5,6 @@
   helpers,
   ...
 }:
-let
-  bordersBlacklist = [ "iPhone Mirroring" ];
-in
 {
   #home.packages = with pkgs; [ jankyborders ];
 

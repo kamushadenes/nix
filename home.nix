@@ -10,12 +10,7 @@
 }:
 let
   fishPlugins = import ./shared/fish-plugins.nix { inherit pkgs; };
-  helpers = import ./shared/helpers.nix {
-    inherit config;
-    inherit lib;
-    inherit pkgs;
-    inherit osConfig;
-  };
+  helpers = import ./shared/helpers.nix { inherit config lib pkgs osConfig; };
   packages = import ./shared/packages.nix { inherit lib pkgs; };
   themes = import ./shared/themes.nix { inherit pkgs; };
 in
@@ -57,15 +52,12 @@ in
     ./home/common/dev/go.nix
     ./home/common/dev/java.nix
     ./home/common/dev/lazygit.nix
-    #./home/common/dev/mcphub.nix
     ./home/common/dev/node.nix
     ./home/common/dev/python.nix
 
     # Editors
     ./home/common/editors/emacs.nix
     ./home/common/editors/nvim.nix
-    # Not in use
-    #./home/common/editors/vscode.nix
 
     # Infra
     ./home/common/infra/cloud.nix
@@ -132,14 +124,6 @@ in
       # Darwin
       (lib.mkIf pkgs.stdenv.isDarwin {
         doomEnv = lib.hm.dag.entryAfter [ "evalcacheClear" ] helpers.globalVariables.launchctl;
-
-        #backrestRestart = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
-        #  ${fish} "test -f /tmp/.restart_backrest; and ${osConfig.homebrew.brewPrefix}/brew services restart backrest; and rm -f /tmp/.restart_backrest"
-        #'';
-
-        #sketchybarReload = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
-        #  ${fish} "${osConfig.homebrew.brewPrefix}/sketchybar --reload"
-        #'';
 
         betterTouchToolRestart = lib.hm.dag.entryAfter [ "evalcacheClear" ] ''
           ${fish} "osascript -e 'quit app \"BetterTouchTool\"'"

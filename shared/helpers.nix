@@ -298,36 +298,19 @@ let
   };
 in
 {
-  # 1Password Binary Path
-  opBinPath = opBinPath;
-
-  # YAML reading functions
-  fromYAML = fromYAML;
-  readYAML = readYAML;
-
-  # TOML rendering functions
-  toTOML = toTOML;
-
-  # Global Variables
-  globalVariables = globalVariables;
-
-  # Email Helper Functions
-  mkEmail = mkEmail;
-
-  # Git Helper Functions
-  mkConditionalGithubIncludes = mkConditionalGithubIncludes;
-
-  # Fish Configuration Functions
-  fishProfilesPath = fishProfilesPath;
-
-  # Kitty Configuration Functions
-  kittyProfilesPath = kittyProfilesPath;
-
-  # Agenix Helper Functions
-  mkAgenixPathSubst = mkAgenixPathSubst;
-
-  # Backrest Configuration Functions
-  mkBackrestConfig = mkBackrestConfig;
-  mkBackrestRepo = mkBackrestRepo;
-  mkBackrestPlan = mkBackrestPlan;
+  inherit
+    opBinPath
+    fromYAML
+    readYAML
+    toTOML
+    globalVariables
+    mkEmail
+    mkConditionalGithubIncludes
+    fishProfilesPath
+    kittyProfilesPath
+    mkAgenixPathSubst
+    mkBackrestConfig
+    mkBackrestRepo
+    mkBackrestPlan
+    ;
 }
