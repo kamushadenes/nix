@@ -3,6 +3,7 @@
   lib,
   pkgs,
   platform,
+  private,
   ...
 }:
 let
@@ -32,7 +33,7 @@ in
     ./darwin/mas.nix
     ./darwin/media.nix
     ./darwin/meeting.nix
-    ./darwin/network.nix
+    "${private}/darwin/network.nix"
     ./darwin/nix.nix
     ./darwin/security.nix
     ./darwin/settings.nix
