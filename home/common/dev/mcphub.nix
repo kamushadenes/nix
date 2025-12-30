@@ -1,6 +1,7 @@
 {
   config,
   inputs,
+  pkgs,
   pkgs-unstable,
   ...
 }:
@@ -14,6 +15,6 @@
 
   home.packages = with pkgs-unstable; [
     # AI
-    inputs.mcp-hub.packages."${system}".default
+    inputs.mcp-hub.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }
