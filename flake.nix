@@ -29,11 +29,6 @@
       inputs.nixpkgs.follows = "nixpkgs_2505";
     };
 
-    private = {
-      url = "path:./private";
-      flake = false;
-    };
-
     #mcp-hub = {
     #  url = "github:ravitemer/mcp-hub";
     #  inputs.nixpkgs.follows = "nixpkgs";
@@ -47,11 +42,16 @@
       home-manager,
       darwin,
       agenix,
-      private,
       #mcp-hub,
       ...
     }:
     let
+      # Fetch private submodule with git submodules enabled
+      private = builtins.fetchGit {
+        url = "file://${builtins.toString ./.}";
+        submodules = true;
+        allRefs = true;
+      } + "/private";
       darwinModules = [
         ./darwin.nix
         agenix.darwinModules.default
