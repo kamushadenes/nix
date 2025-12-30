@@ -64,6 +64,7 @@
 
       auto-update = off
 
+      # Shift+Enter binding to add a new line in claude-code
       keybind = shift+enter=text:\x1b\r
     '';
   };

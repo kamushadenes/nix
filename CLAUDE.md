@@ -75,6 +75,14 @@ flake.nix              # Entry point - defines inputs and machine configurations
 
 **Distributed builds:** Three machines share builds via ssh-ng protocol with custom cache at `ncps.hyades.io:8501`.
 
+## Important: Git and Nix Flakes
+
+**New files must be committed before Nix can see them.** Nix flakes only evaluate files tracked by git. When adding new files:
+
+1. Stage and commit new files before running `nix flake check` or `rebuild`
+2. Modified existing files work without committing
+3. The `private/` submodule requires separate commits - commit there first, then update the submodule reference in the main repo
+
 ## Conventions
 
 - Modules are self-contained and grouped by functionality
