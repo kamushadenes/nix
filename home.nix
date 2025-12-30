@@ -85,9 +85,9 @@ in
     ./home/common/utils/utils.nix
 
     # Altinity
-    ./home/altinity/clickhouse.nix
-    ./home/altinity/cloud.nix
-    ./home/altinity/utils.nix
+    "${private}/home/altinity/clickhouse.nix"
+    "${private}/home/altinity/cloud.nix"
+    "${private}/home/altinity/utils.nix"
 
     # MacOS specific
     ./home/macos/aerospace.nix
