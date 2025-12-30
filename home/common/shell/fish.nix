@@ -72,17 +72,33 @@ in
           c = {
             description = "Start Claude Code inside tmux";
             body = ''
+              # Find git root (closest parent with .git, or current dir)
+              set -l git_root (git rev-parse --show-toplevel 2>/dev/null; or pwd)
+              set -l git_folder (basename "$git_root")
+
+              # Get parent of git root (company/org name)
+              set -l parent_folder (basename (dirname "$git_root"))
+
+              # Normalized versions for session name
+              set -l git_folder_norm (echo "$git_folder" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | sed 's/-$//')
+              set -l parent_folder_norm (echo "$parent_folder" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | sed 's/-$//')
+
+              # Title: Claude: Parent/GitFolder
+              set -l title "Claude: $parent_folder/$git_folder"
+
+              # Set Ghostty window/tab title
+              printf '\033]0;%s\007' "$title"
+
               if set -q TMUX
                   # Already in tmux, just run claude
                   claude $argv
               else
-                  # Generate unique session name: claude-<folder>-<timestamp>
-                  set -l folder_name (basename (pwd) | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | sed 's/-$//')
+                  # Generate session name: claude-<parent>-<git_folder>-<timestamp>
                   set -l timestamp (date +%s)
-                  set -l session_name "claude-$folder_name-$timestamp"
+                  set -l session_name "claude-$parent_folder_norm-$git_folder_norm-$timestamp"
 
-                  # Start tmux and run claude inside it
-                  tmux new-session -s "$session_name" "claude $argv; exec fish"
+                  # Start tmux and run claude inside (exit tmux when claude exits)
+                  tmux new-session -s "$session_name" "claude $argv"
               end
             '';
           };
