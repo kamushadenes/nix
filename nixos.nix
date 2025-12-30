@@ -2,6 +2,7 @@
   pkgs,
   platform,
   hardware,
+  private,
   ...
 }:
 let
@@ -29,7 +30,7 @@ in
     ./nixos/ipfs.nix
     ./nixos/media.nix
     ./nixos/meeting.nix
-    ./nixos/network.nix
+    "${private}/nixos/network.nix"
     ./nixos/nix.nix
     ./nixos/security.nix
     ./nixos/shells.nix

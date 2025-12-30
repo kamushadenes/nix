@@ -103,8 +103,10 @@ coverage-final.json
 .dropbox.cache
 
 .envrc.local
+
 *.rsls
 *.rslsc
+*.rslsi
 
 .claude/tdd-guard/
 .claude/settings.local.json

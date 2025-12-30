@@ -31,14 +31,19 @@ in
   nix = {
     gc = {
       automatic = true;
+      options = "--delete-older-than 30d";
+    } // (if pkgs.stdenv.isDarwin then {
+      # Darwin uses interval (list of time records)
       interval = [
         {
           Hour = 0;
           Minute = 0;
         }
       ];
-      options = "--delete-older-than 30d";
-    };
+    } else {
+      # NixOS uses dates (systemd calendar event)
+      dates = "daily";
+    });
 
     buildMachines = map (m: mkBuildMachine m.hostName) activeBuildMachines;
     distributedBuilds = false;

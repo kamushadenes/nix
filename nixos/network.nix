@@ -1,1 +1,0 @@
-../private/nixos/network.nix
