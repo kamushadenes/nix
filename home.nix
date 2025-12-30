@@ -80,6 +80,7 @@ in
 
     # Utils
     ./home/common/utils/aichat.nix
+    ./home/common/utils/claude-code.nix
     ./home/common/utils/utils.nix
 
     # Altinity
