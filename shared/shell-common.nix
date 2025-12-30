@@ -37,15 +37,25 @@ let
   # Helper to apply substitutions to a string
   applySubst = subst: str: builtins.foldl' (s: name: builtins.replaceStrings [ name ] [ subst.${name} ] s) str (builtins.attrNames subst);
 
-  # Read script files
-  scripts = {
+  # Read script files - bash/zsh versions (use POSIX syntax where possible)
+  bashScripts = {
     mkcd = builtins.readFile "${resourcesDir}/mkcd.sh";
     rebuild = applySubst rebuildSubst (builtins.readFile "${resourcesDir}/rebuild.sh");
     claudeTmux = builtins.readFile "${resourcesDir}/claude-tmux.sh";
     rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.sh";
     flushdns = builtins.readFile "${resourcesDir}/flushdns.sh";
     help = builtins.readFile "${resourcesDir}/help.sh";
-    # Fish-only (uses fish-specific array syntax)
+  };
+
+  # Read script files - fish versions (use fish syntax: set, $argv, end)
+  fishScripts = {
+    mkcd = builtins.readFile "${resourcesDir}/mkcd.fish";
+    rebuild = applySubst rebuildSubst (builtins.readFile "${resourcesDir}/rebuild.fish");
+    claudeTmux = builtins.readFile "${resourcesDir}/claude-tmux.fish";
+    rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.fish";
+    flushdns = builtins.readFile "${resourcesDir}/flushdns.sh"; # Simple command, works in fish
+    help = builtins.readFile "${resourcesDir}/help.fish";
+    # Fish-only (uses fish-specific array slicing syntax)
     addGoBuildTags = builtins.readFile "${resourcesDir}/add-go-build-tags.fish";
   };
 
@@ -90,33 +100,33 @@ in
   fish = {
     functions = lib.mkMerge [
       {
-        mkcd.body = scripts.mkcd;
+        mkcd.body = fishScripts.mkcd;
         fish_greeting.body = "";
 
         rebuild = {
           description = "Rebuild nix configuration (decrypts cache key if needed)";
-          body = scripts.rebuild;
+          body = fishScripts.rebuild;
         };
 
         c = {
           description = "Start Claude Code inside tmux";
-          body = scripts.claudeTmux;
+          body = fishScripts.claudeTmux;
         };
 
         add_go_build_tags = {
           description = "Adds a custom Go build constraint to the beginning of .go files recursively.";
-          body = scripts.addGoBuildTags;
+          body = fishScripts.addGoBuildTags;
         };
 
-        rga-fzf.body = scripts.rgaFzf;
+        rga-fzf.body = fishScripts.rgaFzf;
       }
 
       (lib.mkIf pkgs.stdenv.isDarwin {
-        flushdns.body = scripts.flushdns;
+        flushdns.body = fishScripts.flushdns;
       })
 
       (lib.mkIf config.programs.bat.enable {
-        help.body = scripts.help;
+        help.body = fishScripts.help;
       })
     ];
 
@@ -139,18 +149,18 @@ in
   # Bash/Zsh shared definitions
   bashZsh = {
     functions = ''
-      mkcd() { ${scripts.mkcd} }
-      rebuild() { ${scripts.rebuild} }
-      c() { ${scripts.claudeTmux} }
-      rga-fzf() { ${scripts.rgaFzf} }
+      mkcd() { ${bashScripts.mkcd} }
+      rebuild() { ${bashScripts.rebuild} }
+      c() { ${bashScripts.claudeTmux} }
+      rga-fzf() { ${bashScripts.rgaFzf} }
     '';
 
     flushdns = lib.optionalString pkgs.stdenv.isDarwin ''
-      flushdns() { ${scripts.flushdns} }
+      flushdns() { ${bashScripts.flushdns} }
     '';
 
     help = lib.optionalString config.programs.bat.enable ''
-      help() { ${scripts.help} }
+      help() { ${bashScripts.help} }
     '';
 
     sshKeyLoading = lib.concatMapStringsSep "\n" (
