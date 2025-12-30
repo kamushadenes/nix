@@ -18,7 +18,14 @@
 
     shellAliases = shellCommon.aliases;
 
-    initExtra = lib.mkMerge [
+    # Use initContent with mkBefore/mkAfter for proper ordering
+    initContent = lib.mkMerge [
+      # Early init (replaces initExtraFirst)
+      (lib.mkIf pkgs.stdenv.isDarwin (lib.mkBefore ''
+        # Increase key timeout for escape sequences
+        KEYTIMEOUT=30
+      ''))
+
       # Functions from shell-common
       shellCommon.bashZsh.functions
       shellCommon.bashZsh.flushdns
@@ -51,11 +58,5 @@
         eval "$(${lib.getExe pkgs.navi} widget zsh)"
       '')
     ];
-
-    # Integration settings - let home-manager handle these
-    initExtraFirst = lib.mkIf pkgs.stdenv.isDarwin ''
-      # Increase key timeout for escape sequences
-      KEYTIMEOUT=30
-    '';
   };
 }
