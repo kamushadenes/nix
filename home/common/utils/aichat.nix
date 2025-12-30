@@ -2,6 +2,7 @@
   config,
   pkgs,
   lib,
+  private,
   ...
 }:
 let
@@ -24,7 +25,7 @@ in
 
   age.secrets = {
     "config.yaml.age" = {
-      file = ./resources/aichat/config.yaml.age;
+      file = "${private}/home/common/utils/resources/aichat/config.yaml.age";
       path = "${config.xdg.configHome}/aichat/config.yaml";
     };
   };

@@ -10,6 +10,7 @@
   config,
   lib,
   pkgs,
+  private,
   ...
 }:
 let
@@ -51,6 +52,10 @@ let
 
     # Nix-specific rules
     "nix-rules.md" = ''
+      ---
+      paths: **/*.nix
+      ---
+
       # Nix Development Rules
 
       ## Flakes
@@ -67,7 +72,11 @@ let
     '';
 
     # Security rules
-    "security-rules.md" = ''
+    "nix-security-rules.md" = ''
+      ---
+      paths: **/*.nix
+      ---
+
       # Security Rules
 
       ## Secrets Management
@@ -75,7 +84,9 @@ let
       - Never commit plaintext secrets
       - Use agenix for secret encryption
       - Secrets use @PLACEHOLDER@ syntax for substitution
+    '';
 
+    "security-rules.md" = ''
       ## Code Review
 
       - Check for command injection vulnerabilities
@@ -83,6 +94,30 @@ let
       - Follow OWASP guidelines
     '';
   };
+
+  # Statusline script - shows directory, git branch, and model info
+  statuslineScript = ''
+    #!/usr/bin/env bash
+    input=$(cat)
+    cwd=$(echo "$input" | jq -r '.workspace.current_dir')
+    model=$(echo "$input" | jq -r '.model.display_name')
+    LAVENDER='\033[38;2;183;189;248m'
+    MAUVE='\033[38;2;198;160;246m'
+    RESET='\033[0m'
+    user=""; host=""
+    [ -n "$SSH_CONNECTION" ] && user=$(whoami) && host=$(hostname -s)
+    dir_parts=$(echo "$cwd" | tr '/' '\n' | grep -v '^$' | tail -n 4 | paste -sd '/' -)
+    [ "$cwd" = "$HOME" ] && display_dir="~" || { [ -z "$dir_parts" ] && display_dir="/" || display_dir="$dir_parts"; }
+    git_branch=""
+    if git -C "$cwd" -c core.useBuiltinFSMonitor=false -c core.fsmonitor= rev-parse --git-dir >/dev/null 2>&1; then
+      branch=$(git -C "$cwd" -c core.useBuiltinFSMonitor=false -c core.fsmonitor= branch --show-current 2>/dev/null || git -C "$cwd" -c core.useBuiltinFSMonitor=false -c core.fsmonitor= rev-parse --short HEAD 2>/dev/null)
+      [ -n "$branch" ] && git_branch=" on $(printf "''${MAUVE}%s''${RESET}" "$branch")"
+    fi
+    prompt=""
+    [ -n "$user" ] && prompt="''${user}@''${host} "
+    prompt="''${prompt}$(printf "''${LAVENDER}%s''${RESET}" "$display_dir")''${git_branch} | ''${model}"
+    printf "%s" "$prompt"
+  '';
 
   # MCP server configurations with @PLACEHOLDER@ for secrets
   # These get written to ~/.claude.json with secrets substituted at activation
@@ -172,15 +207,15 @@ in
 
   age.secrets = {
     "claude-ref-api-key" = {
-      file = ./resources/claude/ref-api-key.age;
+      file = "${private}/home/common/dev/resources/claude/ref-api-key.age";
       path = "${config.home.homeDirectory}/.claude/secrets/ref-api-key";
     };
     "claude-openrouter-api-key" = {
-      file = ./resources/claude/openrouter-api-key.age;
+      file = "${private}/home/common/dev/resources/claude/openrouter-api-key.age";
       path = "${config.home.homeDirectory}/.claude/secrets/openrouter-api-key";
     };
     "claude-tfe-token" = {
-      file = ./resources/claude/tfe-token.age;
+      file = "${private}/home/common/dev/resources/claude/tfe-token.age";
       path = "${config.home.homeDirectory}/.claude/secrets/tfe-token";
     };
   };
@@ -320,11 +355,24 @@ in
   };
 
   #############################################################################
-  # MCP Server Configuration Template
+  # MCP Server Configuration Template + Rules
+  # Uses lib.mapAttrs' to generate home.file entries from rulesConfig
   #############################################################################
 
-  # Write template with @PLACEHOLDER@ values - secrets substituted at activation
-  home.file.".claude/mcp-servers.json.template".text = mcpConfigTemplate;
+  home.file = {
+    # MCP template with @PLACEHOLDER@ values - secrets substituted at activation
+    ".claude/mcp-servers.json.template".text = mcpConfigTemplate;
+
+    # Statusline script - executable bash script for custom status display
+    ".claude/statusline-command.sh" = {
+      text = statuslineScript;
+      executable = true;
+    };
+  } // lib.mapAttrs' (name: content: {
+    # Rules - Manual file creation (until home-manager rules option is available)
+    name = ".claude/rules/${name}";
+    value = { text = content; };
+  }) rulesConfig;
 
   #############################################################################
   # Secret Substitution and MCP Config Activation

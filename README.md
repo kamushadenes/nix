@@ -93,3 +93,38 @@ sudo nixos-rebuild switch --flake ~/.config/nix/config/
 ```sh
 rebuild
 ```
+
+**Note:** The `rebuild` alias automatically includes `--impure` which is required for the `private/` submodule access via `builtins.fetchGit`.
+
+If rebuilding manually:
+
+```sh
+# With nh (recommended)
+nh darwin switch --impure
+
+# With darwin-rebuild
+darwin-rebuild switch --flake .#$(hostname -s) --impure
+
+# With nixos-rebuild
+sudo nixos-rebuild switch --flake . --impure
+```
+
+## Private Submodule
+
+The `private/` directory is a git submodule containing encrypted secrets and sensitive configurations. Due to limitations with nix flakes and git submodules, the flake uses `builtins.fetchGit` with `submodules = true` to access these files.
+
+### How It Works
+
+1. The flake fetches the entire repo with submodules using `builtins.fetchGit`
+2. A `private` variable is passed through `specialArgs` to all modules
+3. Modules reference private files using `"${private}/path/to/file"` instead of symlinks
+
+### Adding New Private Resources
+
+When adding new files to the `private/` submodule:
+
+1. Add and commit files in the `private/` submodule first
+2. In modules, use `"${private}/relative/path"` to reference the file
+3. Add `private` to the module's function parameters: `{ config, pkgs, private, ... }:`
+4. Commit the submodule reference update in the main repo
+5. Rebuild with `--impure` flag

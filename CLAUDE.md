@@ -14,18 +14,17 @@ This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS sys
 ## Commands
 
 ```bash
-# Rebuild current system (preferred)
+# Rebuild current system (preferred - includes --impure automatically)
 rebuild
 
-# Darwin rebuild via nh
-export NH_FLAKE="$HOME/.config/nix/config/?submodules=1"
-nh darwin switch -H $(hostname -s | sed s"/.local//g")
+# Darwin rebuild via nh (--impure required for private submodule)
+nh darwin switch --impure
 
 # NixOS rebuild
-sudo nixos-rebuild switch --flake ~/.config/nix/config/
+sudo nixos-rebuild switch --flake ~/.config/nix/config/ --impure
 
 # Direct darwin-rebuild
-darwin-rebuild switch --flake ~/.config/nix/config/
+darwin-rebuild switch --flake ~/.config/nix/config/ --impure
 ```
 
 ## Architecture
@@ -62,7 +61,7 @@ flake.nix              # Entry point - defines inputs and machine configurations
 
 ## Key Patterns
 
-**Module specialArgs:** Each configuration receives `machine`, `shared`, `pkgs-unstable`, `inputs`, and `platform` parameters for per-machine customization.
+**Module specialArgs:** Each configuration receives `machine`, `shared`, `pkgs-unstable`, `inputs`, `platform`, and `private` parameters for per-machine customization.
 
 **Helpers (`shared/helpers.nix`):**
 
@@ -83,10 +82,47 @@ flake.nix              # Entry point - defines inputs and machine configurations
 2. Modified existing files work without committing
 3. The `private/` submodule requires separate commits - commit there first, then update the submodule reference in the main repo
 
+## Private Submodule Access
+
+The `private/` directory is a git submodule. Due to nix flakes not including submodule contents when copying to the nix store, we use `builtins.fetchGit` with `submodules = true` to access private files.
+
+**Key Points:**
+
+- The `private` variable is passed through `specialArgs` to all modules
+- Modules must add `private` to their function parameters: `{ config, pkgs, private, ... }:`
+- Reference private files using `"${private}/relative/path"` (NOT symlinks like `./resources/...`)
+- Rebuilds require `--impure` flag (the `rebuild` alias handles this)
+
+**Example - Referencing a private secret file:**
+
+```nix
+{
+  config,
+  pkgs,
+  private,  # Add this parameter
+  ...
+}:
+{
+  age.secrets = {
+    "my-secret" = {
+      file = "${private}/home/common/dev/resources/my-secret.age";  # Use private variable
+      path = "${config.home.homeDirectory}/.secrets/my-secret";
+    };
+  };
+}
+```
+
+**When adding new private resources:**
+
+1. Add and commit the file in the `private/` submodule
+2. Add `private` to the module's function parameters
+3. Use `"${private}/path/from/private/root"` to reference the file
+4. Commit the submodule reference update in the main repo
+
 ## Conventions
 
 - Modules are self-contained and grouped by functionality
 - Static files go in `resources/` subdirectories within their module
-- Private/sensitive configs symlink from `private/` submodule
+- Private/sensitive configs use the `private` variable (NOT symlinks) - see "Private Submodule Access" section
 - Uses Lix (alternative Nix implementation) from stable package sets
 - Primary shell is Fish; primary editor is Neovim (unstable channel)
