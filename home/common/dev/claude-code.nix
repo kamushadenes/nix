@@ -559,6 +559,11 @@ in
     # Global CLAUDE.md content - applies to all projects
     memory.text = globalMemory;
 
+    # Custom slash commands (stored in private submodule for sensitive content)
+    commands = {
+      test-altinity-cloud = builtins.readFile "${private}/home/common/dev/resources/claude/commands/test-altinity-cloud.md";
+    };
+
     # Note: rules option is not available in this home-manager version
     # Rules are managed manually via ~/.claude/rules/ directory
 
