@@ -1,0 +1,190 @@
+# Shell configuration shared across fish, zsh, and bash
+{
+  config,
+  lib,
+  pkgs,
+  osConfig,
+  ...
+}:
+let
+  # Resource files directory
+  resourcesDir = ./resources/shell;
+
+  # SSH keys to be loaded
+  sshKeys = [ config.age.secrets."id_ed25519.age".path ];
+
+  # Cache key paths for rebuild function
+  cacheKeyPath = "$HOME/.config/nix/config/private/cache-priv-key.pem";
+  cacheKeyAgePath = "$HOME/.config/nix/config/private/cache-priv-key.pem.age";
+  ageIdentity = "$HOME/.age/age.pem";
+
+  # Platform-specific nh command
+  nhCommand =
+    if pkgs.stdenv.isDarwin then
+      ''nh darwin switch --impure -H $(hostname -s | sed 's/.local//g')''
+    else
+      ''nh os switch --impure -H $(hostname -s | sed 's/.local//g')'';
+
+  # Substitutions for rebuild script template
+  rebuildSubst = {
+    "@cacheKeyPath@" = cacheKeyPath;
+    "@cacheKeyAgePath@" = cacheKeyAgePath;
+    "@ageIdentity@" = ageIdentity;
+    "@ageBin@" = "${pkgs.age}/bin/age";
+    "@nhCommand@" = nhCommand;
+  };
+
+  # Helper to apply substitutions to a string
+  applySubst = subst: str: builtins.foldl' (s: name: builtins.replaceStrings [ name ] [ subst.${name} ] s) str (builtins.attrNames subst);
+
+  # Read script files
+  scripts = {
+    mkcd = builtins.readFile "${resourcesDir}/mkcd.sh";
+    rebuild = applySubst rebuildSubst (builtins.readFile "${resourcesDir}/rebuild.sh");
+    claudeTmux = builtins.readFile "${resourcesDir}/claude-tmux.sh";
+    rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.sh";
+    flushdns = builtins.readFile "${resourcesDir}/flushdns.sh";
+    help = builtins.readFile "${resourcesDir}/help.sh";
+    # Fish-only (uses fish-specific array syntax)
+    addGoBuildTags = builtins.readFile "${resourcesDir}/add-go-build-tags.fish";
+  };
+
+  # Common PATH additions
+  pathAdditions = [
+    "${config.home.homeDirectory}/.cargo/bin"
+    "${config.home.homeDirectory}/.config/emacs/bin"
+    "${config.home.homeDirectory}/.krew/bin"
+    "${config.home.homeDirectory}/.config/composer/vendor/bin"
+    "${config.home.homeDirectory}/.orbstack/bin"
+    "${config.home.homeDirectory}/go/bin"
+  ];
+
+  # Ghostty resources directory
+  ghosttyResourcesDir = "/Applications/Ghostty.app/Contents/Resources/ghostty";
+
+in
+{
+  inherit sshKeys pathAdditions ghosttyResourcesDir;
+
+  # Common aliases (shell-agnostic)
+  aliases = lib.mkMerge [
+    {
+      unlock-gpg = "rm -f ~/.gnupg/public-keys.d/pubring.db.lock";
+      renice-baldur = "sudo renice -n -20 -p $(pgrep -f Baldur)";
+    }
+    (lib.mkIf config.programs.bat.enable {
+      cat = "bat -p";
+      man = "batman";
+    })
+    (lib.mkIf config.programs.broot.enable { tree = "broot"; })
+    (lib.mkIf config.programs.eza.enable {
+      ls = "eza --icons -F -H --group-directories-first --git";
+    })
+    (lib.mkIf config.programs.kitty.enable {
+      ssh = "kitten ssh";
+      sudo = ''sudo TERMINFO="$TERMINFO"'';
+    })
+  ];
+
+  # Fish-specific definitions
+  fish = {
+    functions = lib.mkMerge [
+      {
+        mkcd.body = scripts.mkcd;
+        fish_greeting.body = "";
+
+        rebuild = {
+          description = "Rebuild nix configuration (decrypts cache key if needed)";
+          body = scripts.rebuild;
+        };
+
+        c = {
+          description = "Start Claude Code inside tmux";
+          body = scripts.claudeTmux;
+        };
+
+        add_go_build_tags = {
+          description = "Adds a custom Go build constraint to the beginning of .go files recursively.";
+          body = scripts.addGoBuildTags;
+        };
+
+        rga-fzf.body = scripts.rgaFzf;
+      }
+
+      (lib.mkIf pkgs.stdenv.isDarwin {
+        flushdns.body = scripts.flushdns;
+      })
+
+      (lib.mkIf config.programs.bat.enable {
+        help.body = scripts.help;
+      })
+    ];
+
+    sshKeyLoading = lib.concatMapStringsSep "\n" (key: "test -f ${key} && ssh-add -q ${key}") sshKeys;
+
+    pathSetup = lib.concatMapStringsSep "\n" (path: "fish_add_path -a '${path}'") pathAdditions;
+
+    ghosttyIntegration = ''
+      # Set GHOSTTY_RESOURCES_DIR if not set
+      if test -z "$GHOSTTY_RESOURCES_DIR"
+          set -x GHOSTTY_RESOURCES_DIR "${ghosttyResourcesDir}"
+      end
+
+      _evalcache cat "$GHOSTTY_RESOURCES_DIR"/shell-integration/fish/vendor_conf.d/ghostty-shell-integration.fish
+    '';
+
+    homebrewInit = lib.optionalString pkgs.stdenv.isDarwin "_evalcache ${osConfig.homebrew.brewPrefix}/brew shellenv";
+  };
+
+  # Bash/Zsh shared definitions
+  bashZsh = {
+    functions = ''
+      mkcd() { ${scripts.mkcd} }
+      rebuild() { ${scripts.rebuild} }
+      c() { ${scripts.claudeTmux} }
+      rga-fzf() { ${scripts.rgaFzf} }
+    '';
+
+    flushdns = lib.optionalString pkgs.stdenv.isDarwin ''
+      flushdns() { ${scripts.flushdns} }
+    '';
+
+    help = lib.optionalString config.programs.bat.enable ''
+      help() { ${scripts.help} }
+    '';
+
+    sshKeyLoading = lib.concatMapStringsSep "\n" (
+      key: ''test -f "${key}" && ssh-add -q "${key}"''
+    ) sshKeys;
+
+    ghosttyIntegration = {
+      zsh = ''
+        if test -z "$GHOSTTY_RESOURCES_DIR"; then
+          export GHOSTTY_RESOURCES_DIR="${ghosttyResourcesDir}"
+        fi
+        if test -f "$GHOSTTY_RESOURCES_DIR/shell-integration/zsh/ghostty-integration"; then
+          source "$GHOSTTY_RESOURCES_DIR/shell-integration/zsh/ghostty-integration"
+        fi
+      '';
+
+      bash = ''
+        if test -z "$GHOSTTY_RESOURCES_DIR"; then
+          export GHOSTTY_RESOURCES_DIR="${ghosttyResourcesDir}"
+        fi
+        if test -f "$GHOSTTY_RESOURCES_DIR/shell-integration/bash/ghostty.bash"; then
+          source "$GHOSTTY_RESOURCES_DIR/shell-integration/bash/ghostty.bash"
+        fi
+      '';
+    };
+
+    homebrewInit = lib.optionalString pkgs.stdenv.isDarwin ''
+      eval "$(${osConfig.homebrew.brewPrefix}/brew shellenv)"
+    '';
+  };
+
+  # Path setup for bash (export PATH)
+  bash.pathSetup = lib.concatMapStringsSep "\n" (path: ''export PATH="$PATH:${path}"'') pathAdditions;
+
+  # Path setup for zsh (path+=)
+  zsh.pathSetup = lib.concatMapStringsSep "\n" (path: ''path+=("${path}")'') pathAdditions;
+}

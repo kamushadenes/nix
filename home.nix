@@ -12,12 +12,14 @@ let
   fishPlugins = import ./shared/fish-plugins.nix { inherit pkgs; };
   helpers = import ./shared/helpers.nix { inherit config lib pkgs osConfig; };
   packages = import ./shared/packages.nix { inherit lib pkgs; };
+  shellCommon = import ./shared/shell-common.nix { inherit config lib pkgs osConfig; };
   themes = import ./shared/themes.nix { inherit pkgs; };
 in
 {
   _module.args = {
     inherit helpers;
     inherit packages;
+    inherit shellCommon;
     inherit themes;
     inherit fishPlugins;
     inherit pkgs-unstable;
@@ -36,6 +38,7 @@ in
     # Shell
     ./home/common/shell/bash.nix
     ./home/common/shell/fish.nix
+    ./home/common/shell/zsh.nix
     ./home/common/shell/ghostty.nix
     ./home/common/shell/kitty.nix
     ./home/common/shell/misc.nix

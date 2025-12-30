@@ -5,11 +5,9 @@
   osConfig,
   helpers,
   fishPlugins,
+  shellCommon,
   ...
 }:
-let
-  sshKeys = [ config.age.secrets."id_ed25519.age".path ];
-in
 {
   home.sessionVariables = helpers.globalVariables.base;
 
@@ -26,191 +24,12 @@ in
     fish = {
       enable = true;
       functions = lib.mkMerge [
-        {
-          mkcd = {
-            body = "mkdir -p $argv and cd $argv";
-          };
-
-          fish_greeting = {
-            body = "";
-          };
-
-          rebuild = {
-            description = "Rebuild nix configuration (decrypts cache key if needed)";
-            body =
-              let
-                cacheKeyPath = "$HOME/.config/nix/config/private/cache-priv-key.pem";
-                cacheKeyAgePath = "$HOME/.config/nix/config/private/cache-priv-key.pem.age";
-                ageIdentity = "$HOME/.age/age.pem";
-                nhCommand =
-                  if pkgs.stdenv.isDarwin then
-                    ''nh darwin switch --impure -H (hostname -s | sed 's/.local//g')''
-                  else
-                    ''nh os switch --impure -H (hostname -s | sed 's/.local//g')'';
-              in
-              ''
-                # Decrypt cache signing key if needed
-                if test -f ${cacheKeyAgePath}; and not test -f ${cacheKeyPath}
-                    echo "Decrypting cache signing key..."
-                    if test -f ${ageIdentity}
-                        ${pkgs.age}/bin/age -d -i ${ageIdentity} ${cacheKeyAgePath} > ${cacheKeyPath}
-                        if test $status -ne 0
-                            echo "Failed to decrypt cache key"
-                            return 1
-                        end
-                        chmod 600 ${cacheKeyPath}
-                    else
-                        echo "Warning: Age identity not found at ${ageIdentity}, skipping cache key decryption"
-                    end
-                end
-
-                # Run the rebuild
-                ${nhCommand}
-              '';
-          };
-
-          c = {
-            description = "Start Claude Code inside tmux";
-            body = ''
-              # Find git root (closest parent with .git, or current dir)
-              set -l git_root (git rev-parse --show-toplevel 2>/dev/null; or pwd)
-              set -l git_folder (basename "$git_root")
-
-              # Get parent of git root (company/org name)
-              set -l parent_folder (basename (dirname "$git_root"))
-
-              # Normalized versions for session name
-              set -l git_folder_norm (echo "$git_folder" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | sed 's/-$//')
-              set -l parent_folder_norm (echo "$parent_folder" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | sed 's/-$//')
-
-              # Title: Claude: Parent/GitFolder
-              set -l title "Claude: $parent_folder/$git_folder"
-
-              # Set Ghostty window/tab title
-              printf '\033]0;%s\007' "$title"
-
-              if set -q TMUX
-                  # Already in tmux, just run claude
-                  claude $argv
-              else
-                  # Generate session name: claude-<parent>-<git_folder>-<timestamp>
-                  set -l timestamp (date +%s)
-                  set -l session_name "claude-$parent_folder_norm-$git_folder_norm-$timestamp"
-
-                  # Start tmux and run claude inside (exit tmux when claude exits)
-                  tmux new-session -s "$session_name" "claude $argv"
-              end
-            '';
-          };
-
-          add_go_build_tags = {
-            description = "Adds a custom Go build constraint to the beginning of .go files recursively.";
-            body = ''
-              if test -z "$argv[1]"
-                  echo "Usage: add_go_build_tags '<BUILD_CONSTRAINT_STRING>'"
-                  echo "Example: add_go_build_tags 'customtag || (another && !ignorethis)'"
-                  echo "Error: BUILD_CONSTRAINT_STRING argument is missing."
-                  return 1
-              end
-
-              set -l constraint_string "$argv[1]"
-
-              # The Go compiler will ultimately validate the syntax of the constraint_string.
-              # We'll proceed assuming the user provides a valid or intended string.
-
-              set -l new_build_directive "//go:build $constraint_string"
-
-              # Find all .go files recursively from the current directory.
-              for go_file in (find . -type f -name "*.go")
-                  # Read the first line of the current Go file
-                  set -l first_line ""
-                  if test -s "$go_file" # Check if file is not empty
-                      set first_line (head -n 1 "$go_file")
-                  end
-
-                  if test "$first_line" = "$new_build_directive"
-                      echo "Skipping (already has directive): $go_file"
-                      continue
-                  end
-
-                  echo "Processing: $go_file"
-
-                  # Create a temporary file to hold the new content
-                  set -l temp_file (mktemp --tmpdir go_build_update.XXXXXX)
-                  if test $status -ne 0 -o ! -f "$temp_file"
-                      echo "Error: Could not create temporary file for $go_file."
-                      if test -f "$temp_file"; rm -f "$temp_file"; end # Attempt cleanup
-                      continue
-                  end
-
-                  # Write the new build directive, then a blank line, then the original file content.
-                  # The blank line after the '//go:build' directive is crucial for Go's syntax.
-                  echo "$new_build_directive" > "$temp_file"
-                  echo "" >> "$temp_file" # Blank line
-                  cat "$go_file" >> "$temp_file"
-                  
-                  if test $status -ne 0 # Check status of cat or echo redirection
-                      echo "Error: Failed to prepare new content for $go_file."
-                      rm -f "$temp_file" # Clean up the temporary file
-                      continue
-                  end
-                  
-                  # Replace the original file with the temporary file.
-                  if mv "$temp_file" "$go_file"
-                      # Successfully moved
-                  else
-                      echo "Error: Could not move temporary file to replace $go_file."
-                      # If mv failed, the temp_file might still exist.
-                      rm -f "$temp_file" # Try to clean it up.
-                  end
-              end
-
-              echo "Finished processing Go files."
-            '';
-          };
-
-          rga-fzf = {
-            body = ''
-              set RG_PREFIX 'rga --files-with-matches'
-              if test (count $argv) -gt 1
-                  set RG_PREFIX "$RG_PREFIX $argv[1..-2]"
-              end
-              set -l file $file
-              set file (
-                  FZF_DEFAULT_COMMAND="$RG_PREFIX '$argv[-1]'" \
-                  fzf --sort \
-                      --preview='test ! -z {} && \
-                          rga --pretty --context 5 {q} {}' \
-                      --phony -q "$argv[-1]" \
-                      --bind "change:reload:$RG_PREFIX {q}" \
-                      --preview-window='50%:wrap'
-              ) && \
-              echo "opening $file" && \
-              open "$file"
-            '';
-          };
-        }
-
-        (lib.mkIf pkgs.stdenv.isDarwin {
-          flushdns = {
-            body = "sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder";
-          };
-        })
-
-        (lib.mkIf config.programs.bat.enable {
-          help = {
-            body = ''"$argv" --help 2>&1 | bat --plain --language=help'';
-          };
-        })
+        shellCommon.fish.functions
 
         (lib.mkIf config.programs.starship.enable {
-          starship_transient_prompt_func = {
-            body = "starship module character";
-          };
+          starship_transient_prompt_func.body = "starship module character";
 
-          starship_transient_rprompt_func = {
-            body = "";
-          };
+          starship_transient_rprompt_func.body = "";
 
           fish_right_prompt_loading_indicator = {
             body = ''
@@ -234,14 +53,12 @@ in
       ];
 
       shellInit = lib.mkMerge [
-        # Darwin
-
         # Cache homebrew init
-        (lib.mkIf (pkgs.stdenv.isDarwin) "_evalcache ${osConfig.homebrew.brewPrefix}/brew shellenv")
+        shellCommon.fish.homebrewInit
 
         # Force the use of terminal-notifier to work around Kitty broken notifications
         (lib.mkIf (pkgs.stdenv.isDarwin && config.programs.kitty.enable) ''
-          set -U __done_notification_command "echo \"\$message\" | terminal-notifier -title \"\$title\" -sender \"\$__done_initial_window_id\" -sound default"
+          set -U __done_notification_command "echo \"$message\" | terminal-notifier -title \"$title\" -sender \"$__done_initial_window_id\" -sound default"
         '')
 
         # Common
@@ -258,13 +75,9 @@ in
           end
         '')
 
+        # PATH setup
         ''
-          fish_add_path -a '${config.home.homeDirectory}/.cargo/bin'
-          fish_add_path -a '${config.home.homeDirectory}/.config/emacs/bin'
-          fish_add_path -a '${config.home.homeDirectory}/.krew/bin'
-          fish_add_path -a '${config.home.homeDirectory}/.config/composer/vendor/bin'
-          fish_add_path -a '${config.home.homeDirectory}/.orbstack/bin'
-          fish_add_path -a '${config.home.homeDirectory}/go/bin'
+          ${shellCommon.fish.pathSetup}
 
           # Move Nix paths back to the front
           ${helpers.fishProfilesPath};
@@ -273,9 +86,9 @@ in
           ${helpers.globalVariables.fishShell}
         ''
 
+        # SSH key loading
         ''
-          # SSH Keys
-          ${lib.concatMapStringsSep "\n" (key: "test -f ${key}; and ssh-add -q ${key}") sshKeys}
+          ${shellCommon.fish.sshKeyLoading}
         ''
 
         # Cache navi init
@@ -283,15 +96,8 @@ in
           config.programs.navi.enable && !config.programs.navi.enableFishIntegration
         ) "_evalcache ${lib.getExe pkgs.navi} widget fish")
 
-        # Cache ghostty init
-        ''
-          # Set GHOSTTY_RESOURCES_DIR if not set
-          if test -z "$GHOSTTY_RESOURCES_DIR"
-              set -x GHOSTTY_RESOURCES_DIR "/Applications/Ghostty.app/Contents/Resources/ghostty"
-          end
-
-          _evalcache cat "$GHOSTTY_RESOURCES_DIR"/shell-integration/fish/vendor_conf.d/ghostty-shell-integration.fish
-        ''
+        # Ghostty shell integration
+        shellCommon.fish.ghosttyIntegration
       ];
 
       interactiveShellInit = lib.mkMerge [
@@ -328,23 +134,7 @@ in
 
       loginShellInit = helpers.fishProfilesPath;
 
-      shellAliases = lib.mkMerge [
-        {
-          unlock-gpg = "rm -f ~/.gnupg/public-keys.d/pubring.db.lock";
-          renice-baldur = "sudo renice -n -20 -p $(pgrep -f Baldur)";
-        }
-
-        (lib.mkIf config.programs.bat.enable {
-          cat = "bat -p";
-          man = "batman";
-        })
-        (lib.mkIf config.programs.broot.enable { tree = "broot"; })
-        (lib.mkIf config.programs.eza.enable { ls = "eza --icons -F -H --group-directories-first --git"; })
-        (lib.mkIf config.programs.kitty.enable {
-          ssh = "kitten ssh";
-          sudo = ''sudo TERMINFO="$TERMINFO"'';
-        })
-      ];
+      shellAliases = shellCommon.aliases;
     };
   };
 }
