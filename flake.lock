@@ -216,19 +216,6 @@
         "type": "github"
       }
     },
-    "private": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1,
-        "narHash": "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=",
-        "path": "./private",
-        "type": "path"
-      },
-      "original": {
-        "path": "./private",
-        "type": "path"
-      }
-    },
     "root": {
       "inputs": {
         "agenix": "agenix",
@@ -236,8 +223,7 @@
         "home-manager": "home-manager_2",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
-        "nixpkgs_2505": "nixpkgs_2505",
-        "private": "private"
+        "nixpkgs_2505": "nixpkgs_2505"
       }
     },
     "rust-overlay": {
