@@ -117,6 +117,9 @@
 
       # Equalize splits
       keybind = super+equal=equalize_splits
+
+      # Quick rebuild (cmd+r) - types and executes rebuild command
+      keybind = super+r=text:rebuild\r
     '';
   };
 }

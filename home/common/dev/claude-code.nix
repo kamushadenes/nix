@@ -45,6 +45,15 @@ let
         return os.environ.get("TMUX_PANE", "")
 
 
+    def require_tmux():
+        """Raise error if not running inside tmux"""
+        if not os.environ.get("TMUX"):
+            raise RuntimeError(
+                "tmux MCP tools require running inside a tmux session. "
+                "Please restart Claude using the 'c' command."
+            )
+
+
     @mcp.tool()
     def tmux_split(
         command: str = "zsh",
@@ -62,6 +71,7 @@ let
         Returns:
             Stable pane ID (e.g., "%5") that persists until the pane is killed
         """
+        require_tmux()
         # Map direction to tmux flags
         dir_flags = {
             "right": ["-h"],
@@ -94,6 +104,7 @@ let
         Returns:
             Success message or error
         """
+        require_tmux()
         args = ["send-keys", "-t", pane, text]
         if enter:
             args.append("Enter")
@@ -116,6 +127,7 @@ let
         Returns:
             Captured pane content
         """
+        require_tmux()
         args = ["capture-pane", "-t", pane, "-p", "-S", f"-{lines}"]
         output, code = run_tmux(*args)
 
@@ -132,6 +144,7 @@ let
         Returns:
             JSON-formatted list of panes with their IDs, commands, and status
         """
+        require_tmux()
         format_str = "#{pane_id}|#{pane_index}|#{pane_current_command}|#{pane_active}|#{pane_width}x#{pane_height}"
         output, code = run_tmux("list-panes", "-F", format_str)
 
@@ -166,6 +179,7 @@ let
         Returns:
             Success message or error
         """
+        require_tmux()
         # Safety: prevent killing own pane (using stable pane IDs)
         current = get_current_pane()
         if pane == current:
@@ -188,6 +202,7 @@ let
         Returns:
             Success message
         """
+        require_tmux()
         run_tmux("send-keys", "-t", pane, "C-c")
         return "Interrupt sent"
 
@@ -205,6 +220,7 @@ let
         Returns:
             "idle" when pane is idle, or "timeout" if timeout reached
         """
+        require_tmux()
         start = time.time()
         last_hash = ""
         last_change = time.time()

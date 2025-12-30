@@ -69,6 +69,24 @@ in
               '';
           };
 
+          c = {
+            description = "Start Claude Code inside tmux";
+            body = ''
+              if set -q TMUX
+                  # Already in tmux, just run claude
+                  claude $argv
+              else
+                  # Generate unique session name: claude-<folder>-<timestamp>
+                  set -l folder_name (basename (pwd) | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | sed 's/-$//')
+                  set -l timestamp (date +%s)
+                  set -l session_name "claude-$folder_name-$timestamp"
+
+                  # Start tmux and run claude inside it
+                  tmux new-session -s "$session_name" "claude $argv; exec fish"
+              end
+            '';
+          };
+
           add_go_build_tags = {
             description = "Adds a custom Go build constraint to the beginning of .go files recursively.";
             body = ''
