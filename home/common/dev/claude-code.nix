@@ -14,6 +14,299 @@
   ...
 }:
 let
+  #############################################################################
+  # tmux MCP Server - Terminal automation for interacting with CLI apps
+  #############################################################################
+  tmuxMcpServer = ''
+    #!/usr/bin/env python3
+    """MCP server for tmux terminal automation - uses tmux directly"""
+    import subprocess
+    import hashlib
+    import time
+    import os
+    import json
+    from mcp.server.fastmcp import FastMCP
+
+    mcp = FastMCP("tmux")
+
+
+    def run_tmux(*args) -> tuple[str, int]:
+        """Run a tmux command and return (stdout, returncode)"""
+        result = subprocess.run(
+            ["tmux"] + list(args),
+            capture_output=True,
+            text=True
+        )
+        return result.stdout.strip(), result.returncode
+
+
+    def get_current_pane() -> str:
+        """Get the pane ID where Claude Code is running"""
+        return os.environ.get("TMUX_PANE", "")
+
+
+    @mcp.tool()
+    def tmux_split(
+        command: str = "zsh",
+        direction: str = "right",
+        size: int = 50
+    ) -> str:
+        """
+        Create a new tmux split and run a command in it.
+
+        Args:
+            command: Command to run in the new pane (default: zsh)
+            direction: Split direction - "right", "left", "up", "down"
+            size: Size percentage for the new pane (1-99)
+
+        Returns:
+            Pane identifier in session:window.pane format
+        """
+        # Map direction to tmux flags
+        dir_flags = {
+            "right": ["-h"],
+            "left": ["-hb"],
+            "down": ["-v"],
+            "up": ["-vb"]
+        }
+        flags = dir_flags.get(direction, ["-h"])
+
+        # Create split with size, print pane info
+        args = ["split-window"] + flags + ["-l", f"{size}%", "-P", "-F",
+               "#{session_name}:#{window_index}.#{pane_index}", command]
+        output, code = run_tmux(*args)
+
+        if code != 0:
+            return f"Error creating split: {output}"
+        return output
+
+
+    @mcp.tool()
+    def tmux_send(pane: str, text: str, enter: bool = True) -> str:
+        """
+        Send text/keystrokes to a tmux pane.
+
+        Args:
+            pane: Pane identifier (e.g., "1" or "main:0.1")
+            text: Text to send
+            enter: Whether to press Enter after the text
+
+        Returns:
+            Success message or error
+        """
+        args = ["send-keys", "-t", pane, text]
+        if enter:
+            args.append("Enter")
+
+        output, code = run_tmux(*args)
+        if code != 0:
+            return f"Error sending keys: {output}"
+        return "Text sent successfully"
+
+
+    @mcp.tool()
+    def tmux_capture(pane: str, lines: int = 100) -> str:
+        """
+        Capture output from a tmux pane.
+
+        Args:
+            pane: Pane identifier (e.g., "1" or "main:0.1")
+            lines: Number of lines to capture from scrollback (default: 100)
+
+        Returns:
+            Captured pane content
+        """
+        args = ["capture-pane", "-t", pane, "-p", "-S", f"-{lines}"]
+        output, code = run_tmux(*args)
+
+        if code != 0:
+            return f"Error capturing pane: {output}"
+        return output
+
+
+    @mcp.tool()
+    def tmux_list() -> str:
+        """
+        List all panes in the current window.
+
+        Returns:
+            JSON-formatted list of panes with their IDs, commands, and status
+        """
+        format_str = "#{pane_id}|#{pane_index}|#{pane_current_command}|#{pane_active}|#{pane_width}x#{pane_height}"
+        output, code = run_tmux("list-panes", "-F", format_str)
+
+        if code != 0:
+            return f"Error listing panes: {output}"
+
+        panes = []
+        current = get_current_pane()
+        for line in output.split("\n"):
+            if line:
+                parts = line.split("|")
+                panes.append({
+                    "id": parts[0],
+                    "index": parts[1],
+                    "command": parts[2],
+                    "active": parts[3] == "1",
+                    "size": parts[4],
+                    "is_claude": parts[0] == current
+                })
+
+        return json.dumps(panes, indent=2)
+
+
+    @mcp.tool()
+    def tmux_kill(pane: str) -> str:
+        """
+        Kill a tmux pane.
+
+        Args:
+            pane: Pane identifier to kill
+
+        Returns:
+            Success message or error
+        """
+        # Safety: prevent killing own pane
+        current = get_current_pane()
+        if pane == current or pane.endswith(f".{current}"):
+            return "Error: Cannot kill Claude's own pane!"
+
+        output, code = run_tmux("kill-pane", "-t", pane)
+        if code != 0:
+            return f"Error killing pane: {output}"
+        return "Pane killed successfully"
+
+
+    @mcp.tool()
+    def tmux_interrupt(pane: str) -> str:
+        """
+        Send Ctrl+C interrupt to a pane.
+
+        Args:
+            pane: Pane identifier
+
+        Returns:
+            Success message
+        """
+        run_tmux("send-keys", "-t", pane, "C-c")
+        return "Interrupt sent"
+
+
+    @mcp.tool()
+    def tmux_wait_idle(pane: str, idle_seconds: float = 2.0, timeout: int = 60) -> str:
+        """
+        Wait for a pane to become idle (no output changes).
+
+        Args:
+            pane: Pane identifier
+            idle_seconds: Seconds of no change to consider idle
+            timeout: Maximum seconds to wait
+
+        Returns:
+            "idle" when pane is idle, or "timeout" if timeout reached
+        """
+        start = time.time()
+        last_hash = ""
+        last_change = time.time()
+
+        while time.time() - start < timeout:
+            content, _ = run_tmux("capture-pane", "-t", pane, "-p")
+            current_hash = hashlib.md5(content.encode()).hexdigest()
+
+            if current_hash != last_hash:
+                last_hash = current_hash
+                last_change = time.time()
+            elif time.time() - last_change >= idle_seconds:
+                return "idle"
+
+            time.sleep(0.5)
+
+        return "timeout"
+
+
+    if __name__ == "__main__":
+        mcp.run()
+  '';
+
+  #############################################################################
+  # tmux Skill File - Teaches Claude Code how to use the tmux MCP tools
+  # Follows best practices from platform.claude.com/docs
+  #############################################################################
+  tmuxSkillFile = ''
+    ---
+    name: automating-tmux-panes
+    description: Automates terminal sessions in tmux panes using MCP tools. Use when launching background processes, monitoring builds/servers, sending commands to debuggers (pdb/gdb), interacting with CLI prompts, or orchestrating parallel tasks across multiple terminal sessions.
+    ---
+
+    # Automating tmux Panes
+
+    Control tmux panes programmatically: split windows, send commands, capture output, and manage processes.
+
+    ## Quick Reference
+
+    | Tool | Purpose |
+    |------|---------|
+    | `mcp__tmux__tmux_split` | Create split pane |
+    | `mcp__tmux__tmux_send` | Send text/keys |
+    | `mcp__tmux__tmux_capture` | Get pane output |
+    | `mcp__tmux__tmux_list` | List panes (JSON) |
+    | `mcp__tmux__tmux_kill` | Close pane |
+    | `mcp__tmux__tmux_interrupt` | Send Ctrl+C |
+    | `mcp__tmux__tmux_wait_idle` | Wait for idle |
+
+    ## Critical: Always Start with a Shell
+
+    Launch a shell first, then run commands. Direct command execution loses output on exit:
+
+    ```
+    # Correct workflow
+    pane = mcp__tmux__tmux_split(command="zsh", direction="right")  # Returns "main:0.1"
+    mcp__tmux__tmux_send(pane="1", text="python script.py")
+
+    # Wrong - output lost if script exits/errors
+    mcp__tmux__tmux_split(command="python script.py")
+    ```
+
+    ## Pane Identifiers
+
+    Use any of these formats:
+    - Index: `"1"`, `"2"` (simplest, within current window)
+    - Full: `"session:window.pane"` (e.g., `"main:0.1"`)
+    - ID: `"%5"` (tmux internal)
+
+    ## Standard Workflow
+
+    ```
+    # 1. Create pane with shell
+    pane = mcp__tmux__tmux_split(command="zsh", direction="right", size=40)
+
+    # 2. Run command
+    mcp__tmux__tmux_send(pane="1", text="npm run build")
+
+    # 3. Wait for completion
+    mcp__tmux__tmux_wait_idle(pane="1", idle_seconds=2.0)  # Returns "idle" or "timeout"
+
+    # 4. Get output
+    output = mcp__tmux__tmux_capture(pane="1", lines=50)
+
+    # 5. Cleanup
+    mcp__tmux__tmux_kill(pane="1")
+    ```
+
+    ## Split Directions
+
+    - `"right"` - New pane on right (default)
+    - `"left"` - New pane on left
+    - `"down"` - New pane below
+    - `"up"` - New pane above
+
+    ## Safety
+
+    - Cannot kill own pane (server prevents this)
+    - Use `tmux_interrupt` to stop runaway processes
+    - Check `is_claude` field in `tmux_list` to identify your pane
+  '';
+
   # Global user memory - applies to all projects
   # Project-specific CLAUDE.md files take precedence
   globalMemory = ''
@@ -185,6 +478,20 @@ let
         "-e"
         "TFE_ADDRESS=https://app.terraform.io"
         "hashicorp/terraform-mcp-server"
+      ];
+      env = { };
+    };
+
+    # tmux MCP - Terminal automation for pane management
+    # Uses uvx to run with fastmcp dependency automatically installed
+    tmux = {
+      type = "stdio";
+      command = "uvx";
+      args = [
+        "--with"
+        "fastmcp"
+        "python"
+        "${config.home.homeDirectory}/.config/tmux-mcp/server.py"
       ];
       env = { };
     };
@@ -368,6 +675,15 @@ in
       text = statuslineScript;
       executable = true;
     };
+
+    # tmux MCP server - terminal automation for Claude Code
+    ".config/tmux-mcp/server.py" = {
+      text = tmuxMcpServer;
+      executable = true;
+    };
+
+    # tmux skill - teaches Claude Code how to use the tmux MCP tools
+    ".claude/skills/automating-tmux-panes/SKILL.md".text = tmuxSkillFile;
   } // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
     name = ".claude/rules/${name}";
