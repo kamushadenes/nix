@@ -66,6 +66,57 @@
 
       # Shift+Enter binding to add a new line in claude-code
       keybind = shift+enter=text:\x1b\r
+
+      # Split bindings (mirror tmux: cmd instead of ctrl+space)
+      keybind = super+shift+backslash=new_split:right
+      keybind = super+minus=new_split:down
+
+      # Arrow-based navigation (cmd + arrow)
+      keybind = super+left=goto_split:left
+      keybind = super+right=goto_split:right
+      keybind = super+up=goto_split:top
+      keybind = super+down=goto_split:bottom
+
+      # Arrow-based splits (cmd + shift + arrow = split in that direction)
+      keybind = super+shift+left=new_split:left
+      keybind = super+shift+right=new_split:right
+      keybind = super+shift+up=new_split:up
+      keybind = super+shift+down=new_split:down
+
+      # Pane navigation (cmd+hjkl like tmux prefix+hjkl)
+      keybind = super+h=goto_split:left
+      keybind = super+j=goto_split:bottom
+      keybind = super+k=goto_split:top
+      keybind = super+l=goto_split:right
+
+      # Pane resizing (cmd+shift+hjkl like tmux prefix+HJKL)
+      keybind = super+shift+h=resize_split:left,50
+      keybind = super+shift+j=resize_split:down,50
+      keybind = super+shift+k=resize_split:up,50
+      keybind = super+shift+l=resize_split:right,50
+
+      # New tab (cmd+t like tmux prefix+t)
+      keybind = super+t=new_tab
+
+      # Tab navigation (cmd+1-9 like tmux prefix+1-9)
+      keybind = super+one=goto_tab:1
+      keybind = super+two=goto_tab:2
+      keybind = super+three=goto_tab:3
+      keybind = super+four=goto_tab:4
+      keybind = super+five=goto_tab:5
+      keybind = super+six=goto_tab:6
+      keybind = super+seven=goto_tab:7
+      keybind = super+eight=goto_tab:8
+      keybind = super+nine=goto_tab:9
+
+      # Last tab (cmd+tab like tmux prefix+tab)
+      keybind = super+tab=last_tab
+
+      # Toggle zoom (like tmux prefix+z)
+      keybind = super+z=toggle_split_zoom
+
+      # Equalize splits
+      keybind = super+equal=equalize_splits
     '';
   };
 }

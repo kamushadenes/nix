@@ -381,6 +381,9 @@ in
   home.activation.claudeCodeMcpServers = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run mkdir -p ${config.home.homeDirectory}/.claude/secrets
 
+    # Remove existing mcp-servers.json if it exists (may be a symlink or locked file)
+    run rm -f ${config.home.homeDirectory}/.claude/mcp-servers.json
+
     # Copy MCP template to working file
     run cp ${config.home.homeDirectory}/.claude/mcp-servers.json.template \
            ${config.home.homeDirectory}/.claude/mcp-servers.json

@@ -45,6 +45,7 @@ in
     ./home/common/shell/kitty.nix
     ./home/common/shell/misc.nix
     ./home/common/shell/starship.nix
+    ./home/common/shell/tmux.nix
 
     # Development
     ./home/common/dev/android.nix
