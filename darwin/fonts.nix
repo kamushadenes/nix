@@ -1,18 +1,10 @@
 { pkgs, ... }:
+let
+  fontsCommon = import ../shared/fonts-common.nix { inherit pkgs; };
+in
 {
-  # Fonts
   fonts = {
-    packages = with pkgs; [
-      nerd-fonts.fira-mono
-      nerd-fonts.monaspace
-      nerd-fonts.symbols-only
-      noto-fonts
-      noto-fonts-cjk-sans
-      noto-fonts-color-emoji
-      font-awesome
-      sketchybar-app-font
-      monaspace
-    ];
+    packages = fontsCommon.common ++ fontsCommon.darwin;
   };
 
   homebrew.casks = [

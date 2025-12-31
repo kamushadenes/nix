@@ -64,6 +64,10 @@ let
   #                                      #
   ########################################
 
+  # Factory for generating variable exports in different shell formats
+  mkVarExports = formatFn: vars:
+    lib.concatMapStringsSep "\n" (var: formatFn var vars.${var}) (lib.attrNames vars);
+
   globalVariables = {
     base = {
       DOOMDIR = "${config.xdg.configHome}/doom";
@@ -88,17 +92,68 @@ let
       LESSUTFCHARDEF = "E000-F8FF:p,F0000-FFFFD:p,100000-10FFFD:p";
     };
 
-    launchctl = lib.concatMapStringsSep "\n" (var: ''
-      run /bin/launchctl setenv ${var} "${globalVariables.base.${var}}"
-    '') (lib.attrNames globalVariables.base);
+    launchctl = mkVarExports (name: value: ''run /bin/launchctl setenv ${name} "${value}"'') globalVariables.base;
+    shell = mkVarExports (name: value: ''export ${name}="${value}"'') globalVariables.base;
+    fishShell = mkVarExports (name: value: ''set -x ${name} "${value}"'') globalVariables.base;
+  };
 
-    shell = lib.concatMapStringsSep "\n" (var: ''
-      export ${var}="${globalVariables.base.${var}}"
-    '') (lib.attrNames globalVariables.base);
+  ########################################
+  #                                      #
+  # String Substitution Helper           #
+  #                                      #
+  ########################################
 
-    fishShell = lib.concatMapStringsSep "\n" (var: ''
-      set -x ${var} "${globalVariables.base.${var}}"
-    '') (lib.attrNames globalVariables.base);
+  # Apply named substitutions to a string (e.g., "@placeholder@" -> value)
+  applySubst = subst: str:
+    builtins.foldl'
+      (s: name: builtins.replaceStrings [ name ] [ subst.${name} ] s)
+      str
+      (builtins.attrNames subst);
+
+  ########################################
+  #                                      #
+  # Shell Integration Helpers            #
+  #                                      #
+  ########################################
+
+  # Standard shell integrations (all shells enabled based on their enable state)
+  shellIntegrations = {
+    enableBashIntegration = config.programs.bash.enable;
+    enableZshIntegration = config.programs.zsh.enable;
+    enableFishIntegration = config.programs.fish.enable;
+  };
+
+  # Shell integrations with Fish disabled (for evalcache programs)
+  shellIntegrationsNoFish = {
+    enableBashIntegration = config.programs.bash.enable;
+    enableZshIntegration = config.programs.zsh.enable;
+    enableFishIntegration = false;
+  };
+
+  # Shell integrations for programs that only have bash/zsh (no fish option)
+  shellIntegrationsBashZsh = {
+    enableBashIntegration = config.programs.bash.enable;
+    enableZshIntegration = config.programs.zsh.enable;
+  };
+
+  ########################################
+  #                                      #
+  # Theme Configuration                  #
+  #                                      #
+  ########################################
+
+  theme = {
+    name = "catppuccin";
+    variant = "macchiato";
+
+    # Pre-computed variants for different naming conventions
+    variants = {
+      underscore = "catppuccin_macchiato"; # btop, starship
+      hyphen = "catppuccin-macchiato"; # ghostty, git
+      titleSpace = "Catppuccin Macchiato"; # bat
+      titleHyphen = "Catppuccin-Macchiato"; # kitty
+      variantOnly = "macchiato"; # yazi, starship toml
+    };
   };
 
   ########################################
@@ -304,6 +359,11 @@ in
     readYAML
     toTOML
     globalVariables
+    applySubst
+    shellIntegrations
+    shellIntegrationsNoFish
+    shellIntegrationsBashZsh
+    theme
     mkEmail
     mkConditionalGithubIncludes
     fishProfilesPath

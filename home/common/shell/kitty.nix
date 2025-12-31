@@ -21,13 +21,9 @@
         size = 14;
       };
 
-      shellIntegration = {
-        enableBashIntegration = config.programs.bash.enable;
-        enableZshIntegration = config.programs.zsh.enable;
-        enableFishIntegration = config.programs.fish.enable;
-      };
+      shellIntegration = helpers.shellIntegrations;
 
-      themeFile = "Catppuccin-Macchiato";
+      themeFile = helpers.theme.variants.titleHyphen;
 
       extraConfig = ''
         action_alias kitty_scrollback_nvim kitten ${pkgs.vimUtils.packDir config.programs.neovim.finalPackage.passthru.packpathDirs}/pack/myNeovimPackages/start/vimplugin-kitty-scrollback.nvim/python/kitty_scrollback_nvim.py

@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  helpers,
   ...
 }:
 {
@@ -10,13 +11,9 @@
       enable = false; # Broken
       package = pkgs.ghostty;
 
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
-      enableFishIntegration = config.programs.fish.enable;
-
       installBatSyntax = config.programs.bat.enable;
       installVimSyntax = true;
-    };
+    } // helpers.shellIntegrations;
   };
 
   xdg.configFile."ghostty/config" = {
@@ -42,7 +39,7 @@
       font-feature = "+ss08"
       font-feature = "+ss09"
 
-      theme = "catppuccin-macchiato"
+      theme = "${helpers.theme.variants.hyphen}"
 
       minimum-contrast = 1.05
 

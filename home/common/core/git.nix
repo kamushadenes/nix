@@ -71,7 +71,7 @@
     enableGitIntegration = true;
     package = pkgs.delta;
     options = {
-      features = "catppuccin-macchiato";
+      features = helpers.theme.variants.hyphen;
     };
   };
 

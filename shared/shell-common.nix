@@ -71,6 +71,15 @@ let
     "${config.home.homeDirectory}/go/bin"
   ];
 
+  # Factory for generating path setup commands per shell
+  mkPathSetup = formatFn: lib.concatMapStringsSep "\n" formatFn pathAdditions;
+
+  pathFormatters = {
+    fish = path: "fish_add_path -a '${path}'";
+    bash = path: ''export PATH="$PATH:${path}"'';
+    zsh = path: ''path+=("${path}")'';
+  };
+
   # Ghostty resources directory
   ghosttyResourcesDir = "/Applications/Ghostty.app/Contents/Resources/ghostty";
 
@@ -139,7 +148,7 @@ in
 
     sshKeyLoading = lib.concatMapStringsSep "\n" (key: "test -f ${key} && ssh-add -q ${key}") sshKeys;
 
-    pathSetup = lib.concatMapStringsSep "\n" (path: "fish_add_path -a '${path}'") pathAdditions;
+    pathSetup = mkPathSetup pathFormatters.fish;
 
     ghosttyIntegration = ''
       # Set GHOSTTY_RESOURCES_DIR if not set
@@ -201,8 +210,8 @@ in
   };
 
   # Path setup for bash (export PATH)
-  bash.pathSetup = lib.concatMapStringsSep "\n" (path: ''export PATH="$PATH:${path}"'') pathAdditions;
+  bash.pathSetup = mkPathSetup pathFormatters.bash;
 
   # Path setup for zsh (path+=)
-  zsh.pathSetup = lib.concatMapStringsSep "\n" (path: ''path+=("${path}")'') pathAdditions;
+  zsh.pathSetup = mkPathSetup pathFormatters.zsh;
 }

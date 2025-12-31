@@ -3,6 +3,7 @@
   pkgs,
   lib,
   themes,
+  helpers,
   ...
 }:
 {
@@ -19,8 +20,8 @@
     ]
     ++ (with pkgs.unixtools; [ watch ]);
 
-  xdg.configFile."btop/themes/catppuccin_macchiato.theme" = {
-    source = themes.btopCatppuccin + "/themes/catppuccin_macchiato.theme";
+  xdg.configFile."btop/themes/${helpers.theme.variants.underscore}.theme" = {
+    source = themes.btopCatppuccin + "/themes/${helpers.theme.variants.underscore}.theme";
   };
 
   programs = {
@@ -30,27 +31,21 @@
 
     atuin = {
       enable = true;
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
-      # Using evalcache
-      enableFishIntegration = false;
-
       flags = [ "--disable-up-arrow" ];
-
       settings = {
         auto_sync = true;
         sync_frequency = "5m";
         sync_address = "https://atuin.hyades.io";
         search_mode = "prefix";
       };
-    };
+    } // helpers.shellIntegrationsNoFish;
 
     bat = {
       enable = true;
       config = lib.mkMerge [
         {
           map-syntax = [ "*.ino:C++" ];
-          theme = "Catppuccin Macchiato";
+          theme = helpers.theme.variants.titleSpace;
         }
         (lib.mkIf config.programs.less.enable { pager = lib.getExe pkgs.less; })
       ];
@@ -63,39 +58,29 @@
         prettybat
       ];
       themes = {
-        "Catppuccin Macchiato" = themes.batCatppuccinMacchiato;
+        ${helpers.theme.variants.titleSpace} = themes.batCatppuccinMacchiato;
       };
     };
 
     broot = {
       enable = true;
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
-      enableFishIntegration = config.programs.fish.enable;
-    };
+    } // helpers.shellIntegrations;
 
     btop = {
       enable = true;
       settings = {
-        color_theme = "catppuccin_macchiato";
+        color_theme = helpers.theme.variants.underscore;
       };
     };
 
     dircolors = {
       enable = true;
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
-      enableFishIntegration = config.programs.fish.enable;
-    };
+    } // helpers.shellIntegrations;
 
     direnv = {
       enable = true;
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
 
-      # Always enabled for fish
-      #enableFishIntegration = config.programs.fish.enable;
-
+      # Fish integration is always enabled by home-manager
       nix-direnv = {
         enable = true;
       };
@@ -104,16 +89,13 @@
         load_dotenv = true;
         hide_env_diff = true;
       };
-    };
+    } // helpers.shellIntegrationsBashZsh;
 
     eza = {
       enable = true;
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
-      enableFishIntegration = config.programs.fish.enable;
       git = true;
       icons = "auto";
-    };
+    } // helpers.shellIntegrations;
 
     fastfetch = {
       enable = true;
@@ -128,19 +110,15 @@
     };
 
     fzf = lib.mkMerge [
-      {
+      ({
         enable = true;
-        enableBashIntegration = config.programs.bash.enable;
-        enableZshIntegration = config.programs.zsh.enable;
-        # Using evalcache
-        enableFishIntegration = false;
         # Catppuccin Macchiato
         colors = themes.fzfCatppuccinMacchiato;
         defaultOptions = [
           "--multi"
           "--border"
         ];
-      }
+      } // helpers.shellIntegrationsNoFish)
       (lib.mkIf config.programs.fd.enable {
         changeDirWidgetCommand = "${lib.getExe config.programs.fd.package} --type d";
         defaultCommand = "${lib.getExe config.programs.fd.package} --type f";
@@ -162,18 +140,12 @@
 
     navi = {
       enable = true;
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
-      # Using evalcache
-      enableFishIntegration = false;
-    };
+      # Using evalcache for Fish
+    } // helpers.shellIntegrationsNoFish;
 
     pay-respects = {
       enable = true;
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
-      enableFishIntegration = config.programs.fish.enable;
-    };
+    } // helpers.shellIntegrations;
 
     ripgrep = {
       enable = true;
@@ -181,25 +153,19 @@
 
     yazi = {
       enable = true;
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
-      enableFishIntegration = config.programs.fish.enable;
 
       theme = lib.mkMerge [
-        (builtins.fromTOML (builtins.readFile (themes.yaziCatppuccin + "/themes/macchiato.toml")))
+        (builtins.fromTOML (builtins.readFile (themes.yaziCatppuccin + "/themes/${helpers.theme.variants.variantOnly}.toml")))
         {
           manager = {
             syntect_theme = lib.mkForce "${config.xdg.configHome}/bat/themes/${config.programs.bat.config.theme}.tmTheme";
           };
         }
       ];
-    };
+    } // helpers.shellIntegrations;
 
     zoxide = {
       enable = true;
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
-      enableFishIntegration = config.programs.fish.enable;
-    };
+    } // helpers.shellIntegrations;
   };
 }

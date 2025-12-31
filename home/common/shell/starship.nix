@@ -2,26 +2,23 @@
   config,
   lib,
   themes,
+  helpers,
   ...
 }:
 {
   programs = {
-    starship = {
+    starship = ({
       enable = true;
-      enableBashIntegration = config.programs.bash.enable;
-      enableZshIntegration = config.programs.zsh.enable;
-
-      # Using evalcache
-      enableFishIntegration = false;
+      # Using evalcache for Fish
 
       settings = {
         add_newline = true;
         command_timeout = 2000;
 
-        palette = "catppuccin_macchiato";
+        palette = helpers.theme.variants.underscore;
 
         palettes =
-          (builtins.fromTOML (builtins.readFile (themes.starshipCatppuccin + "/themes/macchiato.toml")))
+          (builtins.fromTOML (builtins.readFile (themes.starshipCatppuccin + "/themes/${helpers.theme.variants.variantOnly}.toml")))
           .palettes;
 
         format = lib.concatStringsSep "" [
@@ -367,6 +364,6 @@
         };
       };
       enableTransience = true;
-    };
+    }) // helpers.shellIntegrationsNoFish;
   };
 }
