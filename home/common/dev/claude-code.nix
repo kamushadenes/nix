@@ -16,10 +16,11 @@
 let
   #############################################################################
   # tmux MCP Server - Terminal automation for interacting with CLI apps
+  # Uses windows (full screen) instead of panes for easier output tracking
   #############################################################################
   tmuxMcpServer = ''
     #!/usr/bin/env python3
-    """MCP server for tmux terminal automation - uses tmux directly"""
+    """MCP server for tmux terminal automation - uses windows for full-screen output"""
     import subprocess
     import hashlib
     import time
@@ -40,9 +41,10 @@ let
         return result.stdout.strip(), result.returncode
 
 
-    def get_current_pane() -> str:
-        """Get the pane ID where Claude Code is running"""
-        return os.environ.get("TMUX_PANE", "")
+    def get_current_window() -> str:
+        """Get the window ID where Claude Code is running"""
+        output, _ = run_tmux("display-message", "-p", "#{window_id}")
+        return output
 
 
     def require_tmux():
@@ -55,49 +57,42 @@ let
 
 
     @mcp.tool()
-    def tmux_split(
+    def tmux_new_window(
         command: str = "zsh",
-        direction: str = "right",
-        size: int = 50
+        name: str = ""
     ) -> str:
         """
-        Create a new tmux split and run a command in it.
+        Create a new tmux window and run a command in it.
 
         Args:
-            command: Command to run in the new pane (default: zsh)
-            direction: Split direction - "right", "left", "up", "down"
-            size: Size percentage for the new pane (1-99)
+            command: Command to run in the new window (default: zsh)
+            name: Optional name for the window (shown in status bar)
 
         Returns:
-            Stable pane ID (e.g., "%5") that persists until the pane is killed
+            Window ID (e.g., "@3") that persists until the window is killed
         """
         require_tmux()
-        # Map direction to tmux flags
-        dir_flags = {
-            "right": ["-h"],
-            "left": ["-hb"],
-            "down": ["-v"],
-            "up": ["-vb"]
-        }
-        flags = dir_flags.get(direction, ["-h"])
+        # Create new window, return window ID
+        # -d flag keeps focus on current window (don't switch to new one)
+        args = ["new-window", "-d", "-P", "-F", "#{window_id}"]
+        if name:
+            args.extend(["-n", name])
+        args.append(command)
 
-        # Create split with size, return stable pane ID
-        args = ["split-window"] + flags + ["-l", f"{size}%", "-P", "-F",
-               "#{pane_id}", command]
         output, code = run_tmux(*args)
 
         if code != 0:
-            return f"Error creating split: {output}"
+            return f"Error creating window: {output}"
         return output
 
 
     @mcp.tool()
-    def tmux_send(pane: str, text: str, enter: bool = True) -> str:
+    def tmux_send(target: str, text: str, enter: bool = True) -> str:
         """
-        Send text/keystrokes to a tmux pane.
+        Send text/keystrokes to a tmux window.
 
         Args:
-            pane: Pane identifier - use stable ID from tmux_split (e.g., "%5")
+            target: Window identifier - use ID from tmux_new_window (e.g., "@3")
             text: Text to send
             enter: Whether to press Enter after the text
 
@@ -105,7 +100,7 @@ let
             Success message or error
         """
         require_tmux()
-        args = ["send-keys", "-t", pane, text]
+        args = ["send-keys", "-t", target, text]
         if enter:
             args.append("Enter")
 
@@ -116,109 +111,109 @@ let
 
 
     @mcp.tool()
-    def tmux_capture(pane: str, lines: int = 100) -> str:
+    def tmux_capture(target: str, lines: int = 100) -> str:
         """
-        Capture output from a tmux pane.
+        Capture output from a tmux window.
 
         Args:
-            pane: Pane identifier - use stable ID from tmux_split (e.g., "%5")
+            target: Window identifier - use ID from tmux_new_window (e.g., "@3")
             lines: Number of lines to capture from scrollback (default: 100)
 
         Returns:
-            Captured pane content
+            Captured window content
         """
         require_tmux()
-        args = ["capture-pane", "-t", pane, "-p", "-S", f"-{lines}"]
+        args = ["capture-pane", "-t", target, "-p", "-S", f"-{lines}"]
         output, code = run_tmux(*args)
 
         if code != 0:
-            return f"Error capturing pane: {output}"
+            return f"Error capturing window: {output}"
         return output
 
 
     @mcp.tool()
     def tmux_list() -> str:
         """
-        List all panes in the current window.
+        List all windows in the current session.
 
         Returns:
-            JSON-formatted list of panes with their IDs, commands, and status
+            JSON-formatted list of windows with their IDs, names, and status
         """
         require_tmux()
-        format_str = "#{pane_id}|#{pane_index}|#{pane_current_command}|#{pane_active}|#{pane_width}x#{pane_height}"
-        output, code = run_tmux("list-panes", "-F", format_str)
+        format_str = "#{window_id}|#{window_index}|#{window_name}|#{window_active}|#{pane_current_command}"
+        output, code = run_tmux("list-windows", "-F", format_str)
 
         if code != 0:
-            return f"Error listing panes: {output}"
+            return f"Error listing windows: {output}"
 
-        panes = []
-        current = get_current_pane()
+        windows = []
+        current = get_current_window()
         for line in output.split("\n"):
             if line:
                 parts = line.split("|")
-                panes.append({
+                windows.append({
                     "id": parts[0],
                     "index": parts[1],
-                    "command": parts[2],
+                    "name": parts[2],
                     "active": parts[3] == "1",
-                    "size": parts[4],
+                    "command": parts[4],
                     "is_claude": parts[0] == current
                 })
 
-        return json.dumps(panes, indent=2)
+        return json.dumps(windows, indent=2)
 
 
     @mcp.tool()
-    def tmux_kill(pane: str) -> str:
+    def tmux_kill(target: str) -> str:
         """
-        Kill a tmux pane.
+        Kill a tmux window.
 
         Args:
-            pane: Pane identifier to kill
+            target: Window identifier to kill (e.g., "@3")
 
         Returns:
             Success message or error
         """
         require_tmux()
-        # Safety: prevent killing own pane (using stable pane IDs)
-        current = get_current_pane()
-        if pane == current:
-            return "Error: Cannot kill Claude's own pane!"
+        # Safety: prevent killing own window
+        current = get_current_window()
+        if target == current:
+            return "Error: Cannot kill Claude's own window!"
 
-        output, code = run_tmux("kill-pane", "-t", pane)
+        output, code = run_tmux("kill-window", "-t", target)
         if code != 0:
-            return f"Error killing pane: {output}"
-        return "Pane killed successfully"
+            return f"Error killing window: {output}"
+        return "Window killed successfully"
 
 
     @mcp.tool()
-    def tmux_interrupt(pane: str) -> str:
+    def tmux_interrupt(target: str) -> str:
         """
-        Send Ctrl+C interrupt to a pane.
+        Send Ctrl+C interrupt to a window.
 
         Args:
-            pane: Pane identifier
+            target: Window identifier
 
         Returns:
             Success message
         """
         require_tmux()
-        run_tmux("send-keys", "-t", pane, "C-c")
+        run_tmux("send-keys", "-t", target, "C-c")
         return "Interrupt sent"
 
 
     @mcp.tool()
-    def tmux_wait_idle(pane: str, idle_seconds: float = 2.0, timeout: int = 60) -> str:
+    def tmux_wait_idle(target: str, idle_seconds: float = 2.0, timeout: int = 60) -> str:
         """
-        Wait for a pane to become idle (no output changes).
+        Wait for a window to become idle (no output changes).
 
         Args:
-            pane: Pane identifier
+            target: Window identifier
             idle_seconds: Seconds of no change to consider idle
             timeout: Maximum seconds to wait
 
         Returns:
-            "idle" when pane is idle, or "timeout" if timeout reached
+            "idle" when window is idle, or "timeout" if timeout reached
         """
         require_tmux()
         start = time.time()
@@ -226,7 +221,7 @@ let
         last_change = time.time()
 
         while time.time() - start < timeout:
-            content, _ = run_tmux("capture-pane", "-t", pane, "-p")
+            content, _ = run_tmux("capture-pane", "-t", target, "-p")
             current_hash = hashlib.md5(content.encode()).hexdigest()
 
             if current_hash != last_hash:
@@ -240,6 +235,24 @@ let
         return "timeout"
 
 
+    @mcp.tool()
+    def tmux_select(target: str) -> str:
+        """
+        Switch to a tmux window (bring it to foreground).
+
+        Args:
+            target: Window identifier to select (e.g., "@3")
+
+        Returns:
+            Success message or error
+        """
+        require_tmux()
+        output, code = run_tmux("select-window", "-t", target)
+        if code != 0:
+            return f"Error selecting window: {output}"
+        return "Window selected"
+
+
     if __name__ == "__main__":
         mcp.run()
   '';
@@ -250,80 +263,101 @@ let
   #############################################################################
   tmuxSkillFile = ''
     ---
-    name: automating-tmux-panes
-    description: Automates terminal sessions in tmux panes using MCP tools. Use when launching background processes, monitoring builds/servers, sending commands to debuggers (pdb/gdb), interacting with CLI prompts, or orchestrating parallel tasks across multiple terminal sessions.
+    name: automating-tmux-windows
+    description: Automates terminal sessions in tmux windows using MCP tools. Use when launching background processes, monitoring builds/servers, sending commands to debuggers (pdb/gdb), interacting with CLI prompts, or orchestrating parallel tasks across multiple terminal sessions.
     ---
 
-    # Automating tmux Panes
+    # Automating tmux Windows
 
-    Control tmux panes programmatically: split windows, send commands, capture output, and manage processes.
+    Control tmux windows programmatically: create windows, send commands, capture output, and manage processes. Each window gets full screen space for easier output tracking.
 
     ## Quick Reference
 
     | Tool | Purpose |
     |------|---------|
-    | `mcp__tmux__tmux_split` | Create split pane |
+    | `mcp__tmux__tmux_new_window` | Create new window |
     | `mcp__tmux__tmux_send` | Send text/keys |
-    | `mcp__tmux__tmux_capture` | Get pane output |
-    | `mcp__tmux__tmux_list` | List panes (JSON) |
-    | `mcp__tmux__tmux_kill` | Close pane |
+    | `mcp__tmux__tmux_capture` | Get window output |
+    | `mcp__tmux__tmux_list` | List windows (JSON) |
+    | `mcp__tmux__tmux_kill` | Close window |
     | `mcp__tmux__tmux_interrupt` | Send Ctrl+C |
     | `mcp__tmux__tmux_wait_idle` | Wait for idle |
+    | `mcp__tmux__tmux_select` | Switch to window |
 
     ## Critical: Always Start with a Shell
 
     Launch a shell first, then run commands. Direct command execution loses output on exit:
 
     ```
-    # Correct workflow - save the stable pane ID
-    pane_id = mcp__tmux__tmux_split(command="zsh", direction="right")  # Returns "%5"
-    mcp__tmux__tmux_send(pane=pane_id, text="python script.py")
+    # Correct workflow - save the window ID
+    window_id = mcp__tmux__tmux_new_window(command="zsh", name="build")  # Returns "@3"
+    mcp__tmux__tmux_send(target=window_id, text="python script.py")
 
     # Wrong - output lost if script exits/errors
-    mcp__tmux__tmux_split(command="python script.py")
+    mcp__tmux__tmux_new_window(command="python script.py")
     ```
 
-    ## Pane Identifiers
+    ## Window Identifiers
 
-    **Always use the stable pane ID returned by `tmux_split`** (e.g., `"%5"`). These IDs:
-    - Never change when other panes are created or killed
-    - Persist until the pane itself is destroyed
-    - Are the only reliable way to reference panes across operations
+    **Always use the window ID returned by `tmux_new_window`** (e.g., `"@3"`). These IDs:
+    - Never change when other windows are created or killed
+    - Persist until the window itself is destroyed
+    - Are the only reliable way to reference windows across operations
 
-    Legacy formats (index `"1"` or `"main:0.1"`) still work but shift when panes are killed.
+    Window names are visible in the tmux status bar for easy identification.
 
     ## Standard Workflow
 
     ```
-    # 1. Create pane with shell - SAVE THE RETURNED ID
-    pane_id = mcp__tmux__tmux_split(command="zsh", direction="right", size=40)  # Returns "%5"
+    # 1. Create window with shell - SAVE THE RETURNED ID
+    window_id = mcp__tmux__tmux_new_window(command="zsh", name="build")  # Returns "@3"
 
-    # 2. Run command using the stable ID
-    mcp__tmux__tmux_send(pane=pane_id, text="npm run build")
+    # 2. Run command using the window ID
+    mcp__tmux__tmux_send(target=window_id, text="npm run build")
 
     # 3. Wait for completion
-    mcp__tmux__tmux_wait_idle(pane=pane_id, idle_seconds=2.0)  # Returns "idle" or "timeout"
+    mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=2.0)  # Returns "idle" or "timeout"
 
     # 4. Get output
-    output = mcp__tmux__tmux_capture(pane=pane_id, lines=50)
+    output = mcp__tmux__tmux_capture(target=window_id, lines=50)
 
-    # 5. Cleanup - safe even if other panes were killed
-    mcp__tmux__tmux_kill(pane=pane_id)
+    # 5. Optionally switch to window to view it
+    mcp__tmux__tmux_select(target=window_id)
+
+    # 6. Cleanup
+    mcp__tmux__tmux_kill(target=window_id)
     ```
 
-    ## Split Directions
+    ## Parallel Windows
 
-    - `"right"` - New pane on right (default)
-    - `"left"` - New pane on left
-    - `"down"` - New pane below
-    - `"up"` - New pane above
+    Create multiple windows for parallel tasks:
+
+    ```
+    # Create named windows for different tasks
+    logs_window = mcp__tmux__tmux_new_window(command="zsh", name="logs")
+    work_window = mcp__tmux__tmux_new_window(command="zsh", name="work")
+
+    # Run commands in parallel
+    mcp__tmux__tmux_send(target=logs_window, text="tail -f /var/log/app.log")
+    mcp__tmux__tmux_send(target=work_window, text="cd ~/project && make")
+
+    # Capture from both
+    logs = mcp__tmux__tmux_capture(target=logs_window, lines=100)
+    output = mcp__tmux__tmux_capture(target=work_window, lines=50)
+    ```
+
+    ## Window Navigation
+
+    - Use `tmux_select` to switch to a window programmatically
+    - User can navigate with Ctrl+b n (next) / Ctrl+b p (previous)
+    - Window names appear in tmux status bar
 
     ## Safety
 
-    - Cannot kill own pane (server prevents this)
+    - Cannot kill own window (server prevents this)
     - Use `tmux_interrupt` to stop runaway processes
-    - Check `is_claude` field in `tmux_list` to identify your pane
-    - **Always store and reuse the pane ID from `tmux_split`** - indices shift when panes are killed
+    - Check `is_claude` field in `tmux_list` to identify your window
+    - **Always store and reuse the window ID from `tmux_new_window`**
   '';
 
   # Global user memory - applies to all projects
@@ -707,7 +741,7 @@ in
     };
 
     # tmux skill - teaches Claude Code how to use the tmux MCP tools
-    ".claude/skills/automating-tmux-panes/SKILL.md".text = tmuxSkillFile;
+    ".claude/skills/automating-tmux-windows/SKILL.md".text = tmuxSkillFile;
   } // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
     name = ".claude/rules/${name}";
