@@ -42,6 +42,7 @@ let
     mkcd = builtins.readFile "${resourcesDir}/mkcd.sh";
     rebuild = applySubst rebuildSubst (builtins.readFile "${resourcesDir}/rebuild.sh");
     claudeTmux = builtins.readFile "${resourcesDir}/claude-tmux.sh";
+    claudeAttach = builtins.readFile "${resourcesDir}/ca.sh";
     rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.sh";
     flushdns = builtins.readFile "${resourcesDir}/flushdns.sh";
     help = builtins.readFile "${resourcesDir}/help.sh";
@@ -52,6 +53,7 @@ let
     mkcd = builtins.readFile "${resourcesDir}/mkcd.fish";
     rebuild = applySubst rebuildSubst (builtins.readFile "${resourcesDir}/rebuild.fish");
     claudeTmux = builtins.readFile "${resourcesDir}/claude-tmux.fish";
+    claudeAttach = builtins.readFile "${resourcesDir}/ca.fish";
     rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.fish";
     flushdns = builtins.readFile "${resourcesDir}/flushdns.sh"; # Simple command, works in fish
     help = builtins.readFile "${resourcesDir}/help.fish";
@@ -113,6 +115,11 @@ in
           body = fishScripts.claudeTmux;
         };
 
+        ca = {
+          description = "Attach to existing tmux session via fzf selection";
+          body = fishScripts.claudeAttach;
+        };
+
         add_go_build_tags = {
           description = "Adds a custom Go build constraint to the beginning of .go files recursively.";
           body = fishScripts.addGoBuildTags;
@@ -152,6 +159,7 @@ in
       mkcd() { ${bashScripts.mkcd} }
       rebuild() { ${bashScripts.rebuild} }
       c() { ${bashScripts.claudeTmux} }
+      ca() { ${bashScripts.claudeAttach} }
       rga-fzf() { ${bashScripts.rgaFzf} }
     '';
 

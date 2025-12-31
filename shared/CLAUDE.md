@@ -14,8 +14,10 @@ shared/
     ├── mkcd.fish             # Fish version
     ├── rebuild.sh            # Bash/Zsh version (with template substitution)
     ├── rebuild.fish          # Fish version (with template substitution)
-    ├── claude-tmux.sh        # Bash/Zsh version
-    ├── claude-tmux.fish      # Fish version
+    ├── claude-tmux.sh        # Bash/Zsh version (c function)
+    ├── claude-tmux.fish      # Fish version (c function)
+    ├── ca.sh                 # Bash/Zsh version (attach to tmux session)
+    ├── ca.fish               # Fish version (attach to tmux session)
     ├── rga-fzf.sh            # Bash/Zsh version
     ├── rga-fzf.fish          # Fish version
     ├── flushdns.sh           # Simple commands (works in all shells)
