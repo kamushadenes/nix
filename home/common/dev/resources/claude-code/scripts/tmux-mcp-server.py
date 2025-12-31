@@ -5,12 +5,19 @@ import hashlib
 import time
 import os
 import json
+import re
+import uuid
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("tmux")
 
 VALID_SHELLS = {"zsh", "bash", "fish", "sh"}
 DEFAULT_SHELL = "zsh"
+MAX_CAPTURE_LINES = 10000
+MIN_CAPTURE_LINES = 1
+
+# Pattern for valid tmux window/pane identifiers (e.g., @3, %5)
+TARGET_PATTERN = re.compile(r'^[@%][0-9]+$')
 
 
 def run_tmux(*args) -> tuple[str, int]:
@@ -42,6 +49,19 @@ def is_shell_command(command: str) -> bool:
     """Check if command is a shell"""
     base_cmd = os.path.basename(command.split()[0])
     return base_cmd in VALID_SHELLS
+
+
+def validate_target(target: str) -> None:
+    """Validate that target is a safe tmux window/pane identifier.
+
+    Raises:
+        ValueError: If target doesn't match the expected pattern
+    """
+    if not TARGET_PATTERN.match(target):
+        raise ValueError(
+            f"Invalid target '{target}'. Expected format: @<number> or %<number> "
+            "(e.g., '@3' for window, '%5' for pane)"
+        )
 
 
 @mcp.tool()
@@ -79,16 +99,28 @@ def tmux_new_window(
 
     window_id = output
 
-    # If we wrapped, wait for shell prompt then send the original command
+    # If we wrapped, wait for shell to be ready then send the original command
     if needs_shell_wrap:
-        # Wait for shell to be ready (prompt appears)
-        for _ in range(50):  # Up to 5 seconds
+        # Use a unique marker to reliably detect when shell is ready
+        # This avoids race conditions with prompt character detection
+        marker = f"READY_{uuid.uuid4().hex}"
+
+        # Send echo command to output the marker when shell is ready
+        run_tmux("send-keys", "-t", window_id, f"echo {marker}", "Enter")
+
+        # Wait for the marker to appear in output (up to 5 seconds)
+        shell_ready = False
+        for _ in range(50):
             time.sleep(0.1)
             content, _ = run_tmux("capture-pane", "-t", window_id, "-p")
-            # Shell is ready when we see common prompt characters
-            if content.strip() and any(c in content for c in ["$", "%", ">", "#", "❯"]):
+            if marker in content:
+                shell_ready = True
                 break
 
+        if not shell_ready:
+            return f"Window created ({window_id}) but shell did not become ready in time"
+
+        # Now send the actual command
         _, send_code = run_tmux("send-keys", "-t", window_id, command, "Enter")
         if send_code != 0:
             return f"Window created ({window_id}) but failed to send command"
@@ -110,6 +142,7 @@ def tmux_send(target: str, text: str, enter: bool = True) -> str:
         Success message or error
     """
     require_tmux()
+    validate_target(target)
     args = ["send-keys", "-t", target, text]
     if enter:
         args.append("Enter")
@@ -127,12 +160,15 @@ def tmux_capture(target: str, lines: int = 100) -> str:
 
     Args:
         target: Window identifier - use ID from tmux_new_window (e.g., "@3")
-        lines: Number of lines to capture from scrollback (default: 100)
+        lines: Number of lines to capture from scrollback (default: 100, max: 10000)
 
     Returns:
         Captured window content
     """
     require_tmux()
+    validate_target(target)
+    # Clamp lines to safe bounds to prevent memory exhaustion
+    lines = max(MIN_CAPTURE_LINES, min(lines, MAX_CAPTURE_LINES))
     args = ["capture-pane", "-t", target, "-p", "-S", f"-{lines}"]
     output, code = run_tmux(*args)
 
@@ -185,6 +221,7 @@ def tmux_kill(target: str) -> str:
         Success message or error
     """
     require_tmux()
+    validate_target(target)
     # Safety: prevent killing own window
     current = get_current_window()
     if target == current:
@@ -208,6 +245,7 @@ def tmux_interrupt(target: str) -> str:
         Success message
     """
     require_tmux()
+    validate_target(target)
     run_tmux("send-keys", "-t", target, "C-c")
     return "Interrupt sent"
 
@@ -226,6 +264,7 @@ def tmux_wait_idle(target: str, idle_seconds: float = 2.0, timeout: int = 60) ->
         "idle" when window is idle, or "timeout" if timeout reached
     """
     require_tmux()
+    validate_target(target)
     start = time.time()
     last_hash = ""
     last_change = time.time()
@@ -257,6 +296,7 @@ def tmux_select(target: str) -> str:
         Success message or error
     """
     require_tmux()
+    validate_target(target)
     output, code = run_tmux("select-window", "-t", target)
     if code != 0:
         return f"Error selecting window: {output}"
