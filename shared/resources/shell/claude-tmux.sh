@@ -24,6 +24,5 @@ else
   session_name="claude-$parent_folder_norm-$git_folder_norm-$timestamp"
 
   # Start tmux and run claude inside (exit tmux when claude exits)
-  # Use bash -lic to ensure shell initialization runs (including direnv hooks)
-  tmux new-session -s "$session_name" "bash -lic 'claude $*'"
+  tmux new-session -s "$session_name" "claude $*"
 fi

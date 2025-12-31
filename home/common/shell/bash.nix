@@ -8,6 +8,13 @@
   ...
 }:
 {
+  # Add direnv hook to .profile for non-interactive shells (Claude Code)
+  home.sessionVariablesExtra = lib.mkIf config.programs.direnv.enable ''
+    if [ -n "$CLAUDECODE" ]; then
+      eval "$(DIRENV_LOG_FORMAT= ${lib.getExe config.programs.direnv.package} export bash)"
+    fi
+  '';
+
   programs.bash = {
     enable = true;
     enableCompletion = true;

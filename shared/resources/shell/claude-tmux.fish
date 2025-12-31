@@ -24,6 +24,5 @@ else
   set session_name "claude-$parent_folder_norm-$git_folder_norm-$timestamp"
 
   # Start tmux and run claude inside (exit tmux when claude exits)
-  # Use fish -lic to ensure shell initialization runs (including direnv hooks)
-  tmux new-session -s "$session_name" "fish -lic 'claude $argv'"
+  tmux new-session -s "$session_name" "claude $argv"
 end
