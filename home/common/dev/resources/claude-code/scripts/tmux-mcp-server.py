@@ -9,6 +9,9 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("tmux")
 
+VALID_SHELLS = {"zsh", "bash", "fish", "sh"}
+DEFAULT_SHELL = "zsh"
+
 
 def run_tmux(*args) -> tuple[str, int]:
     """Run a tmux command and return (stdout, returncode)"""
@@ -35,6 +38,12 @@ def require_tmux():
         )
 
 
+def is_shell_command(command: str) -> bool:
+    """Check if command is a shell"""
+    base_cmd = os.path.basename(command.split()[0])
+    return base_cmd in VALID_SHELLS
+
+
 @mcp.tool()
 def tmux_new_window(
     command: str = "zsh",
@@ -51,18 +60,40 @@ def tmux_new_window(
         Window ID (e.g., "@3") that persists until the window is killed
     """
     require_tmux()
+
+    # Check if command is a shell - if not, wrap it in a shell
+    needs_shell_wrap = not is_shell_command(command)
+    actual_command = DEFAULT_SHELL if needs_shell_wrap else command
+
     # Create new window, return window ID
     # -d flag keeps focus on current window (don't switch to new one)
     args = ["new-window", "-d", "-P", "-F", "#{window_id}"]
     if name:
         args.extend(["-n", name])
-    args.append(command)
+    args.append(actual_command)
 
     output, code = run_tmux(*args)
 
     if code != 0:
         return f"Error creating window: {output}"
-    return output
+
+    window_id = output
+
+    # If we wrapped, wait for shell prompt then send the original command
+    if needs_shell_wrap:
+        # Wait for shell to be ready (prompt appears)
+        for _ in range(50):  # Up to 5 seconds
+            time.sleep(0.1)
+            content, _ = run_tmux("capture-pane", "-t", window_id, "-p")
+            # Shell is ready when we see common prompt characters
+            if content.strip() and any(c in content for c in ["$", "%", ">", "#", "❯"]):
+                break
+
+        _, send_code = run_tmux("send-keys", "-t", window_id, command, "Enter")
+        if send_code != 0:
+            return f"Window created ({window_id}) but failed to send command"
+
+    return window_id
 
 
 @mcp.tool()

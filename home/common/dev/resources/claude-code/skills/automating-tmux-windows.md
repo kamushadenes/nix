@@ -20,19 +20,6 @@ Control tmux windows programmatically: create windows, send commands, capture ou
 | `mcp__tmux__tmux_wait_idle`  | Wait for idle       |
 | `mcp__tmux__tmux_select`     | Switch to window    |
 
-## Critical: Always Start with a Shell
-
-Launch a shell first, then run commands. Direct command execution loses output on exit:
-
-```
-# Correct workflow - save the window ID
-window_id = mcp__tmux__tmux_new_window(command="zsh", name="build")  # Returns "@3"
-mcp__tmux__tmux_send(target=window_id, text="python script.py")
-
-# Wrong - output lost if script exits/errors
-mcp__tmux__tmux_new_window(command="python script.py")
-```
-
 ## Window Identifiers
 
 **Always use the window ID returned by `tmux_new_window`** (e.g., `"@3"`). These IDs:
@@ -46,22 +33,20 @@ Window names are visible in the tmux status bar for easy identification.
 ## Standard Workflow
 
 ```
-# 1. Create window with shell - SAVE THE RETURNED ID
-window_id = mcp__tmux__tmux_new_window(command="zsh", name="build")  # Returns "@3"
+# 1. Create window - SAVE THE RETURNED ID
+# Can pass any command directly - non-shell commands are auto-wrapped in a shell
+window_id = mcp__tmux__tmux_new_window(command="npm run build", name="build")  # Returns "@3"
 
-# 2. Run command using the window ID
-mcp__tmux__tmux_send(target=window_id, text="npm run build")
-
-# 3. Wait for completion
+# 2. Wait for completion
 mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=2.0)  # Returns "idle" or "timeout"
 
-# 4. Get output
+# 3. Get output
 output = mcp__tmux__tmux_capture(target=window_id, lines=50)
 
-# 5. Optionally switch to window to view it
+# 4. Optionally switch to window to view it
 mcp__tmux__tmux_select(target=window_id)
 
-# 6. Cleanup
+# 5. Cleanup
 mcp__tmux__tmux_kill(target=window_id)
 ```
 
@@ -70,13 +55,9 @@ mcp__tmux__tmux_kill(target=window_id)
 Create multiple windows for parallel tasks:
 
 ```
-# Create named windows for different tasks
-logs_window = mcp__tmux__tmux_new_window(command="zsh", name="logs")
-work_window = mcp__tmux__tmux_new_window(command="zsh", name="work")
-
-# Run commands in parallel
-mcp__tmux__tmux_send(target=logs_window, text="tail -f /var/log/app.log")
-mcp__tmux__tmux_send(target=work_window, text="cd ~/project && make")
+# Create named windows - commands run directly
+logs_window = mcp__tmux__tmux_new_window(command="tail -f /var/log/app.log", name="logs")
+work_window = mcp__tmux__tmux_new_window(command="cd ~/project && make", name="work")
 
 # Capture from both
 logs = mcp__tmux__tmux_capture(target=logs_window, lines=100)
