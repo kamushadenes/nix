@@ -24,7 +24,11 @@ Consult external AI models for second opinions, debugging, consensus building, a
 | `mcp__pal__planner`    | Complex project planning with branching            |
 | `mcp__pal__docgen`     | Documentation generation                           |
 | `mcp__pal__apilookup`  | Current API/SDK documentation lookup               |
+| `mcp__pal__challenge`  | Critical analysis to prevent reflexive agreement   |
+| `mcp__pal__clink`      | Bridge to external CLIs (gemini, codex, claude)    |
 | `mcp__pal__listmodels` | Show available models                              |
+
+**Note:** Some tools are disabled by default (analyze, refactor, testgen, secaudit, docgen). Check server config if needed.
 
 ## When to Use External Models
 
@@ -135,3 +139,5 @@ mcp__pal__codereview(
 - **Step through investigations**: Use step_number/total_steps for complex analyses
 - **Reuse continuation_id**: Maintains context across multiple calls
 - **Match tool to task**: Use `debug` for bugs, `analyze` for architecture, `consensus` for decisions
+- **Best for critical thinking**: `google/gemini-3-pro-preview` and `openai/gpt-5.2-pro`
+- **Context revival**: If context resets, other models can remind each other of previous discussions
