@@ -10,13 +10,41 @@
   home.packages =
     with pkgs;
     [
+      # Disk usage
       dust
       duf
+
+      # Text processing
       gawk
       gnugrep
       unzip
       yq-go
+
+      # System monitoring
       glances
+      bandwhich # Network bandwidth by process
+
+      # Modern CLI replacements
+      procs # Modern ps
+      sd # Modern sed
+      doggo # Modern dig/DNS client
+      xh # Modern curl/httpie
+
+      # Development utilities
+      hyperfine # Command benchmarking
+      tokei # Code statistics
+
+      # Quick reference
+      tealdeer # tldr - simplified man pages
+
+      # Network utilities
+      gping # Ping with graph
+
+      # Field selection
+      choose # Modern cut alternative
+
+      # Modern watch
+      viddy
     ]
     ++ (with pkgs.unixtools; [ watch ]);
 
