@@ -34,10 +34,9 @@
       hyperfine # Command benchmarking
       tokei # Code statistics
 
-      # Quick reference
-      tealdeer # tldr - simplified man pages
+      # Quick reference (tealdeer configured via programs.tealdeer)
 
-      # Network utilities
+      # Network utilities (trippy configured via programs.trippy)
       gping # Ping with graph
 
       # Field selection
@@ -195,5 +194,37 @@
     zoxide = {
       enable = true;
     } // helpers.shellIntegrations;
+
+    tealdeer = {
+      enable = true;
+      settings = {
+        updates = {
+          auto_update = true;
+          auto_update_interval_hours = 168; # Weekly
+        };
+      };
+    };
+
+    # Advanced network diagnostics (mtr + ping + traceroute)
+    trippy = {
+      enable = true;
+      settings = {
+        trippy = { }; # Empty config to generate file
+      };
+    };
+
+    # Cross-platform system monitor
+    bottom = {
+      enable = true;
+      settings = {
+        flags = {
+          avg_cpu = true;
+          temperature_type = "c";
+          rate = "1s";
+          tree = true;
+          hide_table_gap = true;
+        };
+      };
+    };
   };
 }

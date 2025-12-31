@@ -15,6 +15,7 @@ This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS sys
 
 ```bash
 # Rebuild current system (preferred - includes --impure automatically)
+# WARNING: MUST be run using the tmux MCP (start a fish shell, then inside that shell run rebuild)
 rebuild
 
 # Darwin rebuild via nh (--impure required for private submodule)

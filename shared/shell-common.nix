@@ -83,9 +83,12 @@ let
   # Ghostty resources directory
   ghosttyResourcesDir = "/Applications/Ghostty.app/Contents/Resources/ghostty";
 
+  # Check if package is in home.packages
+  hasPackage = pkg: builtins.elem pkg config.home.packages;
+
 in
 {
-  inherit sshKeys pathAdditions ghosttyResourcesDir;
+  inherit sshKeys pathAdditions ghosttyResourcesDir hasPackage;
 
   # Common aliases (shell-agnostic)
   aliases = lib.mkMerge [
@@ -105,6 +108,10 @@ in
       ssh = "kitten ssh";
       sudo = ''sudo TERMINFO="$TERMINFO"'';
     })
+    # Modern CLI tool aliases
+    (lib.mkIf (hasPackage pkgs.doggo) { dig = "doggo"; })
+    (lib.mkIf (hasPackage pkgs.gping) { ping = "gping"; })
+    (lib.mkIf (hasPackage pkgs.viddy) { watch = "viddy"; })
   ];
 
   # Fish-specific definitions
