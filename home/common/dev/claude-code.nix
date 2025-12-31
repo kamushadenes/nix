@@ -305,8 +305,9 @@ in
       executable = true;
     };
 
-    # tmux skill - teaches Claude Code how to use the tmux MCP tools
+    # Skills - teach Claude Code how to use MCP tools
     ".claude/skills/automating-tmux-windows/SKILL.md".source = "${skillsDir}/automating-tmux-windows.md";
+    ".claude/skills/pal-multi-model/SKILL.md".source = "${skillsDir}/pal-multi-model.md";
   } // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
     name = ".claude/rules/${name}";
