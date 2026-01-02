@@ -7,6 +7,8 @@ description: Automates terminal sessions in tmux windows using MCP tools. Use wh
 
 Control tmux windows programmatically: create windows, send commands, capture output, and manage processes. Each window gets full screen space for easier output tracking.
 
+> **Note**: These tools are provided by the **orchestrator** MCP server, which also includes AI CLI tools (see ai-orchestration skill).
+
 ## Quick Reference
 
 | Tool                           | Purpose                              |

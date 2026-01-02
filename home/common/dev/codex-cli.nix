@@ -1,16 +1,7 @@
 # OpenAI Codex CLI configuration
 #
-# Configures Codex CLI with MCP servers matching Claude Code setup.
+# Configures Codex CLI with MCP servers from shared configuration.
 # Uses agenix for secrets management with TOML config file.
-#
-# MCP servers provide:
-# - DeepWiki: GitHub repository documentation
-# - Ref: Documentation search
-# - Repomix: Codebase packaging for AI analysis
-# - PAL: Multi-model AI collaboration
-# - godoc: Go documentation
-# - Terraform: Terraform Cloud/Enterprise integration
-# - tmux: Terminal automation
 {
   config,
   lib,
@@ -20,94 +11,22 @@
   ...
 }:
 let
-  # MCP server configurations matching Claude Code setup
-  # Uses TOML format for Codex CLI config
+  # Import shared MCP server configuration
+  mcpServers = import ./mcp-servers.nix { inherit config lib; };
+
+  # MCP servers to include for Codex CLI
+  enabledServers = [
+    "deepwiki"
+    "Ref"
+    "repomix"
+    "godoc"
+    "terraform"
+    "orchestrator"
+  ];
+
+  # MCP server configurations in Codex format
   mcpConfig = {
-    mcp_servers = {
-      # DeepWiki - GitHub repository documentation (HTTP-based, no secrets)
-      # Note: Codex CLI uses stdio-based servers, so we use mcp-remote for HTTP
-      deepwiki = {
-        command = "npx";
-        args = [
-          "-y"
-          "mcp-remote"
-          "https://mcp.deepwiki.com/mcp"
-        ];
-      };
-
-      # Ref - Documentation search (requires API key via header)
-      Ref = {
-        command = "npx";
-        args = [
-          "-y"
-          "mcp-remote"
-          "https://api.ref.tools/mcp"
-          "--header"
-          "x-ref-api-key:@REF_API_KEY@"
-        ];
-      };
-
-      # Repomix - Codebase packaging for AI analysis
-      repomix = {
-        command = "npx";
-        args = [
-          "-y"
-          "repomix"
-          "--mcp"
-        ];
-      };
-
-      # PAL - Multi-model AI assistant with clink for CLI orchestration
-      pal = {
-        command = "uvx";
-        args = [
-          "--from"
-          "git+https://github.com/BeehiveInnovations/pal-mcp-server.git"
-          "pal-mcp-server"
-        ];
-        tool_timeout_sec = 1200;
-        env = {
-          OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
-          # Match PAL defaults - disable heavy context tools
-          DISABLED_TOOLS = "analyze,refactor,testgen,secaudit,docgen,tracer";
-          # Use high thinking mode for thinkdeep tool (better deep analysis)
-          DEFAULT_THINKING_MODE_THINKDEEP = "high";
-        };
-      };
-
-      # Go documentation server
-      godoc = {
-        command = "godoc-mcp";
-        args = [ ];
-      };
-
-      # Terraform MCP - Terraform Cloud/Enterprise integration
-      terraform = {
-        command = "docker";
-        args = [
-          "run"
-          "-i"
-          "--rm"
-          "-e"
-          "TFE_TOKEN=@TFE_TOKEN@"
-          "-e"
-          "TFE_ADDRESS=https://app.terraform.io"
-          "hashicorp/terraform-mcp-server"
-        ];
-      };
-
-      # tmux MCP - Terminal automation for pane management
-      tmux = {
-        command = "uvx";
-        args = [
-          "--with"
-          "fastmcp"
-          "python"
-          "${config.home.homeDirectory}/.config/tmux-mcp/server.py"
-        ];
-      };
-    };
-
+    mcp_servers = mcpServers.toCodex enabledServers;
     features = {
       web_search_request = true;
     };
@@ -116,16 +35,11 @@ let
   # Convert to TOML format
   mcpConfigToml = pkgs.formats.toml { };
 
-  # Placeholders to secret paths mapping for substitution
-  secretSubstitutions = {
-    "@REF_API_KEY@" = "${config.home.homeDirectory}/.codex/secrets/ref-api-key";
-    "@OPENROUTER_API_KEY@" = "${config.home.homeDirectory}/.codex/secrets/openrouter-api-key";
-    "@TFE_TOKEN@" = "${config.home.homeDirectory}/.codex/secrets/tfe-token";
-  };
+  # Secrets configuration
+  secretsDir = "${config.home.homeDirectory}/.codex/secrets";
+  secretSubstitutions = mcpServers.mkSecretSubstitutions secretsDir;
+
   # Wrapper script for codex review with live colorized output
-  # Usage: codex-review [codex-args...] <output-file>
-  # Last argument is the output file, all others are passed to codex exec
-  # Shows real-time progress with colors, saves final message to file
   codexReview = pkgs.writeScriptBin "codex-review" ''
     #!${pkgs.python3}/bin/python3
     import subprocess
@@ -214,19 +128,10 @@ in
   # Agenix Secrets
   #############################################################################
 
-  age.secrets = {
-    "codex-ref-api-key" = {
-      file = "${private}/home/common/dev/resources/claude/ref-api-key.age";
-      path = "${config.home.homeDirectory}/.codex/secrets/ref-api-key";
-    };
-    "codex-openrouter-api-key" = {
-      file = "${private}/home/common/dev/resources/claude/openrouter-api-key.age";
-      path = "${config.home.homeDirectory}/.codex/secrets/openrouter-api-key";
-    };
-    "codex-tfe-token" = {
-      file = "${private}/home/common/dev/resources/claude/tfe-token.age";
-      path = "${config.home.homeDirectory}/.codex/secrets/tfe-token";
-    };
+  age.secrets = mcpServers.mkAgenixSecrets {
+    prefix = "codex";
+    secretsDir = secretsDir;
+    inherit private;
   };
 
   #############################################################################
@@ -244,7 +149,7 @@ in
   #############################################################################
 
   home.activation.codexCliConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    run mkdir -p ${config.home.homeDirectory}/.codex/secrets
+    run mkdir -p ${secretsDir}
 
     # Remove existing config.toml if it exists
     run rm -f ${config.home.homeDirectory}/.codex/config.toml

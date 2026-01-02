@@ -53,6 +53,7 @@ in
     ./home/common/dev/codex-cli.nix
     ./home/common/dev/dev.nix
     ./home/common/dev/embedded.nix
+    ./home/common/dev/gemini-cli.nix
     ./home/common/dev/go.nix
     ./home/common/dev/java.nix
     ./home/common/dev/lazygit.nix

@@ -15,6 +15,9 @@
   ...
 }:
 let
+  # Import shared MCP server configuration
+  mcpServers = import ./mcp-servers.nix { inherit config lib; };
+
   # Resource directories
   resourcesDir = ./resources/claude-code;
   scriptsDir = "${resourcesDir}/scripts";
@@ -22,6 +25,11 @@ let
   rulesDir = "${resourcesDir}/rules";
   memoryDir = "${resourcesDir}/memory";
   commandsDir = "${resourcesDir}/commands";
+
+  # Orchestrator CLI - wrapper that invokes the Python script
+  orchestratorCli = pkgs.writeShellScriptBin "orchestrator" ''
+    ${pkgs.python3}/bin/python3 ${config.home.homeDirectory}/.config/orchestrator-mcp/cli.py "$@"
+  '';
 
   # Read rule files from the rules directory
   ruleFiles = builtins.attrNames (builtins.readDir rulesDir);
@@ -32,100 +40,22 @@ let
     }) ruleFiles
   );
 
-  # MCP server configurations with @PLACEHOLDER@ for secrets
-  # These get written to ~/.claude.json with secrets substituted at activation
-  mcpServersConfig = {
-    # DeepWiki - GitHub repository documentation
-    deepwiki = {
-      type = "http";
-      url = "https://mcp.deepwiki.com/mcp";
-    };
+  # MCP servers to include for Claude Code
+  enabledServers = [
+    "deepwiki"
+    "Ref"
+    "repomix"
+    "godoc"
+    "terraform"
+    "orchestrator"
+  ];
 
-    # Ref - Documentation search (requires API key)
-    Ref = {
-      type = "http";
-      url = "https://api.ref.tools/mcp";
-      headers = {
-        "x-ref-api-key" = "@REF_API_KEY@";
-      };
-    };
+  # Transform to Claude Code format
+  mcpServersConfig = mcpServers.toClaudeCode enabledServers;
 
-    # Repomix - Codebase packaging for AI analysis
-    repomix = {
-      type = "stdio";
-      command = "npx";
-      args = [
-        "-y"
-        "repomix"
-        "--mcp"
-      ];
-      env = { };
-    };
-
-    # PAL - Multi-model AI assistant with clink for CLI orchestration
-    pal = {
-      type = "stdio";
-      command = "uvx";
-      args = [
-        "--from"
-        "git+https://github.com/BeehiveInnovations/pal-mcp-server.git"
-        "pal-mcp-server"
-      ];
-      env = {
-        OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
-        # Match PAL defaults - disable heavy context tools
-        DISABLED_TOOLS = "analyze,refactor,testgen,secaudit,docgen,tracer";
-        # Use high thinking mode for thinkdeep tool (better deep analysis)
-        DEFAULT_THINKING_MODE_THINKDEEP = "high";
-      };
-    };
-
-    # Go documentation server
-    godoc = {
-      type = "stdio";
-      command = "godoc-mcp";
-      args = [ ];
-      env = { };
-    };
-
-    # Terraform MCP - Terraform Cloud/Enterprise integration
-    terraform = {
-      type = "stdio";
-      command = "docker";
-      args = [
-        "run"
-        "-i"
-        "--rm"
-        "-e"
-        "TFE_TOKEN=@TFE_TOKEN@"
-        "-e"
-        "TFE_ADDRESS=https://app.terraform.io"
-        "hashicorp/terraform-mcp-server"
-      ];
-      env = { };
-    };
-
-    # tmux MCP - Terminal automation for pane management
-    # Uses uvx to run with fastmcp dependency automatically installed
-    tmux = {
-      type = "stdio";
-      command = "uvx";
-      args = [
-        "--with"
-        "fastmcp"
-        "python"
-        "${config.home.homeDirectory}/.config/tmux-mcp/server.py"
-      ];
-      env = { };
-    };
-  };
-
-  # Placeholders to secret paths mapping for substitution
-  secretSubstitutions = {
-    "@REF_API_KEY@" = "${config.home.homeDirectory}/.claude/secrets/ref-api-key";
-    "@OPENROUTER_API_KEY@" = "${config.home.homeDirectory}/.claude/secrets/openrouter-api-key";
-    "@TFE_TOKEN@" = "${config.home.homeDirectory}/.claude/secrets/tfe-token";
-  };
+  # Secrets configuration
+  secretsDir = "${config.home.homeDirectory}/.claude/secrets";
+  secretSubstitutions = mcpServers.mkSecretSubstitutions secretsDir;
 
   # Template file for MCP servers (with placeholders)
   mcpConfigTemplate = builtins.toJSON { mcpServers = mcpServersConfig; };
@@ -135,20 +65,19 @@ in
   # Agenix Secrets
   #############################################################################
 
-  age.secrets = {
-    "claude-ref-api-key" = {
-      file = "${private}/home/common/dev/resources/claude/ref-api-key.age";
-      path = "${config.home.homeDirectory}/.claude/secrets/ref-api-key";
-    };
-    "claude-openrouter-api-key" = {
-      file = "${private}/home/common/dev/resources/claude/openrouter-api-key.age";
-      path = "${config.home.homeDirectory}/.claude/secrets/openrouter-api-key";
-    };
-    "claude-tfe-token" = {
-      file = "${private}/home/common/dev/resources/claude/tfe-token.age";
-      path = "${config.home.homeDirectory}/.claude/secrets/tfe-token";
-    };
+  age.secrets = mcpServers.mkAgenixSecrets {
+    prefix = "claude";
+    secretsDir = secretsDir;
+    inherit private;
   };
+
+  #############################################################################
+  # Orchestrator CLI
+  #############################################################################
+
+  home.packages = [
+    orchestratorCli
+  ];
 
   #############################################################################
   # Claude Code Configuration (uses home-manager built-in module)
@@ -306,20 +235,24 @@ in
       executable = true;
     };
 
-    # tmux MCP server - terminal automation for Claude Code
-    ".config/tmux-mcp/server.py" = {
-      source = "${scriptsDir}/tmux-mcp-server.py";
+    # Orchestrator MCP server - terminal automation + AI CLI orchestration
+    ".config/orchestrator-mcp/server.py" = {
+      source = "${scriptsDir}/orchestrator-mcp-server.py";
+      executable = true;
+    };
+
+    # Orchestrator CLI - for external monitoring
+    ".config/orchestrator-mcp/cli.py" = {
+      source = "${scriptsDir}/orchestrator-cli.py";
       executable = true;
     };
 
     # Skills - teach Claude Code how to use MCP tools
     ".claude/skills/automating-tmux-windows/SKILL.md".source =
       "${skillsDir}/automating-tmux-windows.md";
-    ".claude/skills/pal-multi-model/SKILL.md".source = "${skillsDir}/pal-multi-model.md";
 
-    # AI CLI skills via tmux - run Claude/Codex in separate instances
-    ".claude/skills/claude-cli/SKILL.md".source = "${skillsDir}/claude-cli.md";
-    ".claude/skills/codex-cli/SKILL.md".source = "${skillsDir}/codex-cli.md";
+    # AI CLI orchestration skill - replaces PAL, claude-cli, codex-cli
+    ".claude/skills/ai-orchestration/SKILL.md".source = "${skillsDir}/ai-orchestration.md";
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
@@ -334,7 +267,7 @@ in
   #############################################################################
 
   home.activation.claudeCodeMcpServers = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    run mkdir -p ${config.home.homeDirectory}/.claude/secrets
+    run mkdir -p ${secretsDir}
 
     # Remove existing mcp-servers.json if it exists (may be a symlink or locked file)
     run rm -f ${config.home.homeDirectory}/.claude/mcp-servers.json
