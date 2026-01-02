@@ -10,6 +10,7 @@
   config,
   lib,
   pkgs,
+  pkgs-unstable,
   private,
   ...
 }:
@@ -20,6 +21,7 @@ let
   skillsDir = "${resourcesDir}/skills";
   rulesDir = "${resourcesDir}/rules";
   memoryDir = "${resourcesDir}/memory";
+  commandsDir = "${resourcesDir}/commands";
 
   # Read rule files from the rules directory
   ruleFiles = builtins.attrNames (builtins.readDir rulesDir);
@@ -60,20 +62,20 @@ let
       env = { };
     };
 
-    # PAL - Multi-model AI assistant
-    pal = {
-      type = "stdio";
-      command = "uvx";
-      args = [
-        "--from"
-        "git+https://github.com/BeehiveInnovations/pal-mcp-server.git"
-        "pal-mcp-server"
-      ];
-      env = {
-        OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
-        DISABLED_TOOLS = "tracer";
-      };
-    };
+    # PAL - Multi-model AI assistant (disabled - using alternative approach)
+    # pal = {
+    #   type = "stdio";
+    #   command = "uvx";
+    #   args = [
+    #     "--from"
+    #     "git+https://github.com/BeehiveInnovations/pal-mcp-server.git"
+    #     "pal-mcp-server"
+    #   ];
+    #   env = {
+    #     OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
+    #     DISABLED_TOOLS = "tracer";
+    #   };
+    # };
 
     # Go documentation server
     godoc = {
@@ -151,6 +153,7 @@ in
 
   programs.claude-code = {
     enable = true;
+    package = pkgs-unstable.claude-code;
 
     # Note: mcpServers are NOT set here because home-manager doesn't support
     # secret substitution. They're managed separately below via ~/.claude.json
@@ -161,6 +164,7 @@ in
     # Custom slash commands (stored in private submodule for sensitive content)
     commands = {
       test-altinity-cloud = builtins.readFile "${private}/home/common/dev/resources/claude/commands/test-altinity-cloud.md";
+      code-review = builtins.readFile "${commandsDir}/code-review.md";
     };
 
     # Note: rules option is not available in this home-manager version
@@ -306,12 +310,20 @@ in
     };
 
     # Skills - teach Claude Code how to use MCP tools
-    ".claude/skills/automating-tmux-windows/SKILL.md".source = "${skillsDir}/automating-tmux-windows.md";
+    ".claude/skills/automating-tmux-windows/SKILL.md".source =
+      "${skillsDir}/automating-tmux-windows.md";
     ".claude/skills/pal-multi-model/SKILL.md".source = "${skillsDir}/pal-multi-model.md";
-  } // lib.mapAttrs' (name: content: {
+
+    # AI CLI skills via tmux - run Claude/Codex in separate instances
+    ".claude/skills/claude-cli/SKILL.md".source = "${skillsDir}/claude-cli.md";
+    ".claude/skills/codex-cli/SKILL.md".source = "${skillsDir}/codex-cli.md";
+  }
+  // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
     name = ".claude/rules/${name}";
-    value = { text = content; };
+    value = {
+      text = content;
+    };
   }) rulesConfig;
 
   #############################################################################

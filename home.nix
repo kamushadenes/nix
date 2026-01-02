@@ -50,6 +50,7 @@ in
     ./home/common/dev/clang.nix
     ./home/common/dev/claude-code.nix
     ./home/common/dev/clojure.nix
+    ./home/common/dev/codex-cli.nix
     ./home/common/dev/dev.nix
     ./home/common/dev/embedded.nix
     ./home/common/dev/go.nix
