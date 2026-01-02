@@ -228,9 +228,10 @@ Jobs are scoped to the current tmux session:
 - Jobs from session A cannot see/access jobs from session B
 - Use `ai_list()` to see jobs in your current session
 
-## External Monitoring
+## External Monitoring (Human Use Only)
 
-Use the `orchestrator` CLI from outside tmux:
+The `orchestrator` CLI is for human operators monitoring from outside tmux.
+**Claude Code should use MCP tools instead** (see "Running Orchestrator Commands" below).
 
 ```bash
 # List all sessions with job counts
@@ -276,6 +277,39 @@ Constraints: This is a read-only review - identify issues only, do not suggest c
 ```
 Look at the code and tell me what you think
 ```
+
+## Running Orchestrator Commands
+
+**IMPORTANT:** When using the orchestrator from Claude Code, follow these rules:
+
+### For `orchestrator run` (TUI mode)
+
+1. **Use tmux tools**, not `tmux_run_and_read`:
+   ```python
+   # Create a window and send the command
+   window = tmux_new_window(command="fish", name="job-name")
+   tmux_send(target=window, text="orchestrator run --cli codex ...")
+   tmux_wait_idle(target=window, idle_seconds=5, timeout=120)
+   ```
+
+2. **Never capture TUI output** - it's binary/escape-heavy and huge
+3. **Use `ai_fetch` for results**:
+   ```python
+   result = ai_fetch(job_id="your_job_id", block=False)
+   ```
+
+### For ALL orchestrator operations
+
+**Always use MCP tools, never Bash:**
+
+| CLI Command            | Use MCP Tool Instead      |
+| ---------------------- | ------------------------- |
+| `orchestrator run`     | tmux_send + ai_fetch      |
+| `orchestrator status`  | `ai_fetch(job_id)`        |
+| `orchestrator jobs`    | `ai_list()`               |
+| `orchestrator stream`  | `ai_stream(job_id)`       |
+| `orchestrator kill`    | `tmux_kill(window_id)`    |
+| `orchestrator cleanup` | N/A (manual only)         |
 
 ## Tips
 

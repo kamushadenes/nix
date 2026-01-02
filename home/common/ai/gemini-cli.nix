@@ -27,6 +27,11 @@ let
   # MCP server configurations in Gemini format
   mcpConfig = {
     mcpServers = mcpServers.toGemini enabledServers;
+    security = {
+      auth = {
+        selectedType = "oauth-personal";
+      };
+    };
   };
 
   # Secrets configuration
