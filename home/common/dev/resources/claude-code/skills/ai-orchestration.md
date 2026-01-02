@@ -7,6 +7,21 @@ description: Multi-model AI collaboration via orchestrator MCP. Use when seeking
 
 Query external AI models (claude, codex, gemini) for second opinions, debugging, consensus building, and expert validation. The orchestrator MCP provides tools to spawn jobs, stream output, and coordinate multi-model workflows.
 
+## Role Hierarchy
+
+Claude Code is the **orchestrator**. When spawning AI agents:
+
+| CLI     | Role            | Mode      | Capabilities                          |
+|---------|-----------------|-----------|---------------------------------------|
+| claude  | Worker/Peer     | Full      | Can execute any tool/command          |
+| codex   | Reviewer        | Read-only | Code review, analysis, suggestions    |
+| gemini  | Researcher      | Read-only | Web search, documentation lookup      |
+
+**Enforced by MCP server:**
+- Codex always runs with `-s read-only` (cannot modify files)
+- Gemini always runs with `--sandbox` (restricted environment)
+- Only Claude workers have full execution capabilities
+
 ## Quick Reference
 
 | Tool              | Purpose                                        |
@@ -233,6 +248,31 @@ orchestrator kill job_abc123
 orchestrator cleanup --age 2  # older than 2 hours
 ```
 
+## Writing Good Prompts for Agents
+
+When spawning any agent, include:
+
+1. **Clear task description** - what exactly to do
+2. **Expected output format** - how to structure the response
+3. **Scope boundaries** - what files/areas to focus on
+4. **Read-only reminder** (for codex/gemini) - they cannot modify anything
+
+### Good Prompt Example
+
+```
+Review the authentication module for security vulnerabilities.
+
+Focus on: src/auth/*.py
+Output: List of findings with severity (high/medium/low) and line numbers
+Constraints: This is a read-only review - identify issues only, do not suggest code changes
+```
+
+### Bad Prompt Example
+
+```
+Look at the code and tell me what you think
+```
+
 ## Tips
 
 - **Be specific**: Include file paths, error messages, and context
@@ -240,3 +280,4 @@ orchestrator cleanup --age 2  # older than 2 hours
 - **Parallel when possible**: Spawn multiple jobs in parallel for faster results
 - **Stream long tasks**: Use ai_stream for visibility into long-running jobs
 - **Check job status**: Use ai_list to see running/completed jobs
+- **Remember read-only**: Codex and Gemini cannot execute commands or modify files

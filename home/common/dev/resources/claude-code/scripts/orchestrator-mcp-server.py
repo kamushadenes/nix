@@ -722,7 +722,11 @@ def tmux_run_and_read(
 
 
 def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None) -> list[str]:
-    """Build command arguments for an AI CLI."""
+    """Build command arguments for an AI CLI.
+
+    Security: Codex and Gemini are always run in read-only/sandbox mode.
+    Only Claude workers can execute commands with full access.
+    """
     files = files or []
 
     if cli == "claude":
@@ -735,14 +739,16 @@ def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None
         return cmd
 
     elif cli == "codex":
-        cmd = ["codex", "exec"]
+        # ENFORCE read-only mode - codex cannot modify files or run commands
+        cmd = ["codex", "exec", "-s", "read-only"]
         if model:
             cmd.extend(["--model", model])
         cmd.append(prompt)
         return cmd
 
     elif cli == "gemini":
-        cmd = ["gemini"]
+        # ENFORCE sandbox mode - gemini runs in restricted environment
+        cmd = ["gemini", "--sandbox"]
         if model:
             cmd.extend(["--model", model])
         # Gemini uses @ syntax for files, prepend to prompt
