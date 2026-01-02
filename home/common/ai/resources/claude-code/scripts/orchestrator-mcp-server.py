@@ -20,6 +20,7 @@ import json
 import re
 import uuid
 import shutil
+import shlex
 import sqlite3
 import threading
 from dataclasses import dataclass, field, asdict
@@ -76,6 +77,7 @@ class Job:
     created: float = field(default_factory=time.time)
     model: str = ""
     files: list = field(default_factory=list)
+    window_id: Optional[str] = None  # tmux window ID for monitoring
 
 
 # =============================================================================
@@ -112,7 +114,8 @@ def init_db():
                     pid INTEGER,
                     created REAL NOT NULL,
                     model TEXT DEFAULT '',
-                    files TEXT DEFAULT '[]'
+                    files TEXT DEFAULT '[]',
+                    window_id TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS messages (
@@ -141,12 +144,12 @@ def save_job(job: Job):
         try:
             conn.execute("""
                 INSERT OR REPLACE INTO jobs
-                (id, session_id, cli, prompt, status, result, output_offset, pid, created, model, files)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, session_id, cli, prompt, status, result, output_offset, pid, created, model, files, window_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 job.id, job.session_id, job.cli, job.prompt, job.status,
                 job.result, job.output_offset, job.pid, job.created,
-                job.model, json.dumps(job.files)
+                job.model, json.dumps(job.files), job.window_id
             ))
             conn.commit()
         finally:
@@ -180,7 +183,8 @@ def get_job(job_id: str, session_id: Optional[str] = None) -> Optional[Job]:
                     pid=row['pid'],
                     created=row['created'],
                     model=row['model'],
-                    files=json.loads(row['files'])
+                    files=json.loads(row['files']),
+                    window_id=row['window_id']
                 )
             return None
         finally:
@@ -215,7 +219,8 @@ def list_jobs(session_id: Optional[str] = None, status: str = "") -> list[Job]:
                     pid=row['pid'],
                     created=row['created'],
                     model=row['model'],
-                    files=json.loads(row['files'])
+                    files=json.loads(row['files']),
+                    window_id=row['window_id']
                 )
                 for row in rows
             ]
@@ -761,32 +766,108 @@ def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None
         raise ValueError(f"Unsupported CLI: {cli}")
 
 
-def run_job_subprocess(job: Job):
-    """Run a job's CLI command and capture output."""
-    output_path = get_output_file_path(job.id)
+def is_window_idle(window_id: str, idle_seconds: float = 2.0) -> bool:
+    """Check if a tmux window's command has finished (shell is idle).
 
+    Uses pane_current_command to detect if we're back at the shell prompt.
+    """
+    output, code = run_tmux("display-message", "-t", window_id, "-p", "#{pane_current_command}")
+    if code != 0:
+        return False
+
+    current_cmd = output.strip().lower()
+    # If we're back at a shell, the command finished
+    shell_names = {"bash", "zsh", "fish", "sh", "dash", "ksh", "tcsh", "csh"}
+    return current_cmd in shell_names
+
+
+def run_job_in_tmux(job: Job):
+    """Run a job's CLI command in a tmux window for visibility."""
     try:
-        cmd = build_cli_command(job.cli, job.prompt, job.model, job.files)
+        # Build the command
+        cmd_parts = build_cli_command(job.cli, job.prompt, job.model, job.files or [])
+        # Shell-escape and join for tmux send-keys
+        cmd_str = " ".join(shlex.quote(part) for part in cmd_parts)
 
-        with open(output_path, 'w') as outfile:
-            process = subprocess.Popen(
-                cmd,
-                stdout=outfile,
-                stderr=subprocess.STDOUT,
-                text=True
-            )
-            job.pid = process.pid
+        # Create a new tmux window with the job name
+        window_name = f"{job.cli}:{job.id[-8:]}"
+        args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name, DEFAULT_SHELL]
+        output, code = run_tmux(*args)
+
+        if code != 0:
+            job.status = "failed"
+            job.result = f"Error creating tmux window: {output}"
             save_job(job)
+            return
 
-            process.wait()
+        window_id = output.strip()
+        job.window_id = window_id
+        save_job(job)
 
-            # Read final result
-            with open(output_path, 'r') as f:
-                result = f.read()
+        # Wait for shell to be ready
+        marker = f"READY_{uuid.uuid4().hex}"
+        run_tmux("send-keys", "-t", window_id, f"echo {marker}", "Enter")
 
-            job.status = "completed" if process.returncode == 0 else "failed"
-            job.result = result
+        shell_ready = False
+        for _ in range(50):  # 5 seconds max
+            time.sleep(0.1)
+            content, _ = run_tmux("capture-pane", "-t", window_id, "-p")
+            if marker in content:
+                shell_ready = True
+                break
+
+        if not shell_ready:
+            job.status = "failed"
+            job.result = f"Shell did not become ready in window {window_id}"
             save_job(job)
+            return
+
+        # Send the actual command
+        run_tmux("send-keys", "-t", window_id, cmd_str, "Enter")
+
+        # Poll for completion (check every 2 seconds, timeout after 30 minutes)
+        max_wait = 1800  # 30 minutes
+        poll_interval = 2
+        waited = 0
+
+        while waited < max_wait:
+            time.sleep(poll_interval)
+            waited += poll_interval
+
+            # Check if window still exists
+            list_output, list_code = run_tmux("list-windows", "-F", "#{window_id}")
+            if window_id not in list_output:
+                # Window was killed
+                job.status = "failed"
+                job.result = "Window was closed before command completed"
+                save_job(job)
+                return
+
+            # Check if command finished (back to shell prompt)
+            if is_window_idle(window_id):
+                break
+
+        # Capture final output (large buffer for AI responses)
+        final_output, _ = run_tmux("capture-pane", "-t", window_id, "-p", "-S", "-10000")
+
+        # Remove the marker echo and command echo from output
+        lines = final_output.split("\n")
+        # Find where actual output starts (after our command)
+        output_lines = []
+        found_command = False
+        for line in lines:
+            if cmd_parts[0] in line and not found_command:
+                found_command = True
+                continue
+            if found_command:
+                output_lines.append(line)
+
+        result = "\n".join(output_lines).strip()
+
+        # Determine success based on whether we got output
+        job.status = "completed" if result else "completed"
+        job.result = result if result else "(no output captured)"
+        save_job(job)
 
     except Exception as e:
         job.status = "failed"
@@ -838,11 +919,15 @@ def ai_spawn(
     )
     save_job(job)
 
-    # Start background thread
-    thread = threading.Thread(target=run_job_subprocess, args=(job,), daemon=True)
+    # Start background thread - runs in tmux window for visibility
+    thread = threading.Thread(target=run_job_in_tmux, args=(job,), daemon=True)
     thread.start()
 
-    return job_id
+    return json.dumps({
+        "job_id": job_id,
+        "window_id": None,  # Will be set once tmux window is created
+        "message": f"Job started in background. Use ai_fetch('{job_id}') to get results, or switch to tmux window to watch."
+    })
 
 
 @mcp.tool()
@@ -877,6 +962,7 @@ def ai_fetch(
                 "job_id": job.id,
                 "status": job.status,
                 "result": job.result,
+                "window_id": job.window_id,
                 "messages": [asdict(m) for m in messages]
             }, indent=2)
 
@@ -885,6 +971,7 @@ def ai_fetch(
                 "job_id": job.id,
                 "status": "timeout",
                 "result": None,
+                "window_id": job.window_id,
                 "messages": []
             })
 
@@ -950,7 +1037,8 @@ def ai_ask(
     Returns:
         JSON with job_id and result
     """
-    job_id = ai_spawn(prompt, cli, model, files)
+    spawn_result = json.loads(ai_spawn(prompt, cli, model, files))
+    job_id = spawn_result["job_id"]
     return ai_fetch(job_id, block=True, timeout=300)
 
 
@@ -1042,6 +1130,7 @@ def ai_list(
             "cli": j.cli,
             "status": j.status,
             "created": j.created,
+            "window_id": j.window_id,
             "prompt": j.prompt[:50] + "..." if len(j.prompt) > 50 else j.prompt
         }
         for j in jobs
