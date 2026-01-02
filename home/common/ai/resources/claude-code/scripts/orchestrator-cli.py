@@ -978,11 +978,11 @@ def cmd_run_simple(args):
     log_intermediary = args.log_intermediary
     auto_close = args.auto_close
 
-    # Print header with CLI prominently displayed
+    # Print header with CLI on first line, prompt on second
     cli_colors = {"claude": c['mauve'], "codex": c['green'], "gemini": c['blue']}
     cli_color = cli_colors.get(cli, c['text'])
-    print(f"{c['bold']}{cli_color}[{cli.upper()}]{c['reset']} {c['text']}{prompt[:60]}{'...' if len(prompt) > 60 else ''}{c['reset']}")
-    print(f"{c['subtext0']}Job ID: {job_id}{c['reset']}")
+    print(f"{c['bold']}{cli_color}[{cli.upper()}]{c['reset']} {c['subtext0']}Job: {job_id}{c['reset']}")
+    print(f"{c['text']}{prompt}{c['reset']}")
     print(f"{c['surface1']}{'─' * 60}{c['reset']}")
 
     # Build and run command
@@ -1111,13 +1111,16 @@ if _textual_available:
         }}
         #header-box {{
             dock: top;
-            height: 3;
+            height: 4;
             background: {RICH_COLORS['surface0']};
             border-bottom: solid {RICH_COLORS['surface1']};
             padding: 0 1;
         }}
-        #prompt-line {{
+        #cli-line {{
             color: {RICH_COLORS['text']};
+        }}
+        #prompt-line {{
+            color: {RICH_COLORS['subtext0']};
         }}
         #status-line {{
             color: {RICH_COLORS['subtext0']};
@@ -1160,7 +1163,6 @@ if _textual_available:
             self.json_buffer = JsonBuffer() if cli == "gemini" else None
 
         def compose(self) -> ComposeResult:
-            prompt_display = self.prompt[:55] + "..." if len(self.prompt) > 55 else self.prompt
             # CLI-specific colors
             cli_styles = {
                 "claude": f"bold {RICH_COLORS['mauve']}",
@@ -1169,7 +1171,8 @@ if _textual_available:
             }
             cli_style = cli_styles.get(self.cli, "bold")
             yield Container(
-                Static(f"[{cli_style}][{self.cli.upper()}][/{cli_style}] {prompt_display}", id="prompt-line"),
+                Static(f"[{cli_style}][{self.cli.upper()}][/{cli_style}]", id="cli-line"),
+                Static(self.prompt, id="prompt-line"),
                 Static("", id="status-line"),
                 id="header-box"
             )
