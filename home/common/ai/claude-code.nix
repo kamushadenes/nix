@@ -95,7 +95,7 @@ in
 
     # Custom slash commands (stored in private submodule for sensitive content)
     commands = {
-      test-altinity-cloud = builtins.readFile "${private}/home/common/dev/resources/claude/commands/test-altinity-cloud.md";
+      test-altinity-cloud = builtins.readFile "${private}/home/common/ai/resources/claude/commands/test-altinity-cloud.md";
       code-review = builtins.readFile "${commandsDir}/code-review.md";
     };
 

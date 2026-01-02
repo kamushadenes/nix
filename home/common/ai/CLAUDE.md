@@ -20,17 +20,18 @@ ai/
 
 ## Role Hierarchy
 
-| CLI     | Role       | Mode      | Purpose                              |
-|---------|------------|-----------|--------------------------------------|
-| claude  | Orchestrator | Full    | Primary agent, spawns workers        |
-| codex   | Worker     | Read-only | Code review, analysis                |
-| gemini  | Worker     | Read-only | Web search, documentation lookup     |
+| CLI    | Role         | Mode      | Purpose                          |
+| ------ | ------------ | --------- | -------------------------------- |
+| claude | Orchestrator | Full      | Primary agent, spawns workers    |
+| codex  | Worker       | Read-only | Code review, analysis            |
+| gemini | Worker       | Read-only | Web search, documentation lookup |
 
 ## Key Files
 
 ### mcp-servers.nix
 
 Unified MCP server configuration with transformation functions:
+
 - `toClaudeCode` - JSON with type/url/command
 - `toCodex` - TOML format (uses mcp-remote for HTTP)
 - `toGemini` - JSON with httpUrl field
@@ -40,6 +41,7 @@ Handles secret placeholders (`@SECRET@`) and agenix integration.
 ### Orchestrator MCP Server
 
 `resources/claude-code/scripts/orchestrator-mcp-server.py` provides:
+
 - `tmux_*` tools - Terminal window automation
 - `ai_*` tools - AI CLI orchestration (spawn, fetch, stream, messaging)
 

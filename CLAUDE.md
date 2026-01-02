@@ -48,6 +48,7 @@ flake.nix              # Entry point - defines inputs and machine configurations
 │
 ├── home/
 │   ├── common/        # Cross-platform home-manager modules
+│   │   ├── ai/        # AI agents (claude-code, codex-cli, gemini-cli, orchestrator)
 │   │   ├── core/      # git, ssh, nix, agenix, fonts
 │   │   ├── shell/     # fish, bash, starship, kitty, ghostty
 │   │   ├── dev/       # go, node, python, java, clang, clojure
@@ -106,7 +107,7 @@ The `private/` directory is a git submodule. Due to nix flakes not including sub
 {
   age.secrets = {
     "my-secret" = {
-      file = "${private}/home/common/dev/resources/my-secret.age";  # Use private variable
+      file = "${private}/path/to/my-secret.age";  # Use private variable
       path = "${config.home.homeDirectory}/.secrets/my-secret";
     };
   };

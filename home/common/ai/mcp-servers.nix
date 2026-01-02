@@ -98,8 +98,8 @@ rec {
 
   # Secret files (relative to private submodule)
   secretFiles = {
-    "@REF_API_KEY@" = "home/common/dev/resources/claude/ref-api-key.age";
-    "@TFE_TOKEN@" = "home/common/dev/resources/claude/tfe-token.age";
+    "@REF_API_KEY@" = "home/common/ai/resources/claude/ref-api-key.age";
+    "@TFE_TOKEN@" = "home/common/ai/resources/claude/tfe-token.age";
   };
 
   #############################################################################
@@ -137,20 +137,19 @@ rec {
         if server.transport == "http" then
           {
             command = "npx";
-            args =
-              [
-                "-y"
-                "mcp-remote"
-                server.url
-              ]
-              ++ lib.optionals (server ? headers) (
-                lib.flatten (
-                  lib.mapAttrsToList (k: v: [
-                    "--header"
-                    "${k}:${v}"
-                  ]) server.headers
-                )
-              );
+            args = [
+              "-y"
+              "mcp-remote"
+              server.url
+            ]
+            ++ lib.optionals (server ? headers) (
+              lib.flatten (
+                lib.mapAttrsToList (k: v: [
+                  "--header"
+                  "${k}:${v}"
+                ]) server.headers
+              )
+            );
           }
         else
           {
