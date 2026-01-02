@@ -612,6 +612,62 @@ def save_parsed_message_to_db(job_id: str, msg: ParsedMessage, conn: sqlite3.Con
     conn.commit()
 
 
+def init_db():
+    """Initialize the database schema."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(DB_PATH), timeout=10.0)
+    try:
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS jobs (
+                id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                cli TEXT NOT NULL,
+                prompt TEXT NOT NULL,
+                status TEXT NOT NULL,
+                result TEXT,
+                output_offset INTEGER DEFAULT 0,
+                pid INTEGER,
+                created REAL NOT NULL,
+                model TEXT DEFAULT '',
+                files TEXT DEFAULT '[]',
+                window_id TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS messages (
+                id TEXT PRIMARY KEY,
+                job_id TEXT NOT NULL,
+                sender TEXT NOT NULL,
+                content TEXT NOT NULL,
+                msg_type TEXT NOT NULL,
+                timestamp REAL NOT NULL,
+                FOREIGN KEY (job_id) REFERENCES jobs(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_jobs_session ON jobs(session_id);
+            CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+            CREATE INDEX IF NOT EXISTS idx_messages_job ON messages(job_id);
+        """)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_current_session() -> str:
+    """Get the current tmux session identifier."""
+    tmux_env = os.environ.get("TMUX", "")
+    if tmux_env:
+        try:
+            result = subprocess.run(
+                ["tmux", "display-message", "-p", "#{session_name}"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+        except Exception:
+            pass
+    return "default"
+
+
 def get_db_connection():
     """Get a database connection."""
     if not DB_PATH.exists():
@@ -948,10 +1004,32 @@ def cmd_cleanup(args):
 
 def cmd_run(args):
     """Run an AI CLI with TUI output."""
+    # Ensure database exists
+    init_db()
+    job_id = args.job_id
+    session_id = get_current_session()
+
+    # Create job entry in database
+    conn = sqlite3.connect(str(DB_PATH), timeout=10.0)
+    try:
+        # Check if job already exists
+        existing = conn.execute("SELECT id FROM jobs WHERE id = ?", (job_id,)).fetchone()
+        if not existing:
+            conn.execute(
+                """INSERT INTO jobs (id, session_id, cli, prompt, status, created, model, files)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (job_id, session_id, args.cli, args.prompt, "running",
+                 time.time(), args.model or "", json.dumps(args.files or []))
+            )
+            conn.commit()
+    finally:
+        conn.close()
+
+    # Run TUI
     app = AIRunnerApp(
         cli=args.cli,
         prompt=args.prompt,
-        job_id=args.job_id,
+        job_id=job_id,
         model=args.model or "",
         files=args.files or [],
         log_intermediary=args.log_intermediary,
