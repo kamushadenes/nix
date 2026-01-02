@@ -57,10 +57,10 @@ For commands that write to a file (cleaner than capturing pane output):
 
 ```python
 # Single call: run command, wait for completion, return file contents
+# Use __OUTPUT_FILE__ placeholder - it gets replaced with a random /tmp path
 result = mcp__tmux__tmux_run_and_read(
-    command="codex-review review --uncommitted /tmp/review.txt",
-    output_file="/tmp/review.txt",
-    name="review",
+    command="my-tool --output __OUTPUT_FILE__",
+    name="my-task",
     timeout=300
 )
 ```
@@ -70,13 +70,13 @@ result = mcp__tmux__tmux_run_and_read(
 - Does NOT spawn a shell wrapper (command runs directly)
 - Waits for window to close (command exit) instead of idle detection
 - Returns file contents instead of pane capture
+- Auto-generates safe temp file path (replaces `__OUTPUT_FILE__` placeholder)
 - Auto-cleans up window and output file
 
 **Use cases:**
 
-- CLI tools with `-o` or `--output` flags
-- Commands that redirect to files (`cmd > file.txt`)
-- Scripts that write results to a known path
+- CLI tools with `-o` or `--output` flags that accept a path argument
+- Wrapper scripts that write results to a specified path
 
 ## Parallel Windows
 
@@ -127,12 +127,13 @@ mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=2, timeout=120)
 
 ### tmux_run_and_read
 
-| Parameter     | Type   | Default | Description                          |
-| ------------- | ------ | ------- | ------------------------------------ |
-| `command`     | string | required| Command to run (NO shell wrapping)   |
-| `output_file` | string | required| Path to file command will create     |
-| `name`        | string | ""      | Window name for status bar           |
-| `timeout`     | int    | 300     | Max seconds to wait                  |
+| Parameter | Type   | Default | Description                                         |
+| --------- | ------ | ------- | --------------------------------------------------- |
+| `command` | string | required| Command with `__OUTPUT_FILE__` placeholder          |
+| `name`    | string | ""      | Window name for status bar                          |
+| `timeout` | int    | 300     | Max seconds to wait                                 |
+
+The `__OUTPUT_FILE__` placeholder is replaced with an auto-generated `/tmp/tmux_output_<uuid>.txt` path.
 
 ### tmux_wait_idle
 

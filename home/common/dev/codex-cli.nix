@@ -263,5 +263,8 @@ in
         fi
       ''
     ) (lib.attrNames secretSubstitutions)}
+
+    # Restrict permissions - config contains API keys
+    run chmod 600 ${config.home.homeDirectory}/.codex/config.toml
   '';
 }

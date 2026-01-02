@@ -303,67 +303,88 @@ def tmux_select(target: str) -> str:
     return "Window selected"
 
 
-def window_exists(window_id: str) -> bool:
-    """Check if a tmux window still exists"""
+def window_exists(window_id: str) -> tuple[bool, str | None]:
+    """Check if a tmux window still exists.
+
+    Returns:
+        Tuple of (exists, error_message). If error_message is not None,
+        the check failed and exists should be ignored.
+    """
     output, code = run_tmux("list-windows", "-F", "#{window_id}")
     if code != 0:
-        return False
-    return window_id in output.split("\n")
+        return False, f"Error listing windows: {output}"
+    return window_id in output.split("\n"), None
+
+
+# Placeholder that will be substituted with auto-generated temp file path
+OUTPUT_FILE_PLACEHOLDER = "__OUTPUT_FILE__"
 
 
 @mcp.tool()
 def tmux_run_and_read(
     command: str,
-    output_file: str,
     name: str = "",
     timeout: int = 300
 ) -> str:
     """
     Run a command in a new tmux window and return the contents of an output file.
 
+    The command should contain __OUTPUT_FILE__ placeholder which will be replaced
+    with an auto-generated temp file path in /tmp. This ensures safe file handling
+    without exposing arbitrary file paths.
+
     IMPORTANT: Unlike tmux_new_window, this does NOT spawn a shell.
     The command is executed directly via tmux new-window, so it must be
     a complete executable command (not shell syntax like pipes or redirects).
 
-    The command is expected to write its output to output_file.
-    The window is automatically cleaned up after reading.
-
     Use this for CLI tools that support file output, like:
-        codex exec -o /tmp/output.txt review --uncommitted
+        my-tool --output __OUTPUT_FILE__
 
     Args:
-        command: Command to run directly (should write to output_file)
-        output_file: Path to file that command will create
+        command: Command to run (must contain __OUTPUT_FILE__ placeholder)
         name: Optional window name (shown in status bar)
         timeout: Maximum seconds to wait for command to finish (default: 300)
 
     Returns:
-        Contents of output_file on success, or error message
+        Contents of output file on success, or error message
     """
     require_tmux()
 
-    # Remove any existing output file to avoid reading stale data
-    if os.path.exists(output_file):
-        os.remove(output_file)
+    # Validate that command contains the placeholder
+    if OUTPUT_FILE_PLACEHOLDER not in command:
+        raise ValueError(
+            f"Command must contain the {OUTPUT_FILE_PLACEHOLDER} placeholder. "
+            f"This placeholder will be replaced with an auto-generated temp file path. "
+            f"Example: my-tool --output {OUTPUT_FILE_PLACEHOLDER}"
+        )
+
+    # Generate random temp file path (safe location)
+    output_file = f"/tmp/tmux_output_{uuid.uuid4().hex}.txt"
+
+    # Substitute placeholder with actual path
+    actual_command = command.replace(OUTPUT_FILE_PLACEHOLDER, output_file)
 
     # Create new window with command running directly (no shell wrapper)
     # -d flag keeps focus on current window (don't switch to new one)
     args = ["new-window", "-d", "-P", "-F", "#{window_id}"]
     if name:
         args.extend(["-n", name])
-    args.append(command)
+    args.append(actual_command)
 
     output, code = run_tmux(*args)
 
     if code != 0:
         return f"Error creating window: {output}"
 
-    window_id = output
+    window_id = output.strip()
 
     # Wait for window to close (command finished) or timeout
     start = time.time()
     while time.time() - start < timeout:
-        if not window_exists(window_id):
+        exists, error = window_exists(window_id)
+        if error:
+            return error
+        if not exists:
             # Window closed - command finished
             break
         time.sleep(0.5)
@@ -374,7 +395,7 @@ def tmux_run_and_read(
 
     # Read the output file
     if not os.path.exists(output_file):
-        return f"Error: Output file '{output_file}' was not created by the command"
+        return f"Error: Output file was not created by the command"
 
     try:
         with open(output_file, "r") as f:
