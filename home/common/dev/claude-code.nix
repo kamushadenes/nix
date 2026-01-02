@@ -62,20 +62,20 @@ let
       env = { };
     };
 
-    # PAL - Multi-model AI assistant (disabled - using alternative approach)
-    # pal = {
-    #   type = "stdio";
-    #   command = "uvx";
-    #   args = [
-    #     "--from"
-    #     "git+https://github.com/BeehiveInnovations/pal-mcp-server.git"
-    #     "pal-mcp-server"
-    #   ];
-    #   env = {
-    #     OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
-    #     DISABLED_TOOLS = "tracer";
-    #   };
-    # };
+    # PAL - Multi-model AI assistant with clink for CLI orchestration
+    pal = {
+      type = "stdio";
+      command = "uvx";
+      args = [
+        "--from"
+        "git+https://github.com/BeehiveInnovations/pal-mcp-server.git"
+        "pal-mcp-server"
+      ];
+      env = {
+        OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
+        DISABLED_TOOLS = "tracer";
+      };
+    };
 
     # Go documentation server
     godoc = {

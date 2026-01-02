@@ -1,21 +1,20 @@
 ---
 name: codex-cli
-description: Run Codex CLI for code review and second opinions via tmux. Primary use is code review before commits/PRs. Also supports general queries for a non-Claude perspective.
+description: Run Codex CLI for code review and second opinions via PAL clink. Primary use is code review before commits/PRs. Also supports general queries for a non-Claude perspective.
 ---
 
-# Codex CLI via tmux
+# Codex CLI via PAL clink
 
-Run OpenAI Codex for code review and second opinions.
+Run OpenAI Codex for code review and second opinions using PAL's clink tool.
 
 ## Quick Reference
 
-| Pattern | Command |
-|---------|---------|
-| Review uncommitted | `codex review --uncommitted` |
-| Review vs branch | `codex review --base main` |
-| Review commit | `codex review --commit <sha>` |
-| Custom focus | `codex review "Focus on security"` |
-| General query | `codex exec "prompt"` |
+| Pattern            | Clink Call                                                    |
+| ------------------ | ------------------------------------------------------------- |
+| Review uncommitted | `clink with codex codereviewer to review uncommitted changes` |
+| Review vs branch   | `clink with codex codereviewer to review changes vs main`     |
+| Security focus     | `clink with codex codereviewer to audit for security issues`  |
+| General query      | `clink with codex to [your question]`                         |
 
 ## When to Use
 
@@ -26,6 +25,12 @@ Run OpenAI Codex for code review and second opinions.
 - Reviewing specific commits
 - Security-focused review
 
+### Plan Review
+
+- Review implementation plans before executing
+- Get a second opinion on architectural decisions
+- Validate approach before significant changes
+
 ### Second Opinion (Secondary)
 
 - Want a non-Claude perspective
@@ -34,98 +39,132 @@ Run OpenAI Codex for code review and second opinions.
 
 ## When NOT to Use
 
-- Complex architectural analysis (use claude-cli)
+- Complex architectural analysis (use claude-cli instead)
 - When you need detailed reasoning chains
-- File modifications (always use read-only mode)
+- File modifications (clink runs in isolated context)
 
-## Code Review Workflow
+## Code Review Workflow (Recommended)
 
-### 1. Create Window
+Use PAL's clink tool to spawn a Codex subagent:
 
-```
-window_id = mcp__tmux__tmux_new_window(
-    command="codex review --uncommitted",
-    name="codex-review"
+```python
+result = mcp__pal__clink(
+    prompt="Review uncommitted changes for bugs, security issues, and code quality",
+    cli_name="codex",
+    role="codereviewer"
 )
 ```
 
-### 2. Wait (reviews can be slow)
+Benefits:
 
-```
-result = mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=5, timeout=180)
-```
+- Single tool call
+- Isolated context (doesn't pollute main conversation)
+- Returns only final results
+- Role-specific system prompts for better reviews
 
-### 3. Capture Results
+### With file context
 
-```
-output = mcp__tmux__tmux_capture(target=window_id, lines=1000)
-```
-
-### 4. Cleanup
-
-```
-mcp__tmux__tmux_kill(target=window_id)
-```
-
-## Review Modes
-
-### Uncommitted Changes
-
-```
-codex review --uncommitted
+```python
+result = mcp__pal__clink(
+    prompt="Review this authentication module for security vulnerabilities",
+    cli_name="codex",
+    role="codereviewer",
+    files=["src/auth/login.py", "src/auth/session.py"]
+)
 ```
 
-Reviews all staged, unstaged, and untracked changes.
+### Custom focus
 
-### Compare to Branch
-
-```
-codex review --base main
-codex review --base origin/develop
-```
-
-Reviews changes since branching from base.
-
-### Specific Commit
-
-```
-codex review --commit abc123
+```python
+result = mcp__pal__clink(
+    prompt="Focus on error handling and edge cases in the payment flow",
+    cli_name="codex",
+    role="codereviewer"
+)
 ```
 
-### Custom Focus
+## Available Roles
 
-```
-codex review --uncommitted "Focus on error handling"
-codex review --base main "Check for security issues"
+| Role           | Use Case                                    |
+| -------------- | ------------------------------------------- |
+| `default`      | General questions, quick answers            |
+| `codereviewer` | Code analysis with severity classifications |
+| `planner`      | Multi-phase strategic planning              |
+
+## Parallel Multi-Focus Reviews
+
+Run multiple codex agents in parallel with different focuses.
+Launch all in a single message with multiple tool calls:
+
+```python
+# Security focus
+security = mcp__pal__clink(
+    prompt="Focus exclusively on security vulnerabilities in uncommitted changes",
+    cli_name="codex",
+    role="codereviewer"
+)
+
+# Simplicity focus (in parallel)
+simplicity = mcp__pal__clink(
+    prompt="Focus on code simplicity and readability in uncommitted changes",
+    cli_name="codex",
+    role="codereviewer"
+)
+
+# Performance focus (in parallel)
+performance = mcp__pal__clink(
+    prompt="Focus on performance issues in uncommitted changes",
+    cli_name="codex",
+    role="codereviewer"
+)
 ```
 
-## Second Opinion (codex exec)
+**Suggested review focuses:**
+
+- Security vulnerabilities
+- Code simplicity/readability
+- Performance issues
+- Error handling
+- Test coverage gaps
+- Best practices violations
+
+## Second Opinion (General Queries)
 
 For general questions beyond code review:
 
-```
-window_id = mcp__tmux__tmux_new_window(
-    command='codex exec "Is this approach to caching reasonable: [description]"',
-    name="codex-opinion"
+```python
+result = mcp__pal__clink(
+    prompt="Is this caching approach reasonable? [describe approach]",
+    cli_name="codex",
+    role="default"
 )
-mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=5, timeout=120)
-output = mcp__tmux__tmux_capture(target=window_id, lines=500)
-mcp__tmux__tmux_kill(target=window_id)
+```
+
+## Conversation Continuity
+
+Resume a previous clink conversation:
+
+```python
+result = mcp__pal__clink(
+    prompt="Now focus on the edge cases we discussed",
+    cli_name="codex",
+    continuation_id="previous_conversation_id"
+)
 ```
 
 ## Error Handling
 
-| Error | Action |
-|-------|--------|
-| Timeout | Code reviews can take 2-3 minutes for large diffs |
-| "not a git repository" | Must run in git repo directory |
-| "no changes" | Nothing to review - inform user |
-| Rate limits | Wait 30s and retry once |
+| Error          | Action                                |
+| -------------- | ------------------------------------- |
+| CLI not found  | Ensure codex is installed and in PATH |
+| Auth errors    | Run `codex auth` to authenticate      |
+| Rate limits    | Wait 30s and retry once               |
+| Empty response | Check PAL server logs for issues      |
 
 ## Tips
 
-1. **Review incrementally**: Smaller changes get better feedback
-2. **Add focus prompts**: Specify concerns like "Focus on security"
-3. **Use longer timeouts**: 180s for large diffs
-4. **Git context**: Codex works best with git repositories
-5. **Always cleanup**: Kill window even on errors
+1. **Use codereviewer role**: Better structured output for reviews
+2. **Pass file paths**: Use `files` parameter for context without token bloat
+3. **Parallel reviews**: Run multiple focused reviews simultaneously
+4. **Isolated context**: Each clink call gets fresh context
+5. **Chain with other PAL tools**: Use planner → clink → codereview workflows

@@ -21,7 +21,7 @@
 
         persistent-apps = [
           "/Applications/Arc.app"
-          "/Applications/Setapp/Canary Mail.app"
+          "/Applications/Canary Mail.app"
           "/Applications/Slack.app"
           "/System/Applications/Notes.app"
           "/Applications/Fantastical.app"

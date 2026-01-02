@@ -1,130 +1,136 @@
 ---
 name: claude-cli
-description: Run another Claude CLI instance via tmux for parallel analysis, deep investigation, or when current context is saturated. Use when you need to offload complex analysis while continuing other work.
+description: Run another Claude CLI instance via PAL clink for parallel analysis, deep investigation, or when current context is saturated. Use when you need to offload complex analysis while continuing other work.
 ---
 
-# Claude CLI via tmux
+# Claude CLI via PAL clink
 
-Run a separate Claude instance for parallel analysis and investigation.
+Run a separate Claude instance for parallel analysis and investigation using PAL's clink tool.
 
 ## Quick Reference
 
-| Pattern | Command |
-|---------|---------|
-| Basic query | `claude --print "prompt"` |
-| With model | `claude --print --model opus "prompt"` |
-| JSON output | `claude --print --output-format json "prompt"` |
-| With context | `claude --print --add-dir . "prompt"` |
+| Pattern        | Clink Call                                             |
+| -------------- | ------------------------------------------------------ |
+| Deep analysis  | `clink with claude planner to analyze architecture`    |
+| Research       | `clink with claude to research [topic]`                |
+| Second opinion | `clink with claude to review this approach: [details]` |
 
 ## When to Use
 
-- Offload complex analysis while continuing current work
-- Deep architectural investigation needing fresh context
+### Deep Analysis (Primary)
+
+- Complex architectural investigation needing fresh context
 - Multi-file analysis requiring dedicated attention
 - When current context is too saturated
+- Research tasks while main instance continues work
+
+### Plan Review
+
+- Review implementation plans before executing
+- Get a second opinion on architectural decisions
+- Validate complex approaches before significant changes
+
+### Parallel Processing
+
+- Offload analysis while continuing other work
+- Run multiple investigations simultaneously
+- Background research without blocking main work
 
 ## When NOT to Use
 
 - Simple questions you can answer directly
-- Code review (use codex-cli instead)
+- Code review (use codex-cli with codereviewer role instead)
 - Quick sanity checks
 
-## Standard Workflow
+## Recommended Workflow (PAL clink)
 
-### 1. Create Window
+Use PAL's clink tool to spawn a Claude subagent:
 
-```
-window_id = mcp__tmux__tmux_new_window(
-    command='claude --print "Your analysis request here"',
-    name="claude-analysis"
+```python
+result = mcp__pal__clink(
+    prompt="Analyze the architecture of this codebase focusing on service boundaries and data flow",
+    cli_name="claude",
+    role="planner"
 )
 ```
 
-### 2. Wait for Completion
+Benefits:
 
-```
-result = mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=3, timeout=120)
-```
+- Single tool call
+- Isolated context (doesn't pollute main conversation)
+- Returns only final results
+- Role-specific system prompts
 
-### 3. Handle Timeout
+### With file context
 
-```
-if result == "timeout":
-    partial = mcp__tmux__tmux_capture(target=window_id, lines=500)
-    mcp__tmux__tmux_interrupt(target=window_id)
-    # Wait for graceful shutdown
-    mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=2, timeout=10)
-```
-
-### 4. Capture Output
-
-```
-output = mcp__tmux__tmux_capture(target=window_id, lines=2000)
-```
-
-### 5. ALWAYS Cleanup
-
-```
-mcp__tmux__tmux_kill(target=window_id)
-```
-
-## Examples
-
-### Parallel Architecture Analysis
-
-```
-window_id = mcp__tmux__tmux_new_window(
-    command='claude --print --model opus "Analyze the architecture of this codebase focusing on: 1) Service boundaries 2) Data flow 3) Potential bottlenecks. Directory: /path/to/project"',
-    name="arch-analysis"
+```python
+result = mcp__pal__clink(
+    prompt="Analyze these modules for potential refactoring opportunities",
+    cli_name="claude",
+    role="planner",
+    files=["src/services/auth.py", "src/services/user.py"]
 )
 ```
 
-### Deep Security Review
+## Available Roles
 
-```
-window_id = mcp__tmux__tmux_new_window(
-    command='claude --print "Review /path/to/auth.py for security vulnerabilities, focusing on authentication flows and input validation"',
-    name="security-review"
+| Role      | Use Case                         |
+| --------- | -------------------------------- |
+| `default` | General questions, quick answers |
+| `planner` | Multi-phase strategic planning   |
+
+## Parallel Analysis
+
+Run multiple Claude instances in parallel for different aspects:
+
+```python
+# Architecture analysis
+arch = mcp__pal__clink(
+    prompt="Analyze service boundaries and data flow patterns",
+    cli_name="claude",
+    role="planner"
+)
+
+# Security analysis (in parallel)
+security = mcp__pal__clink(
+    prompt="Review for security vulnerabilities and attack vectors",
+    cli_name="claude",
+    role="default"
+)
+
+# Performance analysis (in parallel)
+perf = mcp__pal__clink(
+    prompt="Identify performance bottlenecks and optimization opportunities",
+    cli_name="claude",
+    role="default"
 )
 ```
 
-### Multi-File Context
+## Conversation Continuity
 
-For larger context, use shell and heredoc:
+Resume a previous clink conversation:
 
-```
-# Create shell window first
-window_id = mcp__tmux__tmux_new_window(command="zsh", name="analysis")
-mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=1, timeout=5)
-
-# Send heredoc command
-mcp__tmux__tmux_send(target=window_id, text='''claude --print "$(cat <<'EOF'
-Analyze these files together:
-
-$(cat /path/to/file1.py)
-
----
-
-$(cat /path/to/file2.py)
-
-Focus on their interaction patterns.
-EOF
-)"''')
+```python
+result = mcp__pal__clink(
+    prompt="Continue with the implementation details we discussed",
+    cli_name="claude",
+    continuation_id="previous_conversation_id"
+)
 ```
 
 ## Error Handling
 
-| Error | Action |
-|-------|--------|
-| Timeout | Default 120s. For complex analysis, use up to 300s |
-| Rate limit | Wait 30s and retry once |
-| Auth errors | Notify user to run `claude login` |
-| Any error | Always cleanup - kill window even on errors |
+| Error          | Action                                 |
+| -------------- | -------------------------------------- |
+| CLI not found  | Ensure claude is installed and in PATH |
+| Auth errors    | Run `claude login` to authenticate     |
+| Rate limits    | Wait 30s and retry once                |
+| Empty response | Check PAL server logs for issues       |
 
 ## Tips
 
-1. **Use opus for complex tasks**: `--model opus` for detailed reasoning
-2. **Absolute paths**: Provide absolute file paths for context
-3. **Be specific**: Clearly state what analysis you need
-4. **Monitor progress**: Use `tmux_select` to watch if needed
-5. **Cost control**: Use `--max-budget-usd 0.50` for expensive operations
+1. **Use planner role**: Better structured output for complex analysis
+2. **Pass file paths**: Use `files` parameter for context without token bloat
+3. **Parallel work**: Run multiple analyses while continuing main work
+4. **Isolated context**: Each clink call gets fresh context
+5. **Chain with other PAL tools**: Use planner → clink → codereview workflows

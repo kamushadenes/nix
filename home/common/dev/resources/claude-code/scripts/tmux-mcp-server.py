@@ -303,5 +303,88 @@ def tmux_select(target: str) -> str:
     return "Window selected"
 
 
+def window_exists(window_id: str) -> bool:
+    """Check if a tmux window still exists"""
+    output, code = run_tmux("list-windows", "-F", "#{window_id}")
+    if code != 0:
+        return False
+    return window_id in output.split("\n")
+
+
+@mcp.tool()
+def tmux_run_and_read(
+    command: str,
+    output_file: str,
+    name: str = "",
+    timeout: int = 300
+) -> str:
+    """
+    Run a command in a new tmux window and return the contents of an output file.
+
+    IMPORTANT: Unlike tmux_new_window, this does NOT spawn a shell.
+    The command is executed directly via tmux new-window, so it must be
+    a complete executable command (not shell syntax like pipes or redirects).
+
+    The command is expected to write its output to output_file.
+    The window is automatically cleaned up after reading.
+
+    Use this for CLI tools that support file output, like:
+        codex exec -o /tmp/output.txt review --uncommitted
+
+    Args:
+        command: Command to run directly (should write to output_file)
+        output_file: Path to file that command will create
+        name: Optional window name (shown in status bar)
+        timeout: Maximum seconds to wait for command to finish (default: 300)
+
+    Returns:
+        Contents of output_file on success, or error message
+    """
+    require_tmux()
+
+    # Remove any existing output file to avoid reading stale data
+    if os.path.exists(output_file):
+        os.remove(output_file)
+
+    # Create new window with command running directly (no shell wrapper)
+    # -d flag keeps focus on current window (don't switch to new one)
+    args = ["new-window", "-d", "-P", "-F", "#{window_id}"]
+    if name:
+        args.extend(["-n", name])
+    args.append(command)
+
+    output, code = run_tmux(*args)
+
+    if code != 0:
+        return f"Error creating window: {output}"
+
+    window_id = output
+
+    # Wait for window to close (command finished) or timeout
+    start = time.time()
+    while time.time() - start < timeout:
+        if not window_exists(window_id):
+            # Window closed - command finished
+            break
+        time.sleep(0.5)
+    else:
+        # Timeout reached - kill the window
+        run_tmux("kill-window", "-t", window_id)
+        return f"Error: Command timed out after {timeout}s"
+
+    # Read the output file
+    if not os.path.exists(output_file):
+        return f"Error: Output file '{output_file}' was not created by the command"
+
+    try:
+        with open(output_file, "r") as f:
+            content = f.read()
+        # Clean up the output file
+        os.remove(output_file)
+        return content
+    except Exception as e:
+        return f"Error reading output file: {e}"
+
+
 if __name__ == "__main__":
     mcp.run()
