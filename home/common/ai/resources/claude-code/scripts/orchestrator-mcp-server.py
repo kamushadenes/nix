@@ -738,8 +738,13 @@ def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None
         cmd = ["claude", "--print"]
         if model:
             cmd.extend(["--model", model])
+        # Claude only supports --add-dir for directories, extract parent dirs from files
+        dirs_added = set()
         for f in files:
-            cmd.extend(["--add-dir", f])
+            dir_path = os.path.dirname(f) if os.path.isfile(f) else f
+            if dir_path and dir_path not in dirs_added:
+                cmd.extend(["--add-dir", dir_path])
+                dirs_added.add(dir_path)
         cmd.append(prompt)
         return cmd
 
@@ -789,8 +794,16 @@ def run_job_in_tmux(job: Job):
         # Shell-escape and join for tmux send-keys
         cmd_str = " ".join(shlex.quote(part) for part in cmd_parts)
 
-        # Create a new tmux window with the job name
-        window_name = f"{job.cli}:{job.id[-8:]}"
+        # Create a friendly window name: "cli task_hint id_suffix"
+        # Extract task hint from prompt (first action word like Review, Analyze, Fix, etc.)
+        task_keywords = ["review", "analyze", "fix", "debug", "explain", "search", "find", "check", "test", "build"]
+        prompt_lower = job.prompt.lower()
+        task_hint = "task"
+        for kw in task_keywords:
+            if kw in prompt_lower:
+                task_hint = kw
+                break
+        window_name = f"{job.cli} {task_hint} {job.id[-6:]}"
         args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name, DEFAULT_SHELL]
         output, code = run_tmux(*args)
 
