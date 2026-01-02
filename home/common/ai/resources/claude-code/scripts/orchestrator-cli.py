@@ -1028,6 +1028,12 @@ def cmd_run(args):
     init_db()
     job_id = args.job_id
     session_id = get_current_session()
+    worktree = getattr(args, 'worktree', None) or ""
+
+    # Change to worktree directory if provided
+    original_cwd = os.getcwd()
+    if worktree and os.path.isdir(worktree):
+        os.chdir(worktree)
 
     # Create job entry in database
     conn = sqlite3.connect(str(DB_PATH), timeout=10.0)
@@ -1036,26 +1042,32 @@ def cmd_run(args):
         existing = conn.execute("SELECT id FROM jobs WHERE id = ?", (job_id,)).fetchone()
         if not existing:
             conn.execute(
-                """INSERT INTO jobs (id, session_id, cli, prompt, status, created, model, files)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO jobs (id, session_id, cli, prompt, status, created, model, files, worktree_path)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (job_id, session_id, args.cli, args.prompt, "running",
-                 time.time(), args.model or "", json.dumps(args.files or []))
+                 time.time(), args.model or "", json.dumps(args.files or []), worktree or None)
             )
             conn.commit()
     finally:
         conn.close()
 
-    # Run TUI
-    app = AIRunnerApp(
-        cli=args.cli,
-        prompt=args.prompt,
-        job_id=job_id,
-        model=args.model or "",
-        files=args.files or [],
-        log_intermediary=args.log_intermediary,
-        auto_close=args.auto_close
-    )
-    app.run()
+    try:
+        # Run TUI
+        app = AIRunnerApp(
+            cli=args.cli,
+            prompt=args.prompt,
+            job_id=job_id,
+            model=args.model or "",
+            files=args.files or [],
+            worktree=worktree,
+            log_intermediary=args.log_intermediary,
+            auto_close=args.auto_close
+        )
+        app.run()
+    finally:
+        # Restore original directory
+        if worktree:
+            os.chdir(original_cwd)
 
 
 # Catppuccin Macchiato colors for Rich/Textual (hex format)
@@ -1100,13 +1112,17 @@ class AIRunnerApp(App):
     }}
     #header-box {{
         dock: top;
-        height: 4;
+        height: auto;
+        max-height: 6;
         background: {RICH_COLORS['surface0']};
         border-bottom: solid {RICH_COLORS['surface1']};
         padding: 0 1;
     }}
     #cli-line {{
         color: {RICH_COLORS['text']};
+    }}
+    #path-line {{
+        color: {RICH_COLORS['subtext1']};
     }}
     #status-line {{
         color: {RICH_COLORS['subtext0']};
@@ -1133,6 +1149,7 @@ class AIRunnerApp(App):
         job_id: str,
         model: str = "",
         files: list = None,
+        worktree: str = "",
         log_intermediary: bool = False,
         auto_close: bool = True,
         **kwargs
@@ -1143,6 +1160,8 @@ class AIRunnerApp(App):
         self.job_id = job_id
         self.model = model
         self.files = files or []
+        self.worktree = worktree
+        self.original_cwd = os.getcwd()
         self.log_intermediary = log_intermediary
         self.auto_close = auto_close
         self.start_time = time.time()
@@ -1164,13 +1183,20 @@ class AIRunnerApp(App):
         model_info = f" │ 🤖 {self.model}" if self.model else ""
         files_info = f" │ 📁 {len(self.files)} files" if self.files else ""
 
-        # Header layout: CLI+job+context, status, prompt (dimmer)
+        # Build path info
+        if self.worktree:
+            path_info = f"📂 {self.original_cwd} → 🔒 {self.worktree}"
+        else:
+            path_info = f"📂 {self.original_cwd}"
+
+        # Header layout: CLI+job+context, path, status, prompt (dimmer)
         yield Container(
             Static(
                 f"{info['emoji']} [{info['style']}]{self.cli.upper()}[/{info['style']}] "
                 f"│ 🏷️ {self.job_id[:8]}{model_info}{files_info}",
                 id="cli-line"
             ),
+            Static(path_info, id="path-line"),
             Static("", id="status-line"),
             Static(f"💬 {self.prompt}", id="prompt-line"),
             id="header-box"
@@ -1388,6 +1414,7 @@ def main():
     run_parser.add_argument('--job-id', required=True, help='Job ID for tracking')
     run_parser.add_argument('--model', help='Model override')
     run_parser.add_argument('--files', action='append', help='Files to include (can repeat)')
+    run_parser.add_argument('--worktree', help='Path to git worktree for isolated execution')
     run_parser.add_argument('--log-intermediary', action='store_true',
                            help='Log intermediary messages to SQLite')
     run_parser.add_argument('--auto-close', action='store_true', default=True,

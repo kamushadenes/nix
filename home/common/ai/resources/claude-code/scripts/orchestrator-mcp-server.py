@@ -78,6 +78,7 @@ class Job:
     model: str = ""
     files: list = field(default_factory=list)
     window_id: Optional[str] = None  # tmux window ID for monitoring
+    worktree_path: Optional[str] = None  # Isolated git worktree path
 
 
 # =============================================================================
@@ -115,7 +116,8 @@ def init_db():
                     created REAL NOT NULL,
                     model TEXT DEFAULT '',
                     files TEXT DEFAULT '[]',
-                    window_id TEXT
+                    window_id TEXT,
+                    worktree_path TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS messages (
@@ -132,6 +134,11 @@ def init_db():
                 CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
                 CREATE INDEX IF NOT EXISTS idx_messages_job ON messages(job_id);
             """)
+            # Add worktree_path column if it doesn't exist (migration)
+            try:
+                conn.execute("ALTER TABLE jobs ADD COLUMN worktree_path TEXT")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
             conn.commit()
         finally:
             conn.close()
@@ -144,12 +151,12 @@ def save_job(job: Job):
         try:
             conn.execute("""
                 INSERT OR REPLACE INTO jobs
-                (id, session_id, cli, prompt, status, result, output_offset, pid, created, model, files, window_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, session_id, cli, prompt, status, result, output_offset, pid, created, model, files, window_id, worktree_path)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 job.id, job.session_id, job.cli, job.prompt, job.status,
                 job.result, job.output_offset, job.pid, job.created,
-                job.model, json.dumps(job.files), job.window_id
+                job.model, json.dumps(job.files), job.window_id, job.worktree_path
             ))
             conn.commit()
         finally:
@@ -184,7 +191,8 @@ def get_job(job_id: str, session_id: Optional[str] = None) -> Optional[Job]:
                     created=row['created'],
                     model=row['model'],
                     files=json.loads(row['files']),
-                    window_id=row['window_id']
+                    window_id=row['window_id'],
+                    worktree_path=row['worktree_path'] if 'worktree_path' in row.keys() else None
                 )
             return None
         finally:
@@ -220,7 +228,8 @@ def list_jobs(session_id: Optional[str] = None, status: str = "") -> list[Job]:
                     created=row['created'],
                     model=row['model'],
                     files=json.loads(row['files']),
-                    window_id=row['window_id']
+                    window_id=row['window_id'],
+                    worktree_path=row['worktree_path'] if 'worktree_path' in row.keys() else None
                 )
                 for row in rows
             ]
@@ -322,6 +331,64 @@ def check_cli_available(cli: str) -> bool:
 def get_output_file_path(job_id: str) -> Path:
     """Get the path to a job's output file."""
     return Path("/tmp") / f"orchestrator_{job_id}.out"
+
+
+WORKTREE_BASE = Path("/tmp/orchestrator-worktrees")
+
+
+def create_worktree(job_id: str) -> Optional[Path]:
+    """Create a git worktree for isolated agent execution.
+
+    Returns the worktree path on success, None on failure.
+    """
+    worktree_path = WORKTREE_BASE / job_id
+
+    try:
+        # Ensure base directory exists
+        WORKTREE_BASE.mkdir(parents=True, exist_ok=True)
+
+        # Get current branch/commit
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode != 0:
+            return None
+        commit = result.stdout.strip()
+
+        # Create worktree at current commit (detached HEAD)
+        result = subprocess.run(
+            ["git", "worktree", "add", "--detach", str(worktree_path), commit],
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode != 0:
+            return None
+
+        return worktree_path
+    except Exception:
+        return None
+
+
+def cleanup_worktree(job_id: str):
+    """Remove a git worktree after job completion."""
+    worktree_path = WORKTREE_BASE / job_id
+
+    try:
+        # Remove the worktree from git
+        subprocess.run(
+            ["git", "worktree", "remove", "--force", str(worktree_path)],
+            capture_output=True, text=True, timeout=30
+        )
+    except Exception:
+        pass
+
+    # Also try to remove the directory if it still exists
+    try:
+        if worktree_path.exists():
+            import shutil
+            shutil.rmtree(worktree_path)
+    except Exception:
+        pass
 
 
 # =============================================================================
@@ -920,7 +987,8 @@ def ai_run(
     cli: str = "claude",
     model: str = "",
     files: list = None,
-    timeout: int = 600
+    timeout: int = 600,
+    worktree: bool = False
 ) -> str:
     """
     Run an AI CLI job synchronously and return the result.
@@ -935,6 +1003,7 @@ def ai_run(
         model: Optional model override (CLI-specific)
         files: Optional list of files to include as context
         timeout: Max seconds to wait for completion (default: 600)
+        worktree: If True, create an isolated git worktree for the agent (safer)
 
     Returns:
         JSON with job_id, status, and result
@@ -953,6 +1022,21 @@ def ai_run(
     session_id = get_current_session()
     job_id = f"job_{uuid.uuid4().hex[:12]}"
 
+    # SAFETY: codex and gemini ALWAYS run in isolated worktree
+    if cli in ("codex", "gemini"):
+        worktree = True
+
+    # Create worktree if requested/required
+    worktree_path = None
+    if worktree:
+        worktree_path = create_worktree(job_id)
+        if not worktree_path:
+            return json.dumps({
+                "job_id": job_id,
+                "status": "failed",
+                "result": "Failed to create git worktree"
+            })
+
     # Create job entry first
     job = Job(
         id=job_id,
@@ -961,7 +1045,8 @@ def ai_run(
         prompt=prompt,
         status="running",
         model=model,
-        files=files
+        files=files,
+        worktree_path=str(worktree_path) if worktree_path else None
     )
     save_job(job)
 
@@ -975,6 +1060,8 @@ def ai_run(
         runner_cmd.extend(["--model", model])
     for f in files:
         runner_cmd.extend(["--files", f])
+    if worktree_path:
+        runner_cmd.extend(["--worktree", str(worktree_path)])
     runner_cmd.append(prompt)
 
     # Simple window name: "cli:id"
@@ -1027,12 +1114,18 @@ def ai_run(
 
     # Fetch result from database (orchestrator CLI updated it)
     updated_job = get_job(job_id, session_id)
+
+    # Cleanup worktree if it was created
+    if worktree_path:
+        cleanup_worktree(job_id)
+
     if updated_job:
         messages = get_messages(job_id)
         return json.dumps({
             "job_id": job_id,
             "status": updated_job.status,
             "result": updated_job.result,
+            "worktree_path": str(worktree_path) if worktree_path else None,
             "messages": [asdict(m) for m in messages]
         }, indent=2)
     else:

@@ -24,6 +24,22 @@ Claude Code is the **orchestrator**. When spawning AI agents:
 - Both receive strict instructions to only use read-only commands
 - Only Claude workers have full execution capabilities
 
+**Worktree isolation (automatic for codex/gemini):**
+
+Codex and Gemini **always** run in an isolated git worktree for safety.
+Claude workers can optionally use `worktree=True`:
+
+```python
+# Codex/Gemini - worktree is automatic
+result = ai_run(prompt="Review code", cli="codex")
+
+# Claude - worktree is optional
+result = ai_run(prompt="Full access task", cli="claude", worktree=True)
+```
+
+Worktrees are created at `/tmp/orchestrator-worktrees/<job_id>/` and cleaned
+up after completion. Any modifications stay isolated from your main directory.
+
 ## Quick Reference
 
 | Tool         | Purpose                                            |
@@ -176,13 +192,14 @@ messages = ai_receive(job, since=0)
 
 Use for single jobs. **Blocks until completion** - not suitable for parallel execution.
 
-| Parameter | Type | Default  | Description                    |
-| --------- | ---- | -------- | ------------------------------ |
-| prompt    | str  | required | The question/task              |
-| cli       | str  | "claude" | "claude", "codex", or "gemini" |
-| model     | str  | ""       | Optional model override        |
-| files     | list | []       | Files to include as context    |
-| timeout   | int  | 600      | Max wait time in seconds       |
+| Parameter | Type | Default  | Description                                      |
+| --------- | ---- | -------- | ------------------------------------------------ |
+| prompt    | str  | required | The question/task                                |
+| cli       | str  | "claude" | "claude", "codex", or "gemini"                   |
+| model     | str  | ""       | Optional model override                          |
+| files     | list | []       | Files to include as context                      |
+| timeout   | int  | 600      | Max wait time in seconds                         |
+| worktree  | bool | false    | Isolated worktree (auto for codex/gemini)        |
 
 ### ai_spawn (async, for parallel execution)
 
