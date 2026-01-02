@@ -9,26 +9,26 @@ Consult external AI models for second opinions, debugging, consensus building, a
 
 ## Quick Reference
 
-| Tool                   | Purpose                                            |
-| ---------------------- | -------------------------------------------------- |
-| `mcp__pal__chat`       | General discussion, brainstorming, quick questions |
-| `mcp__pal__thinkdeep`  | Complex problem analysis with hypothesis testing   |
-| `mcp__pal__consensus`  | Multi-model debate for decisions                   |
-| `mcp__pal__codereview` | Systematic code review with expert validation      |
-| `mcp__pal__debug`      | Root cause analysis with external validation       |
-| `mcp__pal__analyze`    | Codebase analysis (architecture, performance)      |
-| `mcp__pal__refactor`   | Code smell detection, modernization planning       |
-| `mcp__pal__testgen`    | Test suite generation with edge cases              |
-| `mcp__pal__secaudit`   | Security vulnerability assessment                  |
-| `mcp__pal__precommit`  | Git change validation before committing            |
-| `mcp__pal__planner`    | Complex project planning with branching            |
-| `mcp__pal__docgen`     | Documentation generation                           |
-| `mcp__pal__apilookup`  | Current API/SDK documentation lookup               |
-| `mcp__pal__challenge`  | Critical analysis to prevent reflexive agreement   |
-| `mcp__pal__clink`      | Bridge to external CLIs (gemini, codex, claude)    |
-| `mcp__pal__listmodels` | Show available models                              |
+| Tool                   | Purpose                                               |
+| ---------------------- | ----------------------------------------------------- |
+| `mcp__pal__chat`       | General discussion, brainstorming, quick questions    |
+| `mcp__pal__thinkdeep`  | Complex analysis with high thinking mode (16K tokens) |
+| `mcp__pal__consensus`  | Multi-model debate for decisions                      |
+| `mcp__pal__codereview` | Systematic code review with expert validation         |
+| `mcp__pal__debug`      | Root cause analysis with external validation          |
+| `mcp__pal__analyze`    | Codebase analysis (architecture, performance)         |
+| `mcp__pal__refactor`   | Code smell detection, modernization planning          |
+| `mcp__pal__testgen`    | Test suite generation with edge cases                 |
+| `mcp__pal__secaudit`   | Security vulnerability assessment                     |
+| `mcp__pal__precommit`  | Git change validation before committing               |
+| `mcp__pal__planner`    | Complex project planning with branching               |
+| `mcp__pal__docgen`     | Documentation generation                              |
+| `mcp__pal__apilookup`  | Current API/SDK documentation lookup                  |
+| `mcp__pal__challenge`  | Critical analysis to prevent reflexive agreement      |
+| `mcp__pal__clink`      | Bridge to external CLIs (gemini, codex, claude)       |
+| `mcp__pal__listmodels` | Show available models                                 |
 
-**Note:** Some tools are disabled by default (analyze, refactor, testgen, secaudit, docgen). Check server config if needed.
+**Note:** Heavy context tools are disabled: analyze, refactor, testgen, secaudit, docgen, tracer. Use `clink` with specialized roles for these capabilities instead.
 
 ## When to Use External Models
 

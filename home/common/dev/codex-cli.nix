@@ -68,7 +68,10 @@ let
         tool_timeout_sec = 1200;
         env = {
           OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
-          DISABLED_TOOLS = "tracer";
+          # Match PAL defaults - disable heavy context tools
+          DISABLED_TOOLS = "analyze,refactor,testgen,secaudit,docgen,tracer";
+          # Use high thinking mode for thinkdeep tool (better deep analysis)
+          DEFAULT_THINKING_MODE_THINKDEEP = "high";
         };
       };
 
