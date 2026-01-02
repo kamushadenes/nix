@@ -27,9 +27,9 @@ Claude Code is the **orchestrator**. When spawning AI agents:
 
 | Tool         | Purpose                                            |
 | ------------ | -------------------------------------------------- |
-| `ai_run`     | **Recommended** - Run job, wait, return result     |
-| `ai_spawn`   | Start async AI job, returns job_id immediately     |
-| `ai_fetch`   | Get job result (blocking or non-blocking)          |
+| `ai_run`     | Single job - blocks until complete                 |
+| `ai_spawn`   | **Parallel jobs** - returns immediately            |
+| `ai_fetch`   | Get result from spawned job                        |
 | `ai_stream`  | Get incremental streaming output                   |
 | `ai_ask`     | Sync query (uses ai_spawn internally)              |
 | `ai_send`    | Send message to a job (inter-agent messaging)      |
@@ -37,6 +37,11 @@ Claude Code is the **orchestrator**. When spawning AI agents:
 | `ai_review`  | Code review via AI CLI                             |
 | `ai_search`  | Web search via gemini or claude                    |
 | `ai_list`    | List jobs in current session                       |
+
+**Pattern choice:**
+
+- Single job → `ai_run(prompt, cli)`
+- Multiple parallel jobs → `ai_spawn()` × N, then `ai_fetch()` × N
 
 ## When to Use External Models
 
@@ -68,14 +73,23 @@ result = ai_run(
 
 ### Second Opinion (Parallel)
 
-Call `ai_run` multiple times in parallel to get perspectives from different models:
+For parallel execution, use `ai_spawn` + `ai_fetch`. The `ai_run` tool is synchronous
+and will block, so multiple `ai_run` calls execute sequentially.
 
 ```python
-# Claude Code calls these in parallel
-response1 = ai_run(prompt="Should I use Redis or PostgreSQL for sessions?", cli="claude")
-response2 = ai_run(prompt="Should I use Redis or PostgreSQL for sessions?", cli="codex")
-response3 = ai_run(prompt="Should I use Redis or PostgreSQL for sessions?", cli="gemini")
+# Step 1: Spawn all jobs in parallel (returns immediately)
+job1 = ai_spawn(prompt="Should I use Redis or PostgreSQL?", cli="claude")
+job2 = ai_spawn(prompt="Should I use Redis or PostgreSQL?", cli="codex")
+job3 = ai_spawn(prompt="Should I use Redis or PostgreSQL?", cli="gemini")
+
+# Step 2: Fetch all results (can also be called in parallel)
+result1 = ai_fetch(job1)
+result2 = ai_fetch(job2)
+result3 = ai_fetch(job3)
 ```
+
+**Important:** `ai_run` blocks until completion. For true parallelism, always use
+`ai_spawn` to start jobs, then `ai_fetch` to collect results.
 
 ### Code Review
 
@@ -157,7 +171,9 @@ messages = ai_receive(job, since=0)
 
 ## Tool Parameters
 
-### ai_run (recommended)
+### ai_run (single job, synchronous)
+
+Use for single jobs. **Blocks until completion** - not suitable for parallel execution.
 
 | Parameter | Type | Default  | Description                    |
 | --------- | ---- | -------- | ------------------------------ |
@@ -167,7 +183,9 @@ messages = ai_receive(job, since=0)
 | files     | list | []       | Files to include as context    |
 | timeout   | int  | 600      | Max wait time in seconds       |
 
-### ai_spawn (async)
+### ai_spawn (async, for parallel execution)
+
+Use for parallel jobs. Returns immediately - use `ai_fetch` to get results.
 
 | Parameter | Type | Default  | Description                    |
 | --------- | ---- | -------- | ------------------------------ |
@@ -275,7 +293,7 @@ When spawning any agent, include:
 
 ### Good Prompt Example
 
-```
+```text
 Review the authentication module for security vulnerabilities.
 
 Focus on: src/auth/*.py
@@ -285,7 +303,7 @@ Constraints: This is a read-only review - identify issues only, do not suggest c
 
 ### Bad Prompt Example
 
-```
+```text
 Look at the code and tell me what you think
 ```
 
@@ -306,6 +324,7 @@ result = ai_run(
 ```
 
 This handles everything:
+
 - Creates tmux window with TUI (visible to user)
 - Runs `orchestrator run` directly (no shell wrapper)
 - Waits for completion
