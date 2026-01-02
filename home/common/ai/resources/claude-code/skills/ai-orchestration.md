@@ -25,17 +25,18 @@ Claude Code is the **orchestrator**. When spawning AI agents:
 
 ## Quick Reference
 
-| Tool         | Purpose                                        |
-| ------------ | ---------------------------------------------- |
-| `ai_spawn`   | Start async AI job, returns job_id immediately |
-| `ai_fetch`   | Get job result (blocking or non-blocking)      |
-| `ai_stream`  | Get incremental streaming output               |
-| `ai_ask`     | Sync query (spawn + wait in one call)          |
-| `ai_send`    | Send message to a job (inter-agent messaging)  |
-| `ai_receive` | Get messages for a job                         |
-| `ai_review`  | Code review via AI CLI                         |
-| `ai_search`  | Web search via gemini or claude                |
-| `ai_list`    | List jobs in current session                   |
+| Tool         | Purpose                                            |
+| ------------ | -------------------------------------------------- |
+| `ai_run`     | **Recommended** - Run job, wait, return result     |
+| `ai_spawn`   | Start async AI job, returns job_id immediately     |
+| `ai_fetch`   | Get job result (blocking or non-blocking)          |
+| `ai_stream`  | Get incremental streaming output                   |
+| `ai_ask`     | Sync query (uses ai_spawn internally)              |
+| `ai_send`    | Send message to a job (inter-agent messaging)      |
+| `ai_receive` | Get messages for a job                             |
+| `ai_review`  | Code review via AI CLI                             |
+| `ai_search`  | Web search via gemini or claude                    |
+| `ai_list`    | List jobs in current session                       |
 
 ## When to Use External Models
 
@@ -59,7 +60,7 @@ Claude Code is the **orchestrator**. When spawning AI agents:
 
 ```python
 # Ask a single model and wait for response
-result = ai_ask(
+result = ai_run(
     prompt="What's the best way to handle rate limiting in Python?",
     cli="claude"  # or "codex" or "gemini"
 )
@@ -67,13 +68,13 @@ result = ai_ask(
 
 ### Second Opinion (Parallel)
 
-Call `ai_ask` multiple times in parallel to get perspectives from different models:
+Call `ai_run` multiple times in parallel to get perspectives from different models:
 
 ```python
 # Claude Code calls these in parallel
-response1 = ai_ask(prompt="Should I use Redis or PostgreSQL for sessions?", cli="claude")
-response2 = ai_ask(prompt="Should I use Redis or PostgreSQL for sessions?", cli="codex")
-response3 = ai_ask(prompt="Should I use Redis or PostgreSQL for sessions?", cli="gemini")
+response1 = ai_run(prompt="Should I use Redis or PostgreSQL for sessions?", cli="claude")
+response2 = ai_run(prompt="Should I use Redis or PostgreSQL for sessions?", cli="codex")
+response3 = ai_run(prompt="Should I use Redis or PostgreSQL for sessions?", cli="gemini")
 ```
 
 ### Code Review
@@ -156,7 +157,17 @@ messages = ai_receive(job, since=0)
 
 ## Tool Parameters
 
-### ai_spawn
+### ai_run (recommended)
+
+| Parameter | Type | Default  | Description                    |
+| --------- | ---- | -------- | ------------------------------ |
+| prompt    | str  | required | The question/task              |
+| cli       | str  | "claude" | "claude", "codex", or "gemini" |
+| model     | str  | ""       | Optional model override        |
+| files     | list | []       | Files to include as context    |
+| timeout   | int  | 600      | Max wait time in seconds       |
+
+### ai_spawn (async)
 
 | Parameter | Type | Default  | Description                    |
 | --------- | ---- | -------- | ------------------------------ |
@@ -280,36 +291,51 @@ Look at the code and tell me what you think
 
 ## Running Orchestrator Commands
 
-**IMPORTANT:** When using the orchestrator from Claude Code, follow these rules:
+**IMPORTANT:** Always use MCP tools, never Bash or the `orchestrator` CLI directly.
 
-### For `orchestrator run` (TUI mode)
+### Recommended: Use `ai_run`
 
-1. **Use tmux tools**, not `tmux_run_and_read`:
-   ```python
-   # Create a window and send the command
-   window = tmux_new_window(command="fish", name="job-name")
-   tmux_send(target=window, text="orchestrator run --cli codex ...")
-   tmux_wait_idle(target=window, idle_seconds=5, timeout=120)
-   ```
+The simplest way to run an AI job:
 
-2. **Never capture TUI output** - it's binary/escape-heavy and huge
-3. **Use `ai_fetch` for results**:
-   ```python
-   result = ai_fetch(job_id="your_job_id", block=False)
-   ```
+```python
+# Run synchronously - creates window, waits, returns result
+result = ai_run(
+    prompt="Review this code for security issues",
+    cli="codex"  # or "claude" or "gemini"
+)
+```
 
-### For ALL orchestrator operations
+This handles everything:
+- Creates tmux window with TUI (visible to user)
+- Runs `orchestrator run` directly (no shell wrapper)
+- Waits for completion
+- Returns result from database
 
-**Always use MCP tools, never Bash:**
+### MCP Tool Equivalents
 
-| CLI Command            | Use MCP Tool Instead      |
-| ---------------------- | ------------------------- |
-| `orchestrator run`     | tmux_send + ai_fetch      |
-| `orchestrator status`  | `ai_fetch(job_id)`        |
-| `orchestrator jobs`    | `ai_list()`               |
-| `orchestrator stream`  | `ai_stream(job_id)`       |
-| `orchestrator kill`    | `tmux_kill(window_id)`    |
-| `orchestrator cleanup` | N/A (manual only)         |
+| CLI Command            | Use MCP Tool Instead       |
+| ---------------------- | -------------------------- |
+| `orchestrator run`     | `ai_run()` ← **use this**  |
+| `orchestrator status`  | `ai_fetch(job_id)`         |
+| `orchestrator jobs`    | `ai_list()`                |
+| `orchestrator stream`  | `ai_stream(job_id)`        |
+| `orchestrator kill`    | `tmux_kill(window_id)`     |
+| `orchestrator cleanup` | N/A (manual only)          |
+
+### Async Pattern (if needed)
+
+For long-running jobs where you need to do other work:
+
+```python
+# Start job asynchronously
+spawn_result = ai_spawn(prompt="Long analysis...", cli="claude")
+job_id = json.loads(spawn_result)["job_id"]
+
+# Do other work...
+
+# Later, fetch result
+result = ai_fetch(job_id, block=True)
+```
 
 ## Tips
 

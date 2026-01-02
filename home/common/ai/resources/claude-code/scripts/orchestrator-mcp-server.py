@@ -906,6 +906,142 @@ def run_job_in_tmux(job: Job, log_intermediary: bool = False, auto_close: bool =
 
 
 @mcp.tool()
+def ai_run(
+    prompt: str,
+    cli: str = "claude",
+    model: str = "",
+    files: list = None,
+    timeout: int = 600
+) -> str:
+    """
+    Run an AI CLI job synchronously and return the result.
+
+    Creates a tmux window, runs orchestrator directly (no shell), waits for
+    completion, and returns the result. This is the recommended way to run
+    AI jobs from Claude Code.
+
+    Args:
+        prompt: The question/task for the AI
+        cli: Which CLI to use - "claude", "codex", or "gemini"
+        model: Optional model override (CLI-specific)
+        files: Optional list of files to include as context
+        timeout: Max seconds to wait for completion (default: 600)
+
+    Returns:
+        JSON with job_id, status, and result
+    """
+    files = files or []
+
+    if cli not in SUPPORTED_CLIS:
+        raise ValueError(f"Unsupported CLI: {cli}. Use one of: {SUPPORTED_CLIS}")
+
+    if not check_cli_available(cli):
+        raise RuntimeError(f"CLI '{cli}' not found in PATH")
+
+    require_tmux()
+    init_db()
+
+    session_id = get_current_session()
+    job_id = f"job_{uuid.uuid4().hex[:12]}"
+
+    # Create job entry first
+    job = Job(
+        id=job_id,
+        session_id=session_id,
+        cli=cli,
+        prompt=prompt,
+        status="running",
+        model=model,
+        files=files
+    )
+    save_job(job)
+
+    # Build orchestrator run command
+    runner_cmd = [
+        "orchestrator", "run",
+        "--cli", cli,
+        "--job-id", job_id,
+    ]
+    if model:
+        runner_cmd.extend(["--model", model])
+    for f in files:
+        runner_cmd.extend(["--files", f])
+    runner_cmd.append(prompt)
+
+    # Create window name
+    task_keywords = ["review", "analyze", "fix", "debug", "explain", "search", "find", "check", "test", "build"]
+    prompt_lower = prompt.lower()
+    task_hint = "task"
+    for kw in task_keywords:
+        if kw in prompt_lower:
+            task_hint = kw
+            break
+    window_name = f"{cli} {task_hint} {job_id[-6:]}"
+
+    # Create tmux window running orchestrator directly (no shell wrapper)
+    # orchestrator run will exit when done, closing the window
+    args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name] + runner_cmd
+    output, code = run_tmux(*args)
+
+    if code != 0:
+        job.status = "failed"
+        job.result = f"Error creating tmux window: {output}"
+        save_job(job)
+        return json.dumps({
+            "job_id": job_id,
+            "status": "failed",
+            "result": job.result
+        })
+
+    window_id = output.strip()
+    job.window_id = window_id
+    save_job(job)
+
+    # Wait for window to close (orchestrator exits on completion)
+    start = time.time()
+    while time.time() - start < timeout:
+        exists, error = window_exists(window_id)
+        if error:
+            # tmux error - try to continue
+            break
+        if not exists:
+            # Window closed - command finished
+            break
+        time.sleep(1)
+    else:
+        # Timeout - kill window and return error
+        run_tmux("kill-window", "-t", window_id)
+        job.status = "failed"
+        job.result = f"Timeout after {timeout}s"
+        save_job(job)
+        return json.dumps({
+            "job_id": job_id,
+            "status": "timeout",
+            "result": job.result
+        })
+
+    # Small delay to ensure orchestrator CLI has written final results
+    time.sleep(0.5)
+
+    # Fetch result from database (orchestrator CLI updated it)
+    updated_job = get_job(job_id, session_id)
+    if updated_job:
+        messages = get_messages(job_id)
+        return json.dumps({
+            "job_id": job_id,
+            "status": updated_job.status,
+            "result": updated_job.result,
+            "messages": [asdict(m) for m in messages]
+        }, indent=2)
+    else:
+        return json.dumps({
+            "job_id": job_id,
+            "status": "unknown",
+            "result": "Job not found after completion"
+        })
+
+
+@mcp.tool()
 def ai_spawn(
     prompt: str,
     cli: str = "claude",
