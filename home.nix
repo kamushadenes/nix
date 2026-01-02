@@ -45,15 +45,17 @@ in
     ./home/common/shell/starship.nix
     ./home/common/shell/tmux.nix
 
+    # AI Agents
+    ./home/common/ai/claude-code.nix
+    ./home/common/ai/codex-cli.nix
+    ./home/common/ai/gemini-cli.nix
+
     # Development
     ./home/common/dev/android.nix
     ./home/common/dev/clang.nix
-    ./home/common/dev/claude-code.nix
     ./home/common/dev/clojure.nix
-    ./home/common/dev/codex-cli.nix
     ./home/common/dev/dev.nix
     ./home/common/dev/embedded.nix
-    ./home/common/dev/gemini-cli.nix
     ./home/common/dev/go.nix
     ./home/common/dev/java.nix
     ./home/common/dev/lazygit.nix
