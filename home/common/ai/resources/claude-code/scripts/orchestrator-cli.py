@@ -10,18 +10,386 @@ Commands:
     messages    Show messages for a job
     stream      Tail streaming output from a job
     cleanup     Remove expired/completed jobs
+    run         Run an AI CLI with TUI output (for tmux windows)
 """
 import argparse
+import asyncio
 import json
 import os
+import shlex
+import shutil
 import signal
 import sqlite3
+import subprocess
 import sys
 import time
+import uuid
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
+
+# TUI imports (optional - deferred import for run command)
+_textual_available = False
+try:
+    from textual.app import App, ComposeResult
+    from textual.containers import Container
+    from textual.widgets import Static, RichLog
+    from textual.reactive import reactive
+    from rich.text import Text
+    _textual_available = True
+except ImportError:
+    pass
 
 DB_PATH = Path.home() / ".config" / "orchestrator-mcp" / "state.db"
+
+# ANSI color codes for terminal output
+COLORS = {
+    "reset": "\033[0m",
+    "bold": "\033[1m",
+    "dim": "\033[2m",
+    "blue": "\033[34m",
+    "green": "\033[32m",
+    "yellow": "\033[33m",
+    "cyan": "\033[36m",
+    "magenta": "\033[35m",
+    "red": "\033[31m",
+}
+
+AUTO_CLOSE_DELAY = 5  # seconds to wait before closing window
+
+
+@dataclass
+class ParsedMessage:
+    """Parsed message from CLI JSON output."""
+    cli: str                    # Source CLI
+    msg_type: str              # "final", "reasoning", "assistant", "system", "tool"
+    content: str               # Message text
+    is_final: bool             # True for final result
+    role: str = ""             # Role (assistant, user, system)
+    tool_name: str = ""        # Current tool being used (if any)
+    timestamp: float = field(default_factory=time.time)
+    raw: dict = field(default_factory=dict)  # Original JSON for debugging
+
+
+def _parse_claude_json(data: dict) -> Optional[ParsedMessage]:
+    """Parse Claude JSON output.
+
+    Claude format:
+    - type: "result" with result field -> final
+    - type: "assistant" -> intermediary
+    - type: "tool_use" -> tool being used
+    """
+    msg_type = data.get("type", "")
+
+    if msg_type == "result":
+        # Final result
+        result = data.get("result", "")
+        if isinstance(result, dict):
+            result = result.get("text", str(result))
+        return ParsedMessage(
+            cli="claude",
+            msg_type="final",
+            content=str(result),
+            is_final=True,
+            role="assistant",
+            raw=data
+        )
+
+    elif msg_type == "assistant":
+        # Intermediary assistant message
+        content = data.get("message", {})
+        if isinstance(content, dict):
+            content = content.get("content", "")
+            if isinstance(content, list):
+                # Extract text from content blocks
+                texts = []
+                for block in content:
+                    if isinstance(block, dict):
+                        if block.get("type") == "text":
+                            texts.append(block.get("text", ""))
+                        elif block.get("type") == "tool_use":
+                            texts.append(f"[Using tool: {block.get('name', 'unknown')}]")
+                content = "\n".join(texts)
+        return ParsedMessage(
+            cli="claude",
+            msg_type="assistant",
+            content=str(content),
+            is_final=False,
+            role="assistant",
+            raw=data
+        )
+
+    elif msg_type == "tool_use":
+        # Tool being used
+        tool_name = data.get("name", "unknown")
+        return ParsedMessage(
+            cli="claude",
+            msg_type="tool",
+            content=f"Using: {tool_name}",
+            is_final=False,
+            tool_name=tool_name,
+            raw=data
+        )
+
+    elif msg_type == "content_block_delta":
+        # Streaming content
+        delta = data.get("delta", {})
+        if delta.get("type") == "text_delta":
+            return ParsedMessage(
+                cli="claude",
+                msg_type="assistant",
+                content=delta.get("text", ""),
+                is_final=False,
+                role="assistant",
+                raw=data
+            )
+
+    return None
+
+
+def _parse_codex_json(data: dict) -> Optional[ParsedMessage]:
+    """Parse Codex JSON output (JSONL format).
+
+    Codex format:
+    - type: "item.completed" with item.type: "agent_message" -> assistant message (last is final)
+    - type: "item.completed" with item.type: "reasoning" -> thinking/reasoning
+    """
+    msg_type = data.get("type", "")
+
+    if msg_type == "item.completed":
+        item = data.get("item", {})
+        item_type = item.get("type", "")
+
+        if item_type == "agent_message":
+            content = item.get("content", "")
+            if isinstance(content, list):
+                texts = []
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        texts.append(block.get("text", ""))
+                content = "\n".join(texts)
+            return ParsedMessage(
+                cli="codex",
+                msg_type="assistant",
+                content=str(content),
+                is_final=False,  # Will mark last one as final later
+                role="assistant",
+                raw=data
+            )
+
+        elif item_type == "reasoning":
+            content = item.get("content", "")
+            if isinstance(content, list):
+                texts = []
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        texts.append(block.get("text", ""))
+                content = "\n".join(texts)
+            return ParsedMessage(
+                cli="codex",
+                msg_type="reasoning",
+                content=str(content),
+                is_final=False,
+                role="assistant",
+                raw=data
+            )
+
+        elif item_type == "tool_use":
+            tool_name = item.get("name", "unknown")
+            return ParsedMessage(
+                cli="codex",
+                msg_type="tool",
+                content=f"Using: {tool_name}",
+                is_final=False,
+                tool_name=tool_name,
+                raw=data
+            )
+
+    elif msg_type == "response.completed":
+        # Mark as complete but content already captured
+        return ParsedMessage(
+            cli="codex",
+            msg_type="system",
+            content="[Response completed]",
+            is_final=True,
+            raw=data
+        )
+
+    return None
+
+
+def _parse_gemini_json(data: dict) -> Optional[ParsedMessage]:
+    """Parse Gemini JSON output.
+
+    Gemini format:
+    - type: "result" or single JSON with "response" field -> final
+    - type: "message" with role: "assistant" -> intermediary
+    """
+    msg_type = data.get("type", "")
+
+    if msg_type == "result":
+        # Final result
+        content = data.get("response", data.get("text", ""))
+        return ParsedMessage(
+            cli="gemini",
+            msg_type="final",
+            content=str(content),
+            is_final=True,
+            role="assistant",
+            raw=data
+        )
+
+    elif msg_type == "message":
+        role = data.get("role", "")
+        content = data.get("content", "")
+        if isinstance(content, list):
+            texts = []
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    texts.append(block.get("text", ""))
+            content = "\n".join(texts)
+        return ParsedMessage(
+            cli="gemini",
+            msg_type="assistant" if role == "assistant" else "system",
+            content=str(content),
+            is_final=False,
+            role=role,
+            raw=data
+        )
+
+    # Single-object response format
+    if "response" in data:
+        return ParsedMessage(
+            cli="gemini",
+            msg_type="final",
+            content=str(data["response"]),
+            is_final=True,
+            role="assistant",
+            raw=data
+        )
+
+    return None
+
+
+def parse_cli_json_line(cli: str, line: str) -> Optional[ParsedMessage]:
+    """Parse a single JSON line from CLI output.
+
+    Returns ParsedMessage or None if line should be skipped.
+    """
+    line = line.strip()
+    if not line:
+        return None
+
+    try:
+        data = json.loads(line)
+    except json.JSONDecodeError:
+        # Not JSON, return as plain text
+        if line:
+            return ParsedMessage(
+                cli=cli,
+                msg_type="output",
+                content=line,
+                is_final=False,
+                raw={}
+            )
+        return None
+
+    if cli == "claude":
+        return _parse_claude_json(data)
+    elif cli == "codex":
+        return _parse_codex_json(data)
+    elif cli == "gemini":
+        return _parse_gemini_json(data)
+
+    return None
+
+
+def format_message_for_display(msg: ParsedMessage) -> str:
+    """Format a parsed message with ANSI colors for terminal display."""
+    c = COLORS
+
+    if msg.is_final:
+        # Final result: bold green header, normal content
+        header = f"{c['bold']}{c['green']}[FINAL]{c['reset']}"
+        content = msg.content
+    elif msg.msg_type == "reasoning":
+        # Reasoning/thinking: dimmed throughout
+        header = f"{c['dim']}[thinking]{c['reset']}"
+        content = f"{c['dim']}{msg.content}{c['reset']}"
+    elif msg.msg_type == "tool":
+        # Tool use: yellow header
+        header = f"{c['yellow']}[tool]{c['reset']}"
+        content = f"{c['yellow']}{msg.content}{c['reset']}"
+    elif msg.msg_type == "assistant":
+        # Assistant: cyan header
+        header = f"{c['cyan']}[assistant]{c['reset']}"
+        content = msg.content
+    elif msg.msg_type == "system":
+        # System messages: dim
+        header = f"{c['dim']}[system]{c['reset']}"
+        content = f"{c['dim']}{msg.content}{c['reset']}"
+    else:
+        # Other: no header, plain content
+        header = f"{c['blue']}[{msg.msg_type}]{c['reset']}"
+        content = msg.content
+
+    # Indent content lines
+    content_lines = content.split('\n')
+    formatted_content = '\n  '.join(content_lines)
+
+    return f"{header}\n  {formatted_content}\n"
+
+
+def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None) -> list[str]:
+    """Build command arguments for an AI CLI with JSON output enabled."""
+    files = files or []
+
+    if cli == "claude":
+        cmd = ["claude", "--print", "--output-format", "stream-json"]
+        if model:
+            cmd.extend(["--model", model])
+        # Claude only supports --add-dir for directories
+        dirs_added = set()
+        for f in files:
+            dir_path = os.path.dirname(f) if os.path.isfile(f) else f
+            if dir_path and dir_path not in dirs_added:
+                cmd.extend(["--add-dir", dir_path])
+                dirs_added.add(dir_path)
+        cmd.append(prompt)
+        return cmd
+
+    elif cli == "codex":
+        # ENFORCE read-only mode
+        cmd = ["codex", "exec", "-s", "read-only", "--json"]
+        if model:
+            cmd.extend(["--model", model])
+        cmd.append(prompt)
+        return cmd
+
+    elif cli == "gemini":
+        # ENFORCE sandbox mode
+        cmd = ["gemini", "--sandbox", "--output-format", "json"]
+        if model:
+            cmd.extend(["--model", model])
+        # Gemini uses @ syntax for files
+        file_refs = " ".join(f"@{f}" for f in files)
+        full_prompt = f"{file_refs} {prompt}".strip() if file_refs else prompt
+        cmd.append(full_prompt)
+        return cmd
+
+    else:
+        raise ValueError(f"Unsupported CLI: {cli}")
+
+
+def save_parsed_message_to_db(job_id: str, msg: ParsedMessage, conn: sqlite3.Connection):
+    """Save a parsed message to SQLite."""
+    msg_id = f"msg_{uuid.uuid4().hex[:12]}"
+    conn.execute("""
+        INSERT INTO messages (id, job_id, sender, content, msg_type, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (msg_id, job_id, msg.cli, msg.content, msg.msg_type, msg.timestamp))
+    conn.commit()
 
 
 def get_db_connection():
@@ -354,6 +722,299 @@ def cmd_cleanup(args):
 
 
 # =============================================================================
+# TUI Runner
+# =============================================================================
+
+
+def cmd_run(args):
+    """Run an AI CLI with TUI output."""
+    if _textual_available:
+        # Use Textual TUI
+        app = AIRunnerApp(
+            cli=args.cli,
+            prompt=args.prompt,
+            job_id=args.job_id,
+            model=args.model or "",
+            files=args.files or [],
+            log_intermediary=args.log_intermediary,
+            auto_close=args.auto_close
+        )
+        app.run()
+    else:
+        # Fallback: simple line-by-line output without TUI
+        cmd_run_simple(args)
+
+
+def cmd_run_simple(args):
+    """Run AI CLI with simple line-by-line output (fallback when textual not available)."""
+    c = COLORS
+    cli = args.cli
+    prompt = args.prompt
+    job_id = args.job_id
+    model = args.model or ""
+    files = args.files or []
+    log_intermediary = args.log_intermediary
+    auto_close = args.auto_close
+
+    # Print header
+    print(f"{c['bold']}[{cli}]{c['reset']} {prompt[:60]}{'...' if len(prompt) > 60 else ''}")
+    print(f"Job ID: {job_id}")
+    print("-" * 60)
+
+    # Build and run command
+    cmd = build_cli_command(cli, prompt, model, files)
+    start_time = time.time()
+    final_result = ""
+    last_assistant_msg = None
+
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
+        )
+
+        # Open DB connection for logging
+        conn = None
+        if DB_PATH.exists():
+            conn = sqlite3.connect(str(DB_PATH), timeout=10.0)
+            conn.row_factory = sqlite3.Row
+
+        try:
+            for line in proc.stdout:
+                msg = parse_cli_json_line(cli, line)
+                if msg:
+                    # Print formatted message
+                    print(format_message_for_display(msg), end='', flush=True)
+
+                    # Track final/last assistant message
+                    if msg.is_final:
+                        final_result = msg.content
+                    elif msg.msg_type == "assistant":
+                        last_assistant_msg = msg
+
+                    # Log to SQLite
+                    if conn and (msg.is_final or log_intermediary):
+                        save_parsed_message_to_db(job_id, msg, conn)
+
+            proc.wait()
+            exit_code = proc.returncode
+            status = "completed" if exit_code == 0 else "failed"
+
+            # Use last assistant message as result if no explicit final
+            if not final_result and last_assistant_msg:
+                final_result = last_assistant_msg.content
+
+            # Update job status in database
+            if conn:
+                conn.execute(
+                    "UPDATE jobs SET status = ?, result = ? WHERE id = ?",
+                    (status, final_result, job_id)
+                )
+                conn.commit()
+
+            duration = int(time.time() - start_time)
+            print(f"\n{c['bold']}Status:{c['reset']} {status} ({duration}s)")
+
+        finally:
+            if conn:
+                conn.close()
+
+    except Exception as e:
+        print(f"{c['red']}Error: {e}{c['reset']}", file=sys.stderr)
+        return
+
+    # Auto-close delay
+    if auto_close:
+        print(f"\n{c['green']}Window closing in {AUTO_CLOSE_DELAY}s...{c['reset']}")
+        time.sleep(AUTO_CLOSE_DELAY)
+
+
+# Textual TUI App (only defined if textual is available)
+if _textual_available:
+    class AIRunnerApp(App):
+        """TUI for AI CLI output with sticky header and scrollable output."""
+
+        CSS = """
+        #header-box {
+            dock: top;
+            height: 3;
+            background: $surface;
+            border-bottom: solid $primary;
+            padding: 0 1;
+        }
+        #prompt-line {
+            color: $text;
+        }
+        #status-line {
+            color: $text-muted;
+        }
+        #output {
+            height: 1fr;
+            scrollbar-gutter: stable;
+        }
+        """
+
+        status = reactive("running")
+        role = reactive("assistant")
+        current_tool = reactive("")
+        duration = reactive(0)
+
+        def __init__(
+            self,
+            cli: str,
+            prompt: str,
+            job_id: str,
+            model: str = "",
+            files: list = None,
+            log_intermediary: bool = False,
+            auto_close: bool = True,
+            **kwargs
+        ):
+            super().__init__(**kwargs)
+            self.cli = cli
+            self.prompt = prompt
+            self.job_id = job_id
+            self.model = model
+            self.files = files or []
+            self.log_intermediary = log_intermediary
+            self.auto_close = auto_close
+            self.start_time = time.time()
+            self.final_result = ""
+            self.last_assistant_msg = None
+            self.exit_code = None
+
+        def compose(self) -> ComposeResult:
+            prompt_display = self.prompt[:60] + "..." if len(self.prompt) > 60 else self.prompt
+            yield Container(
+                Static(f"[bold][{self.cli}][/bold] {prompt_display}", id="prompt-line"),
+                Static("", id="status-line"),
+                id="header-box"
+            )
+            yield RichLog(id="output", highlight=True, markup=True)
+
+        def on_mount(self):
+            # Start CLI subprocess in background worker
+            self.run_worker(self._run_cli, thread=True)
+            # Update header every second
+            self.set_interval(1, self._update_header)
+
+        def _update_header(self):
+            self.duration = int(time.time() - self.start_time)
+            status_line = self.query_one("#status-line", Static)
+            tool_info = f" │ Tool: {self.current_tool}" if self.current_tool else ""
+            status_line.update(
+                f"Status: {self.status} │ Role: {self.role}{tool_info} │ {self.duration}s"
+            )
+
+        def _run_cli(self):
+            """Run the CLI command and stream output."""
+            cmd = build_cli_command(self.cli, self.prompt, self.model, self.files)
+            output_log = self.query_one("#output", RichLog)
+
+            # Open DB connection
+            conn = None
+            if DB_PATH.exists():
+                conn = sqlite3.connect(str(DB_PATH), timeout=10.0)
+                conn.row_factory = sqlite3.Row
+
+            try:
+                proc = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1
+                )
+
+                for line in proc.stdout:
+                    msg = parse_cli_json_line(self.cli, line)
+                    if msg:
+                        # Update reactive properties
+                        if msg.role:
+                            self.role = msg.role
+                        if msg.tool_name:
+                            self.current_tool = msg.tool_name
+                        elif msg.msg_type != "tool":
+                            self.current_tool = ""
+
+                        # Track final result
+                        if msg.is_final:
+                            self.final_result = msg.content
+                        elif msg.msg_type == "assistant":
+                            self.last_assistant_msg = msg
+
+                        # Format and display
+                        formatted = self._format_for_rich(msg)
+                        self.call_from_thread(output_log.write, formatted)
+
+                        # Log to SQLite
+                        if conn and (msg.is_final or self.log_intermediary):
+                            save_parsed_message_to_db(self.job_id, msg, conn)
+
+                proc.wait()
+                self.exit_code = proc.returncode
+                self.status = "completed" if self.exit_code == 0 else "failed"
+
+                # Use last assistant message if no final
+                if not self.final_result and self.last_assistant_msg:
+                    self.final_result = self.last_assistant_msg.content
+
+                # Update job in database
+                if conn:
+                    conn.execute(
+                        "UPDATE jobs SET status = ?, result = ? WHERE id = ?",
+                        (self.status, self.final_result, self.job_id)
+                    )
+                    conn.commit()
+
+            except Exception as e:
+                self.status = "failed"
+                self.call_from_thread(output_log.write, f"[red]Error: {e}[/red]")
+
+            finally:
+                if conn:
+                    conn.close()
+
+            # Wait then exit if auto_close
+            if self.auto_close:
+                self.call_from_thread(
+                    output_log.write,
+                    f"\n[green]Window closing in {AUTO_CLOSE_DELAY}s...[/green]"
+                )
+                time.sleep(AUTO_CLOSE_DELAY)
+                self.call_from_thread(self.exit)
+
+        def _format_for_rich(self, msg: ParsedMessage) -> Text:
+            """Format message using Rich Text for the TUI."""
+            text = Text()
+
+            if msg.is_final:
+                text.append("[FINAL]", style="bold green")
+                text.append("\n  " + msg.content.replace("\n", "\n  "))
+            elif msg.msg_type == "reasoning":
+                text.append("[thinking]", style="dim")
+                text.append("\n  " + msg.content.replace("\n", "\n  "), style="dim")
+            elif msg.msg_type == "tool":
+                text.append("[tool]", style="yellow")
+                text.append("\n  " + msg.content.replace("\n", "\n  "), style="yellow")
+            elif msg.msg_type == "assistant":
+                text.append("[assistant]", style="cyan")
+                text.append("\n  " + msg.content.replace("\n", "\n  "))
+            elif msg.msg_type == "system":
+                text.append("[system]", style="dim")
+                text.append("\n  " + msg.content.replace("\n", "\n  "), style="dim")
+            else:
+                text.append(f"[{msg.msg_type}]", style="blue")
+                text.append("\n  " + msg.content.replace("\n", "\n  "))
+
+            text.append("\n")
+            return text
+
+
+# =============================================================================
 # Main
 # =============================================================================
 
@@ -403,6 +1064,22 @@ def main():
     cleanup_parser.add_argument('--all', action='store_true', help='Remove all completed/failed')
     cleanup_parser.add_argument('--age', type=int, default=1, help='Max age in hours (default: 1)')
     cleanup_parser.set_defaults(func=cmd_cleanup)
+
+    # run (TUI runner for tmux windows)
+    run_parser = subparsers.add_parser('run', help='Run AI CLI with TUI output')
+    run_parser.add_argument('prompt', help='Prompt to send to the AI')
+    run_parser.add_argument('--cli', required=True, choices=['claude', 'codex', 'gemini'],
+                           help='Which AI CLI to use')
+    run_parser.add_argument('--job-id', required=True, help='Job ID for tracking')
+    run_parser.add_argument('--model', help='Model override')
+    run_parser.add_argument('--files', action='append', help='Files to include (can repeat)')
+    run_parser.add_argument('--log-intermediary', action='store_true',
+                           help='Log intermediary messages to SQLite')
+    run_parser.add_argument('--auto-close', action='store_true', default=True,
+                           help='Auto-close window after completion (default: true)')
+    run_parser.add_argument('--no-auto-close', action='store_false', dest='auto_close',
+                           help='Keep window open after completion')
+    run_parser.set_defaults(func=cmd_run)
 
     args = parser.parse_args()
 

@@ -786,16 +786,38 @@ def is_window_idle(window_id: str, idle_seconds: float = 2.0) -> bool:
     return current_cmd in shell_names
 
 
-def run_job_in_tmux(job: Job):
-    """Run a job's CLI command in a tmux window for visibility."""
+def run_job_in_tmux(job: Job, log_intermediary: bool = False, auto_close: bool = True):
+    """Run a job's CLI command in a tmux window using orchestrator TUI runner.
+
+    The orchestrator CLI handles:
+    - JSON output parsing
+    - Pretty-printing with colors
+    - TUI with sticky header and scrollable output
+    - SQLite logging of messages
+    - Auto-closing the window on completion
+    """
     try:
-        # Build the command
-        cmd_parts = build_cli_command(job.cli, job.prompt, job.model, job.files or [])
-        # Shell-escape and join for tmux send-keys
-        cmd_str = " ".join(shlex.quote(part) for part in cmd_parts)
+        # Build orchestrator run command
+        runner_cmd = [
+            "orchestrator", "run",
+            "--cli", job.cli,
+            "--job-id", job.id,
+        ]
+        if log_intermediary:
+            runner_cmd.append("--log-intermediary")
+        if not auto_close:
+            runner_cmd.append("--no-auto-close")
+        if job.model:
+            runner_cmd.extend(["--model", job.model])
+        for f in (job.files or []):
+            runner_cmd.extend(["--files", f])
+        # Prompt goes last
+        runner_cmd.append(job.prompt)
+
+        # Shell-escape for tmux send-keys
+        cmd_str = " ".join(shlex.quote(part) for part in runner_cmd)
 
         # Create a friendly window name: "cli task_hint id_suffix"
-        # Extract task hint from prompt (first action word like Review, Analyze, Fix, etc.)
         task_keywords = ["review", "analyze", "fix", "debug", "explain", "search", "find", "check", "test", "build"]
         prompt_lower = job.prompt.lower()
         task_hint = "task"
@@ -804,6 +826,8 @@ def run_job_in_tmux(job: Job):
                 task_hint = kw
                 break
         window_name = f"{job.cli} {task_hint} {job.id[-6:]}"
+
+        # Create window running a shell
         args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name, DEFAULT_SHELL]
         output, code = run_tmux(*args)
 
@@ -835,8 +859,17 @@ def run_job_in_tmux(job: Job):
             save_job(job)
             return
 
-        # Send the actual command
+        # Send the orchestrator run command
         run_tmux("send-keys", "-t", window_id, cmd_str, "Enter")
+
+        # The orchestrator CLI now handles everything:
+        # - Parsing JSON output
+        # - Pretty-printing
+        # - Updating the job status in SQLite
+        # - Auto-closing the window
+        #
+        # We just need to wait for the window to close (if auto_close)
+        # or for the command to finish.
 
         # Poll for completion (check every 2 seconds, timeout after 30 minutes)
         max_wait = 1800  # 30 minutes
@@ -850,37 +883,21 @@ def run_job_in_tmux(job: Job):
             # Check if window still exists
             list_output, list_code = run_tmux("list-windows", "-F", "#{window_id}")
             if window_id not in list_output:
-                # Window was killed
-                job.status = "failed"
-                job.result = "Window was closed before command completed"
-                save_job(job)
-                return
+                # Window was closed (either by auto_close or manually)
+                # The orchestrator CLI already updated the job status
+                break
 
             # Check if command finished (back to shell prompt)
             if is_window_idle(window_id):
+                # Command finished, wait a moment for final DB updates
+                time.sleep(1)
                 break
 
-        # Capture final output (large buffer for AI responses)
-        final_output, _ = run_tmux("capture-pane", "-t", window_id, "-p", "-S", "-10000")
-
-        # Remove the marker echo and command echo from output
-        lines = final_output.split("\n")
-        # Find where actual output starts (after our command)
-        output_lines = []
-        found_command = False
-        for line in lines:
-            if cmd_parts[0] in line and not found_command:
-                found_command = True
-                continue
-            if found_command:
-                output_lines.append(line)
-
-        result = "\n".join(output_lines).strip()
-
-        # Determine success based on whether we got output
-        job.status = "completed" if result else "completed"
-        job.result = result if result else "(no output captured)"
-        save_job(job)
+        # Refresh job status from database (orchestrator CLI updated it)
+        updated_job = get_job(job.id, job.session_id)
+        if updated_job:
+            job.status = updated_job.status
+            job.result = updated_job.result
 
     except Exception as e:
         job.status = "failed"
@@ -893,7 +910,9 @@ def ai_spawn(
     prompt: str,
     cli: str = "claude",
     model: str = "",
-    files: list = None
+    files: list = None,
+    log_intermediary: bool = False,
+    auto_close: bool = True
 ) -> str:
     """
     Start an async AI CLI job and return immediately.
@@ -903,6 +922,8 @@ def ai_spawn(
         cli: Which CLI to use - "claude", "codex", or "gemini"
         model: Optional model override (CLI-specific)
         files: Optional list of files to include as context
+        log_intermediary: Log intermediary messages to SQLite (default: False)
+        auto_close: Auto-close tmux window on completion (default: True)
 
     Returns:
         Job ID (e.g., "job_abc123") for use with ai_fetch/ai_stream
@@ -932,8 +953,13 @@ def ai_spawn(
     )
     save_job(job)
 
-    # Start background thread - runs in tmux window for visibility
-    thread = threading.Thread(target=run_job_in_tmux, args=(job,), daemon=True)
+    # Start background thread - runs in tmux window with TUI for visibility
+    thread = threading.Thread(
+        target=run_job_in_tmux,
+        args=(job,),
+        kwargs={"log_intermediary": log_intermediary, "auto_close": auto_close},
+        daemon=True
+    )
     thread.start()
 
     return json.dumps({
@@ -1036,7 +1062,8 @@ def ai_ask(
     prompt: str,
     cli: str = "claude",
     model: str = "",
-    files: list = None
+    files: list = None,
+    log_intermediary: bool = False
 ) -> str:
     """
     Synchronous AI query - spawns job and waits for result.
@@ -1046,11 +1073,12 @@ def ai_ask(
         cli: Which CLI to use - "claude", "codex", or "gemini"
         model: Optional model override
         files: Optional list of files to include as context
+        log_intermediary: Log intermediary messages to SQLite (default: False)
 
     Returns:
         JSON with job_id and result
     """
-    spawn_result = json.loads(ai_spawn(prompt, cli, model, files))
+    spawn_result = json.loads(ai_spawn(prompt, cli, model, files, log_intermediary, auto_close=True))
     job_id = spawn_result["job_id"]
     return ai_fetch(job_id, block=True, timeout=300)
 

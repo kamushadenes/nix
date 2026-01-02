@@ -21,15 +21,9 @@ let
   # Resource directories
   resourcesDir = ./resources/claude-code;
   scriptsDir = "${resourcesDir}/scripts";
-  skillsDir = "${resourcesDir}/skills";
   rulesDir = "${resourcesDir}/rules";
   memoryDir = "${resourcesDir}/memory";
   commandsDir = "${resourcesDir}/commands";
-
-  # Orchestrator CLI - wrapper that invokes the Python script
-  orchestratorCli = pkgs.writeShellScriptBin "orchestrator" ''
-    ${pkgs.python3}/bin/python3 ${config.home.homeDirectory}/.config/orchestrator-mcp/cli.py "$@"
-  '';
 
   # Read rule files from the rules directory
   ruleFiles = builtins.attrNames (builtins.readDir rulesDir);
@@ -70,14 +64,6 @@ in
     secretsDir = secretsDir;
     inherit private;
   };
-
-  #############################################################################
-  # Orchestrator CLI
-  #############################################################################
-
-  home.packages = [
-    orchestratorCli
-  ];
 
   #############################################################################
   # Claude Code Configuration (uses home-manager built-in module)
@@ -235,24 +221,7 @@ in
       executable = true;
     };
 
-    # Orchestrator MCP server - terminal automation + AI CLI orchestration
-    ".config/orchestrator-mcp/server.py" = {
-      source = "${scriptsDir}/orchestrator-mcp-server.py";
-      executable = true;
-    };
-
-    # Orchestrator CLI - for external monitoring
-    ".config/orchestrator-mcp/cli.py" = {
-      source = "${scriptsDir}/orchestrator-cli.py";
-      executable = true;
-    };
-
-    # Skills - teach Claude Code how to use MCP tools
-    ".claude/skills/automating-tmux-windows/SKILL.md".source =
-      "${skillsDir}/automating-tmux-windows.md";
-
-    # AI CLI orchestration skill - replaces PAL, claude-cli, codex-cli
-    ".claude/skills/ai-orchestration/SKILL.md".source = "${skillsDir}/ai-orchestration.md";
+    # Note: Orchestrator MCP server, CLI, and skills are now in orchestrator.nix
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)

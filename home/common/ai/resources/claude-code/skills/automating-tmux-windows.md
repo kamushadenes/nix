@@ -11,17 +11,17 @@ Control tmux windows programmatically: create windows, send commands, capture ou
 
 ## Quick Reference
 
-| Tool                           | Purpose                              |
-| ------------------------------ | ------------------------------------ |
-| `mcp__tmux__tmux_new_window`   | Create new window with command       |
-| `mcp__tmux__tmux_send`         | Send text/keys to window             |
-| `mcp__tmux__tmux_capture`      | Get window output                    |
-| `mcp__tmux__tmux_list`         | List windows (JSON)                  |
-| `mcp__tmux__tmux_kill`         | Close window                         |
-| `mcp__tmux__tmux_interrupt`    | Send Ctrl+C                          |
-| `mcp__tmux__tmux_wait_idle`    | Wait for idle (no output changes)    |
-| `mcp__tmux__tmux_select`       | Switch to window (bring to front)    |
-| `mcp__tmux__tmux_run_and_read` | Run command, wait, return file output|
+| Tool                           | Purpose                               |
+| ------------------------------ | ------------------------------------- |
+| `mcp__tmux__tmux_new_window`   | Create new window with command        |
+| `mcp__tmux__tmux_send`         | Send text/keys to window              |
+| `mcp__tmux__tmux_capture`      | Get window output                     |
+| `mcp__tmux__tmux_list`         | List windows (JSON)                   |
+| `mcp__tmux__tmux_kill`         | Close window                          |
+| `mcp__tmux__tmux_interrupt`    | Send Ctrl+C                           |
+| `mcp__tmux__tmux_wait_idle`    | Wait for idle (no output changes)     |
+| `mcp__tmux__tmux_select`       | Switch to window (bring to front)     |
+| `mcp__tmux__tmux_run_and_read` | Run command, wait, return file output |
 
 ## Window Identifiers
 
@@ -122,35 +122,35 @@ mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=2, timeout=120)
 
 ### tmux_new_window
 
-| Parameter | Type   | Default | Description                          |
-| --------- | ------ | ------- | ------------------------------------ |
-| `command` | string | "zsh"   | Command to run (auto shell-wrapped)  |
-| `name`    | string | ""      | Window name for status bar           |
+| Parameter | Type   | Default | Description                         |
+| --------- | ------ | ------- | ----------------------------------- |
+| `command` | string | "zsh"   | Command to run (auto shell-wrapped) |
+| `name`    | string | ""      | Window name for status bar          |
 
 ### tmux_run_and_read
 
-| Parameter | Type   | Default | Description                                         |
-| --------- | ------ | ------- | --------------------------------------------------- |
-| `command` | string | required| Command with `__OUTPUT_FILE__` placeholder          |
-| `name`    | string | ""      | Window name for status bar                          |
-| `timeout` | int    | 300     | Max seconds to wait                                 |
+| Parameter | Type   | Default  | Description                                |
+| --------- | ------ | -------- | ------------------------------------------ |
+| `command` | string | required | Command with `__OUTPUT_FILE__` placeholder |
+| `name`    | string | ""       | Window name for status bar                 |
+| `timeout` | int    | 300      | Max seconds to wait                        |
 
 The `__OUTPUT_FILE__` placeholder is replaced with an auto-generated `/tmp/tmux_output_<uuid>.txt` path.
 
 ### tmux_wait_idle
 
-| Parameter      | Type  | Default | Description                          |
-| -------------- | ----- | ------- | ------------------------------------ |
-| `target`       | string| required| Window ID (e.g., "@3")               |
-| `idle_seconds` | float | 2.0     | Seconds of no change = idle          |
-| `timeout`      | int   | 60      | Max seconds to wait                  |
+| Parameter      | Type   | Default  | Description                 |
+| -------------- | ------ | -------- | --------------------------- |
+| `target`       | string | required | Window ID (e.g., "@3")      |
+| `idle_seconds` | float  | 2.0      | Seconds of no change = idle |
+| `timeout`      | int    | 60       | Max seconds to wait         |
 
 ### tmux_capture
 
-| Parameter | Type   | Default | Description                          |
-| --------- | ------ | ------- | ------------------------------------ |
-| `target`  | string | required| Window ID (e.g., "@3")               |
-| `lines`   | int    | 100     | Lines to capture (max: 10000)        |
+| Parameter | Type   | Default  | Description                   |
+| --------- | ------ | -------- | ----------------------------- |
+| `target`  | string | required | Window ID (e.g., "@3")        |
+| `lines`   | int    | 100      | Lines to capture (max: 10000) |
 
 ## Safety
 

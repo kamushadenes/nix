@@ -11,34 +11,36 @@ Query external AI models (claude, codex, gemini) for second opinions, debugging,
 
 Claude Code is the **orchestrator**. When spawning AI agents:
 
-| CLI     | Role            | Mode      | Capabilities                          |
-|---------|-----------------|-----------|---------------------------------------|
-| claude  | Worker/Peer     | Full      | Can execute any tool/command          |
-| codex   | Reviewer        | Read-only | Code review, analysis, suggestions    |
-| gemini  | Researcher      | Read-only | Web search, documentation lookup      |
+| CLI    | Role        | Mode      | Capabilities                       |
+| ------ | ----------- | --------- | ---------------------------------- |
+| claude | Worker/Peer | Full      | Can execute any tool/command       |
+| codex  | Reviewer    | Read-only | Code review, analysis, suggestions |
+| gemini | Researcher  | Read-only | Web search, documentation lookup   |
 
 **Enforced by MCP server:**
+
 - Codex always runs with `-s read-only` (cannot modify files)
 - Gemini always runs with `--sandbox` (restricted environment)
 - Only Claude workers have full execution capabilities
 
 ## Quick Reference
 
-| Tool              | Purpose                                        |
-|-------------------|------------------------------------------------|
-| `ai_spawn`        | Start async AI job, returns job_id immediately |
-| `ai_fetch`        | Get job result (blocking or non-blocking)      |
-| `ai_stream`       | Get incremental streaming output               |
-| `ai_ask`          | Sync query (spawn + wait in one call)          |
-| `ai_send`         | Send message to a job (inter-agent messaging)  |
-| `ai_receive`      | Get messages for a job                         |
-| `ai_review`       | Code review via AI CLI                         |
-| `ai_search`       | Web search via gemini or claude                |
-| `ai_list`         | List jobs in current session                   |
+| Tool         | Purpose                                        |
+| ------------ | ---------------------------------------------- |
+| `ai_spawn`   | Start async AI job, returns job_id immediately |
+| `ai_fetch`   | Get job result (blocking or non-blocking)      |
+| `ai_stream`  | Get incremental streaming output               |
+| `ai_ask`     | Sync query (spawn + wait in one call)          |
+| `ai_send`    | Send message to a job (inter-agent messaging)  |
+| `ai_receive` | Get messages for a job                         |
+| `ai_review`  | Code review via AI CLI                         |
+| `ai_search`  | Web search via gemini or claude                |
+| `ai_list`    | List jobs in current session                   |
 
 ## When to Use External Models
 
 **Do use when:**
+
 - Stuck on a complex bug after initial investigation
 - Making architectural decisions with tradeoffs
 - Need validation before major refactoring
@@ -46,6 +48,7 @@ Claude Code is the **orchestrator**. When spawning AI agents:
 - Want diverse perspectives on approach
 
 **Don't use when:**
+
 - Simple, straightforward tasks
 - Already confident in approach
 - Just need to execute known solution
@@ -155,36 +158,36 @@ messages = ai_receive(job, since=0)
 
 ### ai_spawn
 
-| Parameter | Type   | Default   | Description                        |
-|-----------|--------|-----------|------------------------------------|
-| prompt    | str    | required  | The question/task                  |
-| cli       | str    | "claude"  | "claude", "codex", or "gemini"     |
-| model     | str    | ""        | Optional model override            |
-| files     | list   | []        | Files to include as context        |
+| Parameter | Type | Default  | Description                    |
+| --------- | ---- | -------- | ------------------------------ |
+| prompt    | str  | required | The question/task              |
+| cli       | str  | "claude" | "claude", "codex", or "gemini" |
+| model     | str  | ""       | Optional model override        |
+| files     | list | []       | Files to include as context    |
 
 ### ai_fetch
 
-| Parameter | Type   | Default | Description                      |
-|-----------|--------|---------|----------------------------------|
-| job_id    | str    | required| Job ID from ai_spawn             |
-| block     | bool   | true    | Wait for completion              |
-| timeout   | int    | 300     | Max wait time in seconds         |
+| Parameter | Type | Default  | Description              |
+| --------- | ---- | -------- | ------------------------ |
+| job_id    | str  | required | Job ID from ai_spawn     |
+| block     | bool | true     | Wait for completion      |
+| timeout   | int  | 300      | Max wait time in seconds |
 
 ### ai_stream
 
-| Parameter | Type   | Default | Description                      |
-|-----------|--------|---------|----------------------------------|
-| job_id    | str    | required| Job ID to stream from            |
-| offset    | int    | 0       | Byte offset for incremental read |
+| Parameter | Type | Default  | Description                      |
+| --------- | ---- | -------- | -------------------------------- |
+| job_id    | str  | required | Job ID to stream from            |
+| offset    | int  | 0        | Byte offset for incremental read |
 
 ### ai_review
 
-| Parameter   | Type   | Default | Description                      |
-|-------------|--------|---------|----------------------------------|
-| cli         | str    | "codex" | "codex" (native), "claude", "gemini" |
-| uncommitted | bool   | true    | Review uncommitted changes       |
-| base        | str    | ""      | Branch to compare against        |
-| focus       | str    | ""      | "security", "performance", "quality" |
+| Parameter   | Type | Default | Description                          |
+| ----------- | ---- | ------- | ------------------------------------ |
+| cli         | str  | "codex" | "codex" (native), "claude", "gemini" |
+| uncommitted | bool | true    | Review uncommitted changes           |
+| base        | str  | ""      | Branch to compare against            |
+| focus       | str  | ""      | "security", "performance", "quality" |
 
 ## Multi-Model Patterns
 
@@ -220,6 +223,7 @@ review3 = ai_review(cli="gemini", uncommitted=True, focus="security")
 ## Session Isolation
 
 Jobs are scoped to the current tmux session:
+
 - Different workspaces have isolated job namespaces
 - Jobs from session A cannot see/access jobs from session B
 - Use `ai_list()` to see jobs in your current session
