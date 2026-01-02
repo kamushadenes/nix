@@ -1049,7 +1049,7 @@ class AIRunnerApp(App):
         self.auto_close = auto_close
         self.start_time = time.time()
         self.final_result = ""
-        self.last_assistant_msg = None
+        self.assistant_messages = []  # Collect all assistant messages
         self.exit_code = None
         self.json_buffer = JsonBuffer()
 
@@ -1143,11 +1143,9 @@ class AIRunnerApp(App):
                     elif msg.msg_type != "tool":
                         self.current_tool = ""
 
-                    # Track final result
-                    if msg.is_final:
-                        self.final_result = msg.content
-                    elif msg.msg_type == "assistant":
-                        self.last_assistant_msg = msg
+                    # Collect assistant messages for final result
+                    if msg.msg_type == "assistant" and msg.content:
+                        self.assistant_messages.append(msg.content)
 
                     # Format and display with markdown support
                     formatted = self._format_for_rich(msg)
@@ -1161,9 +1159,9 @@ class AIRunnerApp(App):
             self.exit_code = proc.returncode
             self.status = "completed" if self.exit_code == 0 else "failed"
 
-            # Use last assistant message if no final
-            if not self.final_result and self.last_assistant_msg:
-                self.final_result = self.last_assistant_msg.content
+            # Combine all assistant messages as final result
+            if self.assistant_messages:
+                self.final_result = "\n\n".join(self.assistant_messages)
 
             # Update job in database
             if conn:
