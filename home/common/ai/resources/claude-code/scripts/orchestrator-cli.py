@@ -193,120 +193,79 @@ def _extract_text_from_content(content) -> str:
 def _parse_codex_json(data: dict) -> Optional[ParsedMessage]:
     """Parse Codex JSON output (JSONL format).
 
-    Codex format (from codex --json):
-    - type: "message" with role/content -> assistant messages
-    - type: "reasoning" -> thinking/reasoning content
-    - type: "function_call" -> tool being used
-    - type: "response.completed" -> final marker
-    - item.type variants in nested structures
+    Actual Codex format (from codex --json):
+    - type: "thread.started" -> session start
+    - type: "turn.started" -> turn start
+    - type: "item.completed" with item.type: "reasoning", item.text -> thinking
+    - type: "item.completed" with item.type: "agent_message", item.text -> assistant
+    - type: "item.completed" with item.type: "function_call" -> tool use
+    - type: "turn.completed" -> final marker with usage stats
     """
     msg_type = data.get("type", "")
 
-    # Handle message type (common format)
-    if msg_type == "message":
-        role = data.get("role", "assistant")
-        content = _extract_text_from_content(data.get("content", ""))
-
-        if content:
-            return ParsedMessage(
-                cli="codex",
-                msg_type="assistant" if role == "assistant" else "system",
-                content=content,
-                is_final=False,
-                role=role,
-                raw=data
-            )
-
-    # Handle reasoning/thinking - can have summary field
-    if msg_type == "reasoning":
-        # Try multiple content locations
-        content = (
-            _extract_text_from_content(data.get("content")) or
-            _extract_text_from_content(data.get("text")) or
-            _extract_text_from_content(data.get("summary")) or
-            ""
-        )
-        # Also check for nested summary array
-        if not content and "summary" in data:
-            summary = data["summary"]
-            if isinstance(summary, list):
-                content = "\n".join(
-                    s.get("text", str(s)) if isinstance(s, dict) else str(s)
-                    for s in summary
-                )
-            elif isinstance(summary, str):
-                content = summary
-
-        if content:
-            return ParsedMessage(
-                cli="codex",
-                msg_type="reasoning",
-                content=content,
-                is_final=False,
-                role="assistant",
-                raw=data
-            )
-
-    # Handle function calls (tool use)
-    if msg_type == "function_call":
-        tool_name = data.get("name", data.get("function", {}).get("name", "unknown"))
-        args = data.get("arguments", data.get("args", ""))
+    # Session/turn markers (informational)
+    if msg_type == "thread.started":
+        thread_id = data.get("thread_id", "")
         return ParsedMessage(
             cli="codex",
-            msg_type="tool",
-            content=f"Using: {tool_name}",
+            msg_type="system",
+            content=f"Session started: {thread_id[:8]}..." if thread_id else "Session started",
             is_final=False,
-            tool_name=tool_name,
             raw=data
         )
 
-    # Handle function call output
-    if msg_type == "function_call_output":
-        output = _extract_text_from_content(data.get("output", ""))
-        if output:
-            return ParsedMessage(
-                cli="codex",
-                msg_type="output",
-                content=output[:500] + "..." if len(output) > 500 else output,
-                is_final=False,
-                raw=data
-            )
+    if msg_type == "turn.started":
+        return ParsedMessage(
+            cli="codex",
+            msg_type="system",
+            content="Processing...",
+            is_final=False,
+            raw=data
+        )
 
-    # Handle item.completed format
+    # Item completed - main message format
     if msg_type == "item.completed":
         item = data.get("item", {})
         item_type = item.get("type", "")
+        # NOTE: Codex uses "text" field, not "content"!
+        item_text = item.get("text", "") or _extract_text_from_content(item.get("content", ""))
 
-        if item_type in ("message", "agent_message"):
-            content = _extract_text_from_content(item.get("content", ""))
-            if content:
+        if item_type == "agent_message":
+            if item_text:
                 return ParsedMessage(
                     cli="codex",
                     msg_type="assistant",
-                    content=content,
+                    content=item_text,
                     is_final=False,
                     role="assistant",
                     raw=data
                 )
 
         elif item_type == "reasoning":
-            content = (
-                _extract_text_from_content(item.get("content")) or
-                _extract_text_from_content(item.get("summary")) or
-                ""
-            )
-            if content:
+            if item_text:
                 return ParsedMessage(
                     cli="codex",
                     msg_type="reasoning",
-                    content=content,
+                    content=item_text,
                     is_final=False,
                     role="assistant",
                     raw=data
                 )
 
+        elif item_type == "message":
+            role = item.get("role", "assistant")
+            if item_text:
+                return ParsedMessage(
+                    cli="codex",
+                    msg_type="assistant" if role == "assistant" else "system",
+                    content=item_text,
+                    is_final=False,
+                    role=role,
+                    raw=data
+                )
+
         elif item_type in ("function_call", "tool_use"):
-            tool_name = item.get("name", "unknown")
+            tool_name = item.get("name", item.get("call_id", "unknown"))
             return ParsedMessage(
                 cli="codex",
                 msg_type="tool",
@@ -316,27 +275,30 @@ def _parse_codex_json(data: dict) -> Optional[ParsedMessage]:
                 raw=data
             )
 
-    # Handle response completion
-    if msg_type == "response.completed":
-        # Extract final output if available
-        output = data.get("response", {}).get("output", [])
-        final_content = ""
-        for item in output:
-            if isinstance(item, dict):
-                if item.get("type") == "message":
-                    final_content += _extract_text_from_content(item.get("content", ""))
-                elif item.get("type") == "agent_message":
-                    final_content += _extract_text_from_content(item.get("content", ""))
+        elif item_type == "function_call_output":
+            output = item_text or str(item.get("output", ""))
+            if output:
+                return ParsedMessage(
+                    cli="codex",
+                    msg_type="output",
+                    content=output[:500] + "..." if len(output) > 500 else output,
+                    is_final=False,
+                    raw=data
+                )
 
+    # Turn completed - marks end of response
+    if msg_type == "turn.completed":
+        usage = data.get("usage", {})
+        tokens = usage.get("output_tokens", 0)
         return ParsedMessage(
             cli="codex",
-            msg_type="final" if final_content else "system",
-            content=final_content if final_content else "[Response completed]",
-            is_final=True,
+            msg_type="system",
+            content=f"Completed ({tokens} tokens)",
+            is_final=True,  # Mark as final to trigger result capture
             raw=data
         )
 
-    # Handle response.output_text.delta (streaming text)
+    # Handle streaming deltas (if any)
     if msg_type == "response.output_text.delta":
         text = data.get("delta", "")
         if text:
@@ -349,7 +311,6 @@ def _parse_codex_json(data: dict) -> Optional[ParsedMessage]:
                 raw=data
             )
 
-    # Handle response.reasoning_summary_text.delta (streaming reasoning)
     if msg_type == "response.reasoning_summary_text.delta":
         text = data.get("delta", "")
         if text:
@@ -368,41 +329,47 @@ def _parse_codex_json(data: dict) -> Optional[ParsedMessage]:
 def _parse_gemini_json(data: dict) -> Optional[ParsedMessage]:
     """Parse Gemini JSON output (stream-json format).
 
-    Gemini stream-json format:
-    - type: "result" with result field -> final
-    - type: "message" with role/content -> intermediary
-    - type: "tool_use" -> tool being used
-    - Also handles legacy formats (candidates, parts, etc.)
+    Actual Gemini stream-json format:
+    - type: "init" -> session start with model info
+    - type: "message" with role: "user"/"assistant" and content -> messages
+    - type: "result" with status and stats -> completion marker (no content)
+    - type: "tool_call" / "tool_result" -> tool use
     """
     msg_type = data.get("type", "")
 
-    # Handle stream-json type field (similar to Claude)
-    if msg_type == "result":
-        result = data.get("result", data.get("response", ""))
-        if isinstance(result, dict):
-            result = result.get("text", result.get("content", str(result)))
+    # Session init
+    if msg_type == "init":
+        model = data.get("model", "unknown")
+        session_id = data.get("session_id", "")
         return ParsedMessage(
             cli="gemini",
-            msg_type="final",
-            content=str(result),
-            is_final=True,
-            role="assistant",
+            msg_type="system",
+            content=f"Model: {model}" + (f" | Session: {session_id[:8]}..." if session_id else ""),
+            is_final=False,
             raw=data
         )
 
+    # Messages (user or assistant)
     if msg_type == "message":
         role = data.get("role", "assistant")
         content = data.get("content", "")
+
+        # Skip user messages in output
+        if role == "user":
+            return None
+
         if isinstance(content, list):
             texts = []
             for block in content:
                 if isinstance(block, dict):
-                    if block.get("type") == "text":
-                        texts.append(block.get("text", ""))
+                    texts.append(block.get("text", ""))
                 elif isinstance(block, str):
                     texts.append(block)
             content = "\n".join(texts)
+
         if content:
+            # Check if this is a delta (streaming)
+            is_delta = data.get("delta", False)
             return ParsedMessage(
                 cli="gemini",
                 msg_type="assistant",
@@ -412,7 +379,22 @@ def _parse_gemini_json(data: dict) -> Optional[ParsedMessage]:
                 raw=data
             )
 
-    if msg_type == "tool_use":
+    # Result - completion marker (content is in previous messages)
+    if msg_type == "result":
+        status = data.get("status", "unknown")
+        stats = data.get("stats", {})
+        tokens = stats.get("output_tokens", stats.get("total_tokens", 0))
+        duration = stats.get("duration_ms", 0)
+        return ParsedMessage(
+            cli="gemini",
+            msg_type="system",
+            content=f"Completed: {status} ({tokens} tokens, {duration}ms)",
+            is_final=True,  # Mark as final to trigger result capture
+            raw=data
+        )
+
+    # Tool calls
+    if msg_type in ("tool_call", "tool_use", "function_call"):
         tool_name = data.get("name", data.get("tool", "unknown"))
         return ParsedMessage(
             cli="gemini",
@@ -423,108 +405,17 @@ def _parse_gemini_json(data: dict) -> Optional[ParsedMessage]:
             raw=data
         )
 
-    if msg_type == "content_block_delta":
-        delta = data.get("delta", {})
-        if delta.get("type") == "text_delta":
+    # Tool results
+    if msg_type in ("tool_result", "function_result"):
+        output = _extract_text_from_content(data.get("output", data.get("result", "")))
+        if output:
             return ParsedMessage(
                 cli="gemini",
-                msg_type="assistant",
-                content=delta.get("text", ""),
+                msg_type="output",
+                content=output[:500] + "..." if len(output) > 500 else output,
                 is_final=False,
-                role="assistant",
                 raw=data
             )
-
-    # Legacy format: direct response field
-    if "response" in data and not msg_type:
-        return ParsedMessage(
-            cli="gemini",
-            msg_type="final",
-            content=str(data["response"]),
-            is_final=True,
-            role="assistant",
-            raw=data
-        )
-
-    # Legacy format: direct text field
-    if "text" in data and not msg_type:
-        return ParsedMessage(
-            cli="gemini",
-            msg_type="assistant",
-            content=str(data["text"]),
-            is_final=False,
-            role="assistant",
-            raw=data
-        )
-
-    # Legacy format: candidates array (Gemini API format)
-    candidates = data.get("candidates", [])
-    if candidates:
-        texts = []
-        for candidate in candidates:
-            content = candidate.get("content", {})
-            parts = content.get("parts", [])
-            for part in parts:
-                if isinstance(part, dict) and "text" in part:
-                    texts.append(part["text"])
-                elif isinstance(part, str):
-                    texts.append(part)
-        if texts:
-            return ParsedMessage(
-                cli="gemini",
-                msg_type="assistant",
-                content="\n".join(texts),
-                is_final=False,
-                role="assistant",
-                raw=data
-            )
-
-    # Legacy format: parts directly
-    parts = data.get("parts", [])
-    if parts:
-        texts = []
-        for part in parts:
-            if isinstance(part, dict) and "text" in part:
-                texts.append(part["text"])
-            elif isinstance(part, str):
-                texts.append(part)
-        if texts:
-            return ParsedMessage(
-                cli="gemini",
-                msg_type="assistant",
-                content="\n".join(texts),
-                is_final=False,
-                role="assistant",
-                raw=data
-            )
-
-    # Legacy format: content field (nested structure)
-    content = data.get("content", "")
-    if content:
-        if isinstance(content, str):
-            return ParsedMessage(
-                cli="gemini",
-                msg_type="assistant",
-                content=content,
-                is_final=False,
-                role="assistant",
-                raw=data
-            )
-        elif isinstance(content, dict):
-            parts = content.get("parts", [])
-            texts = []
-            for part in parts:
-                if isinstance(part, dict) and "text" in part:
-                    texts.append(part["text"])
-            if texts:
-                return ParsedMessage(
-                    cli="gemini",
-                    msg_type="assistant",
-                    content="\n".join(texts),
-                    is_final=False,
-                    role="assistant",
-                    raw=data
-                )
 
     return None
 
@@ -1163,23 +1054,39 @@ class AIRunnerApp(App):
         self.json_buffer = JsonBuffer()
 
     def compose(self) -> ComposeResult:
-        # CLI-specific colors
-        cli_styles = {
-            "claude": f"bold {RICH_COLORS['mauve']}",
-            "codex": f"bold {RICH_COLORS['green']}",
-            "gemini": f"bold {RICH_COLORS['blue']}"
+        # CLI-specific emojis and colors
+        cli_info = {
+            "claude": {"emoji": "🟣", "style": f"bold {RICH_COLORS['mauve']}"},
+            "codex": {"emoji": "🟢", "style": f"bold {RICH_COLORS['green']}"},
+            "gemini": {"emoji": "🔵", "style": f"bold {RICH_COLORS['blue']}"}
         }
-        cli_style = cli_styles.get(self.cli, "bold")
-        # Header layout: CLI+job, status, prompt (dimmer)
+        info = cli_info.get(self.cli, {"emoji": "⚪", "style": "bold"})
+
+        # Build context info
+        model_info = f" │ 🤖 {self.model}" if self.model else ""
+        files_info = f" │ 📁 {len(self.files)} files" if self.files else ""
+
+        # Header layout: CLI+job+context, status, prompt (dimmer)
         yield Container(
-            Static(f"[{cli_style}][{self.cli.upper()}][/{cli_style}] Job: {self.job_id}", id="cli-line"),
+            Static(
+                f"{info['emoji']} [{info['style']}]{self.cli.upper()}[/{info['style']}] "
+                f"│ 🏷️ {self.job_id[:8]}{model_info}{files_info}",
+                id="cli-line"
+            ),
             Static("", id="status-line"),
-            Static(self.prompt, id="prompt-line"),
+            Static(f"💬 {self.prompt}", id="prompt-line"),
             id="header-box"
         )
         yield RichLog(id="output", highlight=True, markup=True)
 
     def on_mount(self):
+        # Show starting message immediately
+        output_log = self.query_one("#output", RichLog)
+        cli_emoji = {"claude": "🟣", "codex": "🟢", "gemini": "🔵"}.get(self.cli, "⚪")
+        output_log.write(Text.assemble(
+            (f"\n  {cli_emoji} Starting {self.cli.upper()} agent...\n", f"{RICH_COLORS['subtext0']}")
+        ))
+
         # Start CLI subprocess in background worker
         self.run_worker(self._run_cli, thread=True)
         # Update header every second
@@ -1188,12 +1095,20 @@ class AIRunnerApp(App):
     def _update_header(self):
         self.duration = int(time.time() - self.start_time)
         status_line = self.query_one("#status-line", Static)
-        tool_info = f" │ Tool: {self.current_tool}" if self.current_tool else ""
+
+        # Status emoji
+        status_emoji = {
+            "running": "🔄",
+            "completed": "✅",
+            "failed": "❌"
+        }.get(self.status, "❓")
+
+        tool_info = f" │ 🔧 {self.current_tool}" if self.current_tool else ""
         status_color = RICH_COLORS['green'] if self.status == "running" else (
-            RICH_COLORS['green'] if self.status == "completed" else RICH_COLORS['peach']
+            RICH_COLORS['green'] if self.status == "completed" else RICH_COLORS['red']
         )
         status_line.update(
-            f"[{status_color}]Status: {self.status}[/{status_color}]{tool_info} │ {self.duration}s"
+            f"{status_emoji} [{status_color}]{self.status.upper()}[/{status_color}]{tool_info} │ ⏱️ {self.duration}s"
         )
 
     def _run_cli(self):
@@ -1260,7 +1175,7 @@ class AIRunnerApp(App):
 
         except Exception as e:
             self.status = "failed"
-            self.call_from_thread(output_log.write, Text(f"Error: {e}", style=f"bold {RICH_COLORS['red']}"))
+            self.call_from_thread(output_log.write, Text(f"❌ Error: {e}", style=f"bold {RICH_COLORS['red']}"))
 
         finally:
             if conn:
@@ -1269,7 +1184,7 @@ class AIRunnerApp(App):
         # Wait then exit if auto_close
         if self.auto_close:
             text = Text()
-            text.append(f"\nWindow closing in {AUTO_CLOSE_DELAY}s...", style=RICH_COLORS['green'])
+            text.append(f"\n  ⏳ Window closing in {AUTO_CLOSE_DELAY}s...\n", style=RICH_COLORS['subtext0'])
             self.call_from_thread(output_log.write, text)
             time.sleep(AUTO_CLOSE_DELAY)
             self.call_from_thread(self.exit)
@@ -1288,27 +1203,30 @@ class AIRunnerApp(App):
         text = Text()
 
         if msg.is_final:
-            text.append("[FINAL]", style=f"bold {RICH_COLORS['green']}")
+            text.append("✅ [FINAL]", style=f"bold {RICH_COLORS['green']}")
             # Try markdown for final result too
             try:
                 return Text.assemble(
-                    ("[FINAL]", f"bold {RICH_COLORS['green']}"),
+                    ("✅ [FINAL]", f"bold {RICH_COLORS['green']}"),
                     "\n",
                     Markdown(msg.content)
                 )
             except Exception:
                 text.append("\n  " + msg.content.replace("\n", "\n  "), style=RICH_COLORS['text'])
         elif msg.msg_type == "reasoning":
-            text.append("[thinking]", style=RICH_COLORS['overlay1'])
+            text.append("💭 [thinking]", style=RICH_COLORS['overlay1'])
             text.append("\n  " + msg.content.replace("\n", "\n  "), style=RICH_COLORS['overlay1'])
         elif msg.msg_type == "tool":
-            text.append("[tool]", style=RICH_COLORS['peach'])
+            text.append("🔧 [tool]", style=RICH_COLORS['peach'])
             text.append("\n  " + msg.content.replace("\n", "\n  "), style=RICH_COLORS['peach'])
+        elif msg.msg_type == "output":
+            text.append("📤 [output]", style=RICH_COLORS['teal'])
+            text.append("\n  " + msg.content.replace("\n", "\n  "), style=RICH_COLORS['teal'])
         elif msg.msg_type == "system":
-            text.append("[system]", style=RICH_COLORS['overlay0'])
+            text.append("⚙️ [system]", style=RICH_COLORS['overlay0'])
             text.append("\n  " + msg.content.replace("\n", "\n  "), style=RICH_COLORS['overlay0'])
         else:
-            text.append(f"[{msg.msg_type}]", style=RICH_COLORS['subtext0'])
+            text.append(f"💬 [{msg.msg_type}]", style=RICH_COLORS['subtext0'])
             text.append("\n  " + msg.content.replace("\n", "\n  "), style=RICH_COLORS['subtext0'])
 
         text.append("\n")
