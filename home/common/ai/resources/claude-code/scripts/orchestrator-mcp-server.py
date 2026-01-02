@@ -726,11 +726,27 @@ def tmux_run_and_read(
 # =============================================================================
 
 
+READ_ONLY_INSTRUCTION = """
+IMPORTANT: You are running as a READ-ONLY agent. You MUST NOT:
+- Execute any commands that modify files (no writes, edits, or deletions)
+- Run build commands, install packages, or execute scripts
+- Make any changes to the filesystem or git repository
+
+You MAY only:
+- Read files and directories
+- Run read-only commands (git diff, git log, git status, ls, cat, grep, etc.)
+- Analyze and review code
+
+If you need to suggest changes, describe them in text - do NOT execute them.
+---
+"""
+
+
 def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None) -> list[str]:
     """Build command arguments for an AI CLI.
 
-    Security: Codex and Gemini are always run in read-only/sandbox mode.
-    Only Claude workers can execute commands with full access.
+    All agents run in full-auto/YOLO mode but with strict read-only instructions
+    in the prompt for codex and gemini.
     """
     files = files or []
 
@@ -749,21 +765,21 @@ def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None
         return cmd
 
     elif cli == "codex":
-        # ENFORCE read-only mode - codex cannot modify files or run commands
-        cmd = ["codex", "exec", "-s", "read-only"]
+        # Full-auto mode with read-only instruction in prompt
+        cmd = ["codex", "exec", "-a", "full-auto"]
         if model:
             cmd.extend(["--model", model])
-        cmd.append(prompt)
+        cmd.append(READ_ONLY_INSTRUCTION + prompt)
         return cmd
 
     elif cli == "gemini":
-        # ENFORCE sandbox mode - gemini runs in restricted environment
-        cmd = ["gemini", "--sandbox"]
+        # YOLO mode with read-only instruction in prompt
+        cmd = ["gemini", "--yolo"]
         if model:
             cmd.extend(["--model", model])
         # Gemini uses @ syntax for files, prepend to prompt
         file_refs = " ".join(f"@{f}" for f in files)
-        full_prompt = f"{file_refs} {prompt}".strip() if file_refs else prompt
+        full_prompt = f"{file_refs} {READ_ONLY_INSTRUCTION}{prompt}".strip() if file_refs else READ_ONLY_INSTRUCTION + prompt
         cmd.append(full_prompt)
         return cmd
 
@@ -817,15 +833,8 @@ def run_job_in_tmux(job: Job, log_intermediary: bool = False, auto_close: bool =
         # Shell-escape for tmux send-keys
         cmd_str = " ".join(shlex.quote(part) for part in runner_cmd)
 
-        # Create a friendly window name: "cli task_hint id_suffix"
-        task_keywords = ["review", "analyze", "fix", "debug", "explain", "search", "find", "check", "test", "build"]
-        prompt_lower = job.prompt.lower()
-        task_hint = "task"
-        for kw in task_keywords:
-            if kw in prompt_lower:
-                task_hint = kw
-                break
-        window_name = f"{job.cli} {task_hint} {job.id[-6:]}"
+        # Simple window name: "cli:id"
+        window_name = f"{job.cli}:{job.id[-8:]}"
 
         # Create window running a shell
         args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name, DEFAULT_SHELL]
@@ -968,15 +977,8 @@ def ai_run(
         runner_cmd.extend(["--files", f])
     runner_cmd.append(prompt)
 
-    # Create window name
-    task_keywords = ["review", "analyze", "fix", "debug", "explain", "search", "find", "check", "test", "build"]
-    prompt_lower = prompt.lower()
-    task_hint = "task"
-    for kw in task_keywords:
-        if kw in prompt_lower:
-            task_hint = kw
-            break
-    window_name = f"{cli} {task_hint} {job_id[-6:]}"
+    # Simple window name: "cli:id"
+    window_name = f"{cli}:{job_id[-8:]}"
 
     # Create tmux window running orchestrator directly (no shell wrapper)
     # orchestrator run will exit when done, closing the window

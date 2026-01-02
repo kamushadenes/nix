@@ -17,10 +17,11 @@ Claude Code is the **orchestrator**. When spawning AI agents:
 | codex  | Reviewer    | Read-only | Code review, analysis, suggestions |
 | gemini | Researcher  | Read-only | Web search, documentation lookup   |
 
-**Enforced by MCP server:**
+**Enforced by prompt instruction:**
 
-- Codex always runs with `-s read-only` (cannot modify files)
-- Gemini always runs with `--sandbox` (restricted environment)
+- Codex runs with `-a full-auto` + READ-ONLY instruction in prompt
+- Gemini runs with `--yolo` + READ-ONLY instruction in prompt
+- Both receive strict instructions to only use read-only commands
 - Only Claude workers have full execution capabilities
 
 ## Quick Reference

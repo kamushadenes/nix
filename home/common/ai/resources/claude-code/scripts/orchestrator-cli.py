@@ -560,8 +560,28 @@ def format_message_for_display(msg: ParsedMessage) -> str:
     return f"{header}\n  {formatted_content}\n"
 
 
+READ_ONLY_INSTRUCTION = """
+IMPORTANT: You are running as a READ-ONLY agent. You MUST NOT:
+- Execute any commands that modify files (no writes, edits, or deletions)
+- Run build commands, install packages, or execute scripts
+- Make any changes to the filesystem or git repository
+
+You MAY only:
+- Read files and directories
+- Run read-only commands (git diff, git log, git status, ls, cat, grep, etc.)
+- Analyze and review code
+
+If you need to suggest changes, describe them in text - do NOT execute them.
+---
+"""
+
+
 def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None) -> list[str]:
-    """Build command arguments for an AI CLI with JSON output enabled."""
+    """Build command arguments for an AI CLI with JSON output enabled.
+
+    All agents run in full-auto/YOLO mode but with strict read-only instructions
+    in the prompt for codex and gemini.
+    """
     files = files or []
 
     if cli == "claude":
@@ -580,21 +600,21 @@ def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None
         return cmd
 
     elif cli == "codex":
-        # ENFORCE read-only mode
-        cmd = ["codex", "exec", "-s", "read-only", "--json", "--skip-git-repo-check"]
+        # Full-auto mode with read-only instruction in prompt
+        cmd = ["codex", "exec", "-a", "full-auto", "--json", "--skip-git-repo-check"]
         if model:
             cmd.extend(["--model", model])
-        cmd.append(prompt)
+        cmd.append(READ_ONLY_INSTRUCTION + prompt)
         return cmd
 
     elif cli == "gemini":
-        # ENFORCE sandbox mode - use stream-json for structured parsing
-        cmd = ["gemini", "--sandbox", "--output-format", "stream-json"]
+        # YOLO mode with read-only instruction in prompt
+        cmd = ["gemini", "--yolo", "--output-format", "stream-json"]
         if model:
             cmd.extend(["--model", model])
         # Gemini uses @ syntax for files
         file_refs = " ".join(f"@{f}" for f in files)
-        full_prompt = f"{file_refs} {prompt}".strip() if file_refs else prompt
+        full_prompt = f"{file_refs} {READ_ONLY_INSTRUCTION}{prompt}".strip() if file_refs else READ_ONLY_INSTRUCTION + prompt
         cmd.append(full_prompt)
         return cmd
 
