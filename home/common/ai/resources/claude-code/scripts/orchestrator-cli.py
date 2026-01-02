@@ -581,7 +581,7 @@ def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None
 
     elif cli == "codex":
         # ENFORCE read-only mode
-        cmd = ["codex", "exec", "-s", "read-only", "--json"]
+        cmd = ["codex", "exec", "-s", "read-only", "--json", "--skip-git-repo-check"]
         if model:
             cmd.extend(["--model", model])
         cmd.append(prompt)
