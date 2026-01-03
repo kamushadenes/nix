@@ -78,58 +78,59 @@ Create a clear visualization:
 ## Execution Flow: POST /api/orders
 
 ### Request Path
-
 ```
+
 ┌─────────────────────────────────────────────────────────────┐
-│ 1. FastAPI receives POST /api/orders                         │
-│    └─> routes/orders.py:create_order()                       │
+│ 1. FastAPI receives POST /api/orders │
+│ └─> routes/orders.py:create_order() │
 └─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
+│
+▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 2. Auth middleware checks JWT token                          │
-│    └─> middleware/auth.py:verify_token()                     │
-│        └─> Returns current_user to route                     │
+│ 2. Auth middleware checks JWT token │
+│ └─> middleware/auth.py:verify_token() │
+│ └─> Returns current_user to route │
 └─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
+│
+▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 3. Request validation via Pydantic                          │
-│    └─> schemas/orders.py:OrderCreate                         │
-│        └─> Validates: items[], shipping_address, payment     │
+│ 3. Request validation via Pydantic │
+│ └─> schemas/orders.py:OrderCreate │
+│ └─> Validates: items[], shipping_address, payment │
 └─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
+│
+▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 4. Business logic in service layer                          │
-│    └─> services/order.py:create_order()                      │
-│        ├─> Validate inventory availability                   │
-│        ├─> Calculate totals and taxes                        │
-│        └─> Apply discounts                                   │
+│ 4. Business logic in service layer │
+│ └─> services/order.py:create_order() │
+│ ├─> Validate inventory availability │
+│ ├─> Calculate totals and taxes │
+│ └─> Apply discounts │
 └─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
+│
+▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 5. Database transaction                                      │
-│    └─> models/order.py:Order.create()                        │
-│        ├─> Insert order record                               │
-│        ├─> Insert order_items records                        │
-│        └─> Update inventory                                  │
+│ 5. Database transaction │
+│ └─> models/order.py:Order.create() │
+│ ├─> Insert order record │
+│ ├─> Insert order_items records │
+│ └─> Update inventory │
 └─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
+│
+▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 6. Side effects (async)                                      │
-│    ├─> Send order confirmation email                         │
-│    ├─> Notify warehouse system                               │
-│    └─> Update analytics                                      │
+│ 6. Side effects (async) │
+│ ├─> Send order confirmation email │
+│ ├─> Notify warehouse system │
+│ └─> Update analytics │
 └─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
+│
+▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 7. Return response                                           │
-│    └─> OrderResponse(id=..., status="created", ...)         │
+│ 7. Return response │
+│ └─> OrderResponse(id=..., status="created", ...) │
 └─────────────────────────────────────────────────────────────┘
+
 ```
 
 ### Key Files

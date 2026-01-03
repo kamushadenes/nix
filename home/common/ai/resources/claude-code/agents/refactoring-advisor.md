@@ -24,24 +24,25 @@ Address issues in this order:
 
 ### 🔴 CRITICAL (Automatic - Mandatory Decomposition)
 
-| Component | Threshold | Action |
-|-----------|-----------|--------|
-| Files | >15,000 LOC | Must decompose |
-| Classes | >3,000 LOC | Must decompose |
-| Functions | >500 LOC | Must decompose |
+| Component | Threshold   | Action         |
+| --------- | ----------- | -------------- |
+| Files     | >15,000 LOC | Must decompose |
+| Classes   | >3,000 LOC  | Must decompose |
+| Functions | >500 LOC    | Must decompose |
 
 **If ANY component exceeds CRITICAL thresholds:**
+
 - Mark all decomposition as CRITICAL severity
 - Focus EXCLUSIVELY on decomposition
 - Do NOT suggest other refactoring types
 
 ### 🟠 Evaluate (Context-Dependent)
 
-| Component | Threshold | Action |
-|-----------|-----------|--------|
-| Files | >5,000 LOC | Evaluate for split |
-| Classes | >1,000 LOC | Evaluate for split |
-| Functions | >150 LOC | Evaluate for extraction |
+| Component | Threshold  | Action                  |
+| --------- | ---------- | ----------------------- |
+| Files     | >5,000 LOC | Evaluate for split      |
+| Classes   | >1,000 LOC | Evaluate for split      |
+| Functions | >150 LOC   | Evaluate for extraction |
 
 ## Context-Sensitive Exemptions
 
@@ -157,6 +158,7 @@ When analyzing for a task:
 **Location**: `services/order_service.py`
 **Issue**: Exceeds 15,000 LOC threshold
 **Suggested split**:
+
 - `services/orders/validation.py` - Order validation logic
 - `services/orders/processing.py` - Order processing
 - `services/orders/notifications.py` - Email/SMS notifications

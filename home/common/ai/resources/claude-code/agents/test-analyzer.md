@@ -38,13 +38,13 @@ Map reachable code paths:
 
 Enumerate realistic failure scenarios:
 
-| Category | Examples |
-|----------|----------|
-| Data & Boundaries | Null values, empty collections, off-by-one, numeric limits |
-| Temporal | DST transitions, timezone handling, epoch boundaries |
-| External Dependencies | Slow responses, malformed payloads, connection failures |
-| Concurrency | Race conditions, deadlocks, promise rejection leaks |
-| Security | Injection attacks, path traversal, privilege escalation |
+| Category              | Examples                                                   |
+| --------------------- | ---------------------------------------------------------- |
+| Data & Boundaries     | Null values, empty collections, off-by-one, numeric limits |
+| Temporal              | DST transitions, timezone handling, epoch boundaries       |
+| External Dependencies | Slow responses, malformed payloads, connection failures    |
+| Concurrency           | Race conditions, deadlocks, promise rejection leaks        |
+| Security              | Injection attacks, path traversal, privilege escalation    |
 
 ### 4. Risk Prioritizer
 
@@ -63,7 +63,7 @@ Verify tests follow best practices:
 - One behavioral assertion per test
 - Execution under 100ms; parallelizable
 - Deterministic with seeded randomness only
-- Self-documenting names explaining *why* failures occur
+- Self-documenting names explaining _why_ failures occur
 
 ## Test Quality Criteria
 
@@ -125,11 +125,11 @@ Reject if:
 
 ### Risk-Prioritized Gaps
 
-| Priority | Location | Missing Coverage |
-|----------|----------|------------------|
+| Priority    | Location               | Missing Coverage                     |
+| ----------- | ---------------------- | ------------------------------------ |
 | 🔴 Critical | auth.py:validate_token | No tests for token expiry edge cases |
-| 🟠 High | api/orders.py:create | Missing error handling tests |
-| 🟡 Medium | utils/parse.py | No boundary value tests |
+| 🟠 High     | api/orders.py:create   | Missing error handling tests         |
+| 🟡 Medium   | utils/parse.py         | No boundary value tests              |
 
 ### Test Quality Issues
 

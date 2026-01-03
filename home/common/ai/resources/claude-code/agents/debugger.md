@@ -86,11 +86,11 @@ Combine insights and create a verification plan:
 
 ### Root Cause Candidates
 
-| Rank | Cause | Evidence | Suggested by |
-|------|-------|----------|--------------|
-| 1 | N+1 query in validation | 100 DB queries per request | Claude, Codex |
-| 2 | Missing index on orders table | Full table scan | Codex |
-| 3 | Sync validation in async endpoint | Blocking event loop | Claude |
+| Rank | Cause                             | Evidence                   | Suggested by  |
+| ---- | --------------------------------- | -------------------------- | ------------- |
+| 1    | N+1 query in validation           | 100 DB queries per request | Claude, Codex |
+| 2    | Missing index on orders table     | Full table scan            | Codex         |
+| 3    | Sync validation in async endpoint | Blocking event loop        | Claude        |
 
 ### Verification Steps
 

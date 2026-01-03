@@ -60,11 +60,11 @@ Combine perspectives into a coherent summary:
 
 ### Perspectives
 
-| Model  | Recommendation | Key Reasoning |
-|--------|---------------|---------------|
-| Claude | SSE | Lower complexity for unidirectional data |
-| Codex  | SSE | Simpler to test and debug |
-| Gemini | SSE | Common pattern for dashboards |
+| Model  | Recommendation | Key Reasoning                            |
+| ------ | -------------- | ---------------------------------------- |
+| Claude | SSE            | Lower complexity for unidirectional data |
+| Codex  | SSE            | Simpler to test and debug                |
+| Gemini | SSE            | Common pattern for dashboards            |
 
 ### Areas of Agreement
 

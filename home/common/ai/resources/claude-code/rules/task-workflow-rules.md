@@ -1,6 +1,26 @@
 # Task-Based Workflow Rules
 
-ALL work in this codebase should go through the task management system for non-trivial changes.
+## When to Use Task Management
+
+The task management system is for **large, complex tasks only**. Use good judgment:
+
+### Use Task System When:
+
+- Multi-day or multi-phase work
+- Architectural changes affecting multiple components
+- Features requiring design discussion before implementation
+- Work that benefits from multi-model review (security-critical, complex algorithms)
+- Tasks that need formal tracking for handoff or audit
+
+### Skip Task System When:
+
+- Simple bug fixes or typos
+- Single-file changes with clear scope
+- Quick refactoring or code cleanup
+- Adding straightforward features with obvious implementation
+- Any task you can complete in a single session without confusion
+
+**Default behavior**: Claude Code makes its own decisions for simple tasks. Only escalate to task management when complexity warrants the overhead.
 
 ## Creating Tasks
 
@@ -75,13 +95,22 @@ backlog -> todo -> discussing -> in_progress -> review -> qa -> done
 | `failed`      | Could not complete              | None                                |
 | `rejected`    | QA failed                       | None                                |
 
-## Discussion Phase (Required for Complex Tasks)
+## Discussion Phase (Optional - For Very Complex Tasks Only)
 
-Before development on non-trivial tasks:
+The discussion phase with multi-model consensus is **expensive and slow**. Only use it when:
+
+- Major architectural decisions with significant tradeoffs
+- Security-critical implementations needing multiple perspectives
+- Novel algorithms or approaches where validation is valuable
+- When you're genuinely uncertain and need external input
+
+**Most tasks should skip discussion** and go directly from `todo` to `in_progress`.
+
+### When Using Discussion Phase:
 
 1. Call `task_start_discussion(task_id)`
 2. Use `task-discusser` sub-agent to query Claude, Codex, and Gemini via clink
-3. Each external agent's response is analyzed for approach and concerns
+3. Task-discusser parses responses and casts votes on behalf of each agent
 4. **All 3 must agree "ready"** to proceed (unanimous consensus)
 5. If disagreement exists, another round begins
 6. After 3 failed rounds, task moves to `stalled` for human input

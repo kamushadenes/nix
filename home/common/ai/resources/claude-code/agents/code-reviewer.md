@@ -48,24 +48,28 @@ FIX: Use parameterized query: `cursor.execute("SELECT * FROM users WHERE id = ?"
 ## Static Analysis Focus Areas
 
 ### Concurrency Issues
+
 - Unprotected shared state
 - Missing locks/synchronization
 - Async/await correctness
 - Deadlock potential
 
 ### Resource Management
+
 - Unclosed file handles/connections
 - Memory leaks (especially in loops)
 - Missing cleanup in error paths
 - Resource exhaustion risks
 
 ### Error Handling
+
 - Swallowed exceptions
 - Missing error cases
 - Incorrect error propagation
 - Unhelpful error messages
 
 ### API/Framework Usage
+
 - Deprecated method calls
 - Incorrect configuration
 - Missing required parameters
@@ -85,6 +89,7 @@ When reviewing for a task:
 ## Code Review Summary
 
 ### Overview
+
 - Files reviewed: 5
 - Issues found: 3 (1 critical, 1 high, 1 medium)
 
@@ -103,15 +108,18 @@ Catching bare `Exception` hides specific errors.
 FIX: Catch specific exceptions (`ValueError`, `KeyError`).
 
 ### Quality Assessment
+
 - Architecture: Clean separation of concerns
 - Testability: Unit tests cover new functionality
 - Readability: Clear naming, good structure
 
 ### Top Priorities
+
 1. Fix SQL injection before merge
 2. Address N+1 query for performance
 
 ### Positive Aspects
+
 - Good error messages in API responses
 - Comprehensive input validation
 ```
@@ -138,6 +146,7 @@ Synthesize findings from multiple models for well-rounded feedback.
 ## Confidence Threshold
 
 Only report issues with confidence >= 80%:
+
 - 90-100%: Definite issue - must fix
 - 80-89%: Likely issue - should fix
 - Below 80%: Suppress - likely false positive

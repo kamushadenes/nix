@@ -37,6 +37,7 @@ grep -rn "^func " --include="*.go"
 ### 2. Coverage Assessment
 
 For each file:
+
 - Count total functions/classes
 - Count documented items
 - Identify gaps
@@ -44,6 +45,7 @@ For each file:
 ### 3. Quality Verification
 
 Check documentation accuracy against implementation:
+
 - Do parameter descriptions match actual parameters?
 - Do return type descriptions match actual returns?
 - Are examples still working?
@@ -52,27 +54,27 @@ Check documentation accuracy against implementation:
 
 Use modern documentation styles:
 
-| Language | Required Style |
-|----------|----------------|
-| Python | Triple-quoted docstrings (`"""..."""`) |
-| Swift/Objective-C | `///` comments only (never `/** */`) |
-| JavaScript/TypeScript | `/** */` JSDoc format |
-| C++/Rust | `///` documentation comments |
-| C# | `///` XML documentation |
-| Go | `//` comments above definitions |
+| Language              | Required Style                         |
+| --------------------- | -------------------------------------- |
+| Python                | Triple-quoted docstrings (`"""..."""`) |
+| Swift/Objective-C     | `///` comments only (never `/** */`)   |
+| JavaScript/TypeScript | `/** */` JSDoc format                  |
+| C++/Rust              | `///` documentation comments           |
+| C#                    | `///` XML documentation                |
+| Go                    | `//` comments above definitions        |
 
 ## Mandatory Documentation Elements
 
 For each function/method, document:
 
-| Element | Description |
-|---------|-------------|
-| Summary | One-line description of purpose |
-| Parameters | Type and description for all inputs |
-| Returns | Type and description of output |
-| Raises/Throws | Exceptions that may be thrown |
-| Complexity | Big O notation for time and space (when relevant) |
-| Gotchas | Non-obvious behaviors, edge cases, silent failures |
+| Element       | Description                                        |
+| ------------- | -------------------------------------------------- |
+| Summary       | One-line description of purpose                    |
+| Parameters    | Type and description for all inputs                |
+| Returns       | Type and description of output                     |
+| Raises/Throws | Exceptions that may be thrown                      |
+| Complexity    | Big O notation for time and space (when relevant)  |
+| Gotchas       | Non-obvious behaviors, edge cases, silent failures |
 
 ### Example (Python)
 
@@ -151,6 +153,7 @@ def process_payment(amount: Decimal, card_id: str) -> PaymentResult:
 ## Large File Handling
 
 For files with many functions:
+
 - Process 5-10 functions per iteration
 - Never mark large files complete until ALL functions documented
 - Final verification pass through every file
@@ -178,8 +181,10 @@ When analyzing for a task:
 ### Missing Documentation
 
 1. **Function**: `process_payment()` in `billing.py:45`
+
    - Missing docstring
    - Suggested:
+
      ```python
      def process_payment(amount: Decimal, card_id: str) -> PaymentResult:
          """Process a payment for the given amount.

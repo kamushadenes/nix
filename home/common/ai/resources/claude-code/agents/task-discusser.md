@@ -1,7 +1,7 @@
 ---
 name: task-discusser
 description: Orchestrates task discussion phase. Use when a task needs design consensus before development. Uses clink to call Claude, Codex, and Gemini for analysis.
-tools: Read, Grep, Glob, Bash, mcp__orchestrator__task_get, mcp__orchestrator__task_comments, mcp__orchestrator__task_comment, mcp__orchestrator__task_start_discussion, mcp__pal__clink
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__task_get, mcp__orchestrator__task_comments, mcp__orchestrator__task_comment, mcp__orchestrator__task_start_discussion, mcp__orchestrator__task_discussion_vote, mcp__pal__clink
 model: opus
 ---
 
@@ -32,7 +32,7 @@ result = task_start_discussion(task_id)
 
 ### 3. Query External Agents via clink
 
-Use `clink` to call each external agent for their analysis. Each agent should review the task and provide their perspective:
+Use `clink` to call each external agent for their analysis:
 
 ```python
 # Build the analysis prompt with task context
@@ -47,11 +47,11 @@ Context Files: {task.context_files}
 
 Analyze this task and provide:
 1. Your recommended implementation approach
-2. Any concerns or risks
+2. Any concerns or risks you identify
 3. Your vote: "ready" (proceed to dev) or "needs_work" (more discussion needed)
 4. Suggested refinements if any
 
-After analysis, call task_discussion_vote(task_id, vote, approach_summary, concerns, suggestions) with your findings.
+Format your response with clear sections for each item.
 """
 
 # Get perspectives from each model
@@ -60,18 +60,43 @@ codex_analysis = clink(prompt=analysis_prompt, cli="codex")
 gemini_analysis = clink(prompt=analysis_prompt, cli="gemini")
 ```
 
-### 4. Check for Consensus
+### 4. Cast Votes for Each Agent
 
-After agents vote via `task_discussion_vote`, check comments for results:
+**Important**: External agents cannot call MCP tools directly. You must parse their responses and cast votes on their behalf:
 
 ```python
-comments = task_comments(task_id)
-# Check if all 3 agents have voted
-# If all vote "ready": Task moves to "todo"
-# If any vote "needs_work": May need another round
+# Parse Claude's response and cast vote
+task_discussion_vote(
+    task_id=task_id,
+    vote="ready",  # or "needs_work" based on their response
+    approach_summary="Claude's recommended approach...",
+    concerns=["concern1", "concern2"],
+    suggestions=["suggestion1"],
+    agent_type="claude"
+)
+
+# Repeat for Codex
+task_discussion_vote(task_id, vote="ready", ..., agent_type="codex")
+
+# Repeat for Gemini
+task_discussion_vote(task_id, vote="ready", ..., agent_type="gemini")
 ```
 
-### 5. Report Results
+The task will auto-transition to `in_progress` when all 3 agents vote "ready" (unanimous consensus).
+
+### 5. Check Results
+
+After casting all votes, verify the task status:
+
+```python
+task = task_get(task_id)
+# status will be:
+# - "in_progress": All agents voted ready
+# - "discussing": Waiting for more votes or starting new round
+# - "stalled": 3 failed rounds, needs human input
+```
+
+### 6. Report Results
 
 After discussion completes, summarize:
 

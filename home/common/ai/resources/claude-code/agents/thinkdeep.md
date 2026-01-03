@@ -90,6 +90,7 @@ Combine deep thinking from all sources:
 ### Solution Approaches Explored
 
 #### 1. Expand-Contract Pattern
+
 **Source**: Claude, Codex
 **How it works**: Add new columns/tables first, migrate data, then remove old
 **Pros**: True zero-downtime, reversible
@@ -97,6 +98,7 @@ Combine deep thinking from all sources:
 **Risk**: Data inconsistency during transition
 
 #### 2. Blue-Green Database
+
 **Source**: Gemini (Netflix case study)
 **How it works**: Maintain two database instances, switch traffic
 **Pros**: Clean cutover, easy rollback
@@ -104,6 +106,7 @@ Combine deep thinking from all sources:
 **Risk**: Sync lag during cutover
 
 #### 3. Online Schema Change Tools
+
 **Source**: Codex, Gemini
 **Options**: gh-ost (GitHub), pt-online-schema-change
 **Pros**: Handles large tables, well-tested
@@ -121,6 +124,7 @@ Combine deep thinking from all sources:
 Based on extended analysis: **Expand-Contract with Feature Flags**
 
 Rationale:
+
 - Lower infrastructure cost than blue-green
 - More control than online schema tools
 - Fits existing Alembic workflow

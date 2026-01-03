@@ -268,6 +268,7 @@ in
         "playwright@claude-plugins-official" = true;
         "typescript-lsp@claude-plugins-official" = true;
         "pyright-lsp@claude-plugins-official" = true;
+        "ralph-wiggum@claude-plugins-official" = true;
         #"commit-commands@claude-plugins-official" = true;
         #"security-guidance@claude-plugins-official" = true;
         #"pr-review-toolkit@claude-plugins-official" = true;

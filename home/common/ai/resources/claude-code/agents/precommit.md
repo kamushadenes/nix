@@ -61,12 +61,12 @@ Summarize findings:
 
 ### Findings
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| Bugs | Pass | No obvious bugs found |
-| Security | Pass | No hardcoded secrets |
-| Style | Warn | Missing docstring on new function |
-| Tests | Fail | No tests for new endpoint |
+| Check    | Status | Notes                             |
+| -------- | ------ | --------------------------------- |
+| Bugs     | Pass   | No obvious bugs found             |
+| Security | Pass   | No hardcoded secrets              |
+| Style    | Warn   | Missing docstring on new function |
+| Tests    | Fail   | No tests for new endpoint         |
 
 ### Required Actions
 

@@ -92,16 +92,37 @@ Look at the code and tell me what you think
 
 ## When to Use External Agents
 
+**Multi-model orchestration is expensive and slow.** Each clink call takes 30-120 seconds. Use sparingly.
+
 **Do use when:**
 
 - Stuck on a complex bug after initial investigation
-- Making architectural decisions with tradeoffs
-- Need validation before major refactoring
-- Security-sensitive code needs audit
-- Want diverse perspectives on approach
+- Making major architectural decisions with significant tradeoffs
+- Security-critical code that genuinely needs multiple perspectives
+- Debugging issues that have resisted initial analysis
 
 **Don't use when:**
 
-- Simple, straightforward tasks
+- Simple, straightforward tasks (most tasks)
 - Already confident in approach
-- Just need to execute known solution
+- Just need to execute a known solution
+- Minor refactoring or code cleanup
+- Single-file changes with clear scope
+
+**Default behavior**: Claude Code should make its own decisions for most tasks. Only escalate to multi-model consensus when the complexity genuinely warrants the time cost.
+
+## Sub-Agents That Use clink (Use Sparingly)
+
+These sub-agents call external AI models and are slow:
+
+| Sub-Agent         | When to Use                                        |
+| ----------------- | -------------------------------------------------- |
+| `task-discusser`  | Major architectural decisions only                 |
+| `consensus`       | When you need multiple perspectives on a decision  |
+| `debugger`        | Complex bugs that resist initial investigation     |
+| `planner`         | Large multi-phase projects                         |
+| `precommit`       | Optional quick sanity check before commits         |
+| `thinkdeep`       | Problems requiring extended analysis               |
+| `tracer`          | Complex execution flow analysis                    |
+
+**Most code reviews should use `code-reviewer` directly** (no clink) rather than multi-model consensus.
