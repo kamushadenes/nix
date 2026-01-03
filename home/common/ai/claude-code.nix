@@ -115,6 +115,7 @@ in
           "Bash(stat:*)"
           "Bash(rg:*)"
           "Bash(fd:*)"
+          "Bash(mkdir:*)"
 
           # Nix commands
           "Bash(nix flake check:*)"

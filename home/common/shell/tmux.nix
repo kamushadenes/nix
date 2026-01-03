@@ -6,6 +6,19 @@
 }:
 let
   resourcesDir = ./resources;
+  sessionDurationScript = pkgs.writeShellScript "session-duration" ''
+    # Get session_created timestamp from tmux
+    created=$(${pkgs.tmux}/bin/tmux display-message -p '#{session_created}' 2>/dev/null)
+    if [ -z "$created" ]; then
+      printf ' ??h ??m'
+      exit 0
+    fi
+    now=$(${pkgs.coreutils}/bin/date +%s)
+    diff=$((now - created))
+    hours=$((diff / 3600))
+    mins=$(((diff % 3600) / 60))
+    printf ' %dh %dm' "$hours" "$mins"
+  '';
 in
 {
   programs.tmux = {
@@ -42,9 +55,9 @@ in
       set -g status-right-length 100
       set -g status-left-length 100
       set -g status-left ""
-      # Session duration calculation: current time - session creation time
-      set -g status-right "#{E:@catppuccin_status_date_time} #{E:@catppuccin_status_session}"
-      set -g @catppuccin_date_time_text "#(printf '%dh %dm' $(( ($(date +%s) - #{session_created}) / 3600 )) $(( (($(date +%s) - #{session_created}) % 3600) / 60 )))"
+      # Session duration calculation via script (queries tmux for session_created)
+      set -g status-right "#{E:@catppuccin_status_date_time} #{E:@catppuccin_status_session} "
+      set -g @catppuccin_date_time_text "#(${sessionDurationScript})"
       set -g status-interval 5
 
       # Continuum settings
