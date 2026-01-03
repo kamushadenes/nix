@@ -76,6 +76,61 @@ up after completion. Any modifications stay isolated from your main directory.
 - Already confident in approach
 - Just need to execute known solution
 
+## Sub-Agent Delegation
+
+**IMPORTANT:** For complex workflows, delegate to specialized sub-agents instead of running them directly. This keeps the orchestrator focused and leverages specialized expertise.
+
+### Available Sub-Agents
+
+| Sub-Agent | Use Case | Key Tools |
+|-----------|----------|-----------|
+| `code-reviewer` | Code quality review after changes | `task_review_complete` |
+| `security-auditor` | Security vulnerability analysis | `task_qa_vote` |
+| `test-analyzer` | Test coverage and quality | `task_qa_vote` |
+| `documentation-writer` | Documentation quality review | `task_comment` |
+| `task-discusser` | Orchestrates discussion phase | `task_start_discussion` |
+| `silent-failure-hunter` | Detects swallowed errors | `task_qa_vote` |
+| `performance-analyzer` | Performance issue detection | `task_qa_vote` |
+| `type-checker` | Type safety analysis | `task_qa_vote` |
+| `refactoring-advisor` | Refactoring opportunities | `task_comment` |
+| `code-simplifier` | Code complexity reduction | `task_comment` |
+| `comment-analyzer` | Code comment quality | `task_comment` |
+| `dependency-checker` | Dependency health and security | `task_comment` |
+
+### Delegation Pattern
+
+Instead of running workflows directly, spawn the appropriate sub-agent:
+
+```
+Use the code-reviewer sub-agent to review the changes for task {task_id}
+```
+
+The sub-agent will:
+1. Fetch task details via `task_get(task_id)`
+2. Perform its specialized analysis
+3. Report findings via `task_comment()`
+4. Complete with `task_review_complete()` or `task_qa_vote()`
+
+### Task Workflow Delegation
+
+| Workflow | Primary Agent | Spawns |
+|----------|---------------|--------|
+| Discussion (`task_start_discussion`) | `task-discusser` | Claude + Codex + Gemini (external) |
+| Code Review (`task_submit_review`) | `code-reviewer` | - |
+| QA Validation (`task_start_qa`) | Multiple QA agents | Claude + Codex + Gemini (external) |
+
+### When to Delegate vs Direct Call
+
+**Delegate to sub-agent:**
+- Complex analysis needing specialized focus
+- Task-bound workflows (review, QA, discussion)
+- When you want structured findings with confidence scores
+
+**Use direct `ai_run`/`ai_spawn`:**
+- Quick questions needing external perspective
+- Simple consensus building
+- Web search or documentation lookup
+
 ## Basic Workflows
 
 ### Quick Question (Synchronous)

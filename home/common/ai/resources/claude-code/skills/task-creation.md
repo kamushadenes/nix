@@ -104,9 +104,23 @@ Claude: Creates task with:
 
 Claude: "Created task task_abc123. This is a UI feature - would you like me to start a discussion phase to get design input from multiple agents?"
 
+## Sub-Agent Integration
+
+For complex tasks, leverage specialized sub-agents after creation:
+
+| Sub-Agent             | When to Use                                |
+| --------------------- | ------------------------------------------ |
+| `task-discusser`      | Start discussion phase for complex designs |
+| `code-reviewer`       | After implementation for code review       |
+| `security-auditor`    | For security-sensitive features            |
+| `test-analyzer`       | To verify test coverage during QA          |
+
+These sub-agents use orchestrator MCP tools (`task_comment`, `task_qa_vote`) to report findings directly to the task.
+
 ## Tips
 
 - Break large tasks into subtasks using `parent_task_id`
 - Use tags for filtering: "feature", "bugfix", "refactor", "docs", "test"
 - Set dependencies if task requires another task to complete first
 - For urgent issues, use priority 1 and skip discussion phase
+- For complex tasks, use the `task-discusser` sub-agent instead of calling `task_start_discussion` directly

@@ -11,17 +11,17 @@ Control tmux windows programmatically: create windows, send commands, capture ou
 
 ## Quick Reference
 
-| Tool                           | Purpose                               |
-| ------------------------------ | ------------------------------------- |
-| `mcp__tmux__tmux_new_window`   | Create new window with command        |
-| `mcp__tmux__tmux_send`         | Send text/keys to window              |
-| `mcp__tmux__tmux_capture`      | Get window output                     |
-| `mcp__tmux__tmux_list`         | List windows (JSON)                   |
-| `mcp__tmux__tmux_kill`         | Close window                          |
-| `mcp__tmux__tmux_interrupt`    | Send Ctrl+C                           |
-| `mcp__tmux__tmux_wait_idle`    | Wait for idle (no output changes)     |
-| `mcp__tmux__tmux_select`       | Switch to window (bring to front)     |
-| `mcp__tmux__tmux_run_and_read` | Run command, wait, return file output |
+| Tool                                  | Purpose                               |
+| ------------------------------------- | ------------------------------------- |
+| `mcp__orchestrator__tmux_new_window`  | Create new window with command        |
+| `mcp__orchestrator__tmux_send`        | Send text/keys to window              |
+| `mcp__orchestrator__tmux_capture`     | Get window output                     |
+| `mcp__orchestrator__tmux_list`        | List windows (JSON)                   |
+| `mcp__orchestrator__tmux_kill`        | Close window                          |
+| `mcp__orchestrator__tmux_interrupt`   | Send Ctrl+C                           |
+| `mcp__orchestrator__tmux_wait_idle`   | Wait for idle (no output changes)     |
+| `mcp__orchestrator__tmux_select`      | Switch to window (bring to front)     |
+| `mcp__orchestrator__tmux_run_and_read`| Run command, wait, return file output |
 
 ## Window Identifiers
 
@@ -38,19 +38,19 @@ Window names are visible in the tmux status bar for easy identification.
 ```python
 # 1. Create window - SAVE THE RETURNED ID
 # Can pass any command directly - non-shell commands are auto-wrapped in a shell
-window_id = mcp__tmux__tmux_new_window(command="npm run build", name="build")  # Returns "@3"
+window_id = mcp__orchestrator__tmux_new_window(command="npm run build", name="build")  # Returns "@3"
 
 # 2. Wait for completion
-mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=2.0)  # Returns "idle" or "timeout"
+mcp__orchestrator__tmux_wait_idle(target=window_id, idle_seconds=2.0)  # Returns "idle" or "timeout"
 
 # 3. Get output
-output = mcp__tmux__tmux_capture(target=window_id, lines=50)
+output = mcp__orchestrator__tmux_capture(target=window_id, lines=50)
 
 # 4. Optionally switch to window to view it
-mcp__tmux__tmux_select(target=window_id)
+mcp__orchestrator__tmux_select(target=window_id)
 
 # 5. Cleanup
-mcp__tmux__tmux_kill(target=window_id)
+mcp__orchestrator__tmux_kill(target=window_id)
 ```
 
 ## File-Based Output Workflow
@@ -60,7 +60,7 @@ For commands that write to a file (cleaner than capturing pane output):
 ```python
 # Single call: run command, wait for completion, return file contents
 # Use __OUTPUT_FILE__ placeholder - it gets replaced with a random /tmp path
-result = mcp__tmux__tmux_run_and_read(
+result = mcp__orchestrator__tmux_run_and_read(
     command="my-tool --output __OUTPUT_FILE__",
     name="my-task",
     timeout=300
@@ -86,12 +86,12 @@ Create multiple windows for parallel tasks:
 
 ```python
 # Create named windows - commands run directly
-logs_window = mcp__tmux__tmux_new_window(command="tail -f /var/log/app.log", name="logs")
-work_window = mcp__tmux__tmux_new_window(command="cd ~/project && make", name="work")
+logs_window = mcp__orchestrator__tmux_new_window(command="tail -f /var/log/app.log", name="logs")
+work_window = mcp__orchestrator__tmux_new_window(command="cd ~/project && make", name="work")
 
 # Capture from both
-logs = mcp__tmux__tmux_capture(target=logs_window, lines=100)
-output = mcp__tmux__tmux_capture(target=work_window, lines=50)
+logs = mcp__orchestrator__tmux_capture(target=logs_window, lines=100)
+output = mcp__orchestrator__tmux_capture(target=work_window, lines=50)
 ```
 
 ## Interactive Commands
@@ -100,16 +100,16 @@ For commands requiring input (sudo, prompts, debuggers):
 
 ```python
 # Start interactive session
-window_id = mcp__tmux__tmux_new_window(command="sudo apt update", name="sudo")
+window_id = mcp__orchestrator__tmux_new_window(command="sudo apt update", name="sudo")
 
 # Wait for password prompt
-mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=1, timeout=10)
+mcp__orchestrator__tmux_wait_idle(target=window_id, idle_seconds=1, timeout=10)
 
 # Send password (if needed)
-mcp__tmux__tmux_send(target=window_id, text="password")
+mcp__orchestrator__tmux_send(target=window_id, text="password")
 
 # Wait for completion
-mcp__tmux__tmux_wait_idle(target=window_id, idle_seconds=2, timeout=120)
+mcp__orchestrator__tmux_wait_idle(target=window_id, idle_seconds=2, timeout=120)
 ```
 
 ## Window Navigation
@@ -155,7 +155,7 @@ The `__OUTPUT_FILE__` placeholder is replaced with an auto-generated `/tmp/tmux_
 ## Safety
 
 - Cannot kill own window (server prevents this)
-- Use `tmux_interrupt` to stop runaway processes
-- Check `is_claude` field in `tmux_list` to identify your window
-- **Always store and reuse the window ID from `tmux_new_window`**
+- Use `mcp__orchestrator__tmux_interrupt` to stop runaway processes
+- Check `is_claude` field in `mcp__orchestrator__tmux_list` to identify your window
+- **Always store and reuse the window ID from `mcp__orchestrator__tmux_new_window`**
 - Target validation prevents command injection via window IDs

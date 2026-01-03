@@ -24,6 +24,7 @@ let
   rulesDir = "${resourcesDir}/rules";
   memoryDir = "${resourcesDir}/memory";
   commandsDir = "${resourcesDir}/commands";
+  agentsDir = "${resourcesDir}/agents";
 
   # Read rule files from the rules directory
   ruleFiles = builtins.attrNames (builtins.readDir rulesDir);
@@ -303,6 +304,20 @@ in
     };
 
     # Note: Orchestrator MCP server, CLI, and skills are now in orchestrator.nix
+
+    # Sub-agents for specialized workflows
+    ".claude/agents/code-reviewer.md".source = "${agentsDir}/code-reviewer.md";
+    ".claude/agents/security-auditor.md".source = "${agentsDir}/security-auditor.md";
+    ".claude/agents/test-analyzer.md".source = "${agentsDir}/test-analyzer.md";
+    ".claude/agents/documentation-writer.md".source = "${agentsDir}/documentation-writer.md";
+    ".claude/agents/task-discusser.md".source = "${agentsDir}/task-discusser.md";
+    ".claude/agents/silent-failure-hunter.md".source = "${agentsDir}/silent-failure-hunter.md";
+    ".claude/agents/performance-analyzer.md".source = "${agentsDir}/performance-analyzer.md";
+    ".claude/agents/type-checker.md".source = "${agentsDir}/type-checker.md";
+    ".claude/agents/refactoring-advisor.md".source = "${agentsDir}/refactoring-advisor.md";
+    ".claude/agents/code-simplifier.md".source = "${agentsDir}/code-simplifier.md";
+    ".claude/agents/comment-analyzer.md".source = "${agentsDir}/comment-analyzer.md";
+    ".claude/agents/dependency-checker.md".source = "${agentsDir}/dependency-checker.md";
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
