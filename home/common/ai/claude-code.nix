@@ -38,6 +38,7 @@ let
   # MCP servers to include for Claude Code
   enabledServers = [
     "deepwiki"
+    "github"
     "Ref"
     "orchestrator"
     "pal"
@@ -332,7 +333,6 @@ in
       enabledPlugins = {
         # Official plugins
         "gopls-lsp@claude-plugins-official" = true;
-        "github@claude-plugins-official" = true;
         "playwright@claude-plugins-official" = true;
         "typescript-lsp@claude-plugins-official" = true;
         "pyright-lsp@claude-plugins-official" = true;

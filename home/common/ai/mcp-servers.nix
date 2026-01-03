@@ -30,6 +30,15 @@ rec {
       url = "https://mcp.deepwiki.com/mcp";
     };
 
+    # GitHub MCP - Repository management, issues, PRs, code search
+    github = {
+      transport = "http";
+      url = "https://api.githubcopilot.com/mcp";
+      headers = {
+        "Authorization" = "Bearer @GITHUB_PAT@";
+      };
+    };
+
     # Ref - Documentation search (requires API key)
     Ref = {
       transport = "http";
@@ -116,6 +125,7 @@ rec {
 
   # All secret placeholders used across MCP servers
   secretPlaceholders = [
+    "@GITHUB_PAT@"
     "@REF_API_KEY@"
     "@TFE_TOKEN@"
     "@OPENROUTER_API_KEY@"
@@ -123,6 +133,7 @@ rec {
 
   # Secret files (relative to private submodule)
   secretFiles = {
+    "@GITHUB_PAT@" = "home/common/ai/resources/claude/github-pat.age";
     "@REF_API_KEY@" = "home/common/ai/resources/claude/ref-api-key.age";
     "@TFE_TOKEN@" = "home/common/ai/resources/claude/tfe-token.age";
     "@OPENROUTER_API_KEY@" = "home/common/ai/resources/claude/openrouter-api-key.age";
