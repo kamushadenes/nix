@@ -38,9 +38,6 @@ let
   enabledServers = [
     "deepwiki"
     "Ref"
-    "repomix"
-    "godoc"
-    "terraform"
     "orchestrator"
   ];
 
@@ -83,6 +80,7 @@ in
     commands = {
       test-altinity-cloud = builtins.readFile "${private}/home/common/ai/resources/claude/commands/test-altinity-cloud.md";
       code-review = builtins.readFile "${commandsDir}/code-review.md";
+      task-add = builtins.readFile "${commandsDir}/task-add.md";
     };
 
     # Note: rules option is not available in this home-manager version
@@ -185,23 +183,23 @@ in
         "playwright@claude-plugins-official" = true;
         "typescript-lsp@claude-plugins-official" = true;
         "pyright-lsp@claude-plugins-official" = true;
-        "commit-commands@claude-plugins-official" = true;
-        "security-guidance@claude-plugins-official" = true;
-        "pr-review-toolkit@claude-plugins-official" = true;
+        #"commit-commands@claude-plugins-official" = true;
+        #"security-guidance@claude-plugins-official" = true;
+        #"pr-review-toolkit@claude-plugins-official" = true;
 
         # Claude Code Workflows
-        "backend-api-security@claude-code-workflows" = true;
-        "backend-development@claude-code-workflows" = true;
-        "dependency-management@claude-code-workflows" = true;
-        "full-stack-orchestration@claude-code-workflows" = true;
-        "python-development@claude-code-workflows" = true;
-        "security-scanning@claude-code-workflows" = true;
-        "cloud-infrastructure@claude-code-workflows" = true;
-        "cicd-automation@claude-code-workflows" = true;
+        #"backend-api-security@claude-code-workflows" = true;
+        #"backend-development@claude-code-workflows" = true;
+        #"dependency-management@claude-code-workflows" = true;
+        #"full-stack-orchestration@claude-code-workflows" = true;
+        #"python-development@claude-code-workflows" = true;
+        #"security-scanning@claude-code-workflows" = true;
+        #"cloud-infrastructure@claude-code-workflows" = true;
+        #"cicd-automation@claude-code-workflows" = true;
 
         # Third-party
-        "fullstack-dev-skills@fullstack-dev-skills" = true;
-        "superpowers@superpowers-marketplace" = true;
+        #"fullstack-dev-skills@fullstack-dev-skills" = true;
+        #"superpowers@superpowers-marketplace" = true;
       };
     };
   };

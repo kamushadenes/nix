@@ -20,7 +20,6 @@ import json
 import re
 import uuid
 import shutil
-import shlex
 import sqlite3
 import threading
 from dataclasses import dataclass, field, asdict
@@ -46,6 +45,33 @@ TARGET_PATTERN = re.compile(r'^[@%][0-9]+$')
 
 # Supported AI CLIs
 SUPPORTED_CLIS = {"claude", "codex", "gemini"}
+
+
+def make_window_name(cli: str, prompt: str, job_id: str) -> str:
+    """Create a human-readable window name from job details.
+
+    Format: "cli: task_summary #id"
+    Example: "claude: review auth #ab12"
+    """
+    # Extract first 3 words from prompt, cleaned up
+    words = prompt.split()[:3]
+    # Remove special chars, limit each word
+    clean_words = []
+    for w in words:
+        # Keep only alphanumeric
+        cleaned = re.sub(r'[^a-zA-Z0-9]', '', w)[:10]
+        if cleaned:
+            clean_words.append(cleaned.lower())
+
+    task = " ".join(clean_words) if clean_words else "task"
+    short_id = job_id[-4:]
+
+    # Keep total length reasonable for tmux status bar
+    if len(task) > 20:
+        task = task[:17] + "..."
+
+    return f"{cli}: {task} #{short_id}"
+
 
 # =============================================================================
 # Data Classes
@@ -79,6 +105,76 @@ class Job:
     files: list = field(default_factory=list)
     window_id: Optional[str] = None  # tmux window ID for monitoring
     worktree_path: Optional[str] = None  # Isolated git worktree path
+    task_id: Optional[str] = None  # Associated task ID
+
+
+# Task Management Status Values
+TASK_STATUSES = {
+    "backlog", "todo", "discussing", "in_progress", "review", "qa",
+    "done", "blocked", "stalled", "failed", "rejected"
+}
+
+
+@dataclass
+class Task:
+    """Represents a task in the task management system."""
+    id: str
+    repo_path: str
+    title: str
+    description: str = ""
+    status: str = "backlog"  # One of TASK_STATUSES
+    result: str = ""
+    priority: int = 2  # 1=highest, 5=lowest
+    discussion_round: int = 0  # Track idealization rounds (max 3)
+    created_at: float = field(default_factory=time.time)
+    updated_at: float = field(default_factory=time.time)
+    completed_at: Optional[float] = None
+    assigned_to: Optional[str] = None  # Current job_id
+    created_by: str = ""  # user, orchestrator, or agent job_id
+    parent_task_id: Optional[str] = None  # For subtasks
+    tags: list = field(default_factory=list)
+    acceptance_criteria: list = field(default_factory=list)
+    context_files: list = field(default_factory=list)
+    dependencies: list = field(default_factory=list)
+    deadline: Optional[float] = None
+
+
+@dataclass
+class TaskComment:
+    """A comment on a task from a user or agent."""
+    id: str
+    task_id: str
+    job_id: Optional[str]  # Which agent made the comment (null if user)
+    agent_type: str  # claude, codex, gemini, user
+    content: str
+    comment_type: str = "note"  # note, suggestion, issue, approval, rejection
+    created_at: float = field(default_factory=time.time)
+
+
+@dataclass
+class TaskDiscussionVote:
+    """Discussion phase vote from an agent."""
+    id: str
+    task_id: str
+    job_id: str
+    agent_type: str  # claude, codex, gemini
+    vote: str  # ready, needs_work
+    approach_summary: str = ""
+    concerns: list = field(default_factory=list)
+    suggestions: list = field(default_factory=list)
+    created_at: float = field(default_factory=time.time)
+
+
+@dataclass
+class TaskQAVote:
+    """QA phase vote from an agent."""
+    id: str
+    task_id: str
+    job_id: str
+    agent_type: str  # claude, codex, gemini
+    vote: str  # approve, reject
+    reason: str = ""
+    created_at: float = field(default_factory=time.time)
 
 
 # =============================================================================
@@ -117,7 +213,8 @@ def init_db():
                     model TEXT DEFAULT '',
                     files TEXT DEFAULT '[]',
                     window_id TEXT,
-                    worktree_path TEXT
+                    worktree_path TEXT,
+                    task_id TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS messages (
@@ -130,15 +227,87 @@ def init_db():
                     FOREIGN KEY (job_id) REFERENCES jobs(id)
                 );
 
+                -- Task Management Tables
+                CREATE TABLE IF NOT EXISTS tasks (
+                    id TEXT PRIMARY KEY,
+                    repo_path TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    description TEXT DEFAULT '',
+                    status TEXT DEFAULT 'backlog',
+                    result TEXT DEFAULT '',
+                    priority INTEGER DEFAULT 2,
+                    discussion_round INTEGER DEFAULT 0,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    completed_at REAL,
+                    assigned_to TEXT,
+                    created_by TEXT DEFAULT '',
+                    parent_task_id TEXT,
+                    tags TEXT DEFAULT '[]',
+                    acceptance_criteria TEXT DEFAULT '[]',
+                    context_files TEXT DEFAULT '[]',
+                    dependencies TEXT DEFAULT '[]',
+                    deadline REAL
+                );
+
+                CREATE TABLE IF NOT EXISTS task_comments (
+                    id TEXT PRIMARY KEY,
+                    task_id TEXT NOT NULL,
+                    job_id TEXT,
+                    agent_type TEXT,
+                    content TEXT NOT NULL,
+                    comment_type TEXT DEFAULT 'note',
+                    created_at REAL NOT NULL,
+                    FOREIGN KEY (task_id) REFERENCES tasks(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS task_discussion_votes (
+                    id TEXT PRIMARY KEY,
+                    task_id TEXT NOT NULL,
+                    job_id TEXT NOT NULL,
+                    agent_type TEXT NOT NULL,
+                    vote TEXT NOT NULL,
+                    approach_summary TEXT DEFAULT '',
+                    concerns TEXT DEFAULT '[]',
+                    suggestions TEXT DEFAULT '[]',
+                    created_at REAL NOT NULL,
+                    FOREIGN KEY (task_id) REFERENCES tasks(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS task_qa_votes (
+                    id TEXT PRIMARY KEY,
+                    task_id TEXT NOT NULL,
+                    job_id TEXT NOT NULL,
+                    agent_type TEXT NOT NULL,
+                    vote TEXT NOT NULL,
+                    reason TEXT DEFAULT '',
+                    created_at REAL NOT NULL,
+                    FOREIGN KEY (task_id) REFERENCES tasks(id)
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_jobs_session ON jobs(session_id);
                 CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+                CREATE INDEX IF NOT EXISTS idx_jobs_task ON jobs(task_id);
                 CREATE INDEX IF NOT EXISTS idx_messages_job ON messages(job_id);
+                CREATE INDEX IF NOT EXISTS idx_tasks_repo ON tasks(repo_path);
+                CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+                CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_task_id);
+                CREATE INDEX IF NOT EXISTS idx_comments_task ON task_comments(task_id);
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_discussion_vote_unique
+                    ON task_discussion_votes(task_id, agent_type);
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_qa_vote_unique
+                    ON task_qa_votes(task_id, agent_type);
             """)
-            # Add worktree_path column if it doesn't exist (migration)
-            try:
-                conn.execute("ALTER TABLE jobs ADD COLUMN worktree_path TEXT")
-            except sqlite3.OperationalError:
-                pass  # Column already exists
+            # Migrations for existing tables
+            migrations = [
+                ("jobs", "worktree_path", "TEXT"),
+                ("jobs", "task_id", "TEXT"),
+            ]
+            for table, column, coltype in migrations:
+                try:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
             conn.commit()
         finally:
             conn.close()
@@ -151,12 +320,13 @@ def save_job(job: Job):
         try:
             conn.execute("""
                 INSERT OR REPLACE INTO jobs
-                (id, session_id, cli, prompt, status, result, output_offset, pid, created, model, files, window_id, worktree_path)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, session_id, cli, prompt, status, result, output_offset, pid, created, model, files, window_id, worktree_path, task_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 job.id, job.session_id, job.cli, job.prompt, job.status,
                 job.result, job.output_offset, job.pid, job.created,
-                job.model, json.dumps(job.files), job.window_id, job.worktree_path
+                job.model, json.dumps(job.files), job.window_id, job.worktree_path,
+                job.task_id
             ))
             conn.commit()
         finally:
@@ -192,7 +362,8 @@ def get_job(job_id: str, session_id: Optional[str] = None) -> Optional[Job]:
                     model=row['model'],
                     files=json.loads(row['files']),
                     window_id=row['window_id'],
-                    worktree_path=row['worktree_path'] if 'worktree_path' in row.keys() else None
+                    worktree_path=row['worktree_path'] if 'worktree_path' in row.keys() else None,
+                    task_id=row['task_id'] if 'task_id' in row.keys() else None
                 )
             return None
         finally:
@@ -229,7 +400,8 @@ def list_jobs(session_id: Optional[str] = None, status: str = "") -> list[Job]:
                     model=row['model'],
                     files=json.loads(row['files']),
                     window_id=row['window_id'],
-                    worktree_path=row['worktree_path'] if 'worktree_path' in row.keys() else None
+                    worktree_path=row['worktree_path'] if 'worktree_path' in row.keys() else None,
+                    task_id=row['task_id'] if 'task_id' in row.keys() else None
                 )
                 for row in rows
             ]
@@ -296,6 +468,315 @@ def cleanup_expired_jobs(max_age_seconds: int = JOB_EXPIRY_SECONDS):
                 conn.commit()
 
             return len(job_ids)
+        finally:
+            conn.close()
+
+
+# =============================================================================
+# Task Management Database Functions
+# =============================================================================
+
+
+def get_git_repo_path() -> Optional[str]:
+    """Get the git repository root path for the current working directory."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+        return None
+    except Exception:
+        return None
+
+
+def save_task(task: Task):
+    """Save or update a task in the database."""
+    with _db_lock:
+        conn = get_db_connection()
+        try:
+            conn.execute("""
+                INSERT OR REPLACE INTO tasks
+                (id, repo_path, title, description, status, result, priority,
+                 discussion_round, created_at, updated_at, completed_at, assigned_to,
+                 created_by, parent_task_id, tags, acceptance_criteria, context_files,
+                 dependencies, deadline)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                task.id, task.repo_path, task.title, task.description, task.status,
+                task.result, task.priority, task.discussion_round, task.created_at,
+                task.updated_at, task.completed_at, task.assigned_to, task.created_by,
+                task.parent_task_id, json.dumps(task.tags),
+                json.dumps(task.acceptance_criteria), json.dumps(task.context_files),
+                json.dumps(task.dependencies), task.deadline
+            ))
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def get_task(task_id: str, repo_path: Optional[str] = None) -> Optional[Task]:
+    """Get a task by ID, optionally filtering by repository."""
+    with _db_lock:
+        conn = get_db_connection()
+        try:
+            if repo_path:
+                row = conn.execute(
+                    "SELECT * FROM tasks WHERE id = ? AND repo_path = ?",
+                    (task_id, repo_path)
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT * FROM tasks WHERE id = ?",
+                    (task_id,)
+                ).fetchone()
+            if row:
+                return Task(
+                    id=row['id'],
+                    repo_path=row['repo_path'],
+                    title=row['title'],
+                    description=row['description'],
+                    status=row['status'],
+                    result=row['result'],
+                    priority=row['priority'],
+                    discussion_round=row['discussion_round'],
+                    created_at=row['created_at'],
+                    updated_at=row['updated_at'],
+                    completed_at=row['completed_at'],
+                    assigned_to=row['assigned_to'],
+                    created_by=row['created_by'],
+                    parent_task_id=row['parent_task_id'],
+                    tags=json.loads(row['tags']),
+                    acceptance_criteria=json.loads(row['acceptance_criteria']),
+                    context_files=json.loads(row['context_files']),
+                    dependencies=json.loads(row['dependencies']),
+                    deadline=row['deadline']
+                )
+            return None
+        finally:
+            conn.close()
+
+
+def list_tasks(
+    repo_path: str,
+    status: str = "",
+    priority: Optional[int] = None,
+    tag: str = "",
+    parent_task_id: Optional[str] = None,
+    assigned_to: Optional[str] = None
+) -> list[Task]:
+    """List tasks with optional filtering."""
+    with _db_lock:
+        conn = get_db_connection()
+        try:
+            query = "SELECT * FROM tasks WHERE repo_path = ?"
+            params = [repo_path]
+
+            if status:
+                query += " AND status = ?"
+                params.append(status)
+            if priority is not None:
+                query += " AND priority = ?"
+                params.append(priority)
+            if tag:
+                # JSON array contains check
+                query += " AND tags LIKE ?"
+                params.append(f'%"{tag}"%')
+            if parent_task_id is not None:
+                query += " AND parent_task_id = ?"
+                params.append(parent_task_id)
+            if assigned_to is not None:
+                query += " AND assigned_to = ?"
+                params.append(assigned_to)
+
+            query += " ORDER BY priority ASC, created_at DESC"
+
+            rows = conn.execute(query, params).fetchall()
+            return [
+                Task(
+                    id=row['id'],
+                    repo_path=row['repo_path'],
+                    title=row['title'],
+                    description=row['description'],
+                    status=row['status'],
+                    result=row['result'],
+                    priority=row['priority'],
+                    discussion_round=row['discussion_round'],
+                    created_at=row['created_at'],
+                    updated_at=row['updated_at'],
+                    completed_at=row['completed_at'],
+                    assigned_to=row['assigned_to'],
+                    created_by=row['created_by'],
+                    parent_task_id=row['parent_task_id'],
+                    tags=json.loads(row['tags']),
+                    acceptance_criteria=json.loads(row['acceptance_criteria']),
+                    context_files=json.loads(row['context_files']),
+                    dependencies=json.loads(row['dependencies']),
+                    deadline=row['deadline']
+                )
+                for row in rows
+            ]
+        finally:
+            conn.close()
+
+
+def save_task_comment(comment: TaskComment):
+    """Save a comment to the database."""
+    with _db_lock:
+        conn = get_db_connection()
+        try:
+            conn.execute("""
+                INSERT INTO task_comments
+                (id, task_id, job_id, agent_type, content, comment_type, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                comment.id, comment.task_id, comment.job_id, comment.agent_type,
+                comment.content, comment.comment_type, comment.created_at
+            ))
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def get_task_comments(task_id: str) -> list[TaskComment]:
+    """Get all comments for a task, ordered by creation time."""
+    with _db_lock:
+        conn = get_db_connection()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM task_comments WHERE task_id = ? ORDER BY created_at ASC",
+                (task_id,)
+            ).fetchall()
+            return [
+                TaskComment(
+                    id=row['id'],
+                    task_id=row['task_id'],
+                    job_id=row['job_id'],
+                    agent_type=row['agent_type'],
+                    content=row['content'],
+                    comment_type=row['comment_type'],
+                    created_at=row['created_at']
+                )
+                for row in rows
+            ]
+        finally:
+            conn.close()
+
+
+def save_discussion_vote(vote: TaskDiscussionVote):
+    """Save or update a discussion vote (unique per task + agent_type)."""
+    with _db_lock:
+        conn = get_db_connection()
+        try:
+            conn.execute("""
+                INSERT OR REPLACE INTO task_discussion_votes
+                (id, task_id, job_id, agent_type, vote, approach_summary, concerns, suggestions, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                vote.id, vote.task_id, vote.job_id, vote.agent_type, vote.vote,
+                vote.approach_summary, json.dumps(vote.concerns),
+                json.dumps(vote.suggestions), vote.created_at
+            ))
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def get_discussion_votes(task_id: str) -> list[TaskDiscussionVote]:
+    """Get all discussion votes for a task."""
+    with _db_lock:
+        conn = get_db_connection()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM task_discussion_votes WHERE task_id = ? ORDER BY created_at ASC",
+                (task_id,)
+            ).fetchall()
+            return [
+                TaskDiscussionVote(
+                    id=row['id'],
+                    task_id=row['task_id'],
+                    job_id=row['job_id'],
+                    agent_type=row['agent_type'],
+                    vote=row['vote'],
+                    approach_summary=row['approach_summary'],
+                    concerns=json.loads(row['concerns']),
+                    suggestions=json.loads(row['suggestions']),
+                    created_at=row['created_at']
+                )
+                for row in rows
+            ]
+        finally:
+            conn.close()
+
+
+def clear_discussion_votes(task_id: str):
+    """Clear all discussion votes for a task (for next round)."""
+    with _db_lock:
+        conn = get_db_connection()
+        try:
+            conn.execute(
+                "DELETE FROM task_discussion_votes WHERE task_id = ?",
+                (task_id,)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def save_qa_vote(vote: TaskQAVote):
+    """Save or update a QA vote (unique per task + agent_type)."""
+    with _db_lock:
+        conn = get_db_connection()
+        try:
+            conn.execute("""
+                INSERT OR REPLACE INTO task_qa_votes
+                (id, task_id, job_id, agent_type, vote, reason, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                vote.id, vote.task_id, vote.job_id, vote.agent_type,
+                vote.vote, vote.reason, vote.created_at
+            ))
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def get_qa_votes(task_id: str) -> list[TaskQAVote]:
+    """Get all QA votes for a task."""
+    with _db_lock:
+        conn = get_db_connection()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM task_qa_votes WHERE task_id = ? ORDER BY created_at ASC",
+                (task_id,)
+            ).fetchall()
+            return [
+                TaskQAVote(
+                    id=row['id'],
+                    task_id=row['task_id'],
+                    job_id=row['job_id'],
+                    agent_type=row['agent_type'],
+                    vote=row['vote'],
+                    reason=row['reason'],
+                    created_at=row['created_at']
+                )
+                for row in rows
+            ]
+        finally:
+            conn.close()
+
+
+def clear_qa_votes(task_id: str):
+    """Clear all QA votes for a task."""
+    with _db_lock:
+        conn = get_db_connection()
+        try:
+            conn.execute(
+                "DELETE FROM task_qa_votes WHERE task_id = ?",
+                (task_id,)
+            )
+            conn.commit()
         finally:
             conn.close()
 
@@ -897,14 +1378,12 @@ def run_job_in_tmux(job: Job, log_intermediary: bool = False, auto_close: bool =
         # Prompt goes last
         runner_cmd.append(job.prompt)
 
-        # Shell-escape for tmux send-keys
-        cmd_str = " ".join(shlex.quote(part) for part in runner_cmd)
+        # Human-readable window name
+        window_name = make_window_name(job.cli, job.prompt, job.id)
 
-        # Simple window name: "cli:id"
-        window_name = f"{job.cli}:{job.id[-8:]}"
-
-        # Create window running a shell
-        args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name, DEFAULT_SHELL]
+        # Create window running orchestrator directly (no shell wrapper)
+        # When orchestrator exits, the window closes automatically
+        args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name] + runner_cmd
         output, code = run_tmux(*args)
 
         if code != 0:
@@ -917,26 +1396,9 @@ def run_job_in_tmux(job: Job, log_intermediary: bool = False, auto_close: bool =
         job.window_id = window_id
         save_job(job)
 
-        # Wait for shell to be ready
-        marker = f"READY_{uuid.uuid4().hex}"
-        run_tmux("send-keys", "-t", window_id, f"echo {marker}", "Enter")
-
-        shell_ready = False
-        for _ in range(50):  # 5 seconds max
-            time.sleep(0.1)
-            content, _ = run_tmux("capture-pane", "-t", window_id, "-p")
-            if marker in content:
-                shell_ready = True
-                break
-
-        if not shell_ready:
-            job.status = "failed"
-            job.result = f"Shell did not become ready in window {window_id}"
-            save_job(job)
-            return
-
-        # Send the orchestrator run command
-        run_tmux("send-keys", "-t", window_id, cmd_str, "Enter")
+        # Set pane title for nice display in tmux status bar
+        pane_title = make_window_name(job.cli, job.prompt, job.id)
+        run_tmux("select-pane", "-t", window_id, "-T", pane_title)
 
         # The orchestrator CLI now handles everything:
         # - Parsing JSON output
@@ -947,7 +1409,7 @@ def run_job_in_tmux(job: Job, log_intermediary: bool = False, auto_close: bool =
         # We just need to wait for the window to close (if auto_close)
         # or for the command to finish.
 
-        # Poll for completion (check every 2 seconds, timeout after 30 minutes)
+        # Poll for window close (check every 2 seconds, timeout after 30 minutes)
         max_wait = 1800  # 30 minutes
         poll_interval = 2
         waited = 0
@@ -956,17 +1418,10 @@ def run_job_in_tmux(job: Job, log_intermediary: bool = False, auto_close: bool =
             time.sleep(poll_interval)
             waited += poll_interval
 
-            # Check if window still exists
-            list_output, list_code = run_tmux("list-windows", "-F", "#{window_id}")
-            if window_id not in list_output:
-                # Window was closed (either by auto_close or manually)
-                # The orchestrator CLI already updated the job status
-                break
-
-            # Check if command finished (back to shell prompt)
-            if is_window_idle(window_id):
-                # Command finished, wait a moment for final DB updates
-                time.sleep(1)
+            # Check if window still exists (closes when command exits)
+            exists, _ = window_exists(window_id)
+            if not exists:
+                # Window closed - orchestrator CLI finished and updated job status
                 break
 
         # Refresh job status from database (orchestrator CLI updated it)
@@ -988,7 +1443,8 @@ def ai_run(
     model: str = "",
     files: list = None,
     timeout: int = 600,
-    worktree: bool = False
+    worktree: bool = False,
+    task_id: str = ""
 ) -> str:
     """
     Run an AI CLI job synchronously and return the result.
@@ -1004,6 +1460,7 @@ def ai_run(
         files: Optional list of files to include as context
         timeout: Max seconds to wait for completion (default: 600)
         worktree: If True, create an isolated git worktree for the agent (safer)
+        task_id: Optional task ID to associate with this job (provides context)
 
     Returns:
         JSON with job_id, status, and result
@@ -1021,6 +1478,34 @@ def ai_run(
 
     session_id = get_current_session()
     job_id = f"job_{uuid.uuid4().hex[:12]}"
+
+    # Get task and build enhanced prompt if task_id provided
+    task = None
+    enhanced_prompt = prompt
+    if task_id:
+        task = get_task(task_id)
+        if not task:
+            return json.dumps({
+                "job_id": job_id,
+                "status": "failed",
+                "result": f"Task {task_id} not found"
+            })
+        # Determine role based on task status
+        role = "general"
+        if task.status == "discussing":
+            role = "discussion"
+        elif task.status == "in_progress":
+            role = "dev"
+        elif task.status == "review":
+            role = "review"
+        elif task.status == "qa":
+            role = "qa"
+        # Build enhanced prompt with task context
+        enhanced_prompt = build_task_prompt(task, role, cli) + "\n\n" + prompt
+        # Add context files to files list
+        for cf in task.context_files:
+            if cf not in files:
+                files.append(cf)
 
     # SAFETY: codex and gemini ALWAYS run in isolated worktree
     if cli in ("codex", "gemini"):
@@ -1042,13 +1527,20 @@ def ai_run(
         id=job_id,
         session_id=session_id,
         cli=cli,
-        prompt=prompt,
+        prompt=enhanced_prompt,
         status="running",
         model=model,
         files=files,
-        worktree_path=str(worktree_path) if worktree_path else None
+        worktree_path=str(worktree_path) if worktree_path else None,
+        task_id=task_id if task_id else None
     )
     save_job(job)
+
+    # Update task's assigned_to if task_id provided
+    if task:
+        task.assigned_to = job_id
+        task.updated_at = time.time()
+        save_task(task)
 
     # Build orchestrator run command
     runner_cmd = [
@@ -1064,8 +1556,8 @@ def ai_run(
         runner_cmd.extend(["--worktree", str(worktree_path)])
     runner_cmd.append(prompt)
 
-    # Simple window name: "cli:id"
-    window_name = f"{cli}:{job_id[-8:]}"
+    # Human-readable window name
+    window_name = make_window_name(cli, prompt, job_id)
 
     # Create tmux window running orchestrator directly (no shell wrapper)
     # orchestrator run will exit when done, closing the window
@@ -1085,6 +1577,9 @@ def ai_run(
     window_id = output.strip()
     job.window_id = window_id
     save_job(job)
+
+    # Set pane title for nice display in tmux status bar
+    run_tmux("select-pane", "-t", window_id, "-T", window_name)
 
     # Wait for window to close (orchestrator exits on completion)
     start = time.time()
@@ -1143,7 +1638,8 @@ def ai_spawn(
     model: str = "",
     files: list = None,
     log_intermediary: bool = False,
-    auto_close: bool = True
+    auto_close: bool = True,
+    task_id: str = ""
 ) -> str:
     """
     Start an async AI CLI job and return immediately.
@@ -1155,6 +1651,7 @@ def ai_spawn(
         files: Optional list of files to include as context
         log_intermediary: Log intermediary messages to SQLite (default: False)
         auto_close: Auto-close tmux window on completion (default: True)
+        task_id: Optional task ID to associate with this job (provides context)
 
     Returns:
         Job ID (e.g., "job_abc123") for use with ai_fetch/ai_stream
@@ -1173,16 +1670,51 @@ def ai_spawn(
     session_id = get_current_session()
     job_id = f"job_{uuid.uuid4().hex[:12]}"
 
+    # Get task and build enhanced prompt if task_id provided
+    task = None
+    enhanced_prompt = prompt
+    if task_id:
+        task = get_task(task_id)
+        if not task:
+            return json.dumps({
+                "job_id": job_id,
+                "status": "failed",
+                "result": f"Task {task_id} not found"
+            })
+        # Determine role based on task status
+        role = "general"
+        if task.status == "discussing":
+            role = "discussion"
+        elif task.status == "in_progress":
+            role = "dev"
+        elif task.status == "review":
+            role = "review"
+        elif task.status == "qa":
+            role = "qa"
+        # Build enhanced prompt with task context
+        enhanced_prompt = build_task_prompt(task, role, cli) + "\n\n" + prompt
+        # Add context files to files list
+        for cf in task.context_files:
+            if cf not in files:
+                files.append(cf)
+
     job = Job(
         id=job_id,
         session_id=session_id,
         cli=cli,
-        prompt=prompt,
+        prompt=enhanced_prompt,
         status="running",
         model=model,
-        files=files
+        files=files,
+        task_id=task_id if task_id else None
     )
     save_job(job)
+
+    # Update task's assigned_to if task_id provided
+    if task:
+        task.assigned_to = job_id
+        task.updated_at = time.time()
+        save_task(task)
 
     # Start background thread - runs in tmux window with TUI for visibility
     thread = threading.Thread(
@@ -1195,6 +1727,7 @@ def ai_spawn(
 
     return json.dumps({
         "job_id": job_id,
+        "task_id": task_id if task_id else None,
         "window_id": None,  # Will be set once tmux window is created
         "message": f"Job started in background. Use ai_fetch('{job_id}') to get results, or switch to tmux window to watch."
     })
@@ -1542,6 +2075,1162 @@ def ai_search(
         # For claude, use prompt with web search request
         prompt = f"Please search the web and answer: {query}"
         return ai_ask(prompt, cli)
+
+
+# =============================================================================
+# Task Management MCP Tools
+# =============================================================================
+
+
+@mcp.tool()
+def task_create(
+    title: str,
+    description: str = "",
+    priority: int = 2,
+    tags: list = None,
+    acceptance_criteria: list = None,
+    context_files: list = None,
+    dependencies: list = None,
+    parent_task_id: str = "",
+    created_by: str = "user"
+) -> str:
+    """
+    Create a new task in the task management system.
+
+    Args:
+        title: Task title (required)
+        description: Detailed task description
+        priority: Priority level 1-5 (1=highest, default: 2)
+        tags: List of tags for categorization
+        acceptance_criteria: List of criteria for task completion
+        context_files: List of relevant file paths
+        dependencies: List of task IDs this task depends on
+        parent_task_id: Parent task ID if this is a subtask
+        created_by: Who created the task (user, orchestrator, or job_id)
+
+    Returns:
+        JSON with task_id and task details
+    """
+    init_db()
+
+    repo_path = get_git_repo_path()
+    if not repo_path:
+        return json.dumps({"error": "Not in a git repository"})
+
+    task_id = f"task_{uuid.uuid4().hex[:12]}"
+    now = time.time()
+
+    task = Task(
+        id=task_id,
+        repo_path=repo_path,
+        title=title,
+        description=description,
+        status="backlog",
+        priority=max(1, min(5, priority)),  # Clamp to 1-5
+        created_at=now,
+        updated_at=now,
+        created_by=created_by,
+        parent_task_id=parent_task_id if parent_task_id else None,
+        tags=tags or [],
+        acceptance_criteria=acceptance_criteria or [],
+        context_files=context_files or [],
+        dependencies=dependencies or []
+    )
+    save_task(task)
+
+    return json.dumps({
+        "task_id": task_id,
+        "title": title,
+        "status": "backlog",
+        "priority": task.priority,
+        "repo_path": repo_path,
+        "message": f"Task '{title}' created successfully"
+    }, indent=2)
+
+
+@mcp.tool()
+def task_list(
+    status: str = "",
+    priority: int = 0,
+    tag: str = "",
+    parent_task_id: str = ""
+) -> str:
+    """
+    List tasks with optional filtering.
+
+    Args:
+        status: Filter by status (backlog, todo, discussing, in_progress, review, qa, done, blocked, stalled, failed, rejected)
+        priority: Filter by priority (1-5, 0 for all)
+        tag: Filter by tag
+        parent_task_id: Filter by parent task ID (for subtasks)
+
+    Returns:
+        JSON list of tasks
+    """
+    init_db()
+
+    repo_path = get_git_repo_path()
+    if not repo_path:
+        return json.dumps({"error": "Not in a git repository"})
+
+    tasks = list_tasks(
+        repo_path=repo_path,
+        status=status if status else "",
+        priority=priority if priority > 0 else None,
+        tag=tag if tag else "",
+        parent_task_id=parent_task_id if parent_task_id else None
+    )
+
+    return json.dumps([
+        {
+            "task_id": t.id,
+            "title": t.title,
+            "status": t.status,
+            "priority": t.priority,
+            "tags": t.tags,
+            "assigned_to": t.assigned_to,
+            "parent_task_id": t.parent_task_id,
+            "created_at": t.created_at,
+            "updated_at": t.updated_at
+        }
+        for t in tasks
+    ], indent=2)
+
+
+@mcp.tool()
+def task_get(task_id: str) -> str:
+    """
+    Get full details of a task.
+
+    Args:
+        task_id: The task ID to retrieve
+
+    Returns:
+        JSON with complete task details including comments
+    """
+    init_db()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    comments = get_task_comments(task_id)
+    discussion_votes = get_discussion_votes(task_id)
+    qa_votes = get_qa_votes(task_id)
+
+    return json.dumps({
+        "task_id": task.id,
+        "repo_path": task.repo_path,
+        "title": task.title,
+        "description": task.description,
+        "status": task.status,
+        "result": task.result,
+        "priority": task.priority,
+        "discussion_round": task.discussion_round,
+        "created_at": task.created_at,
+        "updated_at": task.updated_at,
+        "completed_at": task.completed_at,
+        "assigned_to": task.assigned_to,
+        "created_by": task.created_by,
+        "parent_task_id": task.parent_task_id,
+        "tags": task.tags,
+        "acceptance_criteria": task.acceptance_criteria,
+        "context_files": task.context_files,
+        "dependencies": task.dependencies,
+        "deadline": task.deadline,
+        "comments": [asdict(c) for c in comments],
+        "discussion_votes": [asdict(v) for v in discussion_votes],
+        "qa_votes": [asdict(v) for v in qa_votes]
+    }, indent=2)
+
+
+@mcp.tool()
+def task_update(
+    task_id: str,
+    title: str = "",
+    description: str = "",
+    status: str = "",
+    priority: int = 0,
+    tags: list = None,
+    acceptance_criteria: list = None,
+    context_files: list = None,
+    dependencies: list = None
+) -> str:
+    """
+    Update task fields.
+
+    Args:
+        task_id: The task ID to update
+        title: New title (empty to keep current)
+        description: New description (empty to keep current)
+        status: New status (empty to keep current)
+        priority: New priority 1-5 (0 to keep current)
+        tags: New tags list (None to keep current)
+        acceptance_criteria: New criteria list (None to keep current)
+        context_files: New files list (None to keep current)
+        dependencies: New dependencies list (None to keep current)
+
+    Returns:
+        JSON with updated task details
+    """
+    init_db()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    # Update fields if provided
+    if title:
+        task.title = title
+    if description:
+        task.description = description
+    if status:
+        if status not in TASK_STATUSES:
+            return json.dumps({"error": f"Invalid status: {status}. Valid: {TASK_STATUSES}"})
+        task.status = status
+    if priority > 0:
+        task.priority = max(1, min(5, priority))
+    if tags is not None:
+        task.tags = tags
+    if acceptance_criteria is not None:
+        task.acceptance_criteria = acceptance_criteria
+    if context_files is not None:
+        task.context_files = context_files
+    if dependencies is not None:
+        task.dependencies = dependencies
+
+    task.updated_at = time.time()
+    save_task(task)
+
+    return json.dumps({
+        "task_id": task.id,
+        "title": task.title,
+        "status": task.status,
+        "priority": task.priority,
+        "message": "Task updated successfully"
+    }, indent=2)
+
+
+@mcp.tool()
+def task_complete(
+    task_id: str,
+    result: str
+) -> str:
+    """
+    Mark a task as completed with a result summary.
+
+    Args:
+        task_id: The task ID to complete
+        result: Summary of what was accomplished
+
+    Returns:
+        JSON with completion status
+    """
+    init_db()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    # Check if all subtasks are completed
+    repo_path = task.repo_path
+    subtasks = list_tasks(repo_path=repo_path, parent_task_id=task_id)
+    incomplete_subtasks = [st for st in subtasks if st.status != "done"]
+    if incomplete_subtasks:
+        return json.dumps({
+            "error": "Cannot complete task with incomplete subtasks",
+            "incomplete_subtasks": [{"id": st.id, "title": st.title, "status": st.status} for st in incomplete_subtasks]
+        })
+
+    task.status = "done"
+    task.result = result
+    task.completed_at = time.time()
+    task.updated_at = time.time()
+    save_task(task)
+
+    return json.dumps({
+        "task_id": task.id,
+        "title": task.title,
+        "status": "done",
+        "result": result,
+        "completed_at": task.completed_at,
+        "message": "Task completed successfully"
+    }, indent=2)
+
+
+@mcp.tool()
+def task_cancel(
+    task_id: str,
+    reason: str = ""
+) -> str:
+    """
+    Cancel a task.
+
+    Args:
+        task_id: The task ID to cancel
+        reason: Optional reason for cancellation
+
+    Returns:
+        JSON with cancellation status
+    """
+    init_db()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    if task.status == "done":
+        return json.dumps({"error": "Cannot cancel a completed task"})
+
+    task.status = "failed"
+    task.result = f"Cancelled: {reason}" if reason else "Cancelled"
+    task.updated_at = time.time()
+    save_task(task)
+
+    return json.dumps({
+        "task_id": task.id,
+        "title": task.title,
+        "status": "failed",
+        "message": "Task cancelled"
+    }, indent=2)
+
+
+@mcp.tool()
+def task_comment(
+    task_id: str,
+    content: str,
+    comment_type: str = "note",
+    agent_type: str = "user",
+    job_id: str = ""
+) -> str:
+    """
+    Add a comment to a task.
+
+    Args:
+        task_id: The task ID to comment on
+        content: Comment content
+        comment_type: Type of comment (note, suggestion, issue, approval, rejection)
+        agent_type: Who is commenting (user, claude, codex, gemini)
+        job_id: Job ID if commenting from an agent
+
+    Returns:
+        JSON with comment details
+    """
+    init_db()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    valid_types = {"note", "suggestion", "issue", "approval", "rejection"}
+    if comment_type not in valid_types:
+        return json.dumps({"error": f"Invalid comment_type: {comment_type}. Valid: {valid_types}"})
+
+    comment_id = f"comment_{uuid.uuid4().hex[:12]}"
+    comment = TaskComment(
+        id=comment_id,
+        task_id=task_id,
+        job_id=job_id if job_id else None,
+        agent_type=agent_type,
+        content=content,
+        comment_type=comment_type,
+        created_at=time.time()
+    )
+    save_task_comment(comment)
+
+    return json.dumps({
+        "comment_id": comment_id,
+        "task_id": task_id,
+        "agent_type": agent_type,
+        "comment_type": comment_type,
+        "message": "Comment added successfully"
+    }, indent=2)
+
+
+@mcp.tool()
+def task_comments(task_id: str) -> str:
+    """
+    Get all comments for a task.
+
+    Args:
+        task_id: The task ID to get comments for
+
+    Returns:
+        JSON list of comments
+    """
+    init_db()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    comments = get_task_comments(task_id)
+
+    return json.dumps([
+        {
+            "comment_id": c.id,
+            "agent_type": c.agent_type,
+            "job_id": c.job_id,
+            "content": c.content,
+            "comment_type": c.comment_type,
+            "created_at": c.created_at
+        }
+        for c in comments
+    ], indent=2)
+
+
+# =============================================================================
+# Task Workflow MCP Tools
+# =============================================================================
+
+
+def build_task_prompt(task: Task, role: str, agent_type: str) -> str:
+    """Build a prompt with task context for an agent.
+
+    Args:
+        task: The task to build context for
+        role: The role (discussion, dev, review, qa)
+        agent_type: Which agent (claude, codex, gemini)
+
+    Returns:
+        A prompt string with task context
+    """
+    # Get previous comments for context
+    comments = get_task_comments(task.id)
+    comments_text = ""
+    if comments:
+        comments_text = "\n=== PREVIOUS COMMENTS ===\n"
+        for c in comments:
+            comments_text += f"[{c.agent_type}] ({c.comment_type}): {c.content}\n"
+
+    # Get previous discussion votes if in discussion
+    votes_text = ""
+    if role == "discussion":
+        votes = get_discussion_votes(task.id)
+        if votes:
+            votes_text = "\n=== PREVIOUS DISCUSSION VOTES ===\n"
+            for v in votes:
+                votes_text += f"[{v.agent_type}] voted '{v.vote}': {v.approach_summary}\n"
+                if v.concerns:
+                    votes_text += f"  Concerns: {', '.join(v.concerns)}\n"
+
+    # Build acceptance criteria text
+    criteria_text = ""
+    if task.acceptance_criteria:
+        criteria_text = "\n".join(f"- {c}" for c in task.acceptance_criteria)
+    else:
+        criteria_text = "No specific acceptance criteria defined."
+
+    # Build context files text
+    files_text = ""
+    if task.context_files:
+        files_text = "\n".join(f"- {f}" for f in task.context_files)
+    else:
+        files_text = "No specific files referenced."
+
+    # Role-specific instructions
+    role_instructions = {
+        "discussion": {
+            "claude": """You are participating in a DISCUSSION phase to reach consensus on implementation approach.
+
+Your responsibilities:
+1. Analyze the task requirements and acceptance criteria
+2. Propose an implementation approach (architecture, patterns, file structure)
+3. Raise any concerns or potential issues
+4. Add comments using: task_comment(task_id, content, comment_type="suggestion")
+5. When ready, vote using: task_discussion_vote(task_id, vote, approach_summary, concerns, suggestions)
+
+Vote 'ready' if you believe the team has consensus on approach.
+Vote 'needs_work' if there are unresolved concerns.
+
+You are operating in READ-ONLY mode for this phase.""",
+
+            "codex": """You are participating in a DISCUSSION phase to reach consensus on implementation approach.
+
+Your responsibilities:
+1. Review the task for technical feasibility
+2. Identify potential edge cases and code conflicts
+3. Point out any technical concerns
+4. Add comments using: task_comment(task_id, content, comment_type="issue")
+5. When ready, vote using: task_discussion_vote(task_id, vote, approach_summary, concerns, suggestions)
+
+Vote 'ready' if the approach is technically sound.
+Vote 'needs_work' if there are unresolved technical issues.
+
+You are operating in READ-ONLY mode - analyze and comment only.""",
+
+            "gemini": """You are participating in a DISCUSSION phase to reach consensus on implementation approach.
+
+Your responsibilities:
+1. Research best practices for this type of implementation
+2. Find similar implementations or relevant documentation
+3. Suggest industry-standard patterns that apply
+4. Add comments using: task_comment(task_id, content, comment_type="suggestion")
+5. When ready, vote using: task_discussion_vote(task_id, vote, approach_summary, concerns, suggestions)
+
+Vote 'ready' if the approach follows best practices.
+Vote 'needs_work' if important best practices are being ignored.
+
+You are operating in READ-ONLY mode - research and comment only."""
+        },
+        "dev": """You are assigned to IMPLEMENT this task.
+
+Your responsibilities:
+1. Implement the task according to the agreed approach
+2. Follow the acceptance criteria
+3. Add progress comments using: task_comment(task_id, content, comment_type="note")
+4. When done, submit for review using: task_submit_review(task_id)
+
+You have FULL ACCESS to modify files and run commands.
+Work on the actual repository, not a worktree.""",
+
+        "review": """You are assigned to REVIEW the implementation of this task.
+
+Your responsibilities:
+1. Review the code changes for bugs, security issues, and quality
+2. Check that acceptance criteria are met
+3. Add comments with findings using: task_comment(task_id, content, comment_type="issue")
+4. When done, vote using: task_review_complete(task_id, approved, feedback)
+
+Set approved=True to move to QA, approved=False to reject back to dev.
+
+You are operating in READ-ONLY mode.""",
+
+        "qa": {
+            "claude": """You are part of the QA phase validating this task.
+
+Your responsibilities:
+1. Check that all acceptance criteria are met
+2. Look for edge cases and potential issues
+3. Verify functionality works as expected
+4. Add comments using: task_comment(task_id, content, comment_type="issue")
+5. When done, vote using: task_qa_vote(task_id, vote, reason)
+
+Vote 'approve' if acceptance criteria are met.
+Vote 'reject' if there are issues that need fixing.
+
+You are operating in READ-ONLY mode.""",
+
+            "codex": """You are part of the QA phase validating this task.
+
+Your responsibilities:
+1. Check code quality and adherence to patterns
+2. Look for potential bugs or edge cases
+3. Verify the implementation is clean and maintainable
+4. Add comments using: task_comment(task_id, content, comment_type="issue")
+5. When done, vote using: task_qa_vote(task_id, vote, reason)
+
+Vote 'approve' if code quality meets standards.
+Vote 'reject' if there are quality issues.
+
+You are operating in READ-ONLY mode.""",
+
+            "gemini": """You are part of the QA phase validating this task.
+
+Your responsibilities:
+1. Check that documentation is adequate
+2. Verify best practices are followed
+3. Research if there are better approaches
+4. Add comments using: task_comment(task_id, content, comment_type="suggestion")
+5. When done, vote using: task_qa_vote(task_id, vote, reason)
+
+Vote 'approve' if documentation and practices are adequate.
+Vote 'reject' if important best practices are missing.
+
+You are operating in READ-ONLY mode."""
+        }
+    }
+
+    # Get the appropriate instructions
+    if role == "discussion":
+        instructions = role_instructions["discussion"].get(agent_type, role_instructions["discussion"]["claude"])
+    elif role == "qa":
+        instructions = role_instructions["qa"].get(agent_type, role_instructions["qa"]["claude"])
+    else:
+        instructions = role_instructions.get(role, "")
+
+    prompt = f"""=== ASSIGNED TASK ===
+Task ID: {task.id}
+Title: {task.title}
+Status: {task.status}
+Priority: {task.priority}
+Discussion Round: {task.discussion_round}
+
+Description:
+{task.description or "No description provided."}
+
+Acceptance Criteria:
+{criteria_text}
+
+Context Files:
+{files_text}
+{comments_text}
+{votes_text}
+=== INSTRUCTIONS ===
+{instructions}
+
+=== BEGIN WORK ===
+"""
+    return prompt
+
+
+def check_discussion_complete(task_id: str) -> Optional[str]:
+    """Check if discussion phase is complete and determine next status.
+
+    Returns:
+        - "in_progress" if all 3 agents voted ready (unanimous consensus)
+        - "discussing" if needs another round (some voted needs_work)
+        - "stalled" if max rounds reached
+        - None if still waiting for votes
+    """
+    task = get_task(task_id)
+    if not task:
+        return None
+
+    votes = get_discussion_votes(task_id)
+    if len(votes) < 3:
+        return None  # Still waiting for all agents
+
+    ready_count = sum(1 for v in votes if v.vote == "ready")
+
+    if ready_count == 3:  # Unanimous consensus
+        # Compile approach from all agents' summaries
+        combined_approach = "\n\n".join([
+            f"**{v.agent_type.upper()} Approach:**\n{v.approach_summary}"
+            for v in votes if v.approach_summary
+        ])
+        # Update task description with compiled approach
+        task.description = f"{task.description}\n\n=== AGREED APPROACH ===\n{combined_approach}"
+        task.status = "in_progress"
+        task.updated_at = time.time()
+        save_task(task)
+        return "in_progress"
+    else:
+        # Increment discussion round
+        round_num = task.discussion_round + 1
+        if round_num >= 3:
+            task.status = "stalled"
+            task.result = "Discussion could not reach consensus after 3 rounds"
+            task.updated_at = time.time()
+            save_task(task)
+            return "stalled"
+        # Clear votes for next round, keep comments
+        clear_discussion_votes(task_id)
+        task.discussion_round = round_num
+        task.updated_at = time.time()
+        save_task(task)
+        return "discussing"  # Stay in discussing
+
+
+def check_qa_complete(task_id: str) -> Optional[str]:
+    """Check if QA phase is complete and determine next status.
+
+    Returns:
+        - "done" if majority approval (2+ approve)
+        - "rejected" if majority rejection
+        - None if still waiting for votes
+    """
+    task = get_task(task_id)
+    if not task:
+        return None
+
+    votes = get_qa_votes(task_id)
+    if len(votes) < 3:
+        return None  # Still waiting for all agents
+
+    approvals = sum(1 for v in votes if v.vote == "approve")
+
+    if approvals >= 2:  # Majority approval
+        task.status = "done"
+        task.completed_at = time.time()
+        task.updated_at = time.time()
+        task.result = "QA passed with majority approval"
+        save_task(task)
+        return "done"
+    else:
+        task.status = "rejected"
+        task.updated_at = time.time()
+        # Compile rejection reasons
+        rejections = [v.reason for v in votes if v.vote == "reject" and v.reason]
+        task.result = "QA failed: " + "; ".join(rejections)
+        save_task(task)
+        return "rejected"
+
+
+@mcp.tool()
+def task_start_discussion(task_id: str) -> str:
+    """
+    Start the discussion phase for a task.
+
+    Moves task to 'discussing' status and spawns 3 agents (Claude, Codex, Gemini)
+    in parallel to analyze requirements and propose implementation approaches.
+
+    Args:
+        task_id: The task ID to start discussion for
+
+    Returns:
+        JSON with spawned job IDs
+    """
+    init_db()
+    require_tmux()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    # Must be in backlog or todo to start discussion
+    if task.status not in ("backlog", "todo"):
+        return json.dumps({"error": f"Task must be in backlog or todo to start discussion, current: {task.status}"})
+
+    # Move to discussing
+    task.status = "discussing"
+    task.discussion_round = 0
+    task.updated_at = time.time()
+    save_task(task)
+
+    # Clear any existing votes from previous attempts
+    clear_discussion_votes(task_id)
+
+    # Spawn 3 agents in parallel (all read-only for discussion)
+    session_id = get_current_session()
+    jobs = []
+
+    for cli in ["claude", "codex", "gemini"]:
+        prompt = build_task_prompt(task, "discussion", cli)
+        job_id = f"job_{uuid.uuid4().hex[:12]}"
+
+        job = Job(
+            id=job_id,
+            session_id=session_id,
+            cli=cli,
+            prompt=prompt,
+            status="running",
+            task_id=task_id
+        )
+        save_job(job)
+
+        # Start in background thread with tmux TUI
+        thread = threading.Thread(
+            target=run_job_in_tmux,
+            args=(job,),
+            kwargs={"log_intermediary": False, "auto_close": True},
+            daemon=True
+        )
+        thread.start()
+        jobs.append({"job_id": job_id, "cli": cli})
+
+    return json.dumps({
+        "task_id": task_id,
+        "status": "discussing",
+        "discussion_round": 0,
+        "spawned_jobs": jobs,
+        "message": "Discussion phase started with 3 agents"
+    }, indent=2)
+
+
+@mcp.tool()
+def task_discussion_vote(
+    task_id: str,
+    vote: str,
+    approach_summary: str = "",
+    concerns: list = None,
+    suggestions: list = None,
+    agent_type: str = "",
+    job_id: str = ""
+) -> str:
+    """
+    Cast a vote in the discussion phase.
+
+    Args:
+        task_id: The task ID to vote on
+        vote: Either 'ready' (proceed to dev) or 'needs_work' (more discussion)
+        approach_summary: Summary of recommended approach
+        concerns: List of concerns raised
+        suggestions: List of suggestions
+        agent_type: The agent type voting (claude, codex, gemini)
+        job_id: The job ID of the voting agent
+
+    Returns:
+        JSON with vote status and any resolution
+    """
+    init_db()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    if task.status != "discussing":
+        return json.dumps({"error": f"Task is not in discussing phase, current: {task.status}"})
+
+    if vote not in ("ready", "needs_work"):
+        return json.dumps({"error": "Vote must be 'ready' or 'needs_work'"})
+
+    if not agent_type:
+        return json.dumps({"error": "agent_type is required"})
+
+    vote_id = f"vote_{uuid.uuid4().hex[:12]}"
+    discussion_vote = TaskDiscussionVote(
+        id=vote_id,
+        task_id=task_id,
+        job_id=job_id,
+        agent_type=agent_type,
+        vote=vote,
+        approach_summary=approach_summary,
+        concerns=concerns or [],
+        suggestions=suggestions or [],
+        created_at=time.time()
+    )
+    save_discussion_vote(discussion_vote)
+
+    # Check if discussion is complete
+    resolution = check_discussion_complete(task_id)
+
+    return json.dumps({
+        "vote_id": vote_id,
+        "task_id": task_id,
+        "vote": vote,
+        "resolution": resolution,
+        "message": f"Vote recorded. Resolution: {resolution or 'waiting for more votes'}"
+    }, indent=2)
+
+
+@mcp.tool()
+def task_start_dev(task_id: str) -> str:
+    """
+    Start development on a task.
+
+    Moves task to 'in_progress' and spawns a Claude agent with full access
+    to implement the task. No worktree is used - works on actual repo.
+
+    Args:
+        task_id: The task ID to start development on
+
+    Returns:
+        JSON with spawned job ID
+    """
+    init_db()
+    require_tmux()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    # Can start dev from discussing (after consensus) or todo (skipping discussion)
+    if task.status not in ("discussing", "todo", "rejected"):
+        return json.dumps({"error": f"Task must be in discussing, todo, or rejected to start dev, current: {task.status}"})
+
+    # Move to in_progress
+    task.status = "in_progress"
+    task.updated_at = time.time()
+    save_task(task)
+
+    # Spawn Claude agent with full access (no worktree)
+    session_id = get_current_session()
+    prompt = build_task_prompt(task, "dev", "claude")
+    job_id = f"job_{uuid.uuid4().hex[:12]}"
+
+    job = Job(
+        id=job_id,
+        session_id=session_id,
+        cli="claude",
+        prompt=prompt,
+        status="running",
+        task_id=task_id
+    )
+    save_job(job)
+
+    # Update task assignment
+    task.assigned_to = job_id
+    save_task(task)
+
+    # Start in background with tmux TUI
+    thread = threading.Thread(
+        target=run_job_in_tmux,
+        args=(job,),
+        kwargs={"log_intermediary": False, "auto_close": True},
+        daemon=True
+    )
+    thread.start()
+
+    return json.dumps({
+        "task_id": task_id,
+        "status": "in_progress",
+        "job_id": job_id,
+        "message": "Development started with Claude agent"
+    }, indent=2)
+
+
+@mcp.tool()
+def task_submit_review(task_id: str) -> str:
+    """
+    Submit a task for code review.
+
+    Moves task to 'review' status and spawns a Codex agent to review changes.
+
+    Args:
+        task_id: The task ID to submit for review
+
+    Returns:
+        JSON with spawned job ID
+    """
+    init_db()
+    require_tmux()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    if task.status != "in_progress":
+        return json.dumps({"error": f"Task must be in_progress to submit for review, current: {task.status}"})
+
+    # Move to review
+    task.status = "review"
+    task.updated_at = time.time()
+    save_task(task)
+
+    # Spawn Codex reviewer (read-only)
+    session_id = get_current_session()
+    prompt = build_task_prompt(task, "review", "codex")
+    job_id = f"job_{uuid.uuid4().hex[:12]}"
+
+    job = Job(
+        id=job_id,
+        session_id=session_id,
+        cli="codex",
+        prompt=prompt,
+        status="running",
+        task_id=task_id
+    )
+    save_job(job)
+
+    # Start in background with tmux TUI
+    thread = threading.Thread(
+        target=run_job_in_tmux,
+        args=(job,),
+        kwargs={"log_intermediary": False, "auto_close": True},
+        daemon=True
+    )
+    thread.start()
+
+    return json.dumps({
+        "task_id": task_id,
+        "status": "review",
+        "job_id": job_id,
+        "message": "Review started with Codex agent"
+    }, indent=2)
+
+
+@mcp.tool()
+def task_review_complete(
+    task_id: str,
+    approved: bool,
+    feedback: str = ""
+) -> str:
+    """
+    Complete a code review with approval or rejection.
+
+    Args:
+        task_id: The task ID being reviewed
+        approved: True to approve and move to QA, False to reject
+        feedback: Review feedback
+
+    Returns:
+        JSON with result status
+    """
+    init_db()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    if task.status != "review":
+        return json.dumps({"error": f"Task must be in review, current: {task.status}"})
+
+    if approved:
+        task.status = "qa"
+        message = "Review approved, moving to QA"
+    else:
+        task.status = "rejected"
+        task.result = f"Review rejected: {feedback}" if feedback else "Review rejected"
+        message = "Review rejected, needs rework"
+
+    task.updated_at = time.time()
+    save_task(task)
+
+    # Add review as a comment
+    if feedback:
+        comment = TaskComment(
+            id=f"comment_{uuid.uuid4().hex[:12]}",
+            task_id=task_id,
+            job_id=None,
+            agent_type="codex",
+            content=feedback,
+            comment_type="approval" if approved else "rejection",
+            created_at=time.time()
+        )
+        save_task_comment(comment)
+
+    return json.dumps({
+        "task_id": task_id,
+        "status": task.status,
+        "approved": approved,
+        "message": message
+    }, indent=2)
+
+
+@mcp.tool()
+def task_start_qa(task_id: str) -> str:
+    """
+    Start QA validation for a task.
+
+    Spawns 3 agents (Claude, Codex, Gemini) in parallel to verify
+    acceptance criteria are met.
+
+    Args:
+        task_id: The task ID to start QA for
+
+    Returns:
+        JSON with spawned job IDs
+    """
+    init_db()
+    require_tmux()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    if task.status != "qa":
+        return json.dumps({"error": f"Task must be in qa status, current: {task.status}"})
+
+    # Clear any existing QA votes
+    clear_qa_votes(task_id)
+
+    # Spawn 3 agents in parallel (all read-only for QA)
+    session_id = get_current_session()
+    jobs = []
+
+    for cli in ["claude", "codex", "gemini"]:
+        prompt = build_task_prompt(task, "qa", cli)
+        job_id = f"job_{uuid.uuid4().hex[:12]}"
+
+        job = Job(
+            id=job_id,
+            session_id=session_id,
+            cli=cli,
+            prompt=prompt,
+            status="running",
+            task_id=task_id
+        )
+        save_job(job)
+
+        # Start in background thread with tmux TUI
+        thread = threading.Thread(
+            target=run_job_in_tmux,
+            args=(job,),
+            kwargs={"log_intermediary": False, "auto_close": True},
+            daemon=True
+        )
+        thread.start()
+        jobs.append({"job_id": job_id, "cli": cli})
+
+    return json.dumps({
+        "task_id": task_id,
+        "status": "qa",
+        "spawned_jobs": jobs,
+        "message": "QA phase started with 3 agents"
+    }, indent=2)
+
+
+@mcp.tool()
+def task_qa_vote(
+    task_id: str,
+    vote: str,
+    reason: str = "",
+    agent_type: str = "",
+    job_id: str = ""
+) -> str:
+    """
+    Cast a vote in the QA phase.
+
+    Args:
+        task_id: The task ID to vote on
+        vote: Either 'approve' or 'reject'
+        reason: Reason for the vote
+        agent_type: The agent type voting (claude, codex, gemini)
+        job_id: The job ID of the voting agent
+
+    Returns:
+        JSON with vote status and any resolution
+    """
+    init_db()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    if task.status != "qa":
+        return json.dumps({"error": f"Task is not in QA phase, current: {task.status}"})
+
+    if vote not in ("approve", "reject"):
+        return json.dumps({"error": "Vote must be 'approve' or 'reject'"})
+
+    if not agent_type:
+        return json.dumps({"error": "agent_type is required"})
+
+    vote_id = f"vote_{uuid.uuid4().hex[:12]}"
+    qa_vote = TaskQAVote(
+        id=vote_id,
+        task_id=task_id,
+        job_id=job_id,
+        agent_type=agent_type,
+        vote=vote,
+        reason=reason,
+        created_at=time.time()
+    )
+    save_qa_vote(qa_vote)
+
+    # Check if QA is complete
+    resolution = check_qa_complete(task_id)
+
+    return json.dumps({
+        "vote_id": vote_id,
+        "task_id": task_id,
+        "vote": vote,
+        "resolution": resolution,
+        "message": f"Vote recorded. Resolution: {resolution or 'waiting for more votes'}"
+    }, indent=2)
+
+
+@mcp.tool()
+def task_reopen(task_id: str) -> str:
+    """
+    Reopen a rejected or stalled task for rework.
+
+    Args:
+        task_id: The task ID to reopen
+
+    Returns:
+        JSON with updated status
+    """
+    init_db()
+
+    task = get_task(task_id)
+    if not task:
+        return json.dumps({"error": f"Task {task_id} not found"})
+
+    if task.status not in ("rejected", "stalled", "failed"):
+        return json.dumps({"error": f"Can only reopen rejected, stalled, or failed tasks, current: {task.status}"})
+
+    task.status = "todo"
+    task.assigned_to = None
+    task.updated_at = time.time()
+    save_task(task)
+
+    return json.dumps({
+        "task_id": task_id,
+        "status": "todo",
+        "message": "Task reopened and ready for work"
+    }, indent=2)
 
 
 # =============================================================================

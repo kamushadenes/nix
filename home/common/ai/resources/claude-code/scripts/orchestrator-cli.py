@@ -1018,6 +1018,329 @@ def cmd_cleanup(args):
 
 
 # =============================================================================
+# Task Commands
+# =============================================================================
+
+
+def get_git_repo_path() -> Optional[str]:
+    """Get the git repository root path for the current working directory."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+        return None
+    except Exception:
+        return None
+
+
+def cmd_task_create(args):
+    """Create a new task."""
+    init_db()
+    conn = get_db_connection()
+    try:
+        repo_path = get_git_repo_path()
+        if not repo_path:
+            print("Error: Not in a git repository", file=sys.stderr)
+            sys.exit(1)
+
+        task_id = f"task_{uuid.uuid4().hex[:12]}"
+        now = time.time()
+
+        # Parse JSON arrays if provided as strings
+        tags = json.loads(args.tags) if args.tags else []
+        acceptance_criteria = json.loads(args.criteria) if args.criteria else []
+        context_files = json.loads(args.files) if args.files else []
+        dependencies = json.loads(args.deps) if args.deps else []
+
+        conn.execute("""
+            INSERT INTO tasks
+            (id, repo_path, title, description, status, priority, created_at, updated_at,
+             created_by, parent_task_id, tags, acceptance_criteria, context_files, dependencies)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            task_id, repo_path, args.title, args.description or "",
+            "backlog", max(1, min(5, args.priority)), now, now,
+            args.created_by, args.parent or None,
+            json.dumps(tags), json.dumps(acceptance_criteria),
+            json.dumps(context_files), json.dumps(dependencies)
+        ))
+        conn.commit()
+
+        if args.json:
+            print(json.dumps({
+                "task_id": task_id,
+                "title": args.title,
+                "status": "backlog",
+                "priority": args.priority
+            }, indent=2))
+        else:
+            print(f"Created task: {task_id}")
+            print(f"  Title: {args.title}")
+            print(f"  Priority: {args.priority}")
+
+    finally:
+        conn.close()
+
+
+def cmd_task_list(args):
+    """List tasks."""
+    init_db()
+    conn = get_db_connection()
+    try:
+        repo_path = get_git_repo_path()
+        if not repo_path:
+            print("Error: Not in a git repository", file=sys.stderr)
+            sys.exit(1)
+
+        query = "SELECT * FROM tasks WHERE repo_path = ?"
+        params = [repo_path]
+
+        if args.status:
+            query += " AND status = ?"
+            params.append(args.status)
+        if args.priority:
+            query += " AND priority = ?"
+            params.append(args.priority)
+        if args.parent:
+            query += " AND parent_task_id = ?"
+            params.append(args.parent)
+
+        query += " ORDER BY priority ASC, created_at DESC"
+
+        rows = conn.execute(query, params).fetchall()
+
+        if not rows:
+            print("No tasks found.")
+            return
+
+        if args.json:
+            tasks = []
+            for row in rows:
+                tasks.append({
+                    "task_id": row['id'],
+                    "title": row['title'],
+                    "status": row['status'],
+                    "priority": row['priority'],
+                    "tags": json.loads(row['tags']),
+                    "assigned_to": row['assigned_to'],
+                    "parent_task_id": row['parent_task_id']
+                })
+            print(json.dumps(tasks, indent=2))
+        else:
+            # Print header
+            print(f"{'TASK_ID':<20} {'STATUS':<12} {'PRI':>3}  {'TITLE'}")
+            print("-" * 70)
+
+            for row in rows:
+                title = truncate(row['title'], 35)
+                print(f"{row['id']:<20} {row['status']:<12} {row['priority']:>3}  {title}")
+
+    finally:
+        conn.close()
+
+
+def cmd_task_get(args):
+    """Get task details."""
+    init_db()
+    conn = get_db_connection()
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (args.task_id,)).fetchone()
+
+        if not row:
+            print(f"Error: Task {args.task_id} not found", file=sys.stderr)
+            sys.exit(1)
+
+        if args.json:
+            task = {
+                "task_id": row['id'],
+                "repo_path": row['repo_path'],
+                "title": row['title'],
+                "description": row['description'],
+                "status": row['status'],
+                "result": row['result'],
+                "priority": row['priority'],
+                "discussion_round": row['discussion_round'],
+                "created_at": row['created_at'],
+                "updated_at": row['updated_at'],
+                "completed_at": row['completed_at'],
+                "assigned_to": row['assigned_to'],
+                "created_by": row['created_by'],
+                "parent_task_id": row['parent_task_id'],
+                "tags": json.loads(row['tags']),
+                "acceptance_criteria": json.loads(row['acceptance_criteria']),
+                "context_files": json.loads(row['context_files']),
+                "dependencies": json.loads(row['dependencies']),
+                "deadline": row['deadline']
+            }
+            print(json.dumps(task, indent=2))
+        else:
+            created = datetime.fromtimestamp(row['created_at']).strftime("%Y-%m-%d %H:%M:%S")
+            print(f"Task:        {row['id']}")
+            print(f"Title:       {row['title']}")
+            print(f"Status:      {row['status']}")
+            print(f"Priority:    {row['priority']}")
+            print(f"Created:     {created}")
+            print(f"Created By:  {row['created_by'] or 'N/A'}")
+            print(f"Assigned To: {row['assigned_to'] or 'N/A'}")
+            if row['parent_task_id']:
+                print(f"Parent:      {row['parent_task_id']}")
+            print()
+            if row['description']:
+                print("Description:")
+                print("-" * 40)
+                print(row['description'])
+            if row['result']:
+                print()
+                print("Result:")
+                print("-" * 40)
+                print(row['result'])
+
+    finally:
+        conn.close()
+
+
+def cmd_task_update(args):
+    """Update a task."""
+    init_db()
+    conn = get_db_connection()
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (args.task_id,)).fetchone()
+        if not row:
+            print(f"Error: Task {args.task_id} not found", file=sys.stderr)
+            sys.exit(1)
+
+        updates = []
+        params = []
+
+        if args.title:
+            updates.append("title = ?")
+            params.append(args.title)
+        if args.description:
+            updates.append("description = ?")
+            params.append(args.description)
+        if args.status:
+            updates.append("status = ?")
+            params.append(args.status)
+        if args.priority:
+            updates.append("priority = ?")
+            params.append(max(1, min(5, args.priority)))
+
+        if not updates:
+            print("No updates specified.")
+            return
+
+        updates.append("updated_at = ?")
+        params.append(time.time())
+        params.append(args.task_id)
+
+        conn.execute(
+            f"UPDATE tasks SET {', '.join(updates)} WHERE id = ?",
+            params
+        )
+        conn.commit()
+
+        if args.json:
+            print(json.dumps({"task_id": args.task_id, "message": "Task updated"}))
+        else:
+            print(f"Task {args.task_id} updated.")
+
+    finally:
+        conn.close()
+
+
+def cmd_task_complete(args):
+    """Mark a task as completed."""
+    init_db()
+    conn = get_db_connection()
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (args.task_id,)).fetchone()
+        if not row:
+            print(f"Error: Task {args.task_id} not found", file=sys.stderr)
+            sys.exit(1)
+
+        now = time.time()
+        conn.execute(
+            "UPDATE tasks SET status = 'done', result = ?, completed_at = ?, updated_at = ? WHERE id = ?",
+            (args.result, now, now, args.task_id)
+        )
+        conn.commit()
+
+        if args.json:
+            print(json.dumps({
+                "task_id": args.task_id,
+                "status": "done",
+                "result": args.result
+            }))
+        else:
+            print(f"Task {args.task_id} marked as completed.")
+
+    finally:
+        conn.close()
+
+
+def cmd_task_cancel(args):
+    """Cancel a task."""
+    init_db()
+    conn = get_db_connection()
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (args.task_id,)).fetchone()
+        if not row:
+            print(f"Error: Task {args.task_id} not found", file=sys.stderr)
+            sys.exit(1)
+
+        if row['status'] == 'done':
+            print(f"Error: Cannot cancel a completed task", file=sys.stderr)
+            sys.exit(1)
+
+        result = f"Cancelled: {args.reason}" if args.reason else "Cancelled"
+        conn.execute(
+            "UPDATE tasks SET status = 'failed', result = ?, updated_at = ? WHERE id = ?",
+            (result, time.time(), args.task_id)
+        )
+        conn.commit()
+
+        if args.json:
+            print(json.dumps({"task_id": args.task_id, "status": "failed"}))
+        else:
+            print(f"Task {args.task_id} cancelled.")
+
+    finally:
+        conn.close()
+
+
+def cmd_task_comment(args):
+    """Add a comment to a task."""
+    init_db()
+    conn = get_db_connection()
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (args.task_id,)).fetchone()
+        if not row:
+            print(f"Error: Task {args.task_id} not found", file=sys.stderr)
+            sys.exit(1)
+
+        comment_id = f"comment_{uuid.uuid4().hex[:12]}"
+        conn.execute("""
+            INSERT INTO task_comments (id, task_id, job_id, agent_type, content, comment_type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            comment_id, args.task_id, args.job_id or None,
+            args.agent_type, args.content, args.comment_type, time.time()
+        ))
+        conn.commit()
+
+        if args.json:
+            print(json.dumps({"comment_id": comment_id, "task_id": args.task_id}))
+        else:
+            print(f"Comment added: {comment_id}")
+
+    finally:
+        conn.close()
+
+
+# =============================================================================
 # TUI Runner
 # =============================================================================
 
@@ -1422,6 +1745,75 @@ def main():
     run_parser.add_argument('--no-auto-close', action='store_false', dest='auto_close',
                            help='Keep window open after completion')
     run_parser.set_defaults(func=cmd_run)
+
+    # task (Task management subcommands)
+    task_parser = subparsers.add_parser('task', help='Task management commands')
+    task_subparsers = task_parser.add_subparsers(dest='task_command', help='Task subcommands')
+
+    # task create
+    task_create_parser = task_subparsers.add_parser('create', help='Create a new task')
+    task_create_parser.add_argument('title', help='Task title')
+    task_create_parser.add_argument('-d', '--description', help='Task description')
+    task_create_parser.add_argument('-p', '--priority', type=int, default=2, help='Priority 1-5 (default: 2)')
+    task_create_parser.add_argument('--tags', help='JSON array of tags')
+    task_create_parser.add_argument('--criteria', help='JSON array of acceptance criteria')
+    task_create_parser.add_argument('--files', help='JSON array of context files')
+    task_create_parser.add_argument('--deps', help='JSON array of dependency task IDs')
+    task_create_parser.add_argument('--parent', help='Parent task ID for subtasks')
+    task_create_parser.add_argument('--created-by', default='user', help='Who created the task')
+    task_create_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    task_create_parser.set_defaults(func=cmd_task_create)
+
+    # task list
+    task_list_parser = task_subparsers.add_parser('list', help='List tasks')
+    task_list_parser.add_argument('-s', '--status', help='Filter by status')
+    task_list_parser.add_argument('-p', '--priority', type=int, help='Filter by priority')
+    task_list_parser.add_argument('--parent', help='Filter by parent task ID')
+    task_list_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    task_list_parser.set_defaults(func=cmd_task_list)
+
+    # task get
+    task_get_parser = task_subparsers.add_parser('get', help='Get task details')
+    task_get_parser.add_argument('task_id', help='Task ID')
+    task_get_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    task_get_parser.set_defaults(func=cmd_task_get)
+
+    # task update
+    task_update_parser = task_subparsers.add_parser('update', help='Update a task')
+    task_update_parser.add_argument('task_id', help='Task ID')
+    task_update_parser.add_argument('-t', '--title', help='New title')
+    task_update_parser.add_argument('-d', '--description', help='New description')
+    task_update_parser.add_argument('-s', '--status', help='New status')
+    task_update_parser.add_argument('-p', '--priority', type=int, help='New priority 1-5')
+    task_update_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    task_update_parser.set_defaults(func=cmd_task_update)
+
+    # task complete
+    task_complete_parser = task_subparsers.add_parser('complete', help='Mark task as completed')
+    task_complete_parser.add_argument('task_id', help='Task ID')
+    task_complete_parser.add_argument('result', help='Summary of what was accomplished')
+    task_complete_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    task_complete_parser.set_defaults(func=cmd_task_complete)
+
+    # task cancel
+    task_cancel_parser = task_subparsers.add_parser('cancel', help='Cancel a task')
+    task_cancel_parser.add_argument('task_id', help='Task ID')
+    task_cancel_parser.add_argument('-r', '--reason', help='Reason for cancellation')
+    task_cancel_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    task_cancel_parser.set_defaults(func=cmd_task_cancel)
+
+    # task comment
+    task_comment_parser = task_subparsers.add_parser('comment', help='Add a comment to a task')
+    task_comment_parser.add_argument('task_id', help='Task ID')
+    task_comment_parser.add_argument('content', help='Comment content')
+    task_comment_parser.add_argument('--type', dest='comment_type', default='note',
+                                     choices=['note', 'suggestion', 'issue', 'approval', 'rejection'],
+                                     help='Comment type (default: note)')
+    task_comment_parser.add_argument('--agent-type', default='user',
+                                     help='Agent type (user, claude, codex, gemini)')
+    task_comment_parser.add_argument('--job-id', help='Job ID if from an agent')
+    task_comment_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    task_comment_parser.set_defaults(func=cmd_task_comment)
 
     args = parser.parse_args()
 

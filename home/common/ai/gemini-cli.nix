@@ -67,6 +67,9 @@ in
   home.file = {
     # JSON template with @PLACEHOLDER@ values - secrets substituted at activation
     ".gemini/settings.json.template".text = mcpConfigTemplate;
+
+    # Global GEMINI.md - workflow instructions for Gemini agents
+    ".gemini/GEMINI.md".source = ./resources/gemini/GEMINI.md;
   };
 
   #############################################################################

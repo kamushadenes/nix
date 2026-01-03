@@ -1,0 +1,129 @@
+# Task-Based Workflow Rules
+
+ALL work in this codebase should go through the task management system for non-trivial changes.
+
+## Creating Tasks
+
+Use `/task-add` or `task_create` MCP tool to create tasks with:
+
+- Clear title describing the work
+- Detailed description with context
+- Acceptance criteria (conditions for "done")
+- Relevant context files
+- Priority (1=critical to 5=low)
+
+## When Spawning Agents
+
+1. **Always create a task first** - Use `task_create` before spawning agents for tracked work
+2. **Use task_id parameter** - When calling `ai_spawn` or `ai_run`, include `task_id`
+3. **Let the system inject context** - Task details are automatically included in prompts
+
+### Correct Workflow Example
+
+```python
+# 1. Create task
+result = task_create(
+    title="Add user authentication",
+    description="Implement OAuth2 login flow",
+    acceptance_criteria='["Login page works", "Token refresh handles expiry", "Tests pass"]',
+    priority=2
+)
+task_id = json.loads(result)["task_id"]
+
+# 2. Start discussion (for complex tasks)
+task_start_discussion(task_id)
+# Wait for 3 agents to vote "ready"
+
+# 3. Development
+task_start_dev(task_id)
+# Claude implements the feature
+
+# 4. Review
+task_submit_review(task_id)
+# Codex reviews changes
+
+# 5. QA
+task_start_qa(task_id)
+# 3 agents verify acceptance criteria
+```
+
+## Task Lifecycle
+
+```
+backlog -> todo -> discussing -> in_progress -> review -> qa -> done
+                       |              |           |       |
+                    stalled        blocked     failed   rejected
+```
+
+| Status        | Description                     | Who Works                           |
+| ------------- | ------------------------------- | ----------------------------------- |
+| `backlog`     | Not yet prioritized             | None                                |
+| `todo`        | Ready to work on                | None                                |
+| `discussing`  | Design/consensus phase          | Claude + Codex + Gemini (read-only) |
+| `in_progress` | Being implemented               | Claude (full access)                |
+| `review`      | Code review                     | Codex (read-only)                   |
+| `qa`          | Verification                    | Claude + Codex + Gemini (read-only) |
+| `done`        | Completed                       | None                                |
+| `blocked`     | Waiting on dependency           | None                                |
+| `stalled`     | Discussion failed (needs human) | None                                |
+| `failed`      | Could not complete              | None                                |
+| `rejected`    | QA failed                       | None                                |
+
+## Discussion Phase (Required for Complex Tasks)
+
+Before development on non-trivial tasks:
+
+1. Call `task_start_discussion(task_id)`
+2. Claude, Codex, and Gemini analyze requirements in parallel
+3. Each agent proposes approach and votes `ready` or `needs_work`
+4. **All 3 must vote `ready`** to proceed (unanimous consensus)
+5. If any votes `needs_work`, another round begins
+6. After 3 failed rounds, task moves to `stalled` for human input
+
+## Agent Responsibilities
+
+When assigned to a task, agents MUST:
+
+- Read and understand all acceptance criteria
+- Add comments with progress/findings: `task_comment(task_id, content)`
+- For discussion: vote via `task_discussion_vote(task_id, vote, approach_summary)`
+- For dev: implement and call `task_submit_review(task_id)` when done
+- For review: call `task_review_complete(task_id, approved, feedback)`
+- For QA: vote via `task_qa_vote(task_id, vote, reason)`
+
+## Viewing Tasks
+
+```python
+# List by status
+task_list(status="discussing")
+
+# Get full details
+task_get(task_id)
+
+# Check subtasks
+task_list(parent_task_id=task_id)
+
+# View comments
+task_comments(task_id)
+```
+
+## Quick Reference: MCP Tools
+
+| Tool                    | Purpose                      |
+| ----------------------- | ---------------------------- |
+| `task_create`           | Create new task              |
+| `task_list`             | List/filter tasks            |
+| `task_get`              | Get task details             |
+| `task_update`           | Update task fields           |
+| `task_complete`         | Mark done with summary       |
+| `task_cancel`           | Cancel task                  |
+| `task_comment`          | Add comment                  |
+| `task_comments`         | Get comments                 |
+| `task_start_discussion` | Begin discussion phase       |
+| `task_discussion_vote`  | Vote on discussion           |
+| `task_start_dev`        | Begin development            |
+| `task_submit_review`    | Submit for review            |
+| `task_review_complete`  | Complete review              |
+| `task_start_qa`         | Begin QA phase               |
+| `task_qa_vote`          | Vote on QA                   |
+| `task_reopen`           | Reopen rejected/stalled task |

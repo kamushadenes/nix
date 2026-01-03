@@ -142,6 +142,9 @@ in
     # TOML template with @PLACEHOLDER@ values - secrets substituted at activation
     ".codex/config.toml.template".source =
       mcpConfigToml.generate "codex-config-template.toml" mcpConfig;
+
+    # Global AGENTS.md - workflow instructions for Codex agents
+    ".codex/AGENTS.md".source = ./resources/codex/AGENTS.md;
   };
 
   #############################################################################
