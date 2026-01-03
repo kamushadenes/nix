@@ -12,15 +12,6 @@ in
       hash = "sha256-qt3t1iKRRNuiLWiVoiAYOu+9E7jsyECyIqZJ/oRIT1A=";
     };
   };
-  done = {
-    name = "done";
-    src = fetchFromGitHub {
-      owner = "franciscolourenco";
-      repo = "done";
-      rev = "eb32ade85c0f2c68cbfcff3036756bbf27a4f366";
-      hash = "sha256-DMIRKRAVOn7YEnuAtz4hIxrU93ULxNoQhW6juxCoh4o=";
-    };
-  };
   evalcache = {
     name = "fish-evalcache";
     src = fetchFromGitHub {

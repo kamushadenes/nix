@@ -43,7 +43,6 @@
 
       plugins = with fishPlugins; [
         spark
-        #done
         safe-rm
         puffer-fish
         autopair
@@ -55,11 +54,6 @@
       shellInit = lib.mkMerge [
         # Cache homebrew init
         shellCommon.fish.homebrewInit
-
-        # Force the use of terminal-notifier to work around Kitty broken notifications
-        (lib.mkIf (pkgs.stdenv.isDarwin && config.programs.kitty.enable) ''
-          set -U __done_notification_command "echo \"$message\" | terminal-notifier -title \"$title\" -sender \"$__done_initial_window_id\" -sound default"
-        '')
 
         # Common
         ''

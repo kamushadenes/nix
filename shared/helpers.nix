@@ -256,101 +256,6 @@ let
     else
       "\${XDG_RUNTIME_DIR}${lib.concatStrings (lib.strings.match ".[A-Z_]+\(.*\)" (builtins.toString path))}";
 
-  ########################################
-  #                                      #
-  # Backrest Configuration Functions     #
-  #                                      #
-  ########################################
-
-  mkBackrestConfig = machine: repos: plans: auth: {
-    version = 3;
-    modno = 1;
-    instance = machine;
-    repos = repos;
-    plans = plans;
-    auth = auth;
-  };
-
-  mkBackrestRepo = name: uri: passwordFile: prunePolicy: checkPolicy: {
-    id = name;
-    uri = uri;
-    env = [ "RESTIC_PASSWORD_FILE=${passwordFile}" ];
-    prunePolicy = prunePolicy;
-    checkPolicy = checkPolicy;
-  };
-
-  mkBackrestPlan = name: repo: paths: excludes: schedule: retention: flags: healthCheckId: {
-    id = name;
-    repo = repo;
-    paths = paths;
-    excludes = excludes;
-    schedule = schedule;
-    retention = retention;
-    backup_flags = [
-      "--exclude-if-present .nobackup"
-      "--exclude-caches"
-    ]
-    ++ flags;
-    hooks = [
-      {
-        conditions = [ "CONDITION_SNAPSHOT_START" ];
-        actionCommand = {
-          command = "${lib.getExe pkgs.curl} -fsS --retry 3 https://hc-ping.com/${healthCheckId}/start";
-        };
-        onError = "ON_ERROR_IGNORE";
-      }
-      {
-        conditions = [ "CONDITION_SNAPSHOT_START" ];
-        actionCommand = {
-          command = ''
-            mkdir -p ${config.xdg.configHome}/backrest/status 2>/dev/null; echo running $(date "+%Y-%m-%dT%H:%M:%S") > ${config.xdg.configHome}/backrest/status/${name}
-          '';
-        };
-        onError = "ON_ERROR_IGNORE";
-      }
-      {
-        conditions = [ "CONDITION_SNAPSHOT_SUCCESS" ];
-        actionCommand = {
-          command = "${lib.getExe pkgs.curl} -fsS --retry 3 https://hc-ping.com/${healthCheckId}";
-        };
-        onError = "ON_ERROR_IGNORE";
-      }
-      {
-        conditions = [ "CONDITION_SNAPSHOT_SUCCESS" ];
-        actionCommand = {
-          command = ''
-            mkdir -p ${config.xdg.configHome}/backrest/status 2>/dev/null; echo success $(date "+%Y-%m-%dT%H:%M:%S") > ${config.xdg.configHome}/backrest/status/${name}
-          '';
-        };
-        onError = "ON_ERROR_IGNORE";
-      }
-      {
-        conditions = [ "CONDITION_SNAPSHOT_ERROR" ];
-        actionCommand = {
-          command = "${lib.getExe pkgs.curl} -fsS --retry 3 https://hc-ping.com/${healthCheckId}/fail";
-        };
-        onError = "ON_ERROR_IGNORE";
-      }
-      {
-        conditions = [ "CONDITION_SNAPSHOT_ERROR" ];
-        actionCommand = {
-          command = ''
-            mkdir -p ${config.xdg.configHome}/backrest/status 2>/dev/null; echo error $(date "+%Y-%m-%dT%H:%M:%S") > ${config.xdg.configHome}/backrest/status/${name}
-          '';
-        };
-        onError = "ON_ERROR_IGNORE";
-      }
-      (lib.mkIf pkgs.stdenv.isDarwin {
-        conditions = [ "CONDITION_SNAPSHOT_ERROR" ];
-        actionCommand = {
-          command = ''
-            /usr/bin/osascript -e 'display notification "{{ .ShellEscape .Task }} failed" with title "Backrest"'
-          '';
-        };
-        onError = "ON_ERROR_IGNORE";
-      })
-    ];
-  };
 in
 {
   inherit
@@ -369,8 +274,5 @@ in
     fishProfilesPath
     kittyProfilesPath
     mkAgenixPathSubst
-    mkBackrestConfig
-    mkBackrestRepo
-    mkBackrestPlan
     ;
 }
