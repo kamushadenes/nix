@@ -61,6 +61,8 @@
 
       auto-update = off
 
+      macos-option-as-alt = true
+
       # Shift+Enter binding to add a new line in claude-code
       keybind = shift+enter=text:\x1b\r
 
