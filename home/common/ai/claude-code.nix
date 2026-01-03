@@ -144,6 +144,8 @@ in
           "mcp__orchestrator__tmux_wait_idle"
           "mcp__orchestrator__tmux_capture"
           "mcp__orchestrator__tmux_list"
+          "mcp__orchestrator__tmux_select"
+          "mcp__orchestrator__tmux_kill"
           "mcp__orchestrator__notify"
 
           # MCP: PAL - CLI-to-CLI bridge (version/listmodels auto-allowed)
