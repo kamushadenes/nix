@@ -56,8 +56,10 @@ in
       set -g status-left-length 100
       set -g status-left ""
       # Session duration calculation via script (queries tmux for session_created)
-      set -g status-right "#{E:@catppuccin_status_date_time} #{E:@catppuccin_status_session} "
+      set -g status-right "#{E:@catppuccin_status_date_time} #{E:@catppuccin_status_session}"
+      set -g @catppuccin_date_time_icon "󰃰 "
       set -g @catppuccin_date_time_text "#(${sessionDurationScript})"
+      set -g @catppuccin_session_icon " "
       set -g status-interval 5
 
       # Continuum settings
