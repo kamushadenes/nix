@@ -48,8 +48,9 @@ in
       set -g status-right-length 100
       set -g status-left-length 100
       set -g status-left ""
-      set -g status-right "#(~/.config/tmux/status.sh)#{E:@catppuccin_status_date_time}#{E:@catppuccin_status_session}"
-      set -g @catppuccin_date_time_text "%H:%M"
+      # Session duration calculation: current time - session creation time
+      set -g status-right "#(~/.config/tmux/status.sh) #{E:@catppuccin_status_date_time} #{E:@catppuccin_status_session}"
+      set -g @catppuccin_date_time_text "#(printf '%dh %dm' $(( ($(date +%s) - #{session_created}) / 3600 )) $(( (($(date +%s) - #{session_created}) % 3600) / 60 )))"
       set -g status-interval 5
 
       # Continuum settings

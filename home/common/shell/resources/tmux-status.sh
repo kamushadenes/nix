@@ -18,7 +18,8 @@ if [[ -f "$ORCH_DB" ]]; then
         output+="🤖$jobs "
     fi
 
-    # Get task counts by active status
+    # Get task counts by status
+    backlog=$(sqlite3 "$ORCH_DB" "SELECT COUNT(*) FROM tasks WHERE status='backlog'" 2>/dev/null || echo 0)
     discussing=$(sqlite3 "$ORCH_DB" "SELECT COUNT(*) FROM tasks WHERE status='discussing'" 2>/dev/null || echo 0)
     in_progress=$(sqlite3 "$ORCH_DB" "SELECT COUNT(*) FROM tasks WHERE status='in_progress'" 2>/dev/null || echo 0)
     review=$(sqlite3 "$ORCH_DB" "SELECT COUNT(*) FROM tasks WHERE status='review'" 2>/dev/null || echo 0)
@@ -27,6 +28,7 @@ if [[ -f "$ORCH_DB" ]]; then
 
     # Build task status string (only show non-zero counts)
     tasks=""
+    [[ "$backlog" -gt 0 ]] && tasks+="📋$backlog "
     [[ "$discussing" -gt 0 ]] && tasks+="💬$discussing "
     [[ "$in_progress" -gt 0 ]] && tasks+="🔨$in_progress "
     [[ "$review" -gt 0 ]] && tasks+="👀$review "
