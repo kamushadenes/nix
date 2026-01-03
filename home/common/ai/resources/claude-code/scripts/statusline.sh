@@ -85,30 +85,54 @@ get_git_branch() {
     fi
 }
 
-# Get ccusage statusline output (full output, already formatted)
-get_ccusage_info() {
-    echo "$input" | npx ccusage@latest statusline --visual-burn-rate=emoji-text 2>/dev/null || true
+# Parse ccusage output into components
+parse_ccusage() {
+    local ccusage_output
+    ccusage_output=$(echo "$input" | npx ccusage@latest statusline --visual-burn-rate=emoji-text 2>/dev/null) || return
+
+    # Extract model (🤖 Model)
+    model_info=$(echo "$ccusage_output" | grep -oE '🤖 [^|]+' | sed 's/ *$//')
+
+    # Extract context (🧠 ...)
+    context_info=$(echo "$ccusage_output" | sed -n 's/.*\(🧠 [^|]*\).*/\1/p' | sed 's/ *$//')
+
+    # Extract cost (💰 ...)
+    cost_info=$(echo "$ccusage_output" | sed -n 's/.*\(💰 [^|]*\).*/\1/p' | sed 's/ *$//')
+
+    # Extract burn rate (🔥 ...)
+    burn_info=$(echo "$ccusage_output" | sed -n 's/.*\(🔥 [^|]*\).*/\1/p' | sed 's/ *$//')
 }
 
 # Build and output the statusline
 main() {
-    local ssh_prefix display_dir git_info git_dirty ccusage_info
+    local ssh_prefix display_dir git_info git_dirty
+    local model_info context_info cost_info burn_info
 
     ssh_prefix=$(get_ssh_prefix)
     display_dir=$(format_directory "$cwd")
     git_info=$(get_git_branch "$cwd")
     git_dirty=$(get_git_dirty "$cwd")
-    ccusage_info=$(get_ccusage_info)
+    parse_ccusage
 
-    # Format: directory on branch± | ccusage full output
+    # Line 1: directory on branch± | model | context
     printf "%s${LAVENDER}%s${RESET}%s%s" \
         "$ssh_prefix" \
         "$display_dir" \
         "$git_info" \
         "$git_dirty"
 
-    if [[ -n "$ccusage_info" ]]; then
-        printf " | %s" "$ccusage_info"
+    if [[ -n "$model_info" ]]; then
+        printf " | %s" "$model_info"
+    fi
+    if [[ -n "$context_info" ]]; then
+        printf " | %s" "$context_info"
+    fi
+
+    # Line 2: cost | burn rate
+    if [[ -n "$cost_info" || -n "$burn_info" ]]; then
+        printf "\n"
+        [[ -n "$cost_info" ]] && printf "%s" "$cost_info"
+        [[ -n "$burn_info" ]] && printf " | %s" "$burn_info"
     fi
 }
 
