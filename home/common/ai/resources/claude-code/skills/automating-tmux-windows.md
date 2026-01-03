@@ -1,6 +1,7 @@
 ---
 name: automating-tmux-windows
 description: Automates terminal sessions in tmux windows using MCP tools. Use when launching background processes, monitoring builds/servers, sending commands to debuggers (pdb/gdb), interacting with CLI prompts, using interactive commands or commands that require sudo, or orchestrating parallel tasks across multiple terminal sessions.
+triggers: tmux, terminal automation, background process, interactive commands, sudo, debugger, pdb, gdb, long-running process, server monitoring
 ---
 
 # Automating tmux Windows

@@ -1,6 +1,7 @@
 ---
 name: ai-orchestration
 description: Multi-model AI collaboration via orchestrator MCP. Use when seeking second opinions, debugging complex issues, building consensus on architectural decisions, conducting code reviews, or needing external validation on analysis.
+triggers: second opinion, multi-model, consensus, external AI, clink, codex, gemini, model comparison, AI collaboration, expert validation
 ---
 
 # AI CLI Orchestration

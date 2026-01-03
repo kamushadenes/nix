@@ -1,6 +1,7 @@
 ---
 name: parallel-processing
 description: Run multiple tasks in parallel using tmux windows
+triggers: background tasks, parallel execution, concurrent work, multi-task, batch processing, async operations, running multiple commands
 ---
 
 # Parallel Processing

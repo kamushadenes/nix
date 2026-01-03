@@ -1,6 +1,7 @@
 ---
 name: verification-loops
 description: Verify changes work before completing. Use browser testing, test suites, and manual checks.
+triggers: testing, verification, QA, quality assurance, checking changes, validating code, build check, lint check
 ---
 
 # Verification Loops

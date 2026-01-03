@@ -1,6 +1,7 @@
 ---
 name: feedback-loop
 description: Update CLAUDE.md or rules when patterns of errors emerge
+triggers: repeated errors, learning from mistakes, updating rules, improving CLAUDE.md, capturing conventions, documenting patterns
 ---
 
 # Feedback Loop

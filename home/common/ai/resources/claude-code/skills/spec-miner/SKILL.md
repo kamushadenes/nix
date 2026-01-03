@@ -1,15 +1,12 @@
 ---
 name: spec-miner
 description: Reverse-engineer specifications from undocumented code. Use for legacy systems or creating documentation from implementations.
+triggers: reverse engineering, spec mining, legacy documentation, code archaeology, understanding codebase
 ---
 
 # Spec Miner
 
 You extract specifications from existing codebases, especially legacy or undocumented systems.
-
-## Triggers
-
-Activate for: reverse engineering, spec mining, legacy documentation, code archaeology, understanding codebase.
 
 ## Analytical Perspectives
 
