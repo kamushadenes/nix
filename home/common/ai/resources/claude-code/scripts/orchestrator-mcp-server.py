@@ -2637,97 +2637,84 @@ def task_comments(task_id: str) -> str:
 
 
 def build_task_prompt(task: Task, role: str, agent_type: str) -> str:
-    """Build a prompt with task context for an agent.
+    """Build a minimal prompt that instructs agents to fetch task details via MCP.
+
+    Instead of embedding all task data in the prompt, we pass only the task_id
+    and instruct the agent to fetch fresh data using task_get() and task_comments().
 
     Args:
-        task: The task to build context for
+        task: The task (only task.id is used)
         role: The role (discussion, dev, review, qa)
         agent_type: Which agent (claude, codex, gemini)
 
     Returns:
-        A prompt string with task context
+        A prompt string with task_id and fetch instructions
     """
-    # Get previous comments for context
-    comments = get_task_comments(task.id)
-    comments_text = ""
-    if comments:
-        comments_text = "\n=== PREVIOUS COMMENTS ===\n"
-        for c in comments:
-            comments_text += f"[{c.agent_type}] ({c.comment_type}): {c.content}\n"
-
-    # Get previous discussion votes if in discussion
-    votes_text = ""
-    if role == "discussion":
-        votes = get_discussion_votes(task.id)
-        if votes:
-            votes_text = "\n=== PREVIOUS DISCUSSION VOTES ===\n"
-            for v in votes:
-                votes_text += f"[{v.agent_type}] voted '{v.vote}': {v.approach_summary}\n"
-                if v.concerns:
-                    votes_text += f"  Concerns: {', '.join(v.concerns)}\n"
-
-    # Build acceptance criteria text
-    criteria_text = ""
-    if task.acceptance_criteria:
-        criteria_text = "\n".join(f"- {c}" for c in task.acceptance_criteria)
-    else:
-        criteria_text = "No specific acceptance criteria defined."
-
-    # Build context files text
-    files_text = ""
-    if task.context_files:
-        files_text = "\n".join(f"- {f}" for f in task.context_files)
-    else:
-        files_text = "No specific files referenced."
-
     # Role-specific instructions
+    # Common fetch instruction - agents must fetch task details first
+    fetch_instruction = f"""=== FIRST: FETCH TASK DETAILS ===
+Before doing anything else, you MUST fetch the full task details:
+
+1. Call: task_get("{task.id}")
+   - This gives you the full description, acceptance criteria, context files, and current status
+
+2. Call: task_comments("{task.id}")
+   - This gives you all previous comments and discussion from other agents
+
+Read and understand these before proceeding with your role.
+"""
+
     role_instructions = {
         "discussion": {
-            "claude": """You are participating in a DISCUSSION phase to reach consensus on implementation approach.
+            "claude": """=== YOUR ROLE: DISCUSSION PHASE ===
+You are participating in a DISCUSSION phase to reach consensus on implementation approach.
 
-Your responsibilities:
+After fetching task details, your responsibilities are:
 1. Analyze the task requirements and acceptance criteria
 2. Propose an implementation approach (architecture, patterns, file structure)
 3. Raise any concerns or potential issues
 4. Add comments using: task_comment(task_id, content, comment_type="suggestion")
-5. When ready, vote using: task_discussion_vote(task_id, vote, approach_summary, concerns, suggestions)
+5. When ready, vote using: task_discussion_vote(task_id, vote, approach_summary, concerns, suggestions, agent_type="claude")
 
 Vote 'ready' if you believe the team has consensus on approach.
 Vote 'needs_work' if there are unresolved concerns.
 
 You are operating in READ-ONLY mode for this phase.""",
 
-            "codex": """You are participating in a DISCUSSION phase to reach consensus on implementation approach.
+            "codex": """=== YOUR ROLE: DISCUSSION PHASE ===
+You are participating in a DISCUSSION phase to reach consensus on implementation approach.
 
-Your responsibilities:
+After fetching task details, your responsibilities are:
 1. Review the task for technical feasibility
 2. Identify potential edge cases and code conflicts
 3. Point out any technical concerns
 4. Add comments using: task_comment(task_id, content, comment_type="issue")
-5. When ready, vote using: task_discussion_vote(task_id, vote, approach_summary, concerns, suggestions)
+5. When ready, vote using: task_discussion_vote(task_id, vote, approach_summary, concerns, suggestions, agent_type="codex")
 
 Vote 'ready' if the approach is technically sound.
 Vote 'needs_work' if there are unresolved technical issues.
 
 You are operating in READ-ONLY mode - analyze and comment only.""",
 
-            "gemini": """You are participating in a DISCUSSION phase to reach consensus on implementation approach.
+            "gemini": """=== YOUR ROLE: DISCUSSION PHASE ===
+You are participating in a DISCUSSION phase to reach consensus on implementation approach.
 
-Your responsibilities:
+After fetching task details, your responsibilities are:
 1. Research best practices for this type of implementation
 2. Find similar implementations or relevant documentation
 3. Suggest industry-standard patterns that apply
 4. Add comments using: task_comment(task_id, content, comment_type="suggestion")
-5. When ready, vote using: task_discussion_vote(task_id, vote, approach_summary, concerns, suggestions)
+5. When ready, vote using: task_discussion_vote(task_id, vote, approach_summary, concerns, suggestions, agent_type="gemini")
 
 Vote 'ready' if the approach follows best practices.
 Vote 'needs_work' if important best practices are being ignored.
 
 You are operating in READ-ONLY mode - research and comment only."""
         },
-        "dev": """You are assigned to IMPLEMENT this task.
+        "dev": """=== YOUR ROLE: DEVELOPMENT ===
+You are assigned to IMPLEMENT this task.
 
-Your responsibilities:
+After fetching task details, your responsibilities are:
 1. Implement the task according to the agreed approach
 2. Follow the acceptance criteria
 3. Add progress comments using: task_comment(task_id, content, comment_type="note")
@@ -2736,55 +2723,59 @@ Your responsibilities:
 You have FULL ACCESS to modify files and run commands.
 Work on the actual repository, not a worktree.""",
 
-        "review": """You are assigned to REVIEW the implementation of this task.
+        "review": """=== YOUR ROLE: CODE REVIEW ===
+You are assigned to REVIEW the implementation of this task.
 
-Your responsibilities:
+After fetching task details, your responsibilities are:
 1. Review the code changes for bugs, security issues, and quality
 2. Check that acceptance criteria are met
 3. Add comments with findings using: task_comment(task_id, content, comment_type="issue")
-4. When done, vote using: task_review_complete(task_id, approved, feedback)
+4. When done, complete review using: task_review_complete(task_id, approved, feedback)
 
 Set approved=True to move to QA, approved=False to reject back to dev.
 
 You are operating in READ-ONLY mode.""",
 
         "qa": {
-            "claude": """You are part of the QA phase validating this task.
+            "claude": """=== YOUR ROLE: QA VALIDATION ===
+You are part of the QA phase validating this task.
 
-Your responsibilities:
+After fetching task details, your responsibilities are:
 1. Check that all acceptance criteria are met
 2. Look for edge cases and potential issues
 3. Verify functionality works as expected
 4. Add comments using: task_comment(task_id, content, comment_type="issue")
-5. When done, vote using: task_qa_vote(task_id, vote, reason)
+5. When done, vote using: task_qa_vote(task_id, vote, reason, agent_type="claude")
 
 Vote 'approve' if acceptance criteria are met.
 Vote 'reject' if there are issues that need fixing.
 
 You are operating in READ-ONLY mode.""",
 
-            "codex": """You are part of the QA phase validating this task.
+            "codex": """=== YOUR ROLE: QA VALIDATION ===
+You are part of the QA phase validating this task.
 
-Your responsibilities:
+After fetching task details, your responsibilities are:
 1. Check code quality and adherence to patterns
 2. Look for potential bugs or edge cases
 3. Verify the implementation is clean and maintainable
 4. Add comments using: task_comment(task_id, content, comment_type="issue")
-5. When done, vote using: task_qa_vote(task_id, vote, reason)
+5. When done, vote using: task_qa_vote(task_id, vote, reason, agent_type="codex")
 
 Vote 'approve' if code quality meets standards.
 Vote 'reject' if there are quality issues.
 
 You are operating in READ-ONLY mode.""",
 
-            "gemini": """You are part of the QA phase validating this task.
+            "gemini": """=== YOUR ROLE: QA VALIDATION ===
+You are part of the QA phase validating this task.
 
-Your responsibilities:
+After fetching task details, your responsibilities are:
 1. Check that documentation is adequate
 2. Verify best practices are followed
 3. Research if there are better approaches
 4. Add comments using: task_comment(task_id, content, comment_type="suggestion")
-5. When done, vote using: task_qa_vote(task_id, vote, reason)
+5. When done, vote using: task_qa_vote(task_id, vote, reason, agent_type="gemini")
 
 Vote 'approve' if documentation and practices are adequate.
 Vote 'reject' if important best practices are missing.
@@ -2801,24 +2792,11 @@ You are operating in READ-ONLY mode."""
     else:
         instructions = role_instructions.get(role, "")
 
-    prompt = f"""=== ASSIGNED TASK ===
+    # Build minimal prompt with only task_id and instructions to fetch details
+    prompt = f"""=== TASK ASSIGNMENT ===
 Task ID: {task.id}
-Title: {task.title}
-Status: {task.status}
-Priority: {task.priority}
-Discussion Round: {task.discussion_round}
 
-Description:
-{task.description or "No description provided."}
-
-Acceptance Criteria:
-{criteria_text}
-
-Context Files:
-{files_text}
-{comments_text}
-{votes_text}
-=== INSTRUCTIONS ===
+{fetch_instruction}
 {instructions}
 
 === BEGIN WORK ===
