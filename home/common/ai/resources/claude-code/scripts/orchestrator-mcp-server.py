@@ -1458,90 +1458,6 @@ def run_job_direct(job: Job):
         save_job(job)
 
 
-def run_job_in_tmux(job: Job, log_intermediary: bool = False, auto_close: bool = True):
-    """Run a job's CLI command in a tmux window using orchestrator TUI runner.
-
-    The orchestrator CLI handles:
-    - JSON output parsing
-    - Pretty-printing with colors
-    - TUI with sticky header and scrollable output
-    - SQLite logging of messages
-    - Auto-closing the window on completion
-    """
-    try:
-        # Build orchestrator run command
-        runner_cmd = [
-            "orchestrator", "run",
-            "--cli", job.cli,
-            "--job-id", job.id,
-        ]
-        if log_intermediary:
-            runner_cmd.append("--log-intermediary")
-        if not auto_close:
-            runner_cmd.append("--no-auto-close")
-        if job.model:
-            runner_cmd.extend(["--model", job.model])
-        for f in (job.files or []):
-            runner_cmd.extend(["--files", f])
-        # Prompt goes last
-        runner_cmd.append(job.prompt)
-
-        # Human-readable window name
-        window_name = make_window_name(job.cli, job.prompt, job.id)
-
-        # Create window running orchestrator directly (no shell wrapper)
-        # When orchestrator exits, the window closes automatically
-        args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name] + runner_cmd
-        output, code = run_tmux(*args)
-
-        if code != 0:
-            job.status = "failed"
-            job.result = f"Error creating tmux window: {output}"
-            save_job(job)
-            return
-
-        window_id = output.strip()
-        job.window_id = window_id
-        save_job(job)
-
-        # Set pane title for nice display in tmux status bar
-        pane_title = make_window_name(job.cli, job.prompt, job.id)
-        run_tmux("select-pane", "-t", window_id, "-T", pane_title)
-
-        # The orchestrator CLI now handles everything:
-        # - Parsing JSON output
-        # - Pretty-printing
-        # - Updating the job status in SQLite
-        # - Auto-closing the window
-        #
-        # We just need to wait for the window to close (if auto_close)
-        # or for the command to finish.
-
-        # Poll for window close (check every 2 seconds, timeout after 30 minutes)
-        max_wait = 1800  # 30 minutes
-        poll_interval = 2
-        waited = 0
-
-        while waited < max_wait:
-            time.sleep(poll_interval)
-            waited += poll_interval
-
-            # Check if window still exists (closes when command exits)
-            exists, _ = window_exists(window_id)
-            if not exists:
-                # Window closed - orchestrator CLI finished and updated job status
-                break
-
-        # Refresh job status from database (orchestrator CLI updated it)
-        updated_job = get_job(job.id, job.session_id)
-        if updated_job:
-            job.status = updated_job.status
-            job.result = updated_job.result
-
-    except Exception as e:
-        job.status = "failed"
-        job.result = f"Error: {e}"
-        save_job(job)
 
 
 @mcp.tool()
@@ -1551,15 +1467,13 @@ def ai_run(
     model: str = "",
     files: Optional[list] = None,
     timeout: int = 600,
-    worktree: bool = False,
     task_id: str = ""
 ) -> str:
     """
-    Run an AI CLI job synchronously and return the result.
+    Run an AI CLI job synchronously and wait for completion.
 
-    Creates a tmux window, runs orchestrator directly (no shell), waits for
-    completion, and returns the result. This is the recommended way to run
-    AI jobs from Claude Code.
+    Runs the CLI directly in a tmux window (no parsing). For task-bound jobs,
+    agents report results via task tools. For ad-hoc jobs, watch the tmux window.
 
     Args:
         prompt: The question/task for the AI
@@ -1567,11 +1481,10 @@ def ai_run(
         model: Optional model override (CLI-specific)
         files: Optional list of files to include as context
         timeout: Max seconds to wait for completion (default: 600)
-        worktree: If True, create an isolated git worktree for the agent (safer)
         task_id: Optional task ID to associate with this job (provides context)
 
     Returns:
-        JSON with job_id, status, and result
+        JSON with job_id and status (results come from task tools, not here)
     """
     files = files or []
 
@@ -1615,22 +1528,7 @@ def ai_run(
             if cf not in files:
                 files.append(cf)
 
-    # SAFETY: codex and gemini ALWAYS run in isolated worktree
-    if cli in ("codex", "gemini"):
-        worktree = True
-
-    # Create worktree if requested/required
-    worktree_path = None
-    if worktree:
-        worktree_path = create_worktree(job_id)
-        if not worktree_path:
-            return json.dumps({
-                "job_id": job_id,
-                "status": "failed",
-                "result": "Failed to create git worktree"
-            })
-
-    # Create job entry first
+    # Create job entry
     job = Job(
         id=job_id,
         session_id=session_id,
@@ -1639,7 +1537,6 @@ def ai_run(
         status="running",
         model=model,
         files=files,
-        worktree_path=str(worktree_path) if worktree_path else None,
         task_id=task_id if task_id else None
     )
     save_job(job)
@@ -1650,26 +1547,14 @@ def ai_run(
         task.updated_at = time.time()
         save_task(task)
 
-    # Build orchestrator run command
-    runner_cmd = [
-        "orchestrator", "run",
-        "--cli", cli,
-        "--job-id", job_id,
-    ]
-    if model:
-        runner_cmd.extend(["--model", model])
-    for f in files:
-        runner_cmd.extend(["--files", f])
-    if worktree_path:
-        runner_cmd.extend(["--worktree", str(worktree_path)])
-    runner_cmd.append(prompt)
+    # Build direct CLI command (no parsing)
+    cli_cmd = build_direct_cli_command(job)
 
     # Human-readable window name
     window_name = make_window_name(cli, prompt, job_id)
 
-    # Create tmux window running orchestrator directly (no shell wrapper)
-    # orchestrator run will exit when done, closing the window
-    args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name] + runner_cmd
+    # Create tmux window running CLI directly
+    args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name] + cli_cmd
     output, code = run_tmux(*args)
 
     if code != 0:
@@ -1686,22 +1571,20 @@ def ai_run(
     job.window_id = window_id
     save_job(job)
 
-    # Set pane title for nice display in tmux status bar
+    # Set pane title
     run_tmux("select-pane", "-t", window_id, "-T", window_name)
 
-    # Wait for window to close (orchestrator exits on completion)
+    # Wait for window to close (CLI exits on completion)
     start = time.time()
     while time.time() - start < timeout:
         exists, error = window_exists(window_id)
         if error:
-            # tmux error - try to continue
             break
         if not exists:
-            # Window closed - command finished
             break
         time.sleep(1)
     else:
-        # Timeout - kill window and return error
+        # Timeout - kill window
         run_tmux("kill-window", "-t", window_id)
         job.status = "failed"
         job.result = f"Timeout after {timeout}s"
@@ -1709,34 +1592,20 @@ def ai_run(
         return json.dumps({
             "job_id": job_id,
             "status": "timeout",
-            "result": job.result
+            "task_id": task_id if task_id else None
         })
 
-    # Small delay to ensure orchestrator CLI has written final results
-    time.sleep(0.5)
+    # Mark job as completed
+    job.status = "completed"
+    job.result = "Agent finished. Check task comments/votes for results." if task_id else "Agent finished."
+    save_job(job)
 
-    # Fetch result from database (orchestrator CLI updated it)
-    updated_job = get_job(job_id, session_id)
-
-    # Cleanup worktree if it was created
-    if worktree_path:
-        cleanup_worktree(job_id)
-
-    if updated_job:
-        messages = get_messages(job_id)
-        return json.dumps({
-            "job_id": job_id,
-            "status": updated_job.status,
-            "result": updated_job.result,
-            "worktree_path": str(worktree_path) if worktree_path else None,
-            "messages": [asdict(m) for m in messages]
-        }, indent=2)
-    else:
-        return json.dumps({
-            "job_id": job_id,
-            "status": "unknown",
-            "result": "Job not found after completion"
-        })
+    return json.dumps({
+        "job_id": job_id,
+        "status": "completed",
+        "task_id": task_id if task_id else None,
+        "message": "Job completed. Results are in task comments/votes." if task_id else "Job completed. Watch tmux window for output."
+    }, indent=2)
 
 
 @mcp.tool()
@@ -1745,24 +1614,23 @@ def ai_spawn(
     cli: str = "claude",
     model: str = "",
     files: Optional[list] = None,
-    log_intermediary: bool = False,
-    auto_close: bool = True,
     task_id: str = ""
 ) -> str:
     """
     Start an async AI CLI job and return immediately.
+
+    Runs the CLI directly in a tmux window (no parsing). Use ai_wait to wait
+    for completion. For task-bound jobs, agents report results via task tools.
 
     Args:
         prompt: The question/task for the AI
         cli: Which CLI to use - "claude", "codex", or "gemini"
         model: Optional model override (CLI-specific)
         files: Optional list of files to include as context
-        log_intermediary: Log intermediary messages to SQLite (default: False)
-        auto_close: Auto-close tmux window on completion (default: True)
         task_id: Optional task ID to associate with this job (provides context)
 
     Returns:
-        Job ID (e.g., "job_abc123") for use with ai_fetch/ai_stream
+        JSON with job_id for use with ai_wait
     """
     files = files or []
 
@@ -1772,7 +1640,7 @@ def ai_spawn(
     if not check_cli_available(cli):
         raise RuntimeError(f"CLI '{cli}' not found in PATH")
 
-    # Initialize DB if needed
+    require_tmux()
     init_db()
 
     session_id = get_current_session()
@@ -1824,11 +1692,10 @@ def ai_spawn(
         task.updated_at = time.time()
         save_task(task)
 
-    # Start background thread - runs in tmux window with TUI for visibility
+    # Start in background - runs CLI directly (no TUI/parsing)
     thread = threading.Thread(
-        target=run_job_in_tmux,
+        target=run_job_direct,
         args=(job,),
-        kwargs={"log_intermediary": log_intermediary, "auto_close": auto_close},
         daemon=True
     )
     thread.start()
@@ -1836,8 +1703,7 @@ def ai_spawn(
     return json.dumps({
         "job_id": job_id,
         "task_id": task_id if task_id else None,
-        "window_id": None,  # Will be set once tmux window is created
-        "message": f"Job started in background. Use ai_fetch('{job_id}') to get results, or switch to tmux window to watch."
+        "message": f"Job started. Use ai_wait('{job_id}') to wait for completion."
     })
 
 
@@ -1848,7 +1714,10 @@ def ai_fetch(
     timeout: int = 300
 ) -> str:
     """
-    Get the result of an AI job.
+    Get the status of an AI job.
+
+    Note: Results are NOT parsed from CLI output. For task-bound jobs, check
+    task_comments() and task_get() for results. For ad-hoc jobs, watch tmux.
 
     Args:
         job_id: Job ID from ai_spawn
@@ -1856,7 +1725,7 @@ def ai_fetch(
         timeout: Max seconds to wait if blocking (default: 300)
 
     Returns:
-        JSON with status, result, and messages
+        JSON with job status (result field contains status message only)
     """
     init_db()
     session_id = get_current_session()
@@ -1979,24 +1848,27 @@ def ai_ask(
     cli: str = "claude",
     model: str = "",
     files: Optional[list] = None,
-    log_intermediary: bool = False
+    task_id: str = ""
 ) -> str:
     """
-    Synchronous AI query - spawns job and waits for result.
+    Synchronous AI query - spawns job and waits for completion.
+
+    Runs CLI directly (no output parsing). For task-bound jobs, results come
+    from task tools. For ad-hoc queries, watch the tmux window for output.
 
     Args:
         prompt: The question/task for the AI
         cli: Which CLI to use - "claude", "codex", or "gemini"
         model: Optional model override
         files: Optional list of files to include as context
-        log_intermediary: Log intermediary messages to SQLite (default: False)
+        task_id: Optional task ID to associate with this job
 
     Returns:
-        JSON with job_id and result
+        JSON with job_id and status (results not captured)
     """
-    spawn_result = json.loads(ai_spawn(prompt, cli, model, files, log_intermediary, auto_close=True))
+    spawn_result = json.loads(ai_spawn(prompt, cli, model, files, task_id))
     job_id = spawn_result["job_id"]
-    return ai_fetch(job_id, block=True, timeout=300)
+    return ai_wait(job_id, timeout=300)
 
 
 @mcp.tool()
