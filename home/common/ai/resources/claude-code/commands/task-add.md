@@ -1,3 +1,8 @@
+---
+allowed-tools: AskUserQuestion, mcp__orchestrator__task_create, mcp__orchestrator__task_start_discussion, mcp__orchestrator__task_start_dev
+description: Create a new task in the task management system interactively
+---
+
 Create a new task in the task management system interactively.
 
 ## Steps

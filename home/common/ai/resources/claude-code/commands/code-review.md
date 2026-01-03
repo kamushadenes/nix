@@ -1,3 +1,8 @@
+---
+allowed-tools: Bash(git status:*), Bash(git diff:*), mcp__orchestrator__task_create, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch, mcp__orchestrator__task_comments, mcp__orchestrator__task_complete
+description: Run a multi-focus code review on current changes using the orchestrator system
+---
+
 Run a multi-focus code review on current changes using the orchestrator system.
 
 ## Steps

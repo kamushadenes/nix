@@ -47,12 +47,14 @@ Ask about urgency and impact:
 Help the user create measurable, verifiable criteria:
 
 Good criteria:
+
 - "Login form validates email format"
 - "API returns 200 for valid requests"
 - "All tests pass"
 - "No TypeScript errors"
 
 Bad criteria:
+
 - "Works correctly" (vague)
 - "Good performance" (unmeasurable)
 
@@ -94,6 +96,7 @@ User: "Add dark mode toggle to settings"
 Claude: Uses AskUserQuestion for priority, criteria, etc.
 
 Claude: Creates task with:
+
 - Title: "Add dark mode toggle to settings"
 - Priority: 3
 - Acceptance criteria: ["Toggle visible in settings", "Theme persists on reload", "Respects system preference"]

@@ -4,11 +4,11 @@
 
 Claude Code is the **orchestrator**. When spawning AI agents via the orchestrator MCP:
 
-| CLI     | Role            | Mode      | Capabilities                          |
-|---------|-----------------|-----------|---------------------------------------|
-| claude  | Worker/Peer     | Full      | Can execute any tool/command          |
-| codex   | Reviewer        | Read-only | Code review, analysis, suggestions    |
-| gemini  | Researcher      | Read-only | Web search, documentation lookup      |
+| CLI    | Role        | Mode      | Capabilities                       |
+| ------ | ----------- | --------- | ---------------------------------- |
+| claude | Worker/Peer | Full      | Can execute any tool/command       |
+| codex  | Reviewer    | Read-only | Code review, analysis, suggestions |
+| gemini | Researcher  | Read-only | Web search, documentation lookup   |
 
 ## Enforced Constraints
 
@@ -53,6 +53,7 @@ Look at the code and tell me what you think
 ## When to Use External Agents
 
 **Do use when:**
+
 - Stuck on a complex bug after initial investigation
 - Making architectural decisions with tradeoffs
 - Need validation before major refactoring
@@ -60,6 +61,7 @@ Look at the code and tell me what you think
 - Want diverse perspectives on approach
 
 **Don't use when:**
+
 - Simple, straightforward tasks
 - Already confident in approach
 - Just need to execute known solution
