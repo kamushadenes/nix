@@ -8,12 +8,6 @@ let
   resourcesDir = ./resources;
 in
 {
-  # Deploy tmux status helper script
-  home.file.".config/tmux/status.sh" = {
-    source = "${resourcesDir}/tmux-status.sh";
-    executable = true;
-  };
-
   programs.tmux = {
     enable = true;
 
