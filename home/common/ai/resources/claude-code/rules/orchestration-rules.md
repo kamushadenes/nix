@@ -12,30 +12,27 @@ Claude Code is the **orchestrator**. When calling external AI agents via clink:
 
 ## Sub-Agent Delegation
 
-**IMPORTANT:** For complex workflows, delegate to specialized Claude Code sub-agents instead of calling clink directly. Sub-agents are in `~/.claude/agents/`:
+For complex workflows, delegate to specialized Claude Code sub-agents instead of calling clink directly. Sub-agents are in `~/.claude/agents/`:
 
-| Sub-Agent               | Purpose                     | Key Tools               |
-| ----------------------- | --------------------------- | ----------------------- |
-| `code-reviewer`         | Code quality review         | `task_review_complete`  |
-| `security-auditor`      | Security analysis           | `task_qa_vote`          |
-| `test-analyzer`         | Test coverage               | `task_qa_vote`          |
-| `documentation-writer`  | Docs quality                | `task_comment`          |
-| `task-discusser`        | Discussion orchestration    | `task_start_discussion` |
-| `silent-failure-hunter` | Error handling gaps         | `task_qa_vote`          |
-| `performance-analyzer`  | Performance issues          | `task_qa_vote`          |
-| `type-checker`          | Type safety                 | `task_qa_vote`          |
-| `refactoring-advisor`   | Refactoring opportunities   | `task_comment`          |
-| `code-simplifier`       | Complexity reduction        | `task_comment`          |
-| `comment-analyzer`      | Comment quality             | `task_comment`          |
-| `dependency-checker`    | Dependency health           | `task_comment`          |
-| `consensus`             | Multi-model perspectives    | `clink`                 |
-| `debugger`              | Root cause investigation    | `clink`                 |
-| `planner`               | Project planning            | `clink`                 |
-| `precommit`             | Pre-commit validation       | `clink`                 |
-| `thinkdeep`             | Extended thinking/analysis  | `clink`                 |
-| `tracer`                | Execution flow analysis     | `clink`                 |
-
-Sub-agents report findings via orchestrator MCP tools directly to tasks.
+| Sub-Agent               | Purpose                     |
+| ----------------------- | --------------------------- |
+| `code-reviewer`         | Code quality review         |
+| `security-auditor`      | Security analysis           |
+| `test-analyzer`         | Test coverage analysis      |
+| `documentation-writer`  | Docs quality review         |
+| `silent-failure-hunter` | Error handling gaps         |
+| `performance-analyzer`  | Performance issues          |
+| `type-checker`          | Type safety analysis        |
+| `refactoring-advisor`   | Refactoring opportunities   |
+| `code-simplifier`       | Complexity reduction        |
+| `comment-analyzer`      | Comment quality             |
+| `dependency-checker`    | Dependency health           |
+| `consensus`             | Multi-model perspectives    |
+| `debugger`              | Root cause investigation    |
+| `planner`               | Project planning            |
+| `precommit`             | Pre-commit validation       |
+| `thinkdeep`             | Extended thinking/analysis  |
+| `tracer`                | Execution flow analysis     |
 
 ## Using clink for External AI
 
@@ -103,26 +100,25 @@ Look at the code and tell me what you think
 
 **Don't use when:**
 
-- Simple, straightforward tasks (most tasks)
+- Simple, straightforward tasks (most work)
 - Already confident in approach
 - Just need to execute a known solution
 - Minor refactoring or code cleanup
 - Single-file changes with clear scope
 
-**Default behavior**: Claude Code should make its own decisions for most tasks. Only escalate to multi-model consensus when the complexity genuinely warrants the time cost.
+**Default behavior**: Claude Code should make its own decisions for most work. Only escalate to multi-model consensus when the complexity genuinely warrants the time cost.
 
 ## Sub-Agents That Use clink (Use Sparingly)
 
 These sub-agents call external AI models and are slow:
 
-| Sub-Agent         | When to Use                                        |
-| ----------------- | -------------------------------------------------- |
-| `task-discusser`  | Major architectural decisions only                 |
-| `consensus`       | When you need multiple perspectives on a decision  |
-| `debugger`        | Complex bugs that resist initial investigation     |
-| `planner`         | Large multi-phase projects                         |
-| `precommit`       | Optional quick sanity check before commits         |
-| `thinkdeep`       | Problems requiring extended analysis               |
-| `tracer`          | Complex execution flow analysis                    |
+| Sub-Agent    | When to Use                                       |
+| ------------ | ------------------------------------------------- |
+| `consensus`  | When you need multiple perspectives on a decision |
+| `debugger`   | Complex bugs that resist initial investigation    |
+| `planner`    | Large multi-phase projects                        |
+| `precommit`  | Optional quick sanity check before commits        |
+| `thinkdeep`  | Problems requiring extended analysis              |
+| `tracer`     | Complex execution flow analysis                   |
 
 **Most code reviews should use `code-reviewer` directly** (no clink) rather than multi-model consensus.

@@ -82,7 +82,6 @@ in
     commands = {
       test-altinity-cloud = builtins.readFile "${private}/home/common/ai/resources/claude/commands/test-altinity-cloud.md";
       code-review = builtins.readFile "${commandsDir}/code-review.md";
-      task-add = builtins.readFile "${commandsDir}/task-add.md";
       commit = builtins.readFile "${commandsDir}/commit.md";
       commit-push-pr = builtins.readFile "${commandsDir}/commit-push-pr.md";
     };
@@ -146,27 +145,6 @@ in
           "mcp__pal__clink"
           "mcp__pal__listmodels"
           "mcp__pal__version"
-
-          # MCP: Orchestrator - Task management
-          "mcp__orchestrator__task_list"
-          "mcp__orchestrator__task_create"
-          "mcp__orchestrator__task_get"
-          "mcp__orchestrator__task_update"
-          "mcp__orchestrator__task_complete"
-          "mcp__orchestrator__task_cancel"
-          "mcp__orchestrator__task_comment"
-          "mcp__orchestrator__task_comments"
-          "mcp__orchestrator__task_start_discussion"
-          "mcp__orchestrator__task_discussion_vote"
-          "mcp__orchestrator__task_start_dev"
-          "mcp__orchestrator__task_submit_review"
-          "mcp__orchestrator__task_review_complete"
-          "mcp__orchestrator__task_start_qa"
-          "mcp__orchestrator__task_qa_vote"
-          "mcp__orchestrator__task_reopen"
-
-          # CLI tools
-          "Bash(orchestrator:*)"
 
           # Skills
           "Skill(codex-cli)"
@@ -312,7 +290,6 @@ in
     ".claude/agents/security-auditor.md".source = "${agentsDir}/security-auditor.md";
     ".claude/agents/test-analyzer.md".source = "${agentsDir}/test-analyzer.md";
     ".claude/agents/documentation-writer.md".source = "${agentsDir}/documentation-writer.md";
-    ".claude/agents/task-discusser.md".source = "${agentsDir}/task-discusser.md";
     ".claude/agents/silent-failure-hunter.md".source = "${agentsDir}/silent-failure-hunter.md";
     ".claude/agents/performance-analyzer.md".source = "${agentsDir}/performance-analyzer.md";
     ".claude/agents/type-checker.md".source = "${agentsDir}/type-checker.md";
@@ -320,7 +297,7 @@ in
     ".claude/agents/code-simplifier.md".source = "${agentsDir}/code-simplifier.md";
     ".claude/agents/comment-analyzer.md".source = "${agentsDir}/comment-analyzer.md";
     ".claude/agents/dependency-checker.md".source = "${agentsDir}/dependency-checker.md";
-    # New sub-agents for multi-model workflows
+    # Sub-agents for multi-model workflows
     ".claude/agents/consensus.md".source = "${agentsDir}/consensus.md";
     ".claude/agents/debugger.md".source = "${agentsDir}/debugger.md";
     ".claude/agents/planner.md".source = "${agentsDir}/planner.md";

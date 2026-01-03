@@ -73,7 +73,7 @@ rec {
       ];
     };
 
-    # Orchestrator MCP - Terminal automation + task management
+    # Orchestrator MCP - Terminal automation
     orchestrator = {
       transport = "stdio";
       command = "uvx";

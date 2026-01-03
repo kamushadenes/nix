@@ -19,9 +19,9 @@ Claude Code is the **orchestrator**. When calling external AI agents:
 
 ## Quick Reference
 
-| Tool    | Purpose                                            |
-| ------- | -------------------------------------------------- |
-| `clink` | Query external AI CLI (claude, codex, or gemini)   |
+| Tool    | Purpose                                          |
+| ------- | ------------------------------------------------ |
+| `clink` | Query external AI CLI (claude, codex, or gemini) |
 
 The `clink` tool is synchronous - it runs the CLI and returns the result.
 
@@ -37,66 +37,41 @@ The `clink` tool is synchronous - it runs the CLI and returns the result.
 
 **Don't use when:**
 
-- Simple, straightforward tasks
+- Simple, straightforward work
 - Already confident in approach
 - Just need to execute known solution
 
 ## Sub-Agent Delegation
 
-**IMPORTANT:** For complex workflows, delegate to specialized sub-agents instead of running clink directly. This keeps the orchestrator focused and leverages specialized expertise.
+For complex workflows, delegate to specialized sub-agents instead of running clink directly. This keeps the orchestrator focused and leverages specialized expertise.
 
 ### Available Sub-Agents
 
-| Sub-Agent               | Use Case                          | Key Tools               |
-| ----------------------- | --------------------------------- | ----------------------- |
-| `code-reviewer`         | Code quality review after changes | `task_review_complete`  |
-| `security-auditor`      | Security vulnerability analysis   | `task_qa_vote`          |
-| `test-analyzer`         | Test coverage and quality         | `task_qa_vote`          |
-| `documentation-writer`  | Documentation quality review      | `task_comment`          |
-| `task-discusser`        | Orchestrates discussion phase     | `task_start_discussion` |
-| `silent-failure-hunter` | Detects swallowed errors          | `task_qa_vote`          |
-| `performance-analyzer`  | Performance issue detection       | `task_qa_vote`          |
-| `type-checker`          | Type safety analysis              | `task_qa_vote`          |
-| `refactoring-advisor`   | Refactoring opportunities         | `task_comment`          |
-| `code-simplifier`       | Code complexity reduction         | `task_comment`          |
-| `comment-analyzer`      | Code comment quality              | `task_comment`          |
-| `dependency-checker`    | Dependency health and security    | `task_comment`          |
-| `consensus`             | Multi-model perspective gathering | `clink`                 |
-| `debugger`              | Root cause investigation          | `clink`                 |
-| `planner`               | Project planning                  | `clink`                 |
-| `precommit`             | Pre-commit validation             | `clink`                 |
-| `thinkdeep`             | Extended thinking/analysis        | `clink`                 |
-| `tracer`                | Execution flow analysis           | `clink`                 |
-
-### Delegation Pattern
-
-Instead of running workflows directly, spawn the appropriate sub-agent:
-
-```text
-Use the code-reviewer sub-agent to review the changes for task {task_id}
-```
-
-The sub-agent will:
-
-1. Fetch task details via `task_get(task_id)`
-2. Perform its specialized analysis
-3. Report findings via `task_comment()`
-4. Complete with `task_review_complete()` or `task_qa_vote()`
-
-### Task Workflow Delegation
-
-| Workflow                             | Primary Agent      | Uses                               |
-| ------------------------------------ | ------------------ | ---------------------------------- |
-| Discussion (`task_start_discussion`) | `task-discusser`   | clink to Claude + Codex + Gemini   |
-| Code Review (`task_submit_review`)   | `code-reviewer`    | Optional clink for validation      |
-| QA Validation (`task_start_qa`)      | Multiple QA agents | clink for multi-model verification |
+| Sub-Agent               | Use Case                        |
+| ----------------------- | ------------------------------- |
+| `code-reviewer`         | Code quality review             |
+| `security-auditor`      | Security vulnerability analysis |
+| `test-analyzer`         | Test coverage and quality       |
+| `documentation-writer`  | Documentation quality review    |
+| `silent-failure-hunter` | Detects swallowed errors        |
+| `performance-analyzer`  | Performance issue detection     |
+| `type-checker`          | Type safety analysis            |
+| `refactoring-advisor`   | Refactoring opportunities       |
+| `code-simplifier`       | Code complexity reduction       |
+| `comment-analyzer`      | Code comment quality            |
+| `dependency-checker`    | Dependency health and security  |
+| `consensus`             | Multi-model perspective         |
+| `debugger`              | Root cause investigation        |
+| `planner`               | Project planning                |
+| `precommit`             | Pre-commit validation           |
+| `thinkdeep`             | Extended thinking/analysis      |
+| `tracer`                | Execution flow analysis         |
 
 ### When to Delegate vs Direct clink
 
 **Delegate to sub-agent:**
 
 - Complex analysis needing specialized focus
-- Task-bound workflows (review, QA, discussion)
 - When you want structured findings with confidence scores
 
 **Use direct clink:**
@@ -144,12 +119,12 @@ result = clink(
 
 ## clink Parameters
 
-| Parameter | Type | Default  | Description                        |
-| --------- | ---- | -------- | ---------------------------------- |
-| prompt    | str  | required | The question/task                  |
-| cli       | str  | "claude" | "claude", "codex", or "gemini"     |
-| files     | list | []       | Files to include as context        |
-| role      | str  | ""       | Optional role preset (see PAL docs)|
+| Parameter | Type | Default  | Description                         |
+| --------- | ---- | -------- | ----------------------------------- |
+| prompt    | str  | required | The question/task                   |
+| cli       | str  | "claude" | "claude", "codex", or "gemini"      |
+| files     | list | []       | Files to include as context         |
+| role      | str  | ""       | Optional role preset (see PAL docs) |
 
 ## Multi-Model Patterns
 

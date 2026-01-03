@@ -14,15 +14,13 @@ ai/
     ├── commands/        # User-invocable slash commands
     │   ├── code-review.md
     │   ├── commit.md
-    │   ├── commit-push-pr.md
-    │   └── task-add.md
+    │   └── commit-push-pr.md
     ├── memory/          # Global CLAUDE.md content
     ├── rules/           # Behavioral rules (loaded into ~/.claude/rules/)
     ├── scripts/         # MCP server implementations
     └── skills/          # Internal skills (Claude guidance, not user-invocable)
         ├── ai-orchestration.md
-        ├── automating-tmux-windows.md
-        └── task-creation.md
+        └── automating-tmux-windows.md
 ```
 
 ## Role Hierarchy
@@ -50,10 +48,16 @@ Handles secret placeholders (`@SECRET@`) and agenix integration.
 `resources/claude-code/scripts/orchestrator-mcp-server.py` provides:
 
 - `tmux_*` tools - Terminal window automation
-- `ai_*` tools - AI CLI orchestration (spawn, fetch, stream, messaging)
-- `task_*` tools - Task management (create, update, discussion, review, QA phases)
 
-Security: Codex and Gemini run in isolated git worktrees with read-only instructions.
+For AI CLI orchestration, use PAL MCP's `clink` tool.
+
+### PAL MCP Server
+
+PAL MCP provides the `clink` tool for CLI-to-CLI bridging:
+
+- Query Claude, Codex, or Gemini CLIs from Claude Code
+- Synchronous execution - blocks until CLI completes
+- Supports file context and continuation IDs
 
 ## Adding New AI CLIs
 
