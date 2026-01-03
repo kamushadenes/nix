@@ -129,6 +129,13 @@ in
           "Bash(rebuild:*)"
           "Bash(nh darwin switch:*)"
 
+          # Go commands
+          "Bash(go mod:*)"
+          "Bash(go list:*)"
+          "Bash(go test:*)"
+          "Bash(go build:*)"
+          "Bash(go run:*)"
+
           # Git commands
           "Bash(git ls-tree:*)"
           "Bash(git submodule status:*)"
