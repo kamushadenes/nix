@@ -833,7 +833,7 @@ def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None
 
     elif cli == "codex":
         # Full-auto mode with read-only instruction in prompt
-        cmd = ["codex", "exec", "-a", "full-auto"]
+        cmd = ["codex", "exec", "--full-auto", "--json", "--skip-git-repo-check"]
         if model:
             cmd.extend(["--model", model])
         cmd.append(READ_ONLY_INSTRUCTION + prompt)
