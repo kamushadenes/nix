@@ -81,6 +81,8 @@ in
       test-altinity-cloud = builtins.readFile "${private}/home/common/ai/resources/claude/commands/test-altinity-cloud.md";
       code-review = builtins.readFile "${commandsDir}/code-review.md";
       task-add = builtins.readFile "${commandsDir}/task-add.md";
+      commit = builtins.readFile "${commandsDir}/commit.md";
+      commit-push-pr = builtins.readFile "${commandsDir}/commit-push-pr.md";
     };
 
     # Note: rules option is not available in this home-manager version
@@ -88,6 +90,79 @@ in
 
     # Settings that go into ~/.claude/settings.json
     settings = {
+      # Global permissions - auto-approved tools
+      permissions = {
+        allow = [
+          # Basic commands
+          "Bash(curl:*)"
+          "Bash(tree:*)"
+          "Bash(cat:*)"
+          "Bash(wc:*)"
+          "Read"
+
+          # Nix commands
+          "Bash(nix flake check:*)"
+          "Bash(nix flake show:*)"
+          "Bash(nix flake metadata:*)"
+          "Bash(nix eval:*)"
+          "Bash(nix-instantiate:*)"
+          "Bash(nix path-info:*)"
+          "Bash(nix fmt:*)"
+          "Bash(nixfmt:*)"
+          "Bash(rebuild:*)"
+          "Bash(nh darwin switch:*)"
+
+          # Git commands
+          "Bash(git ls-tree:*)"
+          "Bash(git submodule status:*)"
+          "Bash(git -C private ls-files:*)"
+          "Bash(git add:*)"
+
+          # Tmux commands
+          "Bash(tmux list-panes:*)"
+          "Bash(tmux list-commands:*)"
+          "Bash(tmux display-message:*)"
+          "Bash(tmux capture-pane:*)"
+          "Bash(tmux show-options:*)"
+
+          # Web access
+          "WebSearch"
+          "WebFetch"
+
+          # MCP: DeepWiki
+          "mcp__deepwiki__ask_question"
+
+          # MCP: Orchestrator - tmux
+          "mcp__orchestrator__tmux_new_window"
+          "mcp__orchestrator__tmux_send"
+          "mcp__orchestrator__tmux_wait_idle"
+          "mcp__orchestrator__tmux_capture"
+          "mcp__orchestrator__tmux_list"
+
+          # MCP: Orchestrator - AI agents
+          "mcp__orchestrator__ai_spawn"
+          "mcp__orchestrator__ai_fetch"
+          "mcp__orchestrator__ai_run"
+          "mcp__orchestrator__ai_list"
+
+          # MCP: Orchestrator - Task management
+          "mcp__orchestrator__task_list"
+          "mcp__orchestrator__task_create"
+          "mcp__orchestrator__task_get"
+          "mcp__orchestrator__task_start_discussion"
+          "mcp__orchestrator__task_discussion_vote"
+          "mcp__orchestrator__task_submit_review"
+          "mcp__orchestrator__task_start_qa"
+          "mcp__orchestrator__task_qa_vote"
+
+          # CLI tools
+          "Bash(orchestrator:*)"
+
+          # Skills
+          "Skill(codex-cli)"
+        ];
+      };
+
       # Hooks - commands that run at various points in Claude Code's lifecycle
       hooks = {
         # Run before file modifications - TDD guard ensures tests exist

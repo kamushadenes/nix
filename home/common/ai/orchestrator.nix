@@ -60,5 +60,6 @@ in
     ".claude/skills/automating-tmux-windows/SKILL.md".source =
       "${skillsDir}/automating-tmux-windows.md";
     ".claude/skills/ai-orchestration/SKILL.md".source = "${skillsDir}/ai-orchestration.md";
+    ".claude/skills/task-add/SKILL.md".source = "${skillsDir}/task-add.md";
   };
 }

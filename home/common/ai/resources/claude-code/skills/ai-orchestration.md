@@ -42,18 +42,18 @@ up after completion. Any modifications stay isolated from your main directory.
 
 ## Quick Reference
 
-| Tool         | Purpose                                            |
-| ------------ | -------------------------------------------------- |
-| `ai_run`     | Single job - blocks until complete                 |
-| `ai_spawn`   | **Parallel jobs** - returns immediately            |
-| `ai_fetch`   | Get result from spawned job                        |
-| `ai_stream`  | Get incremental streaming output                   |
-| `ai_ask`     | Sync query (uses ai_spawn internally)              |
-| `ai_send`    | Send message to a job (inter-agent messaging)      |
-| `ai_receive` | Get messages for a job                             |
-| `ai_review`  | Code review via AI CLI                             |
-| `ai_search`  | Web search via gemini or claude                    |
-| `ai_list`    | List jobs in current session                       |
+| Tool         | Purpose                                       |
+| ------------ | --------------------------------------------- |
+| `ai_run`     | Single job - blocks until complete            |
+| `ai_spawn`   | **Parallel jobs** - returns immediately       |
+| `ai_fetch`   | Get result from spawned job                   |
+| `ai_stream`  | Get incremental streaming output              |
+| `ai_ask`     | Sync query (uses ai_spawn internally)         |
+| `ai_send`    | Send message to a job (inter-agent messaging) |
+| `ai_receive` | Get messages for a job                        |
+| `ai_review`  | Code review via AI CLI                        |
+| `ai_search`  | Web search via gemini or claude               |
+| `ai_list`    | List jobs in current session                  |
 
 **Pattern choice:**
 
@@ -192,14 +192,14 @@ messages = ai_receive(job, since=0)
 
 Use for single jobs. **Blocks until completion** - not suitable for parallel execution.
 
-| Parameter | Type | Default  | Description                                      |
-| --------- | ---- | -------- | ------------------------------------------------ |
-| prompt    | str  | required | The question/task                                |
-| cli       | str  | "claude" | "claude", "codex", or "gemini"                   |
-| model     | str  | ""       | Optional model override                          |
-| files     | list | []       | Files to include as context                      |
-| timeout   | int  | 600      | Max wait time in seconds                         |
-| worktree  | bool | false    | Isolated worktree (auto for codex/gemini)        |
+| Parameter | Type | Default  | Description                               |
+| --------- | ---- | -------- | ----------------------------------------- |
+| prompt    | str  | required | The question/task                         |
+| cli       | str  | "claude" | "claude", "codex", or "gemini"            |
+| model     | str  | ""       | Optional model override                   |
+| files     | list | []       | Files to include as context               |
+| timeout   | int  | 600      | Max wait time in seconds                  |
+| worktree  | bool | false    | Isolated worktree (auto for codex/gemini) |
 
 ### ai_spawn (async, for parallel execution)
 
@@ -350,14 +350,14 @@ This handles everything:
 
 ### MCP Tool Equivalents
 
-| CLI Command            | Use MCP Tool Instead       |
-| ---------------------- | -------------------------- |
-| `orchestrator run`     | `ai_run()` ← **use this**  |
-| `orchestrator status`  | `ai_fetch(job_id)`         |
-| `orchestrator jobs`    | `ai_list()`                |
-| `orchestrator stream`  | `ai_stream(job_id)`        |
-| `orchestrator kill`    | `tmux_kill(window_id)`     |
-| `orchestrator cleanup` | N/A (manual only)          |
+| CLI Command            | Use MCP Tool Instead      |
+| ---------------------- | ------------------------- |
+| `orchestrator run`     | `ai_run()` ← **use this** |
+| `orchestrator status`  | `ai_fetch(job_id)`        |
+| `orchestrator jobs`    | `ai_list()`               |
+| `orchestrator stream`  | `ai_stream(job_id)`       |
+| `orchestrator kill`    | `tmux_kill(window_id)`    |
+| `orchestrator cleanup` | N/A (manual only)         |
 
 ### Async Pattern (if needed)
 

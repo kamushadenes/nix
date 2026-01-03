@@ -4,7 +4,16 @@
   lib,
   ...
 }:
+let
+  resourcesDir = ./resources;
+in
 {
+  # Deploy tmux status helper script
+  home.file.".config/tmux/status.sh" = {
+    source = "${resourcesDir}/tmux-status.sh";
+    executable = true;
+  };
+
   programs.tmux = {
     enable = true;
 
@@ -39,7 +48,9 @@
       set -g status-right-length 100
       set -g status-left-length 100
       set -g status-left ""
-      set -g status-right "#{E:@catppuccin_status_session}"
+      set -g status-right "#(~/.config/tmux/status.sh)#{E:@catppuccin_status_date_time}#{E:@catppuccin_status_session}"
+      set -g @catppuccin_date_time_text "%H:%M"
+      set -g status-interval 5
 
       # Continuum settings
       set -g @continuum-restore 'on'
@@ -110,7 +121,8 @@
       bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel
       bind -T copy-mode-vi C-v send-keys -X rectangle-toggle
 
-      # Renumber windows when one is closed
+      # Window naming - keep explicit names, don't auto-rename to command
+      set -g automatic-rename off
       set -g renumber-windows on
 
       # Activity monitoring (visual only, no bell)

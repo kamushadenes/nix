@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Claude Code statusline script
-# Displays: [user@host] directory on branch | model
+# Displays: [user@host] directory on branch± | model
+# Note: Orchestrator jobs are shown in tmux status bar (always visible)
 #
 
 set -euo pipefail
@@ -9,6 +10,7 @@ set -euo pipefail
 # Catppuccin Macchiato colors
 readonly LAVENDER='\033[38;2;183;189;248m'
 readonly MAUVE='\033[38;2;198;160;246m'
+readonly YELLOW='\033[38;2;238;212;159m'
 readonly RESET='\033[0m'
 
 # Git options to disable slow fsmonitor
@@ -46,6 +48,22 @@ format_directory() {
     fi
 }
 
+# Check if git working tree is dirty (uncommitted changes)
+get_git_dirty() {
+    local dir="$1"
+
+    # Check if in a git repo first
+    if ! git -C "$dir" "${GIT_OPTS[@]}" rev-parse --git-dir >/dev/null 2>&1; then
+        return
+    fi
+
+    # Check for unstaged or staged changes
+    if ! git -C "$dir" "${GIT_OPTS[@]}" diff --quiet 2>/dev/null || \
+       ! git -C "$dir" "${GIT_OPTS[@]}" diff --cached --quiet 2>/dev/null; then
+        printf " ${YELLOW}±${RESET}"
+    fi
+}
+
 # Get git branch name (or short SHA if detached)
 get_git_branch() {
     local dir="$1"
@@ -70,16 +88,18 @@ get_git_branch() {
 
 # Build and output the statusline
 main() {
-    local ssh_prefix display_dir git_info
+    local ssh_prefix display_dir git_info git_dirty
 
     ssh_prefix=$(get_ssh_prefix)
     display_dir=$(format_directory "$cwd")
     git_info=$(get_git_branch "$cwd")
+    git_dirty=$(get_git_dirty "$cwd")
 
-    printf "%s${LAVENDER}%s${RESET}%s | %s" \
+    printf "%s${LAVENDER}%s${RESET}%s%s | %s" \
         "$ssh_prefix" \
         "$display_dir" \
         "$git_info" \
+        "$git_dirty" \
         "$model"
 }
 

@@ -199,6 +199,7 @@ def init_db():
     with _db_lock:
         conn = get_db_connection()
         try:
+            # Step 1: Create tables (without indexes that depend on migrated columns)
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS jobs (
                     id TEXT PRIMARY KEY,
@@ -212,9 +213,7 @@ def init_db():
                     created REAL NOT NULL,
                     model TEXT DEFAULT '',
                     files TEXT DEFAULT '[]',
-                    window_id TEXT,
-                    worktree_path TEXT,
-                    task_id TEXT
+                    window_id TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS messages (
@@ -285,9 +284,9 @@ def init_db():
                     FOREIGN KEY (task_id) REFERENCES tasks(id)
                 );
 
+                -- Indexes for existing columns only
                 CREATE INDEX IF NOT EXISTS idx_jobs_session ON jobs(session_id);
                 CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
-                CREATE INDEX IF NOT EXISTS idx_jobs_task ON jobs(task_id);
                 CREATE INDEX IF NOT EXISTS idx_messages_job ON messages(job_id);
                 CREATE INDEX IF NOT EXISTS idx_tasks_repo ON tasks(repo_path);
                 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
@@ -298,7 +297,8 @@ def init_db():
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_qa_vote_unique
                     ON task_qa_votes(task_id, agent_type);
             """)
-            # Migrations for existing tables
+
+            # Step 2: Migrations for existing tables (add new columns)
             migrations = [
                 ("jobs", "worktree_path", "TEXT"),
                 ("jobs", "task_id", "TEXT"),
@@ -308,6 +308,13 @@ def init_db():
                     conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
                 except sqlite3.OperationalError:
                     pass  # Column already exists
+
+            # Step 3: Create indexes on migrated columns (after columns exist)
+            try:
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_task ON jobs(task_id)")
+            except sqlite3.OperationalError:
+                pass  # Index may already exist
+
             conn.commit()
         finally:
             conn.close()
