@@ -135,10 +135,12 @@ in
           "Bash(git -C private ls-files:*)"
           "Bash(git add:*)"
           "Bash(git commit:*)"
+          "Bash(gh pr:*)"
 
           # Tmux commands
-          "Bash(tmux list-panes:*)"
           "Bash(tmux list-commands:*)"
+          "Bash(tmux list-panes:*)"
+          "Bash(tmux list-sessions:*)"
           "Bash(tmux display-message:*)"
           "Bash(tmux capture-pane:*)"
           "Bash(tmux show-options:*)"
