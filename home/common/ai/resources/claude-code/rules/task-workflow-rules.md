@@ -91,6 +91,28 @@ When assigned to a task, agents MUST:
 - For review: call `task_review_complete(task_id, approved, feedback)`
 - For QA: vote via `task_qa_vote(task_id, vote, reason)`
 
+## Commit Requirements
+
+**Always commit when a task reaches a completion point:**
+
+- After `in_progress` work is done (before submitting for review)
+- After addressing review feedback
+- After QA approval (before marking as done)
+
+Commit message should reference the task:
+
+```text
+feat: implement user authentication
+
+Task: task_abc123
+Acceptance criteria met:
+- Login page works
+- Token refresh handles expiry
+- Tests pass
+```
+
+**Do not leave uncommitted changes** when transitioning between task phases.
+
 ## Viewing Tasks
 
 ```python
