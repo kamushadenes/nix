@@ -304,6 +304,34 @@ def tmux_wait_idle(target: str, idle_seconds: float = 2.0, timeout: int = 60) ->
 
 
 @mcp.tool()
+def notify(title: str, message: str, sound: bool = True) -> str:
+    """
+    Send a macOS notification (useful for long-running tasks).
+
+    Args:
+        title: Notification title
+        message: Notification body text
+        sound: Whether to play notification sound (default: True)
+
+    Returns:
+        Success message or error
+    """
+    sound_flag = 'sound name "default"' if sound else ""
+    # Escape quotes in title and message for AppleScript
+    safe_title = title.replace('"', '\\"')
+    safe_message = message.replace('"', '\\"')
+    script = f'display notification "{safe_message}" with title "{safe_title}" {sound_flag}'
+    result = subprocess.run(
+        ["osascript", "-e", script],
+        capture_output=True,
+        text=True
+    )
+    if result.returncode != 0:
+        return f"Error sending notification: {result.stderr}"
+    return "Notification sent"
+
+
+@mcp.tool()
 def tmux_select(target: str) -> str:
     """
     Switch to a tmux window (bring it to foreground).

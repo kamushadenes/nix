@@ -32,5 +32,8 @@ in
     ".claude/skills/automating-tmux-windows/SKILL.md".source =
       "${skillsDir}/automating-tmux-windows.md";
     ".claude/skills/ai-orchestration/SKILL.md".source = "${skillsDir}/ai-orchestration.md";
+    ".claude/skills/verification-loops/SKILL.md".source = "${skillsDir}/verification-loops.md";
+    ".claude/skills/feedback-loop/SKILL.md".source = "${skillsDir}/feedback-loop.md";
+    ".claude/skills/parallel-processing/SKILL.md".source = "${skillsDir}/parallel-processing.md";
   };
 }

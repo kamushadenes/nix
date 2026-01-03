@@ -100,6 +100,10 @@ in
           "Bash(cat:*)"
           "Bash(wc:*)"
           "Bash(grep:*)"
+          "Bash(ls:*)"
+          "Bash(stat:*)"
+          "Bash(rg:*)"
+          "Bash(fd:*)"
 
           # Nix commands
           "Bash(nix flake check:*)"
@@ -140,6 +144,7 @@ in
           "mcp__orchestrator__tmux_wait_idle"
           "mcp__orchestrator__tmux_capture"
           "mcp__orchestrator__tmux_list"
+          "mcp__orchestrator__notify"
 
           # MCP: PAL - CLI-to-CLI bridge (version/listmodels auto-allowed)
           "mcp__pal__clink"
@@ -209,7 +214,7 @@ in
           }
         ];
 
-        # Run after file modifications - security scanning for IaC files
+        # Run after file modifications - security scanning and auto-formatting
         PostToolUse = [
           {
             matcher = "Edit(*.tf)|Write(*.tf)";
@@ -226,6 +231,36 @@ in
               {
                 type = "command";
                 command = ".claude/hooks/trivy-tf.sh";
+              }
+            ];
+          }
+          # Auto-format Python files
+          {
+            matcher = "Edit(*.py)|Write(*.py)";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/format-python.sh";
+              }
+            ];
+          }
+          # Auto-format TypeScript files
+          {
+            matcher = "Edit(*.ts)|Write(*.ts)|Edit(*.tsx)|Write(*.tsx)";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/format-typescript.sh";
+              }
+            ];
+          }
+          # Auto-format Nix files
+          {
+            matcher = "Edit(*.nix)|Write(*.nix)";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/format-nix.sh";
               }
             ];
           }
@@ -247,6 +282,7 @@ in
         "typescript-lsp@claude-plugins-official" = true;
         "pyright-lsp@claude-plugins-official" = true;
         "ralph-wiggum@claude-plugins-official" = true;
+        "hookify@claude-plugins-official" = true;
         #"commit-commands@claude-plugins-official" = true;
         #"security-guidance@claude-plugins-official" = true;
         #"pr-review-toolkit@claude-plugins-official" = true;
@@ -280,6 +316,20 @@ in
     # Statusline script - executable bash script for custom status display
     ".claude/statusline-command.sh" = {
       source = "${scriptsDir}/statusline.sh";
+      executable = true;
+    };
+
+    # Auto-format hooks
+    ".claude/hooks/format-python.sh" = {
+      source = "${scriptsDir}/hooks/format-python.sh";
+      executable = true;
+    };
+    ".claude/hooks/format-typescript.sh" = {
+      source = "${scriptsDir}/hooks/format-typescript.sh";
+      executable = true;
+    };
+    ".claude/hooks/format-nix.sh" = {
+      source = "${scriptsDir}/hooks/format-nix.sh";
       executable = true;
     };
 
