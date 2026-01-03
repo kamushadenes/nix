@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Claude Code statusline script
-# Displays: [user@host] directory on branch± | model
-# Note: Orchestrator jobs are shown in tmux status bar (always visible)
+# Displays: [user@host] directory on branch± | 💰 cost | 🔥 burn_rate | 🧠 context%
+# Uses ccusage for cost/context tracking, custom git integration
 #
 
 set -euo pipefail
@@ -16,10 +16,9 @@ readonly RESET='\033[0m'
 # Git options to disable slow fsmonitor
 readonly GIT_OPTS=(-c core.useBuiltinFSMonitor=false -c core.fsmonitor=)
 
-# Read JSON input from Claude Code
+# Read JSON input from Claude Code (save for both our use and ccusage)
 input=$(cat)
 cwd=$(echo "$input" | jq -r '.workspace.current_dir')
-model=$(echo "$input" | jq -r '.model.display_name')
 
 # Get SSH connection info (if remote)
 get_ssh_prefix() {
@@ -28,7 +27,7 @@ get_ssh_prefix() {
     fi
 }
 
-# Format directory path (last 4 components, or ~ for home)
+# Format directory path (last 2 components, or ~ for home)
 format_directory() {
     local dir="$1"
 
@@ -37,9 +36,9 @@ format_directory() {
         return
     fi
 
-    # Get last 4 path components
+    # Get last 2 path components for brevity
     local parts
-    parts=$(echo "$dir" | tr '/' '\n' | grep -v '^$' | tail -n 4 | paste -sd '/' -)
+    parts=$(echo "$dir" | tr '/' '\n' | grep -v '^$' | tail -n 2 | paste -sd '/' -)
 
     if [[ -z "$parts" ]]; then
         echo "/"
@@ -86,21 +85,31 @@ get_git_branch() {
     fi
 }
 
+# Get ccusage statusline output (full output, already formatted)
+get_ccusage_info() {
+    echo "$input" | npx ccusage@latest statusline --visual-burn-rate=emoji-text 2>/dev/null || true
+}
+
 # Build and output the statusline
 main() {
-    local ssh_prefix display_dir git_info git_dirty
+    local ssh_prefix display_dir git_info git_dirty ccusage_info
 
     ssh_prefix=$(get_ssh_prefix)
     display_dir=$(format_directory "$cwd")
     git_info=$(get_git_branch "$cwd")
     git_dirty=$(get_git_dirty "$cwd")
+    ccusage_info=$(get_ccusage_info)
 
-    printf "%s${LAVENDER}%s${RESET}%s%s | %s" \
+    # Format: directory on branch± | ccusage full output
+    printf "%s${LAVENDER}%s${RESET}%s%s" \
         "$ssh_prefix" \
         "$display_dir" \
         "$git_info" \
-        "$git_dirty" \
-        "$model"
+        "$git_dirty"
+
+    if [[ -n "$ccusage_info" ]]; then
+        printf " | %s" "$ccusage_info"
+    fi
 }
 
 main
