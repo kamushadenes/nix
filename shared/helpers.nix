@@ -90,6 +90,9 @@ let
 
       # Work around https://github.com/sharkdp/bat/issues/2578
       LESSUTFCHARDEF = "E000-F8FF:p,F0000-FFFFD:p,100000-10FFFD:p";
+
+      # Claude Code tool search
+      ENABLE_TOOL_SEARCH = "true";
     };
 
     launchctl = mkVarExports (name: value: ''run /bin/launchctl setenv ${name} "${value}"'') globalVariables.base;
