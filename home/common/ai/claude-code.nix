@@ -93,6 +93,8 @@ in
       code-review = builtins.readFile "${commandsDir}/code-review.md";
       commit = builtins.readFile "${commandsDir}/commit.md";
       commit-push-pr = builtins.readFile "${commandsDir}/commit-push-pr.md";
+      architecture-review = builtins.readFile "${commandsDir}/architecture-review.md";
+      dependency-audit = builtins.readFile "${commandsDir}/dependency-audit.md";
     };
 
     # Note: rules option is not available in this home-manager version
@@ -146,6 +148,7 @@ in
 
           # MCP: DeepWiki
           "mcp__deepwiki__ask_question"
+          "mcp__deepwiki__read_wiki_contents"
 
           # MCP: Orchestrator - tmux
           "mcp__orchestrator__tmux_new_window"
@@ -383,6 +386,9 @@ in
     ".claude/agents/precommit.md".source = "${agentsDir}/precommit.md";
     ".claude/agents/thinkdeep.md".source = "${agentsDir}/thinkdeep.md";
     ".claude/agents/tracer.md".source = "${agentsDir}/tracer.md";
+    # Query and architecture agents
+    ".claude/agents/query-clarifier.md".source = "${agentsDir}/query-clarifier.md";
+    ".claude/agents/architecture-reviewer.md".source = "${agentsDir}/architecture-reviewer.md";
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)

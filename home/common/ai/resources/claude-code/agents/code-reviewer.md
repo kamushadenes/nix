@@ -112,7 +112,7 @@ FIX: Catch specific exceptions (`ValueError`, `KeyError`).
 - Comprehensive input validation
 ```
 
-## Multi-Model Review (Optional)
+## Multi-Model Review (For complex changes)
 
 For comprehensive reviews, get external perspectives:
 
