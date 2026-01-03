@@ -357,6 +357,10 @@ in
       source = "${scriptsDir}/hooks/format-markdown.sh";
       executable = true;
     };
+    ".claude/hooks/post-lint.sh" = {
+      source = "${scriptsDir}/hooks/post-lint.sh";
+      executable = true;
+    };
 
     # Note: Orchestrator MCP server, CLI, and skills are now in orchestrator.nix
 
