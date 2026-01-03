@@ -12,13 +12,19 @@ Use `/task-add` or `task_create` MCP tool to create tasks with:
 - Relevant context files
 - Priority (1=critical to 5=low)
 
-## When Spawning Agents
+## Task Workflow with clink
 
-1. **Always create a task first** - Use `task_create` before spawning agents for tracked work
-2. **Use task_id parameter** - When calling `ai_spawn` or `ai_run`, include `task_id`
-3. **Let the system inject context** - Task details are automatically included in prompts
+Use `clink` to query external AI models during task workflows:
 
-### Correct Workflow Example
+```python
+# Get external perspective on a task
+result = clink(
+    prompt=f"Review task requirements and suggest approach: {task_description}",
+    cli="codex"
+)
+```
+
+### Workflow Example
 
 ```python
 # 1. Create task
@@ -32,24 +38,24 @@ task_id = json.loads(result)["task_id"]
 
 # 2. Start discussion (for complex tasks)
 task_start_discussion(task_id)
-# Wait for 3 agents to vote "ready"
+# Use task-discusser sub-agent to call clink for each AI model
 
 # 3. Development
-task_start_dev(task_id)
-# Claude implements the feature
+task_update(task_id, status="in_progress")
+# Implement the feature
 
 # 4. Review
 task_submit_review(task_id)
-# Codex reviews changes
+# Use code-reviewer sub-agent
 
 # 5. QA
 task_start_qa(task_id)
-# 3 agents verify acceptance criteria
+# Use QA sub-agents with clink for multi-model verification
 ```
 
 ## Task Lifecycle
 
-```
+```text
 backlog -> todo -> discussing -> in_progress -> review -> qa -> done
                        |              |           |       |
                     stalled        blocked     failed   rejected
@@ -59,10 +65,10 @@ backlog -> todo -> discussing -> in_progress -> review -> qa -> done
 | ------------- | ------------------------------- | ----------------------------------- |
 | `backlog`     | Not yet prioritized             | None                                |
 | `todo`        | Ready to work on                | None                                |
-| `discussing`  | Design/consensus phase          | Claude + Codex + Gemini (read-only) |
+| `discussing`  | Design/consensus phase          | Sub-agents using clink              |
 | `in_progress` | Being implemented               | Claude (full access)                |
-| `review`      | Code review                     | Codex (read-only)                   |
-| `qa`          | Verification                    | Claude + Codex + Gemini (read-only) |
+| `review`      | Code review                     | code-reviewer sub-agent             |
+| `qa`          | Verification                    | QA sub-agents using clink           |
 | `done`        | Completed                       | None                                |
 | `blocked`     | Waiting on dependency           | None                                |
 | `stalled`     | Discussion failed (needs human) | None                                |
@@ -74,10 +80,10 @@ backlog -> todo -> discussing -> in_progress -> review -> qa -> done
 Before development on non-trivial tasks:
 
 1. Call `task_start_discussion(task_id)`
-2. Claude, Codex, and Gemini analyze requirements in parallel
-3. Each agent proposes approach and votes `ready` or `needs_work`
-4. **All 3 must vote `ready`** to proceed (unanimous consensus)
-5. If any votes `needs_work`, another round begins
+2. Use `task-discusser` sub-agent to query Claude, Codex, and Gemini via clink
+3. Each external agent's response is analyzed for approach and concerns
+4. **All 3 must agree "ready"** to proceed (unanimous consensus)
+5. If disagreement exists, another round begins
 6. After 3 failed rounds, task moves to `stalled` for human input
 
 ## Agent Responsibilities
@@ -149,3 +155,4 @@ task_comments(task_id)
 | `task_start_qa`         | Begin QA phase               |
 | `task_qa_vote`          | Vote on QA                   |
 | `task_reopen`           | Reopen rejected/stalled task |
+| `clink`                 | Query external AI CLI        |

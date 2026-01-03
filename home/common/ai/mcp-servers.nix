@@ -73,7 +73,7 @@ rec {
       ];
     };
 
-    # Orchestrator MCP - Terminal automation + AI CLI orchestration
+    # Orchestrator MCP - Terminal automation + task management
     orchestrator = {
       transport = "stdio";
       command = "uvx";
@@ -83,6 +83,23 @@ rec {
         "python"
         "${homeDir}/.config/orchestrator-mcp/server.py"
       ];
+    };
+
+    # PAL MCP - CLI-to-CLI bridge (clink + OpenRouter for fallback)
+    pal = {
+      transport = "stdio";
+      command = "uvx";
+      args = [
+        "--from"
+        "git+https://github.com/BeehiveInnovations/pal-mcp-server.git"
+        "pal-mcp-server"
+      ];
+      env = {
+        # Disable all tools except clink (version/listmodels cannot be disabled)
+        DISABLED_TOOLS = "chat,thinkdeep,planner,consensus,codereview,precommit,debug,apilookup,challenge,analyze,refactor,testgen,secaudit,docgen,tracer";
+        # OpenRouter API key for model access
+        OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
+      };
     };
   };
 
@@ -94,12 +111,14 @@ rec {
   secretPlaceholders = [
     "@REF_API_KEY@"
     "@TFE_TOKEN@"
+    "@OPENROUTER_API_KEY@"
   ];
 
   # Secret files (relative to private submodule)
   secretFiles = {
     "@REF_API_KEY@" = "home/common/ai/resources/claude/ref-api-key.age";
     "@TFE_TOKEN@" = "home/common/ai/resources/claude/tfe-token.age";
+    "@OPENROUTER_API_KEY@" = "home/common/ai/resources/claude/openrouter-api-key.age";
   };
 
   #############################################################################

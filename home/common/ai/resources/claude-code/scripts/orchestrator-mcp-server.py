@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 """
-MCP server for terminal automation and AI CLI orchestration.
+MCP server for terminal automation and task management.
 
 Provides:
-- tmux_* tools: Terminal window management (existing)
-- ai_* tools: AI CLI wrappers for claude, codex, gemini (new)
+- tmux_* tools: Terminal window management
+- task_* tools: Task lifecycle management with discussion, review, and QA phases
 
-Job system features:
-- Session-scoped jobs (isolated per tmux session)
-- SQLite persistence for concurrent access
-- Streaming output support
-- Inter-agent messaging
+For AI CLI orchestration, use PAL MCP's clink tool instead.
 """
 import subprocess
 import hashlib
@@ -19,7 +15,6 @@ import os
 import json
 import re
 import uuid
-import shutil
 import sqlite3
 import threading
 from dataclasses import dataclass, field, asdict
@@ -42,35 +37,6 @@ DB_PATH = Path.home() / ".config" / "orchestrator-mcp" / "state.db"
 
 # Pattern for valid tmux window/pane identifiers (e.g., @3, %5)
 TARGET_PATTERN = re.compile(r'^[@%][0-9]+$')
-
-# Supported AI CLIs
-SUPPORTED_CLIS = {"claude", "codex", "gemini"}
-
-
-def make_window_name(cli: str, prompt: str, job_id: str) -> str:
-    """Create a human-readable window name from job details.
-
-    Format: "cli: task_summary #id"
-    Example: "claude: review auth #ab12"
-    """
-    # Extract first 3 words from prompt, cleaned up
-    words = prompt.split()[:3]
-    # Remove special chars, limit each word
-    clean_words = []
-    for w in words:
-        # Keep only alphanumeric
-        cleaned = re.sub(r'[^a-zA-Z0-9]', '', w)[:10]
-        if cleaned:
-            clean_words.append(cleaned.lower())
-
-    task = " ".join(clean_words) if clean_words else "task"
-    short_id = job_id[-4:]
-
-    # Keep total length reasonable for tmux status bar
-    if len(task) > 20:
-        task = task[:17] + "..."
-
-    return f"{cli}: {task} #{short_id}"
 
 
 # =============================================================================
@@ -811,76 +777,8 @@ def get_current_session() -> str:
     return "default"
 
 
-def check_cli_available(cli: str) -> bool:
-    """Check if an AI CLI is available."""
-    return shutil.which(cli) is not None
-
-
-def get_output_file_path(job_id: str) -> Path:
-    """Get the path to a job's output file."""
-    return Path("/tmp") / f"orchestrator_{job_id}.out"
-
-
-WORKTREE_BASE = Path("/tmp/orchestrator-worktrees")
-
-
-def create_worktree(job_id: str) -> Optional[Path]:
-    """Create a git worktree for isolated agent execution.
-
-    Returns the worktree path on success, None on failure.
-    """
-    worktree_path = WORKTREE_BASE / job_id
-
-    try:
-        # Ensure base directory exists
-        WORKTREE_BASE.mkdir(parents=True, exist_ok=True)
-
-        # Get current branch/commit
-        result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            capture_output=True, text=True, timeout=10
-        )
-        if result.returncode != 0:
-            return None
-        commit = result.stdout.strip()
-
-        # Create worktree at current commit (detached HEAD)
-        result = subprocess.run(
-            ["git", "worktree", "add", "--detach", str(worktree_path), commit],
-            capture_output=True, text=True, timeout=30
-        )
-        if result.returncode != 0:
-            return None
-
-        return worktree_path
-    except Exception:
-        return None
-
-
-def cleanup_worktree(job_id: str):
-    """Remove a git worktree after job completion."""
-    worktree_path = WORKTREE_BASE / job_id
-
-    try:
-        # Remove the worktree from git
-        subprocess.run(
-            ["git", "worktree", "remove", "--force", str(worktree_path)],
-            capture_output=True, text=True, timeout=30
-        )
-    except Exception:
-        pass
-
-    # Also try to remove the directory if it still exists
-    try:
-        if worktree_path.exists():
-            import shutil
-            shutil.rmtree(worktree_path)
-    except Exception:
-        pass
-
-
 # =============================================================================
-# tmux Helpers (existing)
+# tmux Helpers
 # =============================================================================
 
 
@@ -1274,831 +1172,6 @@ def tmux_run_and_read(
         return content
     except Exception as e:
         return f"Error reading output file: {e}"
-
-
-# =============================================================================
-# AI CLI Tools (new)
-# =============================================================================
-
-
-READ_ONLY_INSTRUCTION = """
-IMPORTANT: You are running as a READ-ONLY agent. You MUST NOT:
-- Execute any commands that modify files (no writes, edits, or deletions)
-- Run build commands, install packages, or execute scripts
-- Make any changes to the filesystem or git repository
-
-You MAY only:
-- Read files and directories
-- Run read-only commands (git diff, git log, git status, ls, cat, grep, etc.)
-- Analyze and review code
-
-If you need to suggest changes, describe them in text - do NOT execute them.
----
-"""
-
-
-def build_cli_command(cli: str, prompt: str, model: str = "", files: Optional[list] = None) -> list[str]:
-    """Build command arguments for an AI CLI.
-
-    All agents run in full-auto/YOLO mode but with strict read-only instructions
-    in the prompt for codex and gemini.
-    """
-    files = files or []
-
-    if cli == "claude":
-        cmd = ["claude", "--print"]
-        if model:
-            cmd.extend(["--model", model])
-        # Claude only supports --add-dir for directories, extract parent dirs from files
-        dirs_added = set()
-        for f in files:
-            dir_path = os.path.dirname(f) if os.path.isfile(f) else f
-            if dir_path and dir_path not in dirs_added:
-                cmd.extend(["--add-dir", dir_path])
-                dirs_added.add(dir_path)
-        cmd.append(prompt)
-        return cmd
-
-    elif cli == "codex":
-        # Full-auto mode with read-only instruction in prompt
-        cmd = ["codex", "exec", "--full-auto", "--json", "--skip-git-repo-check"]
-        if model:
-            cmd.extend(["--model", model])
-        cmd.append(READ_ONLY_INSTRUCTION + prompt)
-        return cmd
-
-    elif cli == "gemini":
-        # YOLO mode with read-only instruction in prompt
-        cmd = ["gemini", "--yolo"]
-        if model:
-            cmd.extend(["--model", model])
-        # Gemini uses @ syntax for files, prepend to prompt
-        file_refs = " ".join(f"@{f}" for f in files)
-        full_prompt = f"{file_refs} {READ_ONLY_INSTRUCTION}{prompt}".strip() if file_refs else READ_ONLY_INSTRUCTION + prompt
-        cmd.append(full_prompt)
-        return cmd
-
-    else:
-        raise ValueError(f"Unsupported CLI: {cli}")
-
-
-def is_window_idle(window_id: str, idle_seconds: float = 2.0) -> bool:
-    """Check if a tmux window's command has finished (shell is idle).
-
-    Uses pane_current_command to detect if we're back at the shell prompt.
-    """
-    output, code = run_tmux("display-message", "-t", window_id, "-p", "#{pane_current_command}")
-    if code != 0:
-        return False
-
-    current_cmd = output.strip().lower()
-    # If we're back at a shell, the command finished
-    shell_names = {"bash", "zsh", "fish", "sh", "dash", "ksh", "tcsh", "csh"}
-    return current_cmd in shell_names
-
-
-def build_direct_cli_command(job: Job) -> list:
-    """Build CLI command for direct execution (no JSON parsing).
-
-    Used for task-bound jobs where agents report results via task tools.
-    """
-    # Read-only instruction for codex/gemini
-    READ_ONLY = """IMPORTANT: You are operating in READ-ONLY mode. Do NOT modify any files.
-Your role is to analyze, review, and provide feedback only. Use the task_* MCP tools to record your findings.
-
-"""
-
-    if job.cli == "claude":
-        cmd = ["claude", "--print", "--verbose"]
-        if job.model:
-            cmd.extend(["--model", job.model])
-        # Add directories for context files
-        dirs_added = set()
-        for f in (job.files or []):
-            import os
-            dir_path = os.path.dirname(f) if os.path.isfile(f) else f
-            if dir_path and dir_path not in dirs_added:
-                cmd.extend(["--add-dir", dir_path])
-                dirs_added.add(dir_path)
-        cmd.append(job.prompt)
-        return cmd
-
-    elif job.cli == "codex":
-        cmd = ["codex", "exec", "--full-auto", "--skip-git-repo-check"]
-        if job.model:
-            cmd.extend(["--model", job.model])
-        cmd.append(READ_ONLY + job.prompt)
-        return cmd
-
-    elif job.cli == "gemini":
-        cmd = ["gemini", "--yolo"]
-        if job.model:
-            cmd.extend(["--model", job.model])
-        # Gemini uses @ syntax for files
-        file_refs = " ".join(f"@{f}" for f in (job.files or []))
-        full_prompt = f"{file_refs} {READ_ONLY}{job.prompt}".strip() if file_refs else READ_ONLY + job.prompt
-        cmd.append(full_prompt)
-        return cmd
-
-    else:
-        raise ValueError(f"Unsupported CLI: {job.cli}")
-
-
-def run_job_direct(job: Job):
-    """Run a job's CLI command directly in tmux (no TUI, no JSON parsing).
-
-    Used for task-bound jobs where agents report results via task tools.
-    The job status is updated when the window closes.
-    """
-    try:
-        # Build direct CLI command (no JSON flags)
-        cli_cmd = build_direct_cli_command(job)
-
-        # Human-readable window name
-        window_name = make_window_name(job.cli, job.prompt, job.id)
-
-        # Create window running CLI directly
-        args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name] + cli_cmd
-        output, code = run_tmux(*args)
-
-        if code != 0:
-            job.status = "failed"
-            job.result = f"Error creating tmux window: {output}"
-            save_job(job)
-            return
-
-        window_id = output.strip()
-        job.window_id = window_id
-        save_job(job)
-
-        # Set pane title
-        run_tmux("select-pane", "-t", window_id, "-T", window_name)
-
-        # Poll for window close (check every 2 seconds, timeout after 30 minutes)
-        max_wait = 1800  # 30 minutes
-        poll_interval = 2
-        waited = 0
-
-        while waited < max_wait:
-            time.sleep(poll_interval)
-            waited += poll_interval
-
-            exists, _ = window_exists(window_id)
-            if not exists:
-                break
-
-        # Mark job as completed (results are in task comments/votes, not job.result)
-        job.status = "completed"
-        job.result = "Agent finished. Check task comments and votes for results."
-        save_job(job)
-
-    except Exception as e:
-        job.status = "failed"
-        job.result = f"Error: {e}"
-        save_job(job)
-
-
-
-
-@mcp.tool()
-def ai_run(
-    prompt: str,
-    cli: str = "claude",
-    model: str = "",
-    files: Optional[list] = None,
-    timeout: int = 600,
-    task_id: str = ""
-) -> str:
-    """
-    Run an AI CLI job synchronously and wait for completion.
-
-    Runs the CLI directly in a tmux window (no parsing). For task-bound jobs,
-    agents report results via task tools. For ad-hoc jobs, watch the tmux window.
-
-    Args:
-        prompt: The question/task for the AI
-        cli: Which CLI to use - "claude", "codex", or "gemini"
-        model: Optional model override (CLI-specific)
-        files: Optional list of files to include as context
-        timeout: Max seconds to wait for completion (default: 600)
-        task_id: Optional task ID to associate with this job (provides context)
-
-    Returns:
-        JSON with job_id and status (results come from task tools, not here)
-    """
-    files = files or []
-
-    if cli not in SUPPORTED_CLIS:
-        raise ValueError(f"Unsupported CLI: {cli}. Use one of: {SUPPORTED_CLIS}")
-
-    if not check_cli_available(cli):
-        raise RuntimeError(f"CLI '{cli}' not found in PATH")
-
-    require_tmux()
-    init_db()
-
-    session_id = get_current_session()
-    job_id = f"job_{uuid.uuid4().hex[:12]}"
-
-    # Get task and build enhanced prompt if task_id provided
-    task = None
-    enhanced_prompt = prompt
-    if task_id:
-        task = get_task(task_id)
-        if not task:
-            return json.dumps({
-                "job_id": job_id,
-                "status": "failed",
-                "result": f"Task {task_id} not found"
-            })
-        # Determine role based on task status
-        role = "general"
-        if task.status == "discussing":
-            role = "discussion"
-        elif task.status == "in_progress":
-            role = "dev"
-        elif task.status == "review":
-            role = "review"
-        elif task.status == "qa":
-            role = "qa"
-        # Build enhanced prompt with task context
-        enhanced_prompt = build_task_prompt(task, role, cli) + "\n\n" + prompt
-        # Add context files to files list
-        for cf in task.context_files:
-            if cf not in files:
-                files.append(cf)
-
-    # Create job entry
-    job = Job(
-        id=job_id,
-        session_id=session_id,
-        cli=cli,
-        prompt=enhanced_prompt,
-        status="running",
-        model=model,
-        files=files,
-        task_id=task_id if task_id else None
-    )
-    save_job(job)
-
-    # Update task's assigned_to if task_id provided
-    if task:
-        task.assigned_to = job_id
-        task.updated_at = time.time()
-        save_task(task)
-
-    # Build direct CLI command (no parsing)
-    cli_cmd = build_direct_cli_command(job)
-
-    # Human-readable window name
-    window_name = make_window_name(cli, prompt, job_id)
-
-    # Create tmux window running CLI directly
-    args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name] + cli_cmd
-    output, code = run_tmux(*args)
-
-    if code != 0:
-        job.status = "failed"
-        job.result = f"Error creating tmux window: {output}"
-        save_job(job)
-        return json.dumps({
-            "job_id": job_id,
-            "status": "failed",
-            "result": job.result
-        })
-
-    window_id = output.strip()
-    job.window_id = window_id
-    save_job(job)
-
-    # Set pane title
-    run_tmux("select-pane", "-t", window_id, "-T", window_name)
-
-    # Wait for window to close (CLI exits on completion)
-    start = time.time()
-    while time.time() - start < timeout:
-        exists, error = window_exists(window_id)
-        if error:
-            break
-        if not exists:
-            break
-        time.sleep(1)
-    else:
-        # Timeout - kill window
-        run_tmux("kill-window", "-t", window_id)
-        job.status = "failed"
-        job.result = f"Timeout after {timeout}s"
-        save_job(job)
-        return json.dumps({
-            "job_id": job_id,
-            "status": "timeout",
-            "task_id": task_id if task_id else None
-        })
-
-    # Mark job as completed
-    job.status = "completed"
-    job.result = "Agent finished. Check task comments/votes for results." if task_id else "Agent finished."
-    save_job(job)
-
-    return json.dumps({
-        "job_id": job_id,
-        "status": "completed",
-        "task_id": task_id if task_id else None,
-        "message": "Job completed. Results are in task comments/votes." if task_id else "Job completed. Watch tmux window for output."
-    }, indent=2)
-
-
-@mcp.tool()
-def ai_spawn(
-    prompt: str,
-    cli: str = "claude",
-    model: str = "",
-    files: Optional[list] = None,
-    task_id: str = ""
-) -> str:
-    """
-    Start an async AI CLI job and return immediately.
-
-    Runs the CLI directly in a tmux window (no parsing). Use ai_wait to wait
-    for completion. For task-bound jobs, agents report results via task tools.
-
-    Args:
-        prompt: The question/task for the AI
-        cli: Which CLI to use - "claude", "codex", or "gemini"
-        model: Optional model override (CLI-specific)
-        files: Optional list of files to include as context
-        task_id: Optional task ID to associate with this job (provides context)
-
-    Returns:
-        JSON with job_id for use with ai_wait
-    """
-    files = files or []
-
-    if cli not in SUPPORTED_CLIS:
-        raise ValueError(f"Unsupported CLI: {cli}. Use one of: {SUPPORTED_CLIS}")
-
-    if not check_cli_available(cli):
-        raise RuntimeError(f"CLI '{cli}' not found in PATH")
-
-    require_tmux()
-    init_db()
-
-    session_id = get_current_session()
-    job_id = f"job_{uuid.uuid4().hex[:12]}"
-
-    # Get task and build enhanced prompt if task_id provided
-    task = None
-    enhanced_prompt = prompt
-    if task_id:
-        task = get_task(task_id)
-        if not task:
-            return json.dumps({
-                "job_id": job_id,
-                "status": "failed",
-                "result": f"Task {task_id} not found"
-            })
-        # Determine role based on task status
-        role = "general"
-        if task.status == "discussing":
-            role = "discussion"
-        elif task.status == "in_progress":
-            role = "dev"
-        elif task.status == "review":
-            role = "review"
-        elif task.status == "qa":
-            role = "qa"
-        # Build enhanced prompt with task context
-        enhanced_prompt = build_task_prompt(task, role, cli) + "\n\n" + prompt
-        # Add context files to files list
-        for cf in task.context_files:
-            if cf not in files:
-                files.append(cf)
-
-    job = Job(
-        id=job_id,
-        session_id=session_id,
-        cli=cli,
-        prompt=enhanced_prompt,
-        status="running",
-        model=model,
-        files=files,
-        task_id=task_id if task_id else None
-    )
-    save_job(job)
-
-    # Update task's assigned_to if task_id provided
-    if task:
-        task.assigned_to = job_id
-        task.updated_at = time.time()
-        save_task(task)
-
-    # Start in background - runs CLI directly (no TUI/parsing)
-    thread = threading.Thread(
-        target=run_job_direct,
-        args=(job,),
-        daemon=True
-    )
-    thread.start()
-
-    return json.dumps({
-        "job_id": job_id,
-        "task_id": task_id if task_id else None,
-        "message": f"Job started. Use ai_wait('{job_id}') to wait for completion."
-    })
-
-
-@mcp.tool()
-def ai_fetch(
-    job_id: str,
-    block: bool = True,
-    timeout: int = 300
-) -> str:
-    """
-    Get the status of an AI job.
-
-    Note: Results are NOT parsed from CLI output. For task-bound jobs, check
-    task_comments() and task_get() for results. For ad-hoc jobs, watch tmux.
-
-    Args:
-        job_id: Job ID from ai_spawn
-        block: Whether to wait for completion (default: True)
-        timeout: Max seconds to wait if blocking (default: 300)
-
-    Returns:
-        JSON with job status (result field contains status message only)
-    """
-    init_db()
-    session_id = get_current_session()
-
-    start = time.time()
-    while True:
-        job = get_job(job_id, session_id)
-        if not job:
-            return json.dumps({"error": f"Job {job_id} not found in session {session_id}"})
-
-        if job.status != "running" or not block:
-            messages = get_messages(job_id)
-            return json.dumps({
-                "job_id": job.id,
-                "status": job.status,
-                "result": job.result,
-                "window_id": job.window_id,
-                "messages": [asdict(m) for m in messages]
-            }, indent=2)
-
-        if time.time() - start > timeout:
-            return json.dumps({
-                "job_id": job.id,
-                "status": "timeout",
-                "result": None,
-                "window_id": job.window_id,
-                "messages": []
-            })
-
-        time.sleep(1)
-
-
-@mcp.tool()
-def ai_wait(
-    job_id: str,
-    timeout: int = 300
-) -> str:
-    """
-    Wait for a job to complete, returning status only (not result).
-
-    Use this instead of ai_fetch when agents report results via task tools
-    (task_comment, task_discussion_vote, etc.) rather than through CLI output.
-
-    Args:
-        job_id: Job ID from ai_spawn
-        timeout: Max seconds to wait (default: 300)
-
-    Returns:
-        JSON with job_id and status only (completed, failed, timeout)
-    """
-    init_db()
-    session_id = get_current_session()
-
-    start = time.time()
-    while True:
-        job = get_job(job_id, session_id)
-        if not job:
-            return json.dumps({"error": f"Job {job_id} not found in session {session_id}"})
-
-        if job.status != "running":
-            return json.dumps({
-                "job_id": job.id,
-                "status": job.status,
-                "task_id": job.task_id
-            }, indent=2)
-
-        if time.time() - start > timeout:
-            return json.dumps({
-                "job_id": job.id,
-                "status": "timeout",
-                "task_id": job.task_id
-            })
-
-        time.sleep(1)
-
-
-@mcp.tool()
-def ai_stream(
-    job_id: str,
-    offset: int = 0
-) -> str:
-    """
-    Get streaming output from a running job.
-
-    Args:
-        job_id: Job ID to stream from
-        offset: Byte offset to start reading from (for incremental reads)
-
-    Returns:
-        JSON with new output, new offset, and done flag
-    """
-    init_db()
-    session_id = get_current_session()
-
-    job = get_job(job_id, session_id)
-    if not job:
-        return json.dumps({"error": f"Job {job_id} not found"})
-
-    output_path = get_output_file_path(job_id)
-
-    new_output = ""
-    new_offset = offset
-
-    if output_path.exists():
-        with open(output_path, 'r') as f:
-            f.seek(offset)
-            new_output = f.read()
-            new_offset = f.tell()
-
-    return json.dumps({
-        "output": new_output,
-        "offset": new_offset,
-        "done": job.status != "running"
-    })
-
-
-@mcp.tool()
-def ai_ask(
-    prompt: str,
-    cli: str = "claude",
-    model: str = "",
-    files: Optional[list] = None,
-    task_id: str = ""
-) -> str:
-    """
-    Synchronous AI query - spawns job and waits for completion.
-
-    Runs CLI directly (no output parsing). For task-bound jobs, results come
-    from task tools. For ad-hoc queries, watch the tmux window for output.
-
-    Args:
-        prompt: The question/task for the AI
-        cli: Which CLI to use - "claude", "codex", or "gemini"
-        model: Optional model override
-        files: Optional list of files to include as context
-        task_id: Optional task ID to associate with this job
-
-    Returns:
-        JSON with job_id and status (results not captured)
-    """
-    spawn_result = json.loads(ai_spawn(prompt, cli, model, files, task_id))
-    job_id = spawn_result["job_id"]
-    return ai_wait(job_id, timeout=300)
-
-
-@mcp.tool()
-def ai_send(
-    job_id: str,
-    message: str,
-    sender: str = "",
-    msg_type: str = "intermediate"
-) -> str:
-    """
-    Send a message to a job (for inter-agent communication).
-
-    Args:
-        job_id: Target job ID
-        message: Message content
-        sender: Optional sender identifier
-        msg_type: Message type - "intermediate" or "final"
-
-    Returns:
-        Success message or error
-    """
-    init_db()
-    session_id = get_current_session()
-
-    job = get_job(job_id, session_id)
-    if not job:
-        return f"Error: Job {job_id} not found"
-
-    msg = Message(
-        id=f"msg_{uuid.uuid4().hex[:12]}",
-        job_id=job_id,
-        sender=sender or session_id,
-        content=message,
-        msg_type=msg_type,
-        timestamp=time.time()
-    )
-    save_message(msg)
-
-    return "Message sent"
-
-
-@mcp.tool()
-def ai_receive(
-    job_id: str,
-    since: int = 0
-) -> str:
-    """
-    Get messages for a job.
-
-    Args:
-        job_id: Job ID to get messages for
-        since: Message index to start from (for pagination)
-
-    Returns:
-        JSON list of messages
-    """
-    init_db()
-    session_id = get_current_session()
-
-    job = get_job(job_id, session_id)
-    if not job:
-        return json.dumps({"error": f"Job {job_id} not found"})
-
-    messages = get_messages(job_id, since)
-    return json.dumps([asdict(m) for m in messages], indent=2)
-
-
-@mcp.tool()
-def ai_list(
-    status: str = ""
-) -> str:
-    """
-    List AI jobs in the current session.
-
-    Args:
-        status: Filter by status - "running", "completed", "failed", or "" for all
-
-    Returns:
-        JSON list of jobs
-    """
-    init_db()
-    session_id = get_current_session()
-
-    jobs = list_jobs(session_id, status)
-    return json.dumps([
-        {
-            "job_id": j.id,
-            "cli": j.cli,
-            "status": j.status,
-            "created": j.created,
-            "window_id": j.window_id,
-            "prompt": j.prompt[:50] + "..." if len(j.prompt) > 50 else j.prompt
-        }
-        for j in jobs
-    ], indent=2)
-
-
-@mcp.tool()
-def ai_review(
-    cli: str = "codex",
-    uncommitted: bool = True,
-    base: str = "",
-    focus: str = ""
-) -> str:
-    """
-    Run a code review using an AI CLI.
-
-    Args:
-        cli: Which CLI to use - "codex" (native), "claude", or "gemini"
-        uncommitted: Review uncommitted changes (default: True)
-        base: Branch to compare against (for committed changes)
-        focus: Review focus - "security", "performance", "quality", or ""
-
-    Returns:
-        JSON with job_id and result
-    """
-    if cli == "codex":
-        # Codex has native review command
-        cmd = ["codex", "exec", "review"]
-        if uncommitted:
-            cmd.append("--uncommitted")
-        elif base:
-            cmd.extend(["--base", base])
-
-        init_db()
-        session_id = get_current_session()
-        job_id = f"job_{uuid.uuid4().hex[:12]}"
-
-        # Run directly (simpler for codex review)
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-            output = result.stdout + result.stderr
-            status = "completed" if result.returncode == 0 else "failed"
-        except Exception as e:
-            output = str(e)
-            status = "failed"
-
-        job = Job(
-            id=job_id,
-            session_id=session_id,
-            cli=cli,
-            prompt="code review",
-            status=status,
-            result=output
-        )
-        save_job(job)
-
-        return json.dumps({"job_id": job_id, "result": output}, indent=2)
-
-    else:
-        # For claude/gemini, get diff and prompt
-        try:
-            if uncommitted:
-                diff_result = subprocess.run(
-                    ["git", "diff", "HEAD"],
-                    capture_output=True, text=True
-                )
-            else:
-                diff_result = subprocess.run(
-                    ["git", "diff", base or "origin/main", "HEAD"],
-                    capture_output=True, text=True
-                )
-            diff = diff_result.stdout
-        except Exception as e:
-            return json.dumps({"error": f"Failed to get diff: {e}"})
-
-        focus_instruction = ""
-        if focus:
-            focus_instruction = f"Focus especially on {focus} aspects. "
-
-        prompt = f"""Please review the following code changes. {focus_instruction}
-Provide feedback on:
-- Code quality and best practices
-- Potential bugs or issues
-- Suggestions for improvement
-
-```diff
-{diff[:10000]}
-```
-"""
-        return ai_ask(prompt, cli)
-
-
-@mcp.tool()
-def ai_search(
-    query: str,
-    cli: str = "gemini"
-) -> str:
-    """
-    Perform a web search using an AI CLI.
-
-    Args:
-        query: Search query
-        cli: Which CLI to use - "gemini" (native --search) or "claude"
-
-    Returns:
-        JSON with job_id and result
-    """
-    if cli == "gemini":
-        # Gemini has native search
-        cmd = ["gemini", "--search", query]
-
-        init_db()
-        session_id = get_current_session()
-        job_id = f"job_{uuid.uuid4().hex[:12]}"
-
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-            output = result.stdout
-            status = "completed" if result.returncode == 0 else "failed"
-        except Exception as e:
-            output = str(e)
-            status = "failed"
-
-        job = Job(
-            id=job_id,
-            session_id=session_id,
-            cli=cli,
-            prompt=f"search: {query}",
-            status=status,
-            result=output
-        )
-        save_job(job)
-
-        return json.dumps({"job_id": job_id, "result": output}, indent=2)
-
-    else:
-        # For claude, use prompt with web search request
-        prompt = f"Please search the web and answer: {query}"
-        return ai_ask(prompt, cli)
 
 
 # =============================================================================
@@ -2764,17 +1837,17 @@ def task_start_discussion(task_id: str) -> str:
     """
     Start the discussion phase for a task.
 
-    Moves task to 'discussing' status and spawns 3 agents (Claude, Codex, Gemini)
-    in parallel to analyze requirements and propose implementation approaches.
+    Moves task to 'discussing' status. Use clink via PAL MCP to call external
+    AI agents (claude, codex, gemini) for discussion. Each agent should analyze
+    requirements and vote via task_discussion_vote.
 
     Args:
         task_id: The task ID to start discussion for
 
     Returns:
-        JSON with spawned job IDs
+        JSON with task details and expected agent actions
     """
     init_db()
-    require_tmux()
 
     task = get_task(task_id)
     if not task:
@@ -2793,39 +1866,13 @@ def task_start_discussion(task_id: str) -> str:
     # Clear any existing votes from previous attempts
     clear_discussion_votes(task_id)
 
-    # Spawn 3 agents in parallel (all read-only for discussion)
-    session_id = get_current_session()
-    jobs = []
-
-    for cli in ["claude", "codex", "gemini"]:
-        prompt = build_task_prompt(task, "discussion", cli)
-        job_id = f"job_{uuid.uuid4().hex[:12]}"
-
-        job = Job(
-            id=job_id,
-            session_id=session_id,
-            cli=cli,
-            prompt=prompt,
-            status="running",
-            task_id=task_id
-        )
-        save_job(job)
-
-        # Start in background - run directly (no TUI), agent uses task tools
-        thread = threading.Thread(
-            target=run_job_direct,
-            args=(job,),
-            daemon=True
-        )
-        thread.start()
-        jobs.append({"job_id": job_id, "cli": cli})
-
     return json.dumps({
         "task_id": task_id,
         "status": "discussing",
         "discussion_round": 0,
-        "spawned_jobs": jobs,
-        "message": "Discussion phase started with 3 agents"
+        "expected_agents": ["claude", "codex", "gemini"],
+        "instructions": "Use clink to call each agent for discussion. Each should vote via task_discussion_vote.",
+        "message": "Task moved to discussion phase. Spawn agents via clink."
     }, indent=2)
 
 
@@ -2900,17 +1947,16 @@ def task_start_dev(task_id: str) -> str:
     """
     Start development on a task.
 
-    Moves task to 'in_progress' and spawns a Claude agent with full access
-    to implement the task. No worktree is used - works on actual repo.
+    Moves task to 'in_progress'. The orchestrator should then implement
+    the task directly or use clink to delegate to a Claude agent.
 
     Args:
         task_id: The task ID to start development on
 
     Returns:
-        JSON with spawned job ID
+        JSON with task details
     """
     init_db()
-    require_tmux()
 
     task = get_task(task_id)
     if not task:
@@ -2925,38 +1971,11 @@ def task_start_dev(task_id: str) -> str:
     task.updated_at = time.time()
     save_task(task)
 
-    # Spawn Claude agent with full access (no worktree)
-    session_id = get_current_session()
-    prompt = build_task_prompt(task, "dev", "claude")
-    job_id = f"job_{uuid.uuid4().hex[:12]}"
-
-    job = Job(
-        id=job_id,
-        session_id=session_id,
-        cli="claude",
-        prompt=prompt,
-        status="running",
-        task_id=task_id
-    )
-    save_job(job)
-
-    # Update task assignment
-    task.assigned_to = job_id
-    save_task(task)
-
-    # Start in background - run directly (no TUI), agent uses task tools
-    thread = threading.Thread(
-        target=run_job_direct,
-        args=(job,),
-        daemon=True
-    )
-    thread.start()
-
     return json.dumps({
         "task_id": task_id,
         "status": "in_progress",
-        "job_id": job_id,
-        "message": "Development started with Claude agent"
+        "instructions": "Implement the task. Use clink to delegate to Claude if needed.",
+        "message": "Task moved to in_progress. Begin implementation."
     }, indent=2)
 
 
@@ -2965,16 +1984,16 @@ def task_submit_review(task_id: str) -> str:
     """
     Submit a task for code review.
 
-    Moves task to 'review' status and spawns a Codex agent to review changes.
+    Moves task to 'review' status. Use clink via PAL MCP to call Codex
+    for review. The reviewer should call task_review_complete when done.
 
     Args:
         task_id: The task ID to submit for review
 
     Returns:
-        JSON with spawned job ID
+        JSON with task details
     """
     init_db()
-    require_tmux()
 
     task = get_task(task_id)
     if not task:
@@ -2988,34 +2007,12 @@ def task_submit_review(task_id: str) -> str:
     task.updated_at = time.time()
     save_task(task)
 
-    # Spawn Codex reviewer (read-only)
-    session_id = get_current_session()
-    prompt = build_task_prompt(task, "review", "codex")
-    job_id = f"job_{uuid.uuid4().hex[:12]}"
-
-    job = Job(
-        id=job_id,
-        session_id=session_id,
-        cli="codex",
-        prompt=prompt,
-        status="running",
-        task_id=task_id
-    )
-    save_job(job)
-
-    # Start in background - run directly (no TUI), agent uses task tools
-    thread = threading.Thread(
-        target=run_job_direct,
-        args=(job,),
-        daemon=True
-    )
-    thread.start()
-
     return json.dumps({
         "task_id": task_id,
         "status": "review",
-        "job_id": job_id,
-        "message": "Review started with Codex agent"
+        "expected_agent": "codex",
+        "instructions": "Use clink to call Codex for review. Reviewer should call task_review_complete.",
+        "message": "Task moved to review. Spawn reviewer via clink."
     }, indent=2)
 
 
@@ -3082,17 +2079,17 @@ def task_start_qa(task_id: str) -> str:
     """
     Start QA validation for a task.
 
-    Spawns 3 agents (Claude, Codex, Gemini) in parallel to verify
-    acceptance criteria are met.
+    Clears any existing QA votes. Use clink via PAL MCP to call external
+    AI agents (claude, codex, gemini) for QA. Each agent should verify
+    acceptance criteria and vote via task_qa_vote.
 
     Args:
         task_id: The task ID to start QA for
 
     Returns:
-        JSON with spawned job IDs
+        JSON with task details and expected agent actions
     """
     init_db()
-    require_tmux()
 
     task = get_task(task_id)
     if not task:
@@ -3104,38 +2101,12 @@ def task_start_qa(task_id: str) -> str:
     # Clear any existing QA votes
     clear_qa_votes(task_id)
 
-    # Spawn 3 agents in parallel (all read-only for QA)
-    session_id = get_current_session()
-    jobs = []
-
-    for cli in ["claude", "codex", "gemini"]:
-        prompt = build_task_prompt(task, "qa", cli)
-        job_id = f"job_{uuid.uuid4().hex[:12]}"
-
-        job = Job(
-            id=job_id,
-            session_id=session_id,
-            cli=cli,
-            prompt=prompt,
-            status="running",
-            task_id=task_id
-        )
-        save_job(job)
-
-        # Start in background - run directly (no TUI), agent uses task tools
-        thread = threading.Thread(
-            target=run_job_direct,
-            args=(job,),
-            daemon=True
-        )
-        thread.start()
-        jobs.append({"job_id": job_id, "cli": cli})
-
     return json.dumps({
         "task_id": task_id,
         "status": "qa",
-        "spawned_jobs": jobs,
-        "message": "QA phase started with 3 agents"
+        "expected_agents": ["claude", "codex", "gemini"],
+        "instructions": "Use clink to call each agent for QA. Each should vote via task_qa_vote.",
+        "message": "QA phase ready. Spawn agents via clink."
     }, indent=2)
 
 

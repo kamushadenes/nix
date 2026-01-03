@@ -1,7 +1,7 @@
 ---
 name: task-discusser
-description: Orchestrates task discussion phase. Use when a task needs design consensus before development. Spawns Claude, Codex, and Gemini to analyze and vote.
-tools: Read, Grep, Glob, Bash, mcp__orchestrator__task_get, mcp__orchestrator__task_comments, mcp__orchestrator__task_comment, mcp__orchestrator__task_start_discussion, mcp__orchestrator__ai_list, mcp__orchestrator__ai_fetch
+description: Orchestrates task discussion phase. Use when a task needs design consensus before development. Uses clink to call Claude, Codex, and Gemini for analysis.
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__task_get, mcp__orchestrator__task_comments, mcp__orchestrator__task_comment, mcp__orchestrator__task_start_discussion, mcp__pal__clink
 model: opus
 ---
 
@@ -18,44 +18,58 @@ task = task_get(task_id)
 # Review: title, description, acceptance_criteria, context_files
 ```
 
-### 2. Start Discussion
+### 2. Start Discussion Phase
 
 Call `task_start_discussion(task_id)` to:
 
 - Move task status to "discussing"
-- Spawn 3 agents in parallel (Claude, Codex, Gemini)
-- Each agent analyzes requirements and votes
+- Clear any existing votes
 
 ```python
 result = task_start_discussion(task_id)
-# Returns: {"status": "discussion_started", "jobs": ["job_abc", "job_def", "job_ghi"]}
+# Returns: {"status": "discussing", "expected_agents": ["claude", "codex", "gemini"]}
 ```
 
-### 3. Monitor Progress
+### 3. Query External Agents via clink
 
-The spawned agents will:
-
-- Call `task_get()` and `task_comments()` to understand the task
-- Add their analysis via `task_comment()`
-- Vote via `task_discussion_vote()`
-
-You can monitor via:
+Use `clink` to call each external agent for their analysis. Each agent should review the task and provide their perspective:
 
 ```python
-# Check agent status
-ai_list(status="running")
+# Build the analysis prompt with task context
+analysis_prompt = f"""
+Task: {task.title}
+Description: {task.description}
 
-# Get comments as they come in
-task_comments(task_id)
+Acceptance Criteria:
+{task.acceptance_criteria}
+
+Context Files: {task.context_files}
+
+Analyze this task and provide:
+1. Your recommended implementation approach
+2. Any concerns or risks
+3. Your vote: "ready" (proceed to dev) or "needs_work" (more discussion needed)
+4. Suggested refinements if any
+
+After analysis, call task_discussion_vote(task_id, vote, approach_summary, concerns, suggestions) with your findings.
+"""
+
+# Get perspectives from each model
+claude_analysis = clink(prompt=analysis_prompt, cli="claude")
+codex_analysis = clink(prompt=analysis_prompt, cli="codex")
+gemini_analysis = clink(prompt=analysis_prompt, cli="gemini")
 ```
 
-### 4. Wait for Consensus
+### 4. Check for Consensus
 
-The orchestrator MCP automatically handles consensus:
+After agents vote via `task_discussion_vote`, check comments for results:
 
-- **All 3 vote "ready"**: Task moves to "todo" (ready for dev)
-- **Any vote "needs_work"**: Another round begins
-- **3 failed rounds**: Task moves to "stalled" (needs human input)
+```python
+comments = task_comments(task_id)
+# Check if all 3 agents have voted
+# If all vote "ready": Task moves to "todo"
+# If any vote "needs_work": May need another round
+```
 
 ### 5. Report Results
 
@@ -98,7 +112,7 @@ Invoke this agent when:
 - Requirements need clarification
 - Risk assessment is needed before coding
 
-## What Spawned Agents Do
+## What Each Agent Contributes
 
 | Agent  | Role       | Focus                                                          |
 | ------ | ---------- | -------------------------------------------------------------- |
@@ -108,7 +122,7 @@ Invoke this agent when:
 
 ## Handling Stalled Tasks
 
-If the task moves to "stalled" after 3 rounds:
+If after multiple rounds agents cannot reach consensus:
 
 1. Summarize the blocking concerns
 2. Identify what human input is needed
@@ -117,7 +131,7 @@ If the task moves to "stalled" after 3 rounds:
 ```markdown
 ## Discussion Stalled - Human Input Needed
 
-After 3 discussion rounds, agents could not reach consensus.
+After multiple discussion rounds, agents could not reach consensus.
 
 ### Blocking Issues
 

@@ -40,6 +40,7 @@ let
     "deepwiki"
     "Ref"
     "orchestrator"
+    "pal"
   ];
 
   # Transform to Claude Code format
@@ -99,7 +100,7 @@ in
           "Bash(tree:*)"
           "Bash(cat:*)"
           "Bash(wc:*)"
-          "Read"
+          "Bash(grep:*)"
 
           # Nix commands
           "Bash(nix flake check:*)"
@@ -118,6 +119,7 @@ in
           "Bash(git submodule status:*)"
           "Bash(git -C private ls-files:*)"
           "Bash(git add:*)"
+          "Bash(git commit:*)"
 
           # Tmux commands
           "Bash(tmux list-panes:*)"
@@ -140,11 +142,10 @@ in
           "mcp__orchestrator__tmux_capture"
           "mcp__orchestrator__tmux_list"
 
-          # MCP: Orchestrator - AI agents
-          "mcp__orchestrator__ai_spawn"
-          "mcp__orchestrator__ai_fetch"
-          "mcp__orchestrator__ai_run"
-          "mcp__orchestrator__ai_list"
+          # MCP: PAL - CLI-to-CLI bridge (version/listmodels auto-allowed)
+          "mcp__pal__clink"
+          "mcp__pal__listmodels"
+          "mcp__pal__version"
 
           # MCP: Orchestrator - Task management
           "mcp__orchestrator__task_list"
@@ -318,6 +319,13 @@ in
     ".claude/agents/code-simplifier.md".source = "${agentsDir}/code-simplifier.md";
     ".claude/agents/comment-analyzer.md".source = "${agentsDir}/comment-analyzer.md";
     ".claude/agents/dependency-checker.md".source = "${agentsDir}/dependency-checker.md";
+    # New sub-agents for multi-model workflows
+    ".claude/agents/consensus.md".source = "${agentsDir}/consensus.md";
+    ".claude/agents/debugger.md".source = "${agentsDir}/debugger.md";
+    ".claude/agents/planner.md".source = "${agentsDir}/planner.md";
+    ".claude/agents/precommit.md".source = "${agentsDir}/precommit.md";
+    ".claude/agents/thinkdeep.md".source = "${agentsDir}/thinkdeep.md";
+    ".claude/agents/tracer.md".source = "${agentsDir}/tracer.md";
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
