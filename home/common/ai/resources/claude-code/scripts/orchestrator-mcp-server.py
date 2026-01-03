@@ -1297,7 +1297,7 @@ If you need to suggest changes, describe them in text - do NOT execute them.
 """
 
 
-def build_cli_command(cli: str, prompt: str, model: str = "", files: list = None) -> list[str]:
+def build_cli_command(cli: str, prompt: str, model: str = "", files: Optional[list] = None) -> list[str]:
     """Build command arguments for an AI CLI.
 
     All agents run in full-auto/YOLO mode but with strict read-only instructions
@@ -1355,6 +1355,107 @@ def is_window_idle(window_id: str, idle_seconds: float = 2.0) -> bool:
     # If we're back at a shell, the command finished
     shell_names = {"bash", "zsh", "fish", "sh", "dash", "ksh", "tcsh", "csh"}
     return current_cmd in shell_names
+
+
+def build_direct_cli_command(job: Job) -> list:
+    """Build CLI command for direct execution (no JSON parsing).
+
+    Used for task-bound jobs where agents report results via task tools.
+    """
+    # Read-only instruction for codex/gemini
+    READ_ONLY = """IMPORTANT: You are operating in READ-ONLY mode. Do NOT modify any files.
+Your role is to analyze, review, and provide feedback only. Use the task_* MCP tools to record your findings.
+
+"""
+
+    if job.cli == "claude":
+        cmd = ["claude", "--print", "--verbose"]
+        if job.model:
+            cmd.extend(["--model", job.model])
+        # Add directories for context files
+        dirs_added = set()
+        for f in (job.files or []):
+            import os
+            dir_path = os.path.dirname(f) if os.path.isfile(f) else f
+            if dir_path and dir_path not in dirs_added:
+                cmd.extend(["--add-dir", dir_path])
+                dirs_added.add(dir_path)
+        cmd.append(job.prompt)
+        return cmd
+
+    elif job.cli == "codex":
+        cmd = ["codex", "exec", "--full-auto", "--skip-git-repo-check"]
+        if job.model:
+            cmd.extend(["--model", job.model])
+        cmd.append(READ_ONLY + job.prompt)
+        return cmd
+
+    elif job.cli == "gemini":
+        cmd = ["gemini", "--yolo"]
+        if job.model:
+            cmd.extend(["--model", job.model])
+        # Gemini uses @ syntax for files
+        file_refs = " ".join(f"@{f}" for f in (job.files or []))
+        full_prompt = f"{file_refs} {READ_ONLY}{job.prompt}".strip() if file_refs else READ_ONLY + job.prompt
+        cmd.append(full_prompt)
+        return cmd
+
+    else:
+        raise ValueError(f"Unsupported CLI: {job.cli}")
+
+
+def run_job_direct(job: Job):
+    """Run a job's CLI command directly in tmux (no TUI, no JSON parsing).
+
+    Used for task-bound jobs where agents report results via task tools.
+    The job status is updated when the window closes.
+    """
+    try:
+        # Build direct CLI command (no JSON flags)
+        cli_cmd = build_direct_cli_command(job)
+
+        # Human-readable window name
+        window_name = make_window_name(job.cli, job.prompt, job.id)
+
+        # Create window running CLI directly
+        args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name] + cli_cmd
+        output, code = run_tmux(*args)
+
+        if code != 0:
+            job.status = "failed"
+            job.result = f"Error creating tmux window: {output}"
+            save_job(job)
+            return
+
+        window_id = output.strip()
+        job.window_id = window_id
+        save_job(job)
+
+        # Set pane title
+        run_tmux("select-pane", "-t", window_id, "-T", window_name)
+
+        # Poll for window close (check every 2 seconds, timeout after 30 minutes)
+        max_wait = 1800  # 30 minutes
+        poll_interval = 2
+        waited = 0
+
+        while waited < max_wait:
+            time.sleep(poll_interval)
+            waited += poll_interval
+
+            exists, _ = window_exists(window_id)
+            if not exists:
+                break
+
+        # Mark job as completed (results are in task comments/votes, not job.result)
+        job.status = "completed"
+        job.result = "Agent finished. Check task comments and votes for results."
+        save_job(job)
+
+    except Exception as e:
+        job.status = "failed"
+        job.result = f"Error: {e}"
+        save_job(job)
 
 
 def run_job_in_tmux(job: Job, log_intermediary: bool = False, auto_close: bool = True):
@@ -1448,7 +1549,7 @@ def ai_run(
     prompt: str,
     cli: str = "claude",
     model: str = "",
-    files: list = None,
+    files: Optional[list] = None,
     timeout: int = 600,
     worktree: bool = False,
     task_id: str = ""
@@ -1643,7 +1744,7 @@ def ai_spawn(
     prompt: str,
     cli: str = "claude",
     model: str = "",
-    files: list = None,
+    files: Optional[list] = None,
     log_intermediary: bool = False,
     auto_close: bool = True,
     task_id: str = ""
@@ -1789,6 +1890,50 @@ def ai_fetch(
 
 
 @mcp.tool()
+def ai_wait(
+    job_id: str,
+    timeout: int = 300
+) -> str:
+    """
+    Wait for a job to complete, returning status only (not result).
+
+    Use this instead of ai_fetch when agents report results via task tools
+    (task_comment, task_discussion_vote, etc.) rather than through CLI output.
+
+    Args:
+        job_id: Job ID from ai_spawn
+        timeout: Max seconds to wait (default: 300)
+
+    Returns:
+        JSON with job_id and status only (completed, failed, timeout)
+    """
+    init_db()
+    session_id = get_current_session()
+
+    start = time.time()
+    while True:
+        job = get_job(job_id, session_id)
+        if not job:
+            return json.dumps({"error": f"Job {job_id} not found in session {session_id}"})
+
+        if job.status != "running":
+            return json.dumps({
+                "job_id": job.id,
+                "status": job.status,
+                "task_id": job.task_id
+            }, indent=2)
+
+        if time.time() - start > timeout:
+            return json.dumps({
+                "job_id": job.id,
+                "status": "timeout",
+                "task_id": job.task_id
+            })
+
+        time.sleep(1)
+
+
+@mcp.tool()
 def ai_stream(
     job_id: str,
     offset: int = 0
@@ -1833,7 +1978,7 @@ def ai_ask(
     prompt: str,
     cli: str = "claude",
     model: str = "",
-    files: list = None,
+    files: Optional[list] = None,
     log_intermediary: bool = False
 ) -> str:
     """
@@ -2094,10 +2239,10 @@ def task_create(
     title: str,
     description: str = "",
     priority: int = 2,
-    tags: list = None,
-    acceptance_criteria: list = None,
-    context_files: list = None,
-    dependencies: list = None,
+    tags: Optional[list] = None,
+    acceptance_criteria: Optional[list] = None,
+    context_files: Optional[list] = None,
+    dependencies: Optional[list] = None,
     parent_task_id: str = "",
     created_by: str = "user"
 ) -> str:
@@ -2258,10 +2403,10 @@ def task_update(
     description: str = "",
     status: str = "",
     priority: int = 0,
-    tags: list = None,
-    acceptance_criteria: list = None,
-    context_files: list = None,
-    dependencies: list = None
+    tags: Optional[list] = None,
+    acceptance_criteria: Optional[list] = None,
+    context_files: Optional[list] = None,
+    dependencies: Optional[list] = None
 ) -> str:
     """
     Update task fields.
@@ -2816,11 +2961,10 @@ def task_start_discussion(task_id: str) -> str:
         )
         save_job(job)
 
-        # Start in background thread with tmux TUI
+        # Start in background - run directly (no TUI), agent uses task tools
         thread = threading.Thread(
-            target=run_job_in_tmux,
+            target=run_job_direct,
             args=(job,),
-            kwargs={"log_intermediary": False, "auto_close": True},
             daemon=True
         )
         thread.start()
@@ -2840,8 +2984,8 @@ def task_discussion_vote(
     task_id: str,
     vote: str,
     approach_summary: str = "",
-    concerns: list = None,
-    suggestions: list = None,
+    concerns: Optional[list] = None,
+    suggestions: Optional[list] = None,
     agent_type: str = "",
     job_id: str = ""
 ) -> str:
@@ -2950,11 +3094,10 @@ def task_start_dev(task_id: str) -> str:
     task.assigned_to = job_id
     save_task(task)
 
-    # Start in background with tmux TUI
+    # Start in background - run directly (no TUI), agent uses task tools
     thread = threading.Thread(
-        target=run_job_in_tmux,
+        target=run_job_direct,
         args=(job,),
-        kwargs={"log_intermediary": False, "auto_close": True},
         daemon=True
     )
     thread.start()
@@ -3010,11 +3153,10 @@ def task_submit_review(task_id: str) -> str:
     )
     save_job(job)
 
-    # Start in background with tmux TUI
+    # Start in background - run directly (no TUI), agent uses task tools
     thread = threading.Thread(
-        target=run_job_in_tmux,
+        target=run_job_direct,
         args=(job,),
-        kwargs={"log_intermediary": False, "auto_close": True},
         daemon=True
     )
     thread.start()
@@ -3130,11 +3272,10 @@ def task_start_qa(task_id: str) -> str:
         )
         save_job(job)
 
-        # Start in background thread with tmux TUI
+        # Start in background - run directly (no TUI), agent uses task tools
         thread = threading.Thread(
-            target=run_job_in_tmux,
+            target=run_job_direct,
             args=(job,),
-            kwargs={"log_intermediary": False, "auto_close": True},
             daemon=True
         )
         thread.start()
