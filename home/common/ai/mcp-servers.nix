@@ -32,10 +32,11 @@ rec {
 
     # GitHub MCP - Repository management, issues, PRs, code search
     github = {
-      transport = "http";
-      url = "https://api.githubcopilot.com/mcp";
-      headers = {
-        "Authorization" = "Bearer @GITHUB_PAT@";
+      transport = "stdio";
+      command = "github-mcp-server";
+      args = [ "stdio" ];
+      env = {
+        GITHUB_PERSONAL_ACCESS_TOKEN = "@GITHUB_PAT@";
       };
     };
 

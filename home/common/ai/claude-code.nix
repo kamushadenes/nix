@@ -63,6 +63,7 @@ in
   home.packages = with pkgs; [
     nodePackages.prettier # Markdown/TypeScript formatting
     ruff # Python formatting
+    github-mcp-server # GitHub MCP server binary
   ];
 
   #############################################################################
