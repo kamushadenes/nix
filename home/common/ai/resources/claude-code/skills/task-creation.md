@@ -1,6 +1,6 @@
 ---
-name: task-add
-description: Create a new task in the task management system interactively.
+name: task-creation
+description: Skill for creating well-structured tasks in the task management system
 ---
 
 # Interactive Task Creation

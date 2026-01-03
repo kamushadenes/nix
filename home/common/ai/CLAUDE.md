@@ -11,11 +11,18 @@ ai/
 ├── gemini-cli.nix       # Gemini CLI (Google) - read-only worker
 ├── mcp-servers.nix      # Shared MCP server definitions
 └── resources/claude-code/
-    ├── commands/        # Custom slash commands
+    ├── commands/        # User-invocable slash commands
+    │   ├── code-review.md
+    │   ├── commit.md
+    │   ├── commit-push-pr.md
+    │   └── task-add.md
     ├── memory/          # Global CLAUDE.md content
     ├── rules/           # Behavioral rules (loaded into ~/.claude/rules/)
     ├── scripts/         # MCP server implementations
-    └── skills/          # Skills teaching tool usage
+    └── skills/          # Internal skills (Claude guidance, not user-invocable)
+        ├── ai-orchestration.md
+        ├── automating-tmux-windows.md
+        └── task-creation.md
 ```
 
 ## Role Hierarchy
@@ -44,8 +51,9 @@ Handles secret placeholders (`@SECRET@`) and agenix integration.
 
 - `tmux_*` tools - Terminal window automation
 - `ai_*` tools - AI CLI orchestration (spawn, fetch, stream, messaging)
+- `task_*` tools - Task management (create, update, discussion, review, QA phases)
 
-Security: Codex runs with `-s read-only`, Gemini with `--sandbox`.
+Security: Codex and Gemini run in isolated git worktrees with read-only instructions.
 
 ## Adding New AI CLIs
 
