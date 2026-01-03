@@ -41,6 +41,7 @@ let
     "Ref"
     "orchestrator"
     "pal"
+    "clickup"
   ];
 
   # Transform to Claude Code format
@@ -116,6 +117,7 @@ in
           "Bash(rg:*)"
           "Bash(fd:*)"
           "Bash(mkdir:*)"
+          "Search"
 
           # Nix commands
           "Bash(nix flake check:*)"
@@ -125,6 +127,7 @@ in
           "Bash(nix-instantiate:*)"
           "Bash(nix path-info:*)"
           "Bash(nix fmt:*)"
+          "Bash(nix search:*)"
           "Bash(nixfmt:*)"
           "Bash(rebuild:*)"
           "Bash(nh darwin switch:*)"
@@ -160,6 +163,9 @@ in
           "mcp__deepwiki__ask_question"
           "mcp__deepwiki__read_wiki_contents"
 
+          # Ref
+          "mcp__ref__ref_search_documentation"
+
           # MCP: Orchestrator - tmux
           "mcp__orchestrator__tmux_new_window"
           "mcp__orchestrator__tmux_send"
@@ -168,12 +174,17 @@ in
           "mcp__orchestrator__tmux_list"
           "mcp__orchestrator__tmux_select"
           "mcp__orchestrator__tmux_kill"
+          "mcp__orchestrator__tmux_interrupt"
           "mcp__orchestrator__notify"
 
           # MCP: PAL - CLI-to-CLI bridge (version/listmodels auto-allowed)
           "mcp__pal__clink"
           "mcp__pal__listmodels"
           "mcp__pal__version"
+
+          # MCP: ClickUp - Restricted to Iniciador projects via PreToolUse hook
+          # Note: Tools are approved on first use. Add specific permissions here after
+          # running /mcp to authenticate and discover available tools.
 
           # Skills
           "Skill(codex-cli)"
@@ -190,6 +201,16 @@ in
               {
                 type = "command";
                 command = "tdd-guard";
+              }
+            ];
+          }
+          # Restrict ClickUp MCP to Iniciador project directories
+          {
+            matcher = "mcp__clickup__.*";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/restrict-clickup.sh";
               }
             ];
           }
@@ -372,6 +393,10 @@ in
     };
     ".claude/hooks/post-lint.sh" = {
       source = "${scriptsDir}/hooks/post-lint.sh";
+      executable = true;
+    };
+    ".claude/hooks/restrict-clickup.sh" = {
+      source = "${scriptsDir}/hooks/restrict-clickup.sh";
       executable = true;
     };
 

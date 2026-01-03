@@ -101,6 +101,13 @@ rec {
         OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
       };
     };
+
+    # ClickUp MCP - Task and project management (OAuth - auth via /mcp command)
+    # Restricted to Iniciador projects via PreToolUse hook
+    clickup = {
+      transport = "http";
+      url = "https://mcp.clickup.com/mcp";
+    };
   };
 
   #############################################################################
