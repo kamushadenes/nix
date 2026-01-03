@@ -11,17 +11,17 @@ Control tmux windows programmatically: create windows, send commands, capture ou
 
 ## Quick Reference
 
-| Tool                                  | Purpose                               |
-| ------------------------------------- | ------------------------------------- |
-| `mcp__orchestrator__tmux_new_window`  | Create new window with command        |
-| `mcp__orchestrator__tmux_send`        | Send text/keys to window              |
-| `mcp__orchestrator__tmux_capture`     | Get window output                     |
-| `mcp__orchestrator__tmux_list`        | List windows (JSON)                   |
-| `mcp__orchestrator__tmux_kill`        | Close window                          |
-| `mcp__orchestrator__tmux_interrupt`   | Send Ctrl+C                           |
-| `mcp__orchestrator__tmux_wait_idle`   | Wait for idle (no output changes)     |
-| `mcp__orchestrator__tmux_select`      | Switch to window (bring to front)     |
-| `mcp__orchestrator__tmux_run_and_read`| Run command, wait, return file output |
+| Tool                                   | Purpose                               |
+| -------------------------------------- | ------------------------------------- |
+| `mcp__orchestrator__tmux_new_window`   | Create new window with command        |
+| `mcp__orchestrator__tmux_send`         | Send text/keys to window              |
+| `mcp__orchestrator__tmux_capture`      | Get window output                     |
+| `mcp__orchestrator__tmux_list`         | List windows (JSON)                   |
+| `mcp__orchestrator__tmux_kill`         | Close window                          |
+| `mcp__orchestrator__tmux_interrupt`    | Send Ctrl+C                           |
+| `mcp__orchestrator__tmux_wait_idle`    | Wait for idle (no output changes)     |
+| `mcp__orchestrator__tmux_select`       | Switch to window (bring to front)     |
+| `mcp__orchestrator__tmux_run_and_read` | Run command, wait, return file output |
 
 ## Window Identifiers
 

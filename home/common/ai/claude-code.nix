@@ -55,6 +55,15 @@ let
 in
 {
   #############################################################################
+  # Hook Dependencies
+  #############################################################################
+
+  home.packages = with pkgs; [
+    nodePackages.prettier # Markdown/TypeScript formatting
+    ruff # Python formatting
+  ];
+
+  #############################################################################
   # Agenix Secrets
   #############################################################################
 
@@ -266,6 +275,16 @@ in
               }
             ];
           }
+          # Auto-format Markdown files
+          {
+            matcher = "Edit(*.md)|Write(*.md)";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/format-markdown.sh";
+              }
+            ];
+          }
         ];
       };
 
@@ -332,6 +351,10 @@ in
     };
     ".claude/hooks/format-nix.sh" = {
       source = "${scriptsDir}/hooks/format-nix.sh";
+      executable = true;
+    };
+    ".claude/hooks/format-markdown.sh" = {
+      source = "${scriptsDir}/hooks/format-markdown.sh";
       executable = true;
     };
 
