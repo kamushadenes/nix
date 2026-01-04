@@ -360,6 +360,7 @@ in
         # Third-party
         #"fullstack-dev-skills@fullstack-dev-skills" = true;
         #"superpowers@superpowers-marketplace" = true;
+        "agent-security@mintmcp" = true;
       };
     };
   };
