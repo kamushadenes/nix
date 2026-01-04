@@ -52,8 +52,12 @@ let
   secretsDir = "${config.home.homeDirectory}/.claude/secrets";
   secretSubstitutions = mcpServers.mkSecretSubstitutions secretsDir;
 
-  # Template file for MCP servers (with placeholders)
-  mcpConfigTemplate = builtins.toJSON { mcpServers = mcpServersConfig; };
+  # Template file for MCP servers (with placeholders) and additional settings
+  mcpConfigTemplate = builtins.toJSON {
+    mcpServers = mcpServersConfig;
+    claudeInChromeDefaultEnabled = true;
+    hasCompletedClaudeInChromeOnboarding = true;
+  };
 in
 {
   #############################################################################
@@ -334,7 +338,7 @@ in
       enabledPlugins = {
         # Official plugins
         "gopls-lsp@claude-plugins-official" = true;
-        "playwright@claude-plugins-official" = true;
+        #"playwright@claude-plugins-official" = true;
         "typescript-lsp@claude-plugins-official" = true;
         "pyright-lsp@claude-plugins-official" = true;
         "ralph-wiggum@claude-plugins-official" = true;
