@@ -111,6 +111,10 @@ in
     settings = {
       # Global permissions - auto-approved tools
       permissions = {
+        # Deny reading TDD guard internal files to prevent circumvention
+        deny = [
+          "Read(.claude/tdd-guard/**)"
+        ];
         allow = [
           # Basic commands
           "Bash(curl:*)"
@@ -146,12 +150,27 @@ in
           "Bash(go run:*)"
 
           # Git commands
+          "Bash(git ls-files:*)"
           "Bash(git ls-tree:*)"
           "Bash(git submodule status:*)"
-          "Bash(git -C private ls-files:*)"
           "Bash(git add:*)"
           "Bash(git commit:*)"
+          "Bash(git describe:*)"
+          "Bash(git tag:*)"
+          "Bash(git log:*)"
+          "Bash(git push:*)"
+          "Bash(git fetch:*)"
+          "Bash(git pull:*)"
+          "Bash(git clone:*)"
           "Bash(gh pr:*)"
+          "Bash(gh run:*)"
+          "Bash(gh release:*)"
+
+          # Terraform
+          "Bash(terraform plan:*)"
+          "Bash(terraform show:*)"
+          "Bash(terragrunt plan:*)"
+          "Bash(terragrunt show:*)"
 
           # Tmux commands
           "Bash(tmux list-commands:*)"
