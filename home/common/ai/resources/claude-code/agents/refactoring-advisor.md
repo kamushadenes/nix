@@ -188,28 +188,66 @@ When suggesting refactoring:
 - Don't refactor for refactoring's sake
 - Verify decomposition won't break public APIs
 
-## Multi-Model Review (Optional)
+## Multi-Model Refactoring Analysis
 
-For complex refactoring decisions, get external perspectives:
+For comprehensive refactoring analysis, spawn all 3 models in parallel:
 
 ```python
-refactor_context = """
-Code location: [file:lines]
-Current issue: [describe smell or problem]
-Size metrics: [LOC counts]
-Proposed approach: [your suggestion]
-"""
+# Spawn claude for architectural refactoring assessment
+claude_job = mcp__orchestrator__ai_spawn(
+    cli="claude",
+    prompt=f"""Analyze code for refactoring opportunities focusing on:
+- Architectural decomposition needs
+- Module boundaries and cohesion
+- Dependency structure improvements
+- Long-term maintainability gains
 
-codex_review = clink(
-    prompt=f"Evaluate this refactoring proposal. Check for: API breakage, better patterns, hidden dependencies.\n\n{refactor_context}",
+Code context:
+{{context}}
+
+Provide detailed refactoring recommendations with impact assessment and migration paths.""",
+    files=target_files
+)
+
+# Spawn codex for code smell detection
+codex_job = mcp__orchestrator__ai_spawn(
     cli="codex",
-    files=["src/"]
+    prompt=f"""Detect code smells and refactoring opportunities:
+- Size threshold violations (files, classes, functions)
+- Structural smells (long methods, deep nesting)
+- Duplication and coupling issues
+- API breakage risks for proposed changes
+
+Code context:
+{{context}}
+
+Output: Code smell inventory with severity, LOC metrics, and safe refactoring suggestions.""",
+    files=target_files
 )
 
-gemini_review = clink(
-    prompt=f"Research best practices for this type of refactoring. What approaches do industry leaders recommend?\n\n{refactor_context}",
-    cli="gemini"
+# Spawn gemini for refactoring patterns and best practices
+gemini_job = mcp__orchestrator__ai_spawn(
+    cli="gemini",
+    prompt=f"""Evaluate refactoring approaches against industry practices:
+- Design patterns applicable to these smells
+- Industry approaches to similar refactoring challenges
+- Incremental migration strategies
+- Testing strategies during refactoring
+
+Code context:
+{{context}}
+
+Focus on proven refactoring patterns with practical implementation guidance.""",
+    files=target_files
 )
+
+# Fetch all results (running in parallel)
+claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)
+codex_result = mcp__orchestrator__ai_fetch(job_id=codex_job.job_id, timeout=120)
+gemini_result = mcp__orchestrator__ai_fetch(job_id=gemini_job.job_id, timeout=120)
 ```
 
-Use multi-model input to validate refactoring decisions before recommending.
+Synthesize findings from all 3 models:
+- **Consensus issues** (all models agree) - High confidence, prioritize these
+- **Divergent opinions** - Present both perspectives for human judgment
+- **Unique insights** - Valuable findings from individual model expertise

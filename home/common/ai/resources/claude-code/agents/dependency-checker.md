@@ -1,7 +1,7 @@
 ---
 name: dependency-checker
 description: Analyzes project dependencies. Use for security audits, update planning, and dependency health checks.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 
@@ -192,3 +192,67 @@ npm install package@latest
 - **Pin versions in production**
 - **Audit regularly for security**
 - **Consider maintenance burden**
+
+## Multi-Model Analysis
+
+For thorough dependency analysis, spawn all 3 models in parallel:
+
+```python
+# Spawn claude for dependency architecture analysis
+claude_job = mcp__orchestrator__ai_spawn(
+    cli="claude",
+    prompt=f"""Analyze this project's dependency architecture focusing on:
+- Dependency graph complexity and depth
+- Critical path dependencies
+- Vendor lock-in risks
+- Upgrade path planning for major versions
+
+Dependency files:
+{{context}}
+
+Provide strategic recommendations for dependency management.""",
+    files=target_files
+)
+
+# Spawn codex for CVE detection and version issues
+codex_job = mcp__orchestrator__ai_spawn(
+    cli="codex",
+    prompt=f"""Audit these dependencies for security and versioning:
+- Known CVEs in direct and transitive dependencies
+- Outdated packages with available updates
+- Version conflicts and resolution issues
+- Phantom dependencies (used but not declared)
+
+Dependency files:
+{{context}}
+
+Output: Vulnerability table with CVE IDs, severity, and upgrade paths.""",
+    files=target_files
+)
+
+# Spawn gemini for ecosystem health
+gemini_job = mcp__orchestrator__ai_spawn(
+    cli="gemini",
+    prompt=f"""Evaluate dependency ecosystem health:
+- Package maintenance status (active, maintenance-only, abandoned)
+- Community health and support availability
+- Alternative packages with better health metrics
+- Industry adoption and stability trends
+
+Dependency files:
+{{context}}
+
+Focus on long-term maintainability recommendations.""",
+    files=target_files
+)
+
+# Fetch all results (running in parallel)
+claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)
+codex_result = mcp__orchestrator__ai_fetch(job_id=codex_job.job_id, timeout=120)
+gemini_result = mcp__orchestrator__ai_fetch(job_id=gemini_job.job_id, timeout=120)
+```
+
+Synthesize findings from all 3 models:
+- **Consensus issues** (all models agree) - High confidence, prioritize these
+- **Divergent opinions** - Present both perspectives for human judgment
+- **Unique insights** - Valuable findings from individual model expertise

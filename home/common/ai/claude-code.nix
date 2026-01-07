@@ -102,6 +102,7 @@ in
       commit-push-pr = builtins.readFile "${commandsDir}/commit-push-pr.md";
       architecture-review = builtins.readFile "${commandsDir}/architecture-review.md";
       dependency-audit = builtins.readFile "${commandsDir}/dependency-audit.md";
+      deep-review = builtins.readFile "${commandsDir}/deep-review.md";
     };
 
     # Note: rules option is not available in this home-manager version

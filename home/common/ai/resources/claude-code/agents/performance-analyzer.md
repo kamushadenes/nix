@@ -1,7 +1,7 @@
 ---
 name: performance-analyzer
 description: Performance issue detector. Use PROACTIVELY for performance-sensitive code or when optimizing.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 
@@ -146,4 +146,67 @@ When suggesting fixes:
 - Consider trade-offs (memory vs CPU, latency vs throughput)
 - Prioritize readability when performance impact is minor
 - Suggest profiling for complex cases
+
+## Multi-Model Analysis
+
+For thorough performance analysis, spawn all 3 models in parallel:
+
+```python
+# Spawn claude for deep algorithmic and scalability analysis
+claude_job = mcp__orchestrator__ai_spawn(
+    cli="claude",
+    prompt=f"""Analyze this code for performance issues focusing on:
+- Algorithmic complexity (Big O analysis)
+- Scalability bottlenecks under load
+- Architecture-level performance concerns
+- Data structure choices and their implications
+
+Code context:
+{{context}}
+
+Provide detailed findings with file:line references and complexity analysis.""",
+    files=target_files
+)
+
+# Spawn codex for code-level performance issues
+codex_job = mcp__orchestrator__ai_spawn(
+    cli="codex",
+    prompt=f"""Review this code for performance anti-patterns:
+- N+1 query patterns
+- Resource leaks (memory, connections, file handles)
+- Blocking operations in async contexts
+- Inefficient loops and redundant computations
+
+Code context:
+{{context}}
+
+Output: List findings with severity (Critical/High/Medium/Low) and file:line references.""",
+    files=target_files
+)
+
+# Spawn gemini for industry benchmarks and patterns
+gemini_job = mcp__orchestrator__ai_spawn(
+    cli="gemini",
+    prompt=f"""Evaluate this code against performance best practices:
+- Industry benchmarks for similar operations
+- Framework-specific optimization patterns
+- Caching strategies and opportunities
+- Performance monitoring recommendations
+
+Code context:
+{{context}}
+
+Focus on actionable improvements with expected impact.""",
+    files=target_files
+)
+
+# Fetch all results (running in parallel)
+claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)
+codex_result = mcp__orchestrator__ai_fetch(job_id=codex_job.job_id, timeout=120)
+gemini_result = mcp__orchestrator__ai_fetch(job_id=gemini_job.job_id, timeout=120)
 ```
+
+Synthesize findings from all 3 models:
+- **Consensus issues** (all models agree) - High confidence, prioritize these
+- **Divergent opinions** - Present both perspectives for human judgment
+- **Unique insights** - Valuable findings from individual model expertise

@@ -112,24 +112,69 @@ FIX: Catch specific exceptions (`ValueError`, `KeyError`).
 - Comprehensive input validation
 ```
 
-## Multi-Model Review (For complex changes)
+## Multi-Model Review
 
-For comprehensive reviews, get external perspectives:
+For comprehensive reviews, spawn all 3 models in parallel:
 
 ```python
-codex_review = clink(
-    prompt="Review these changes for security and performance issues. Be specific with file:line references.",
-    cli="codex",
-    files=["src/"]
+# Spawn claude for deep code quality analysis
+claude_job = mcp__orchestrator__ai_spawn(
+    cli="claude",
+    prompt=f"""Review this code focusing on:
+- Overall code quality and architecture
+- Logic correctness and edge cases
+- Maintainability and technical debt
+- Design patterns and best practices
+
+Code context:
+{{context}}
+
+Provide detailed findings with file:line references and severity ratings.""",
+    files=target_files
 )
 
-gemini_review = clink(
-    prompt="Check these changes against best practices. Focus on patterns and anti-patterns.",
-    cli="gemini"
+# Spawn codex for static analysis style review
+codex_job = mcp__orchestrator__ai_spawn(
+    cli="codex",
+    prompt=f"""Review this code for issues using static analysis focus:
+- Security vulnerabilities (injection, auth bypass)
+- Performance anti-patterns (N+1, blocking calls)
+- Resource management (leaks, unclosed handles)
+- Error handling gaps
+
+Code context:
+{{context}}
+
+Output: List findings with severity (Critical/High/Medium/Low) and file:line references.""",
+    files=target_files
 )
+
+# Spawn gemini for best practices and patterns
+gemini_job = mcp__orchestrator__ai_spawn(
+    cli="gemini",
+    prompt=f"""Evaluate this code against industry best practices:
+- Framework-specific patterns and idioms
+- Testing practices and coverage
+- Documentation completeness
+- Code organization and naming
+
+Code context:
+{{context}}
+
+Focus on actionable improvement suggestions.""",
+    files=target_files
+)
+
+# Fetch all results (running in parallel)
+claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)
+codex_result = mcp__orchestrator__ai_fetch(job_id=codex_job.job_id, timeout=120)
+gemini_result = mcp__orchestrator__ai_fetch(job_id=gemini_job.job_id, timeout=120)
 ```
 
-Synthesize findings from multiple models for well-rounded feedback.
+Synthesize findings from all 3 models:
+- **Consensus issues** (all models agree) - High confidence, prioritize these
+- **Divergent opinions** - Present both perspectives for human judgment
+- **Unique insights** - Valuable findings from individual model expertise
 
 ## Confidence Threshold
 

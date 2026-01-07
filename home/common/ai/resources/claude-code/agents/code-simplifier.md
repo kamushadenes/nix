@@ -1,7 +1,7 @@
 ---
 name: code-simplifier
 description: Reduces code complexity. Use PROACTIVELY when code is hard to understand or maintain.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 
@@ -171,3 +171,67 @@ for item in data:
 - **Flat is better than nested**
 - **Readability counts**
 - **If the implementation is hard to explain, it's a bad idea**
+
+## Multi-Model Analysis
+
+For thorough complexity analysis, spawn all 3 models in parallel:
+
+```python
+# Spawn claude for architectural simplification analysis
+claude_job = mcp__orchestrator__ai_spawn(
+    cli="claude",
+    prompt=f"""Analyze this code for simplification opportunities focusing on:
+- Architectural complexity and over-engineering
+- Unnecessary abstraction layers
+- Design pattern misuse or overuse
+- Module/class responsibility distribution
+
+Code context:
+{{context}}
+
+Provide detailed findings with file:line references and simplification strategies.""",
+    files=target_files
+)
+
+# Spawn codex for complexity metrics and refactoring
+codex_job = mcp__orchestrator__ai_spawn(
+    cli="codex",
+    prompt=f"""Measure and analyze code complexity:
+- Cyclomatic complexity (flag functions > 10)
+- Cognitive complexity (flag functions > 15)
+- Nesting depth (flag > 4 levels)
+- Function length (flag > 50 lines)
+
+Code context:
+{{context}}
+
+Output: Complexity metrics table and specific refactoring suggestions with file:line references.""",
+    files=target_files
+)
+
+# Spawn gemini for clean code patterns
+gemini_job = mcp__orchestrator__ai_spawn(
+    cli="gemini",
+    prompt=f"""Evaluate code against clean code principles:
+- SOLID principles adherence
+- DRY violations and duplication
+- KISS principle violations
+- Language-specific idioms and best practices
+
+Code context:
+{{context}}
+
+Focus on practical simplification recommendations.""",
+    files=target_files
+)
+
+# Fetch all results (running in parallel)
+claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)
+codex_result = mcp__orchestrator__ai_fetch(job_id=codex_job.job_id, timeout=120)
+gemini_result = mcp__orchestrator__ai_fetch(job_id=gemini_job.job_id, timeout=120)
+```
+
+Synthesize findings from all 3 models:
+- **Consensus issues** (all models agree) - High confidence, prioritize these
+- **Divergent opinions** - Present both perspectives for human judgment
+- **Unique insights** - Valuable findings from individual model expertise

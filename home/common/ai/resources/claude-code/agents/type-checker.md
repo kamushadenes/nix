@@ -1,7 +1,7 @@
 ---
 name: type-checker
 description: Type safety analyst. Use PROACTIVELY for type-related changes or when reviewing type design.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 
@@ -166,4 +166,67 @@ When suggesting types:
 - Use union types for valid variants
 - Make impossible states unrepresentable
 - Document complex generic constraints
+
+## Multi-Model Analysis
+
+For thorough type safety analysis, spawn all 3 models in parallel:
+
+```python
+# Spawn claude for type system design analysis
+claude_job = mcp__orchestrator__ai_spawn(
+    cli="claude",
+    prompt=f"""Analyze this code for type system design issues focusing on:
+- Type architecture and modeling decisions
+- Generic type usage and constraints
+- Type narrowing and discrimination patterns
+- Domain modeling with types
+
+Code context:
+{{context}}
+
+Provide detailed findings with file:line references and type design improvements.""",
+    files=target_files
+)
+
+# Spawn codex for type safety violations
+codex_job = mcp__orchestrator__ai_spawn(
+    cli="codex",
+    prompt=f"""Hunt for type safety issues in this code:
+- Implicit any types and missing annotations
+- Unsafe type assertions and casts
+- Null/undefined dereference risks
+- type:ignore comments without justification
+
+Code context:
+{{context}}
+
+Output: List findings with severity (Critical/High/Medium/Low) and file:line references.""",
+    files=target_files
+)
+
+# Spawn gemini for type patterns by language
+gemini_job = mcp__orchestrator__ai_spawn(
+    cli="gemini",
+    prompt=f"""Evaluate types against language-specific best practices:
+- TypeScript: strict mode, utility types, discriminated unions
+- Python: Protocol, TypeVar, Literal, type guards
+- Go: interface design, type assertions, generics
+- Rust: trait bounds, lifetime annotations
+
+Code context:
+{{context}}
+
+Focus on idiomatic type patterns for the detected language.""",
+    files=target_files
+)
+
+# Fetch all results (running in parallel)
+claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)
+codex_result = mcp__orchestrator__ai_fetch(job_id=codex_job.job_id, timeout=120)
+gemini_result = mcp__orchestrator__ai_fetch(job_id=gemini_job.job_id, timeout=120)
 ```
+
+Synthesize findings from all 3 models:
+- **Consensus issues** (all models agree) - High confidence, prioritize these
+- **Divergent opinions** - Present both perspectives for human judgment
+- **Unique insights** - Valuable findings from individual model expertise

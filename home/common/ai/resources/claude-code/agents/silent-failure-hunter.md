@@ -1,7 +1,7 @@
 ---
 name: silent-failure-hunter
 description: Detects silent failures, swallowed exceptions, and missing error handling. Use PROACTIVELY during code review or QA.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 
@@ -152,3 +152,67 @@ async def safe_background_job():
         logger.error(f"Background job failed: {e}")
         metrics.increment("background_job_failures")
 ````
+
+## Multi-Model Analysis
+
+For thorough silent failure detection, spawn all 3 models in parallel:
+
+```python
+# Spawn claude for error propagation path analysis
+claude_job = mcp__orchestrator__ai_spawn(
+    cli="claude",
+    prompt=f"""Analyze this code for silent failure patterns focusing on:
+- Error propagation paths and where errors get lost
+- Exception handling chains and their completeness
+- Failure modes that could go undetected in production
+- Observability gaps (missing logs, metrics, alerts)
+
+Code context:
+{{context}}
+
+Provide detailed findings with file:line references and failure impact analysis.""",
+    files=target_files
+)
+
+# Spawn codex for code-level exception handling issues
+codex_job = mcp__orchestrator__ai_spawn(
+    cli="codex",
+    prompt=f"""Hunt for silent failures in this code:
+- Swallowed exceptions (empty catch blocks, bare except)
+- Missing error checks on return values
+- Fire-and-forget async operations
+- Default values that hide failures
+
+Code context:
+{{context}}
+
+Output: List findings with severity (Critical/High/Medium/Low) and file:line references.""",
+    files=target_files
+)
+
+# Spawn gemini for error handling best practices
+gemini_job = mcp__orchestrator__ai_spawn(
+    cli="gemini",
+    prompt=f"""Evaluate error handling against reliability best practices:
+- Industry patterns for resilient error handling
+- Framework-specific error handling idioms
+- Recommended logging and monitoring strategies
+- Circuit breaker and retry patterns
+
+Code context:
+{{context}}
+
+Focus on reliability improvements with implementation guidance.""",
+    files=target_files
+)
+
+# Fetch all results (running in parallel)
+claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)
+codex_result = mcp__orchestrator__ai_fetch(job_id=codex_job.job_id, timeout=120)
+gemini_result = mcp__orchestrator__ai_fetch(job_id=gemini_job.job_id, timeout=120)
+```
+
+Synthesize findings from all 3 models:
+- **Consensus issues** (all models agree) - High confidence, prioritize these
+- **Divergent opinions** - Present both perspectives for human judgment
+- **Unique insights** - Valuable findings from individual model expertise

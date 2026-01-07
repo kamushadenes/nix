@@ -148,30 +148,69 @@ Common test file locations to check:
 - `*_test.go`
 - `*_spec.rb`
 
-## Multi-Model Review (Optional)
+## Multi-Model Test Analysis
 
-For comprehensive test analysis, get external perspectives:
+For comprehensive test analysis, spawn all 3 models in parallel:
 
 ```python
-test_context = """
-Modified files: [list]
-Test files: [list]
-Acceptance criteria: [from task]
-"""
+# Spawn claude for test coverage gap analysis
+claude_job = mcp__orchestrator__ai_spawn(
+    cli="claude",
+    prompt=f"""Analyze test coverage and identify gaps focusing on:
+- Acceptance criteria to test mapping
+- Critical path coverage assessment
+- Test architecture and organization
+- Integration test adequacy
 
-codex_review = clink(
-    prompt=f"Review test coverage using adversarial thinking. Check for: boundary conditions, concurrency issues, external dependency failures.\n\n{test_context}",
+Code context:
+{{context}}
+
+Provide detailed findings with specific test recommendations for each gap.""",
+    files=target_files
+)
+
+# Spawn codex for adversarial test scenarios
+codex_job = mcp__orchestrator__ai_spawn(
     cli="codex",
-    files=["tests/"]
+    prompt=f"""Review tests using adversarial thinking:
+- Boundary conditions (null, empty, max values)
+- Concurrency issues (race conditions, deadlocks)
+- External dependency failures (timeouts, errors)
+- Error path coverage
+
+Code context:
+{{context}}
+
+Output: Missing test scenarios with severity and test code suggestions.""",
+    files=target_files
 )
 
-gemini_review = clink(
-    prompt=f"Research testing best practices for this type of code. What production failure scenarios should be tested?\n\n{test_context}",
-    cli="gemini"
+# Spawn gemini for testing best practices
+gemini_job = mcp__orchestrator__ai_spawn(
+    cli="gemini",
+    prompt=f"""Evaluate tests against industry best practices:
+- Test design patterns for this framework
+- Production failure scenarios to cover
+- Test reliability and maintainability
+- Performance testing recommendations
+
+Code context:
+{{context}}
+
+Focus on practical improvements based on common production failures.""",
+    files=target_files
 )
+
+# Fetch all results (running in parallel)
+claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)
+codex_result = mcp__orchestrator__ai_fetch(job_id=codex_job.job_id, timeout=120)
+gemini_result = mcp__orchestrator__ai_fetch(job_id=gemini_job.job_id, timeout=120)
 ```
 
-Synthesize findings from multiple models for thorough coverage assessment.
+Synthesize findings from all 3 models:
+- **Consensus issues** (all models agree) - High confidence, prioritize these
+- **Divergent opinions** - Present both perspectives for human judgment
+- **Unique insights** - Valuable findings from individual model expertise
 
 ## Scope Discipline
 

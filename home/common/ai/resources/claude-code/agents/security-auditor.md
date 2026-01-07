@@ -118,17 +118,69 @@ Before suggesting fixes, verify:
 3. Schedule medium for next sprint
 ```
 
-## Multi-Model Validation (Optional)
+## Multi-Model Security Analysis
 
-For high-stakes audits, get external validation:
+For comprehensive security audits, spawn all 3 models in parallel:
 
 ```python
-codex_review = clink(
-    prompt="Validate these security findings and check for any I missed: [findings]",
-    cli="codex",
-    files=["src/auth/", "src/api/"]
+# Spawn claude for threat modeling and attack vectors
+claude_job = mcp__orchestrator__ai_spawn(
+    cli="claude",
+    prompt=f"""Perform security threat modeling on this code:
+- Identify attack surfaces and entry points
+- Map trust boundaries and data flows
+- Analyze authentication/authorization logic
+- Assess cryptographic implementations
+
+Code context:
+{{context}}
+
+Provide detailed findings with file:line references, CWE IDs, and exploitation scenarios.""",
+    files=target_files
 )
+
+# Spawn codex for OWASP vulnerability detection
+codex_job = mcp__orchestrator__ai_spawn(
+    cli="codex",
+    prompt=f"""Audit this code for OWASP Top 10 and CWE vulnerabilities:
+- A01: Broken Access Control (IDOR, missing authz)
+- A02: Cryptographic Failures (weak algos, hardcoded keys)
+- A03: Injection (SQL, XSS, command, template)
+- A04-A10: Other OWASP categories
+
+Code context:
+{{context}}
+
+Output: Vulnerability table with CWE ID, severity (Critical/High/Medium/Low), and file:line references.""",
+    files=target_files
+)
+
+# Spawn gemini for security frameworks and compliance
+gemini_job = mcp__orchestrator__ai_spawn(
+    cli="gemini",
+    prompt=f"""Evaluate against security frameworks and compliance:
+- SOC 2 controls (access logging, encryption)
+- PCI DSS requirements (if payment-related)
+- GDPR data protection principles
+- Industry security best practices
+
+Code context:
+{{context}}
+
+Focus on compliance gaps and remediation recommendations.""",
+    files=target_files
+)
+
+# Fetch all results (running in parallel)
+claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)
+codex_result = mcp__orchestrator__ai_fetch(job_id=codex_job.job_id, timeout=120)
+gemini_result = mcp__orchestrator__ai_fetch(job_id=gemini_job.job_id, timeout=120)
 ```
+
+Synthesize findings from all 3 models:
+- **Consensus issues** (all models agree) - High confidence, prioritize these
+- **Divergent opinions** - Present both perspectives for human judgment
+- **Unique insights** - Valuable findings from individual model expertise
 
 ## Confidence Threshold
 
