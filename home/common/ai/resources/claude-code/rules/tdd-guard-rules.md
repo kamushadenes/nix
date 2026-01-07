@@ -44,6 +44,32 @@ test:
 ```
 
 Configuration notes:
+
 - The `-project-root` flag must use an absolute path
 - Current directory must be within the configured project root
 - Falls back to current directory if not specified
+
+## Using tdd-guard-pytest (Python Projects)
+
+For Python projects, use the `tdd-guard-pytest` reporter to validate TDD compliance:
+
+```bash
+# Basic usage - pytest will automatically use the plugin when installed
+pytest
+
+# The plugin activates when running pytest in any project
+```
+
+Configure the project root in `pyproject.toml`:
+
+```toml
+[tool.pytest.ini_options]
+tdd_guard_project_root = "/absolute/path/to/project"
+```
+
+Configuration notes:
+
+- The `tdd-guard-pytest` plugin is installed via Nix (see `home/common/dev/python.nix`)
+- Specify the project root path when tests run from a subdirectory or in a monorepo setup
+- Alternative configuration methods: `pytest.ini` or `setup.cfg`
+- The reporter integrates automatically with pytest once installed

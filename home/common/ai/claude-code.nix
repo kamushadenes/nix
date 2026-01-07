@@ -209,6 +209,13 @@ in
           "mcp__orchestrator__tmux_interrupt"
           "mcp__orchestrator__notify"
 
+          # MCP: Orchestrator - AI (parallel AI CLI orchestration)
+          "mcp__orchestrator__ai_call"
+          "mcp__orchestrator__ai_spawn"
+          "mcp__orchestrator__ai_fetch"
+          "mcp__orchestrator__ai_list"
+          "mcp__orchestrator__ai_review"
+
           # MCP: PAL - CLI-to-CLI bridge (version/listmodels auto-allowed)
           "mcp__pal__clink"
           "mcp__pal__listmodels"

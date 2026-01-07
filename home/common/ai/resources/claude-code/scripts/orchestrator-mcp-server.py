@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-MCP server for terminal automation.
+MCP server for terminal automation and AI orchestration.
 
-Provides tmux_* tools for terminal window management.
-For AI CLI orchestration, use PAL MCP's clink tool.
+Provides:
+- tmux_* tools for terminal window management
+- ai_* tools for parallel AI CLI orchestration
 """
 import subprocess
 import hashlib
@@ -12,9 +13,99 @@ import os
 import json
 import re
 import uuid
+import asyncio
+import threading
+from dataclasses import dataclass, field
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+from typing import Any, Literal
+from pydantic import BaseModel, Field
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("orchestrator")
+
+
+# =============================================================================
+# Response Models (Pydantic for MCP structured output)
+# =============================================================================
+
+
+class AICallResult(BaseModel):
+    """Response from ai_call (synchronous AI CLI invocation)."""
+    status: Literal["success", "error"] = Field(description="Operation status")
+    cli: str | None = Field(default=None, description="CLI that was called")
+    content: str | None = Field(default=None, description="AI response content")
+    error: str | None = Field(default=None, description="Error message if failed")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="CLI-specific metadata")
+
+
+class AISpawnResult(BaseModel):
+    """Response from ai_spawn (async job creation)."""
+    status: Literal["spawned", "error"] = Field(description="Operation status")
+    job_id: str | None = Field(default=None, description="Job ID for use with ai_fetch")
+    cli: str | None = Field(default=None, description="CLI being used")
+    error: str | None = Field(default=None, description="Error message if failed")
+    message: str | None = Field(default=None, description="Human-readable status message")
+
+
+class AIFetchResult(BaseModel):
+    """Response from ai_fetch (retrieve async job result)."""
+    status: Literal["completed", "failed", "timeout", "running", "not_found"] = Field(
+        description="Job status"
+    )
+    job_id: str = Field(description="Job ID that was queried")
+    cli: str | None = Field(default=None, description="CLI that ran the job")
+    content: str | None = Field(default=None, description="AI response if completed")
+    error: str | None = Field(default=None, description="Error message if failed")
+    message: str | None = Field(default=None, description="Status message")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="CLI-specific metadata")
+
+
+class AIJobInfo(BaseModel):
+    """Information about a single AI job."""
+    job_id: str = Field(description="Unique job identifier")
+    cli: str = Field(description="CLI being used")
+    status: str = Field(description="Job status")
+    created_at: str = Field(description="ISO timestamp when job was created")
+    completed_at: str | None = Field(default=None, description="ISO timestamp when job completed")
+
+
+class AIListResult(BaseModel):
+    """Response from ai_list (list all jobs)."""
+    jobs: list[AIJobInfo] = Field(default_factory=list, description="List of all tracked jobs")
+    total: int = Field(description="Total number of jobs")
+    running: int = Field(description="Number of currently running jobs")
+
+
+class AIReviewJobStatus(BaseModel):
+    """Status of a single CLI in ai_review."""
+    status: Literal["spawned", "error"] = Field(description="Spawn status")
+    job_id: str | None = Field(default=None, description="Job ID if spawned")
+    error: str | None = Field(default=None, description="Error if failed to spawn")
+
+
+class AIReviewResult(BaseModel):
+    """Response from ai_review (spawn all CLIs)."""
+    status: Literal["spawned", "partial", "error"] = Field(description="Overall status")
+    jobs: dict[str, AIReviewJobStatus] = Field(description="Status for each CLI")
+    message: str = Field(description="Human-readable instructions")
+
+
+class TmuxWindow(BaseModel):
+    """Information about a tmux window."""
+    id: str = Field(description="Window ID (e.g., @3)")
+    index: str = Field(description="Window index")
+    name: str = Field(description="Window name")
+    active: bool = Field(description="Whether window is active")
+    command: str = Field(description="Current command running")
+    is_claude: bool = Field(description="Whether this is Claude's window")
+
+
+class TmuxListResult(BaseModel):
+    """Response from tmux_list."""
+    windows: list[TmuxWindow] = Field(description="List of windows")
+    current_window: str = Field(description="ID of current window")
+
 
 # =============================================================================
 # Configuration
@@ -27,6 +118,353 @@ MIN_CAPTURE_LINES = 1
 
 # Pattern for valid tmux window/pane identifiers (e.g., @3, %5)
 TARGET_PATTERN = re.compile(r'^[@%][0-9]+$')
+
+# =============================================================================
+# AI Agent Configuration
+# =============================================================================
+
+MAX_CONCURRENT_JOBS = 10
+JOB_CLEANUP_HOURS = 1
+DEFAULT_AI_TIMEOUT = 300
+
+AI_CLIS = {
+    "claude": {
+        "command": ["claude", "--print", "--output-format", "json"],
+        "parser": "claude_json",
+        "timeout": 300,
+    },
+    "codex": {
+        # Flags from clink: exec for non-interactive, --json for JSONL output,
+        # --dangerously-bypass-approvals-and-sandbox for automated execution
+        "command": [
+            "codex", "exec", "--json",
+            "--dangerously-bypass-approvals-and-sandbox",
+        ],
+        "parser": "codex_jsonl",
+        "timeout": 300,
+    },
+    "gemini": {
+        "command": ["gemini", "-o", "json"],
+        "parser": "gemini_json",
+        "timeout": 300,
+    },
+}
+
+
+@dataclass
+class AIJob:
+    """Represents an async AI CLI job."""
+    id: str
+    cli: str
+    prompt: str
+    files: list[str]
+    status: str  # "running", "completed", "failed", "timeout"
+    timeout: int
+    result: str | None = None
+    error: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: datetime | None = None
+
+
+AI_JOBS: dict[str, AIJob] = {}
+AI_JOBS_LOCK = threading.Lock()
+
+
+# =============================================================================
+# AI Parsers (ported from clink)
+# =============================================================================
+
+
+class ParserError(RuntimeError):
+    """Raised when CLI output cannot be parsed."""
+    pass
+
+
+@dataclass
+class ParsedResponse:
+    """Result of parsing CLI output."""
+    content: str
+    metadata: dict[str, Any]
+
+
+def parse_claude_json(stdout: str, stderr: str) -> ParsedResponse:
+    """Parse claude --output-format json output."""
+    if not stdout.strip():
+        raise ParserError("Claude CLI returned empty stdout")
+
+    try:
+        loaded = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        raise ParserError(f"Failed to decode Claude JSON: {exc}") from exc
+
+    metadata: dict[str, Any] = {"raw": loaded}
+
+    # Handle array of events or single result
+    if isinstance(loaded, list):
+        events = [item for item in loaded if isinstance(item, dict)]
+        result_entry = next(
+            (item for item in events if item.get("type") == "result" or "result" in item),
+            None,
+        )
+        assistant_entry = next(
+            (item for item in reversed(events) if item.get("type") == "assistant"),
+            None,
+        )
+        payload = result_entry or assistant_entry or (events[-1] if events else {})
+        metadata["raw_events"] = events
+    elif isinstance(loaded, dict):
+        payload = loaded
+    else:
+        raise ParserError("Unexpected Claude JSON structure")
+
+    # Extract content
+    result = payload.get("result")
+    if isinstance(result, str) and result.strip():
+        return ParsedResponse(content=result.strip(), metadata=metadata)
+    if isinstance(result, list):
+        joined = [p.strip() for p in result if isinstance(p, str) and p.strip()]
+        if joined:
+            return ParsedResponse(content="\n".join(joined), metadata=metadata)
+
+    # Try message field
+    message = payload.get("message")
+    if isinstance(message, str) and message.strip():
+        return ParsedResponse(content=message.strip(), metadata=metadata)
+
+    # Check error
+    error = payload.get("error", {})
+    if isinstance(error, dict):
+        err_msg = error.get("message")
+        if isinstance(err_msg, str) and err_msg.strip():
+            return ParsedResponse(content=err_msg.strip(), metadata=metadata)
+
+    if stderr.strip():
+        metadata["stderr"] = stderr.strip()
+        return ParsedResponse(
+            content="Claude CLI returned no textual result. Check stderr.",
+            metadata=metadata
+        )
+
+    raise ParserError("Claude response did not contain textual result")
+
+
+def parse_codex_jsonl(stdout: str, stderr: str) -> ParsedResponse:
+    """Parse codex exec JSONL output."""
+    lines = [line.strip() for line in (stdout or "").splitlines() if line.strip()]
+    events: list[dict[str, Any]] = []
+    agent_messages: list[str] = []
+    errors: list[str] = []
+    usage: dict[str, Any] | None = None
+
+    for line in lines:
+        if not line.startswith("{"):
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        events.append(event)
+        event_type = event.get("type")
+        if event_type == "item.completed":
+            item = event.get("item") or {}
+            if item.get("type") == "agent_message":
+                text = item.get("text")
+                if isinstance(text, str) and text.strip():
+                    agent_messages.append(text.strip())
+        elif event_type == "error":
+            message = event.get("message")
+            if isinstance(message, str) and message.strip():
+                errors.append(message.strip())
+        elif event_type == "turn.completed":
+            turn_usage = event.get("usage")
+            if isinstance(turn_usage, dict):
+                usage = turn_usage
+
+    if not agent_messages and errors:
+        agent_messages.extend(errors)
+
+    if not agent_messages:
+        raise ParserError("Codex JSONL output did not include agent_message")
+
+    content = "\n\n".join(agent_messages).strip()
+    metadata: dict[str, Any] = {"events_count": len(events)}
+    if errors:
+        metadata["errors"] = errors
+    if usage:
+        metadata["usage"] = usage
+    if stderr and stderr.strip():
+        metadata["stderr"] = stderr.strip()
+
+    return ParsedResponse(content=content, metadata=metadata)
+
+
+def parse_gemini_json(stdout: str, stderr: str) -> ParsedResponse:
+    """Parse gemini -o json output."""
+    if not stdout.strip():
+        raise ParserError("Gemini CLI returned empty stdout")
+
+    try:
+        payload: dict[str, Any] = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        raise ParserError(f"Failed to decode Gemini JSON: {exc}") from exc
+
+    metadata: dict[str, Any] = {"raw": payload}
+
+    response = payload.get("response")
+    if isinstance(response, str) and response.strip():
+        # Extract stats
+        stats = payload.get("stats")
+        if isinstance(stats, dict):
+            metadata["stats"] = stats
+            models = stats.get("models")
+            if isinstance(models, dict) and models:
+                model_name = next(iter(models.keys()))
+                metadata["model_used"] = model_name
+
+        if stderr and stderr.strip():
+            metadata["stderr"] = stderr.strip()
+        return ParsedResponse(content=response.strip(), metadata=metadata)
+
+    # Fallback for empty response
+    if stderr and stderr.strip():
+        metadata["stderr"] = stderr.strip()
+        if "429" in stderr.lower() or "rate limit" in stderr.lower():
+            return ParsedResponse(
+                content="Gemini rate limited (429). Retry later.",
+                metadata=metadata
+            )
+        return ParsedResponse(
+            content="Gemini returned no response. Check stderr.",
+            metadata=metadata
+        )
+
+    raise ParserError("Gemini response missing 'response' field")
+
+
+def get_parser(parser_name: str):
+    """Get parser function by name."""
+    parsers = {
+        "claude_json": parse_claude_json,
+        "codex_jsonl": parse_codex_jsonl,
+        "gemini_json": parse_gemini_json,
+    }
+    return parsers.get(parser_name)
+
+
+# =============================================================================
+# AI Helpers
+# =============================================================================
+
+
+def _build_ai_prompt(prompt: str, files: list[str]) -> str:
+    """Build full prompt with embedded file contents."""
+    sections = [prompt]
+    if files:
+        file_refs = []
+        for path in files:
+            try:
+                content = Path(path).read_text(encoding="utf-8", errors="replace")
+                file_refs.append(f"=== {path} ===\n{content}")
+            except Exception as e:
+                file_refs.append(f"=== {path} ===\n[Error reading: {e}]")
+        if file_refs:
+            sections.append("=== FILE CONTEXT ===\n" + "\n\n".join(file_refs))
+    return "\n\n".join(sections)
+
+
+async def _run_ai_cli(
+    command: list[str],
+    prompt: str,
+    timeout: int,
+    parser_name: str
+) -> ParsedResponse:
+    """Execute AI CLI and parse output."""
+    proc = await asyncio.create_subprocess_exec(
+        *command,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    try:
+        stdout_bytes, stderr_bytes = await asyncio.wait_for(
+            proc.communicate(prompt.encode("utf-8")),
+            timeout=timeout
+        )
+    except asyncio.TimeoutError:
+        proc.kill()
+        await proc.communicate()
+        raise RuntimeError(f"CLI timed out after {timeout}s")
+
+    stdout_text = stdout_bytes.decode("utf-8", errors="replace")
+    stderr_text = stderr_bytes.decode("utf-8", errors="replace")
+
+    # Check for non-zero exit
+    if proc.returncode != 0:
+        # Try to parse anyway (some CLIs exit non-zero but have valid output)
+        pass
+
+    parser = get_parser(parser_name)
+    if parser:
+        return parser(stdout_text, stderr_text)
+    else:
+        return ParsedResponse(
+            content=stdout_text,
+            metadata={"stderr": stderr_text, "parser": "raw"}
+        )
+
+
+async def _run_ai_job_async(job_id: str):
+    """Background task to run AI CLI job."""
+    with AI_JOBS_LOCK:
+        job = AI_JOBS.get(job_id)
+        if not job:
+            return
+        cli_config = AI_CLIS.get(job.cli)
+        if not cli_config:
+            job.status = "failed"
+            job.error = f"Unknown CLI: {job.cli}"
+            job.completed_at = datetime.now(timezone.utc)
+            return
+
+    full_prompt = _build_ai_prompt(job.prompt, job.files)
+
+    try:
+        result = await _run_ai_cli(
+            command=cli_config["command"],
+            prompt=full_prompt,
+            timeout=job.timeout,
+            parser_name=cli_config["parser"]
+        )
+        with AI_JOBS_LOCK:
+            job.status = "completed"
+            job.result = result.content
+            job.metadata = result.metadata
+            job.completed_at = datetime.now(timezone.utc)
+    except asyncio.TimeoutError:
+        with AI_JOBS_LOCK:
+            job.status = "timeout"
+            job.error = f"CLI timed out after {job.timeout}s"
+            job.completed_at = datetime.now(timezone.utc)
+    except Exception as e:
+        with AI_JOBS_LOCK:
+            job.status = "failed"
+            job.error = str(e)
+            job.completed_at = datetime.now(timezone.utc)
+
+
+def _cleanup_old_ai_jobs():
+    """Remove jobs older than JOB_CLEANUP_HOURS (must hold lock)."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=JOB_CLEANUP_HOURS)
+    to_remove = [
+        jid for jid, job in AI_JOBS.items()
+        if job.created_at < cutoff and job.status != "running"
+    ]
+    for jid in to_remove:
+        del AI_JOBS[jid]
 
 
 # =============================================================================
@@ -197,35 +635,35 @@ def tmux_capture(target: str, lines: int = 100) -> str:
 
 
 @mcp.tool()
-def tmux_list() -> str:
+def tmux_list() -> TmuxListResult:
     """
     List all windows in the current session.
 
     Returns:
-        JSON-formatted list of windows with their IDs, names, and status
+        TmuxListResult with windows and current window ID
     """
     require_tmux()
     format_str = "#{window_id}|#{window_index}|#{window_name}|#{window_active}|#{pane_current_command}"
     output, code = run_tmux("list-windows", "-F", format_str)
 
     if code != 0:
-        return f"Error listing windows: {output}"
+        raise RuntimeError(f"Error listing windows: {output}")
 
     windows = []
     current = get_current_window()
     for line in output.split("\n"):
         if line:
             parts = line.split("|")
-            windows.append({
-                "id": parts[0],
-                "index": parts[1],
-                "name": parts[2],
-                "active": parts[3] == "1",
-                "command": parts[4],
-                "is_claude": parts[0] == current
-            })
+            windows.append(TmuxWindow(
+                id=parts[0],
+                index=parts[1],
+                name=parts[2],
+                active=parts[3] == "1",
+                command=parts[4],
+                is_claude=parts[0] == current
+            ))
 
-    return json.dumps(windows, indent=2)
+    return TmuxListResult(windows=windows, current_window=current)
 
 
 @mcp.tool()
@@ -452,6 +890,297 @@ def tmux_run_and_read(
         return content
     except Exception as e:
         return f"Error reading output file: {e}"
+
+
+# =============================================================================
+# AI Tools
+# =============================================================================
+
+
+@mcp.tool()
+async def ai_call(
+    cli: str,
+    prompt: str,
+    files: list[str] | None = None,
+    timeout: int = 300
+) -> AICallResult:
+    """
+    Call an AI CLI synchronously and return its response.
+
+    This is a blocking call - use ai_spawn/ai_fetch for parallel execution.
+
+    Args:
+        cli: CLI to use (claude, codex, gemini)
+        prompt: Prompt to send to the CLI
+        files: Optional list of file paths to include as context
+        timeout: Maximum seconds to wait (default: 300)
+
+    Returns:
+        AICallResult with status, content, and metadata
+    """
+    if cli not in AI_CLIS:
+        available = ", ".join(AI_CLIS.keys())
+        return AICallResult(
+            status="error",
+            error=f"Unknown CLI: {cli}. Available: {available}"
+        )
+
+    config = AI_CLIS[cli]
+    full_prompt = _build_ai_prompt(prompt, files or [])
+
+    try:
+        result = await _run_ai_cli(
+            command=config["command"],
+            prompt=full_prompt,
+            timeout=timeout,
+            parser_name=config["parser"]
+        )
+        return AICallResult(
+            status="success",
+            cli=cli,
+            content=result.content,
+            metadata=result.metadata
+        )
+    except ParserError as e:
+        return AICallResult(
+            status="error",
+            cli=cli,
+            error=f"Parse error: {e}"
+        )
+    except Exception as e:
+        return AICallResult(
+            status="error",
+            cli=cli,
+            error=str(e)
+        )
+
+
+@mcp.tool()
+def ai_spawn(
+    cli: str,
+    prompt: str,
+    files: list[str] | None = None,
+    timeout: int = 300
+) -> AISpawnResult:
+    """
+    Spawn an AI CLI asynchronously and return a job ID.
+
+    Use ai_fetch to retrieve results. This allows running multiple AIs in parallel.
+
+    Args:
+        cli: CLI to use (claude, codex, gemini)
+        prompt: Prompt to send to the CLI
+        files: Optional list of file paths to include as context
+        timeout: Maximum seconds for CLI to complete (default: 300)
+
+    Returns:
+        AISpawnResult with job_id for use with ai_fetch
+    """
+    if cli not in AI_CLIS:
+        available = ", ".join(AI_CLIS.keys())
+        return AISpawnResult(
+            status="error",
+            error=f"Unknown CLI: {cli}. Available: {available}"
+        )
+
+    with AI_JOBS_LOCK:
+        # Check concurrent job limit
+        running = sum(1 for j in AI_JOBS.values() if j.status == "running")
+        if running >= MAX_CONCURRENT_JOBS:
+            return AISpawnResult(
+                status="error",
+                error=f"Max concurrent jobs ({MAX_CONCURRENT_JOBS}) reached. "
+                      f"Wait for some jobs to complete or use ai_fetch to retrieve results."
+            )
+
+        # Cleanup old jobs
+        _cleanup_old_ai_jobs()
+
+        # Create job
+        job_id = str(uuid.uuid4())[:8]
+        job = AIJob(
+            id=job_id,
+            cli=cli,
+            prompt=prompt,
+            files=files or [],
+            status="running",
+            timeout=timeout
+        )
+        AI_JOBS[job_id] = job
+
+    # Start background task
+    asyncio.create_task(_run_ai_job_async(job_id))
+
+    return AISpawnResult(
+        status="spawned",
+        job_id=job_id,
+        cli=cli,
+        message=f"Job spawned. Use ai_fetch(job_id='{job_id}') to get results."
+    )
+
+
+@mcp.tool()
+async def ai_fetch(
+    job_id: str,
+    timeout: int = 30
+) -> AIFetchResult:
+    """
+    Fetch the result of a spawned AI job.
+
+    Args:
+        job_id: Job ID from ai_spawn
+        timeout: Seconds to wait if job still running (default: 30, 0 = no wait)
+
+    Returns:
+        AIFetchResult with status and result. Status can be:
+        - "completed": Job finished, content available
+        - "failed": Job errored, error message available
+        - "timeout": CLI timed out
+        - "running": Job still running (call ai_fetch again)
+        - "not_found": Job ID not found
+    """
+    start = time.time()
+
+    while True:
+        with AI_JOBS_LOCK:
+            job = AI_JOBS.get(job_id)
+
+        if job is None:
+            return AIFetchResult(
+                status="not_found",
+                job_id=job_id,
+                error="Job not found. It may have expired or never existed."
+            )
+
+        if job.status == "completed":
+            return AIFetchResult(
+                status="completed",
+                job_id=job_id,
+                cli=job.cli,
+                content=job.result,
+                metadata=job.metadata
+            )
+
+        if job.status in ("failed", "timeout"):
+            return AIFetchResult(
+                status=job.status,  # type: ignore[arg-type]
+                job_id=job_id,
+                cli=job.cli,
+                error=job.error
+            )
+
+        # Still running - check timeout
+        elapsed = time.time() - start
+        if elapsed >= timeout:
+            return AIFetchResult(
+                status="running",
+                job_id=job_id,
+                cli=job.cli,
+                message="Job still running. Call ai_fetch again to check status."
+            )
+
+        await asyncio.sleep(0.5)
+
+
+@mcp.tool()
+def ai_list() -> AIListResult:
+    """
+    List all active AI jobs.
+
+    Returns:
+        AIListResult with array of jobs and counts
+    """
+    with AI_JOBS_LOCK:
+        jobs = []
+        running_count = 0
+        for job in AI_JOBS.values():
+            if job.status == "running":
+                running_count += 1
+            jobs.append(AIJobInfo(
+                job_id=job.id,
+                cli=job.cli,
+                status=job.status,
+                created_at=job.created_at.isoformat(),
+                completed_at=job.completed_at.isoformat() if job.completed_at else None
+            ))
+    return AIListResult(
+        jobs=jobs,
+        total=len(jobs),
+        running=running_count
+    )
+
+
+@mcp.tool()
+def ai_review(
+    prompt: str,
+    files: list[str] | None = None,
+    timeout: int = 300
+) -> AIReviewResult:
+    """
+    Spawn all three AI CLIs in parallel for multi-model review.
+
+    Convenience tool that spawns claude, codex, and gemini with the same prompt.
+    Use ai_fetch with each job_id to retrieve results.
+
+    Args:
+        prompt: Prompt to send to all CLIs
+        files: Optional list of file paths to include as context
+        timeout: Maximum seconds for each CLI (default: 300)
+
+    Returns:
+        AIReviewResult with job_ids for each CLI
+    """
+    results: dict[str, AIReviewJobStatus] = {}
+    error_count = 0
+
+    for cli in ["claude", "codex", "gemini"]:
+        with AI_JOBS_LOCK:
+            # Check concurrent job limit
+            running = sum(1 for j in AI_JOBS.values() if j.status == "running")
+            if running >= MAX_CONCURRENT_JOBS:
+                results[cli] = AIReviewJobStatus(
+                    status="error",
+                    error="Max concurrent jobs reached"
+                )
+                error_count += 1
+                continue
+
+            # Cleanup old jobs
+            _cleanup_old_ai_jobs()
+
+            # Create job
+            job_id = str(uuid.uuid4())[:8]
+            job = AIJob(
+                id=job_id,
+                cli=cli,
+                prompt=prompt,
+                files=files or [],
+                status="running",
+                timeout=timeout
+            )
+            AI_JOBS[job_id] = job
+
+        # Start background task
+        asyncio.create_task(_run_ai_job_async(job_id))
+
+        results[cli] = AIReviewJobStatus(
+            status="spawned",
+            job_id=job_id
+        )
+
+    # Determine overall status
+    if error_count == 3:
+        overall_status: Literal["spawned", "partial", "error"] = "error"
+    elif error_count > 0:
+        overall_status = "partial"
+    else:
+        overall_status = "spawned"
+
+    return AIReviewResult(
+        status=overall_status,
+        jobs=results,
+        message="Use ai_fetch(job_id=...) to retrieve each result."
+    )
 
 
 # =============================================================================

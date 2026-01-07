@@ -26,6 +26,8 @@
       extraConfig = with config.users.users; ''
         %brewers ALL=(${config.users.users.homebrew.name}) NOPASSWD: ${config.homebrew.brewPrefix}/brew *
         ${config.users.users.homebrew.name} ALL=(ALL:ALL) ALL
+        ${config.users.users.kamushadenes.name} ALL=(ALL) NOPASSWD: /usr/bin/env * nix build --no-link --profile /nix/var/nix/profiles/system *
+        ${config.users.users.kamushadenes.name} ALL=(ALL) NOPASSWD: /usr/bin/env * */darwin-rebuild activate
       '';
     };
   };

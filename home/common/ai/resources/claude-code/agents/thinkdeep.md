@@ -1,7 +1,7 @@
 ---
 name: thinkdeep
 description: Extended thinking and analysis agent. Use for complex problems requiring thorough exploration.
-tools: Read, Grep, Glob, mcp__pal__clink
+tools: Read, Grep, Glob, mcp__pal__clink, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 
@@ -36,48 +36,51 @@ Constraints:
 - Limited budget for additional infrastructure
 ```
 
-### 2. Deep Exploration via Multiple Models
+### 2. Deep Exploration via Multiple Models (Parallel)
 
-Get extended analysis from each perspective:
+Get extended analysis from each perspective simultaneously:
 
 ```python
 problem_context = """[Full problem description above]"""
 
-# Claude: Architectural deep dive
-claude_think = clink(
+# Spawn all models for deep analysis in parallel
+claude_job = ai_spawn(
+    cli="claude",
     prompt=f"""Think deeply about this problem. Consider:
 1. All possible approaches (not just obvious ones)
 2. Long-term implications of each
 3. Hidden assumptions in current thinking
 4. What could go wrong
 
-{problem_context}""",
-    cli="claude"
+{problem_context}"""
 )
 
-# Codex: Technical deep dive
-codex_think = clink(
+codex_job = ai_spawn(
+    cli="codex",
     prompt=f"""Explore the technical solution space:
 1. What patterns exist for this problem?
 2. What are the implementation tradeoffs?
 3. What are the edge cases?
 4. How do we validate correctness?
 
-{problem_context}""",
-    cli="codex"
+{problem_context}"""
 )
 
-# Gemini: Research and examples
-gemini_think = clink(
+gemini_job = ai_spawn(
+    cli="gemini",
     prompt=f"""Research this problem domain:
 1. How do industry leaders handle this?
 2. What tools/frameworks exist?
 3. What are documented failure modes?
 4. What case studies are relevant?
 
-{problem_context}""",
-    cli="gemini"
+{problem_context}"""
 )
+
+# Fetch results (all running in parallel)
+claude_think = ai_fetch(job_id=claude_job["job_id"], timeout=180)
+codex_think = ai_fetch(job_id=codex_job["job_id"], timeout=180)
+gemini_think = ai_fetch(job_id=gemini_job["job_id"], timeout=180)
 ```
 
 ### 3. Synthesize Extended Analysis
@@ -124,7 +127,6 @@ Combine deep thinking from all sources:
 Based on extended analysis: **Expand-Contract with Feature Flags**
 
 Rationale:
-
 - Lower infrastructure cost than blue-green
 - More control than online schema tools
 - Fits existing Alembic workflow
@@ -152,9 +154,16 @@ Rationale:
 3. Automated rollback triggers
 ```
 
+## Parallel Advantage
+
+For deep thinking tasks, parallel execution is essential:
+- 3x the exploration depth in the same time
+- Different models surface different concerns
+- Cross-pollination of ideas in synthesis
+
 ## Tips
 
-- Allow time for models to explore
+- Allow time for models to explore (use longer timeouts)
 - Ask "what am I missing?" explicitly
 - Question initial assumptions
 - Consider failure modes explicitly

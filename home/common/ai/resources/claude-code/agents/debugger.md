@@ -1,7 +1,7 @@
 ---
 name: debugger
 description: Root cause investigation agent. Use when debugging complex issues that need multi-model analysis.
-tools: Read, Grep, Glob, Bash, mcp__pal__clink
+tools: Read, Grep, Glob, Bash, mcp__pal__clink, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 
@@ -45,9 +45,9 @@ Recent change: Added order validation middleware
 Hypothesis: N+1 query problem or timeout in validation
 ```
 
-### 3. Get Multi-Model Analysis
+### 3. Get Multi-Model Analysis (Parallel)
 
-Query different models for their debugging perspectives:
+Spawn all models in parallel for different debugging perspectives:
 
 ```python
 debug_context = """
@@ -57,24 +57,28 @@ Recent changes: Added order validation middleware
 Current hypothesis: N+1 query or validation timeout
 """
 
-# Claude: Deep code analysis
-claude_debug = clink(
-    prompt=f"{debug_context}\n\nAnalyze the code flow and identify potential root causes. Focus on database queries and async operations.",
+# Spawn all models simultaneously
+claude_job = ai_spawn(
     cli="claude",
+    prompt=f"{debug_context}\n\nAnalyze the code flow and identify potential root causes. Focus on database queries and async operations.",
     files=["src/api/orders.py", "src/middleware/validation.py"]
 )
 
-# Codex: Pattern recognition
-codex_debug = clink(
+codex_job = ai_spawn(
+    cli="codex",
     prompt=f"{debug_context}\n\nCheck for common performance anti-patterns like N+1 queries, missing indexes, or blocking operations.",
-    cli="codex"
+    files=["src/api/orders.py", "src/middleware/validation.py"]
 )
 
-# Gemini: Research similar issues
-gemini_debug = clink(
-    prompt=f"{debug_context}\n\nSearch for similar issues in Python/FastAPI contexts. What are common causes of API timeouts with large datasets?",
-    cli="gemini"
+gemini_job = ai_spawn(
+    cli="gemini",
+    prompt=f"{debug_context}\n\nSearch for similar issues in Python/FastAPI contexts. What are common causes of API timeouts with large datasets?"
 )
+
+# Fetch results (all running in parallel)
+claude_debug = ai_fetch(job_id=claude_job["job_id"], timeout=120)
+codex_debug = ai_fetch(job_id=codex_job["job_id"], timeout=120)
+gemini_debug = ai_fetch(job_id=gemini_job["job_id"], timeout=120)
 ```
 
 ### 4. Synthesize and Verify
@@ -103,9 +107,16 @@ Combine insights and create a verification plan:
 Based on multi-model analysis: Add eager loading for order items in validation
 ```
 
+## Parallel Advantage
+
+Running models in parallel means:
+- 3 perspectives in ~60s instead of ~180s
+- Each model analyzes from its strength area simultaneously
+- Faster iteration on debugging hypotheses
+
 ## Tips
 
 - Always gather evidence before asking for help
 - Provide stack traces and error messages
-- Include relevant code files with clink
+- Include relevant code files with ai_spawn
 - Test fixes on a single hypothesis at a time

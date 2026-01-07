@@ -1,7 +1,7 @@
 ---
 name: consensus
 description: Multi-model perspective gathering. Use when you need diverse opinions on a problem or decision.
-tools: Read, Grep, Glob, mcp__pal__clink
+tools: Read, Grep, Glob, mcp__pal__clink, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch, mcp__orchestrator__ai_review
 model: haiku
 ---
 
@@ -25,31 +25,50 @@ Question: Should we use WebSockets or Server-Sent Events for real-time updates?
 Context: Building a dashboard that needs to push metrics to browser clients
 ```
 
-### 2. Query Each Model
+### 2. Query All Models in Parallel
 
-Use `clink` to get perspectives from different AI models:
+Use `ai_review` to spawn all three models simultaneously, or `ai_spawn` for individual control:
 
 ```python
-# Get Claude's perspective (architectural thinking)
-claude_opinion = clink(
-    prompt="Analyze the tradeoffs between WebSockets and SSE for real-time dashboard metrics. Consider: complexity, browser support, scaling, resource usage.",
-    cli="claude"
+# Option A: Use ai_review for convenience (spawns all 3 in parallel)
+review = ai_review(
+    prompt="""Analyze the tradeoffs between WebSockets and SSE for real-time dashboard metrics.
+Consider: complexity, browser support, scaling, resource usage.""",
+    files=["src/api/realtime.py"]  # Optional file context
 )
+# Returns: {"jobs": {"claude": {"job_id": "abc123"}, "codex": {...}, "gemini": {...}}}
 
-# Get Codex's perspective (implementation focus)
-codex_opinion = clink(
-    prompt="From an implementation standpoint, compare WebSockets vs SSE for pushing metrics to browser dashboards. Focus on code complexity, testing, debugging.",
-    cli="codex"
+# Option B: Spawn individually for different prompts per model
+claude_job = ai_spawn(
+    cli="claude",
+    prompt="Analyze the tradeoffs between WebSockets and SSE. Focus on architecture and scalability."
 )
-
-# Get Gemini's perspective (research-oriented)
-gemini_opinion = clink(
-    prompt="What are the industry best practices for real-time dashboard updates? Compare WebSockets and SSE with real-world examples.",
-    cli="gemini"
+codex_job = ai_spawn(
+    cli="codex",
+    prompt="Compare WebSockets vs SSE. Focus on implementation complexity and code maintainability."
+)
+gemini_job = ai_spawn(
+    cli="gemini",
+    prompt="Research WebSockets vs SSE best practices. Include real-world examples and industry standards."
 )
 ```
 
-### 3. Synthesize Results
+### 3. Fetch Results
+
+Retrieve results from each model (all are running in parallel):
+
+```python
+# Fetch each result with timeout (blocks until ready or timeout)
+claude_result = ai_fetch(job_id=review["jobs"]["claude"]["job_id"], timeout=120)
+codex_result = ai_fetch(job_id=review["jobs"]["codex"]["job_id"], timeout=120)
+gemini_result = ai_fetch(job_id=review["jobs"]["gemini"]["job_id"], timeout=120)
+
+# Check status and extract content
+if claude_result["status"] == "completed":
+    claude_opinion = claude_result["content"]
+```
+
+### 4. Synthesize Results
 
 Combine perspectives into a coherent summary:
 
@@ -83,9 +102,25 @@ Based on the multi-model analysis, the recommended approach is...
 - [Any limitations or edge cases noted]
 ```
 
+## Parallel vs Sequential
+
+**Parallel (New)**: Use `ai_spawn` + `ai_fetch` or `ai_review`
+- All models run simultaneously
+- Total time = slowest model (not sum of all)
+- Better for getting diverse opinions quickly
+
+**Sequential (Legacy)**: Use `clink` directly
+- Models run one after another
+- Total time = sum of all model times
+- Use when prompts depend on previous results
+
 ## Tips
 
 - Ask specific, focused questions
 - Provide sufficient context to each model
 - Note when models agree vs disagree
-- Weight opinions based on model strengths (Claude for architecture, Codex for code, Gemini for research)
+- Weight opinions based on model strengths:
+  - Claude: Architecture, design patterns
+  - Codex: Implementation details, code review
+  - Gemini: Research, best practices, examples
+- Use `ai_list()` to check status of all running jobs

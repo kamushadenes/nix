@@ -1,7 +1,7 @@
 ---
 name: precommit
 description: Pre-commit validation agent. Use before committing to get multi-model review of changes.
-tools: Read, Grep, Glob, Bash, mcp__pal__clink
+tools: Read, Grep, Glob, Bash, mcp__pal__clink, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: haiku
 ---
 
@@ -31,23 +31,27 @@ git diff HEAD
 git diff --name-only HEAD
 ```
 
-### 2. Quick Multi-Model Review
+### 2. Quick Multi-Model Review (Parallel)
 
-Run a focused review with each model:
+Run a focused review with multiple models simultaneously:
 
 ```python
-diff = """[paste git diff output]"""
+diff = """[git diff output]"""
 
-# Quick checks from each model
-claude_check = clink(
-    prompt=f"Quick pre-commit review. Check for: bugs, security issues, incomplete code. Be concise.\n\n{diff}",
-    cli="claude"
+# Spawn both models in parallel for fast review
+claude_job = ai_spawn(
+    cli="claude",
+    prompt=f"Quick pre-commit review. Check for: bugs, security issues, incomplete code. Be concise.\n\n{diff}"
 )
 
-codex_check = clink(
-    prompt=f"Pre-commit code review. Focus on: code style, patterns, potential errors. Keep it brief.\n\n{diff}",
-    cli="codex"
+codex_job = ai_spawn(
+    cli="codex",
+    prompt=f"Pre-commit code review. Focus on: code style, patterns, potential errors. Keep it brief.\n\n{diff}"
 )
+
+# Fetch results (both running in parallel)
+claude_check = ai_fetch(job_id=claude_job["job_id"], timeout=60)
+codex_check = ai_fetch(job_id=codex_job["job_id"], timeout=60)
 ```
 
 ### 3. Evaluate Results
@@ -81,15 +85,30 @@ Summarize findings:
 
 ## Quick Checks
 
-For very quick validation, run focused checks:
+For very quick validation, you can still use sequential checks:
 
 ```python
 # Security check only
-security = clink(prompt="Check for hardcoded secrets, SQL injection, or security issues:\n{diff}", cli="codex")
+security = ai_call(
+    cli="codex",
+    prompt="Check for hardcoded secrets, SQL injection, or security issues:\n{diff}",
+    timeout=30
+)
 
 # Bug check only
-bugs = clink(prompt="Look for potential bugs or edge cases:\n{diff}", cli="claude")
+bugs = ai_call(
+    cli="claude",
+    prompt="Look for potential bugs or edge cases:\n{diff}",
+    timeout=30
+)
 ```
+
+## Parallel Advantage
+
+Pre-commit checks benefit from parallelism:
+- 2 perspectives in ~30s instead of ~60s
+- Catch issues before they reach the commit
+- Quick iteration on fixes
 
 ## Integration
 
