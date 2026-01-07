@@ -138,6 +138,28 @@ in
           "Bash(paste:*)"
           "Bash(xxd:*)"
           "Bash(readlink:*)"
+          "Bash(jq:*)"
+          "Bash(yq:*)"
+
+          # Modern Unix tools (rust/go replacements)
+          "Bash(bat:*)"
+          "Bash(eza:*)"
+          "Bash(exa:*)"
+          "Bash(dust:*)"
+          "Bash(duf:*)"
+          "Bash(procs:*)"
+          "Bash(hyperfine:*)"
+          "Bash(tokei:*)"
+          "Bash(delta:*)"
+          "Bash(difft:*)"
+          "Bash(doggo:*)"
+          "Bash(xh:*)"
+          "Bash(httpie:*)"
+          "Bash(http:*)"
+          "Bash(curlie:*)"
+          "Bash(glow:*)"
+          "Bash(fzf:*)"
+          "Bash(zoxide:*)"
 
           # Nix commands
           "Bash(nix flake check:*)"
