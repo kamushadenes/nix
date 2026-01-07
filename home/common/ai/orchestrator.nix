@@ -52,5 +52,22 @@ in
     ".claude/skills/terraform-engineer/SKILL.md".source = "${skillsDir}/terraform-engineer/SKILL.md";
     ".claude/skills/terraform-engineer/references/module-patterns.md".source = "${skillsDir}/terraform-engineer/references/module-patterns.md";
     ".claude/skills/terraform-engineer/references/state-management.md".source = "${skillsDir}/terraform-engineer/references/state-management.md";
+
+    # Skill creator skill
+    ".claude/skills/skill-creator/SKILL.md".source = "${skillsDir}/skill-creator/SKILL.md";
+    ".claude/skills/skill-creator/references/output-patterns.md".source = "${skillsDir}/skill-creator/references/output-patterns.md";
+    ".claude/skills/skill-creator/references/workflows.md".source = "${skillsDir}/skill-creator/references/workflows.md";
+    ".claude/skills/skill-creator/scripts/init_skill.py" = {
+      source = "${skillsDir}/skill-creator/scripts/init_skill.py";
+      executable = true;
+    };
+    ".claude/skills/skill-creator/scripts/package_skill.py" = {
+      source = "${skillsDir}/skill-creator/scripts/package_skill.py";
+      executable = true;
+    };
+    ".claude/skills/skill-creator/scripts/quick_validate.py" = {
+      source = "${skillsDir}/skill-creator/scripts/quick_validate.py";
+      executable = true;
+    };
   };
 }
