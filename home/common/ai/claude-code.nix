@@ -229,6 +229,16 @@ in
               }
             ];
           }
+          # Block destructive git/filesystem commands
+          {
+            matcher = "Bash";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/git-safety-guard.py";
+              }
+            ];
+          }
           # Restrict ClickUp MCP to Iniciador project directories
           {
             matcher = "mcp__clickup__.*";
@@ -422,6 +432,10 @@ in
     };
     ".claude/hooks/restrict-clickup.sh" = {
       source = "${scriptsDir}/hooks/restrict-clickup.sh";
+      executable = true;
+    };
+    ".claude/hooks/git-safety-guard.py" = {
+      source = "${scriptsDir}/hooks/git-safety-guard.py";
       executable = true;
     };
 
