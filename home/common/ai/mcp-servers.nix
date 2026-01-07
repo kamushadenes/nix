@@ -118,6 +118,23 @@ rec {
       transport = "http";
       url = "https://mcp.clickup.com/mcp";
     };
+
+    # Vanta MCP - Security compliance and vulnerability management
+    # Requires OAuth credentials from Vanta developer dashboard
+    vanta = {
+      transport = "stdio";
+      command = "npx";
+      args = [
+        "-y"
+        "@vantasdk/vanta-mcp-server"
+      ];
+      env = {
+        # Path to credentials JSON file (not a placeholder - needs actual file path)
+        VANTA_ENV_FILE = "${homeDir}/.claude/secrets/vanta-credentials.json";
+        # Region: us, eu, or aus (defaults to us)
+        REGION = "us";
+      };
+    };
   };
 
   #############################################################################

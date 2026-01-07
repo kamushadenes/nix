@@ -43,6 +43,7 @@ let
     "orchestrator"
     "pal"
     "clickup"
+    "vanta"
   ];
 
   # Transform to Claude Code format
@@ -78,6 +79,12 @@ in
     prefix = "claude";
     secretsDir = secretsDir;
     inherit private;
+  } // {
+    # Vanta credentials - needs to be a file path, not substituted content
+    "claude-vanta-credentials" = {
+      file = "${private}/home/common/ai/resources/claude/vanta-credentials.age";
+      path = "${secretsDir}/vanta-credentials.json";
+    };
   };
 
   #############################################################################
@@ -221,7 +228,7 @@ in
         # Run before file modifications - TDD guard ensures tests exist
         PreToolUse = [
           {
-            matcher = "Write|Edit|MultiEdit|TodoWrite";
+            matcher = "Write|Edit|MultiEdit|TodoWrite|Update";
             hooks = [
               {
                 type = "command";
@@ -297,7 +304,7 @@ in
         # Run after file modifications - security scanning and auto-formatting
         PostToolUse = [
           {
-            matcher = "Edit(*.tf)|Write(*.tf)";
+            matcher = "Edit(*.tf)|Write(*.tf)|Update(*.tf)";
             hooks = [
               {
                 type = "command";
@@ -306,7 +313,7 @@ in
             ];
           }
           {
-            matcher = "Edit(*.hcl)|Write(*.hcl)";
+            matcher = "Edit(*.hcl)|Write(*.hcl)|Update(*.hcl)";
             hooks = [
               {
                 type = "command";
@@ -316,7 +323,7 @@ in
           }
           # Auto-format Python files
           {
-            matcher = "Edit(*.py)|Write(*.py)";
+            matcher = "Edit(*.py)|Write(*.py)|Update(*.py)";
             hooks = [
               {
                 type = "command";
@@ -326,7 +333,7 @@ in
           }
           # Auto-format TypeScript files
           {
-            matcher = "Edit(*.ts)|Write(*.ts)|Edit(*.tsx)|Write(*.tsx)";
+            matcher = "Edit(*.ts)|Write(*.ts)|Update(*.ts)|Edit(*.tsx)|Write(*.tsx)|Update(*.tsx)";
             hooks = [
               {
                 type = "command";
@@ -336,7 +343,7 @@ in
           }
           # Auto-format Nix files
           {
-            matcher = "Edit(*.nix)|Write(*.nix)";
+            matcher = "Edit(*.nix)|Write(*.nix)|Update(*.nix)";
             hooks = [
               {
                 type = "command";
@@ -346,7 +353,7 @@ in
           }
           # Auto-format Markdown files
           {
-            matcher = "Edit(*.md)|Write(*.md)";
+            matcher = "Edit(*.md)|Write(*.md)|Update(*.md)";
             hooks = [
               {
                 type = "command";
