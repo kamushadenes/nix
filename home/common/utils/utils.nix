@@ -8,6 +8,7 @@
   home.packages = with pkgs; [
     trash-cli
     asciinema
+    gam
     glow
     httpie
     hugo
