@@ -15,8 +15,8 @@
   ...
 }:
 let
-  # Import shared MCP server configuration
-  mcpServers = import ./mcp-servers.nix { inherit config lib; };
+  # Import shared MCP server configuration (with private merge support)
+  mcpServers = import ./mcp-servers.nix { inherit config lib private; };
 
   # Resource directories
   resourcesDir = ./resources/claude-code;
@@ -35,15 +35,8 @@ let
     }) ruleFiles
   );
 
-  # MCP servers to include for Claude Code
-  enabledServers = [
-    "deepwiki"
-    "github"
-    "Ref"
-    "orchestrator"
-    "clickup"
-    "vanta"
-  ];
+  # Use merged enabled servers from mcp-servers.nix (public + private)
+  enabledServers = mcpServers.enabledServers;
 
   # Transform to Claude Code format
   mcpServersConfig = mcpServers.toClaudeCode enabledServers;

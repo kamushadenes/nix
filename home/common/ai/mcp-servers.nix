@@ -14,16 +14,27 @@
 # - args: Command arguments (for stdio transport)
 # - env: Environment variables (for stdio transport)
 # - timeout: Timeout in milliseconds
-{ config, lib }:
+{ config, lib, private ? null }:
 let
   homeDir = config.home.homeDirectory;
-in
-rec {
+
+  # Import private MCP servers if available
+  privateMcp =
+    if private != null && builtins.pathExists "${private}/home/common/ai/mcp-servers-private.nix" then
+      import "${private}/home/common/ai/mcp-servers-private.nix" { inherit config lib; }
+    else
+      {
+        servers = { };
+        enabledServers = [ ];
+        secretPlaceholders = [ ];
+        secretFiles = { };
+      };
+
   #############################################################################
-  # Normalized MCP Server Definitions
+  # Public MCP Server Definitions
   #############################################################################
 
-  servers = {
+  publicServers = {
     # DeepWiki - GitHub repository documentation
     deepwiki = {
       transport = "http";
@@ -121,22 +132,49 @@ rec {
   };
 
   #############################################################################
-  # Secret Placeholders Used in Configurations
+  # Public Enabled Servers (for Claude Code)
   #############################################################################
 
-  # All secret placeholders used across MCP servers
-  secretPlaceholders = [
+  publicEnabledServers = [
+    "deepwiki"
+    "github"
+    "Ref"
+    "orchestrator"
+    "clickup"
+    "vanta"
+  ];
+
+  #############################################################################
+  # Public Secret Placeholders
+  #############################################################################
+
+  publicSecretPlaceholders = [
     "@GITHUB_PAT@"
     "@REF_API_KEY@"
     "@TFE_TOKEN@"
   ];
 
   # Secret files (relative to private submodule)
-  secretFiles = {
+  publicSecretFiles = {
     "@GITHUB_PAT@" = "home/common/ai/resources/claude/github-pat.age";
     "@REF_API_KEY@" = "home/common/ai/resources/claude/ref-api-key.age";
     "@TFE_TOKEN@" = "home/common/ai/resources/claude/tfe-token.age";
   };
+in
+rec {
+  #############################################################################
+  # Merged Configurations (Public + Private)
+  #############################################################################
+
+  # Merge public + private servers
+  servers = publicServers // privateMcp.servers;
+
+  # Merge enabled servers lists
+  enabledServers = publicEnabledServers ++ privateMcp.enabledServers;
+
+  # Merge secret placeholders and files
+  secretPlaceholders = publicSecretPlaceholders ++ privateMcp.secretPlaceholders;
+  secretFiles = publicSecretFiles // privateMcp.secretFiles;
 
   #############################################################################
   # Transformation Functions
