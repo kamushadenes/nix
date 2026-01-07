@@ -195,56 +195,32 @@ npm install package@latest
 
 ## Multi-Model Analysis
 
-For thorough dependency analysis, spawn all 3 models in parallel:
+For thorough dependency analysis, spawn all 3 models in parallel with the same prompt:
 
 ```python
-# Spawn claude for dependency architecture analysis
-claude_job = mcp__orchestrator__ai_spawn(
-    cli="claude",
-    prompt=f"""Analyze this project's dependency architecture focusing on:
-- Dependency graph complexity and depth
-- Critical path dependencies
-- Vendor lock-in risks
-- Upgrade path planning for major versions
+dependency_prompt = f"""Analyze project dependencies for security, health, and maintainability:
+
+1. Security vulnerabilities (CVEs in direct and transitive dependencies)
+2. Outdated packages (major, minor, patch updates available)
+3. Version pinning issues (unpinned, loose, or conflicting versions)
+4. Abandoned packages (no updates in 2+ years, deprecated)
+5. Typosquatting risks (suspicious package names)
+6. Phantom dependencies (used but not declared)
+7. Dependency graph complexity (depth, critical paths)
 
 Dependency files:
 {{context}}
 
-Provide strategic recommendations for dependency management.""",
-    files=target_files
-)
+Provide findings with:
+- Severity (Critical/High/Medium/Low)
+- Package name and current version
+- CVE IDs where applicable
+- Recommended action (upgrade, replace, remove)"""
 
-# Spawn codex for CVE detection and version issues
-codex_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Audit these dependencies for security and versioning:
-- Known CVEs in direct and transitive dependencies
-- Outdated packages with available updates
-- Version conflicts and resolution issues
-- Phantom dependencies (used but not declared)
-
-Dependency files:
-{{context}}
-
-Output: Vulnerability table with CVE IDs, severity, and upgrade paths.""",
-    files=target_files
-)
-
-# Spawn gemini for ecosystem health
-gemini_job = mcp__orchestrator__ai_spawn(
-    cli="gemini",
-    prompt=f"""Evaluate dependency ecosystem health:
-- Package maintenance status (active, maintenance-only, abandoned)
-- Community health and support availability
-- Alternative packages with better health metrics
-- Industry adoption and stability trends
-
-Dependency files:
-{{context}}
-
-Focus on long-term maintainability recommendations.""",
-    files=target_files
-)
+# Spawn all 3 models with identical prompts for diverse perspectives
+claude_job = mcp__orchestrator__ai_spawn(cli="claude", prompt=dependency_prompt, files=target_files)
+codex_job = mcp__orchestrator__ai_spawn(cli="codex", prompt=dependency_prompt, files=target_files)
+gemini_job = mcp__orchestrator__ai_spawn(cli="gemini", prompt=dependency_prompt, files=target_files)
 
 # Fetch all results (running in parallel)
 claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)

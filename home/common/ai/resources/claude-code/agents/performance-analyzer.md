@@ -149,56 +149,31 @@ When suggesting fixes:
 
 ## Multi-Model Analysis
 
-For thorough performance analysis, spawn all 3 models in parallel:
+For thorough performance analysis, spawn all 3 models in parallel with the same prompt:
 
 ```python
-# Spawn claude for deep algorithmic and scalability analysis
-claude_job = mcp__orchestrator__ai_spawn(
-    cli="claude",
-    prompt=f"""Analyze this code for performance issues focusing on:
-- Algorithmic complexity (Big O analysis)
-- Scalability bottlenecks under load
-- Architecture-level performance concerns
-- Data structure choices and their implications
+performance_prompt = f"""Analyze this code for performance issues:
+
+1. Algorithmic complexity (Big O analysis)
+2. Database issues (N+1 queries, missing indexes, SELECT *)
+3. Memory issues (loading large datasets, string concatenation in loops, unbounded caches)
+4. Blocking operations (sync I/O in async contexts, missing timeouts)
+5. Resource leaks (unclosed connections, file handles, memory)
+6. Inefficient patterns (redundant computations, unnecessary work)
 
 Code context:
 {{context}}
 
-Provide detailed findings with file:line references and complexity analysis.""",
-    files=target_files
-)
+Provide findings with:
+- Severity (Critical/High/Medium/Low)
+- File:line references
+- Current complexity vs suggested improvement
+- Specific fix recommendations"""
 
-# Spawn codex for code-level performance issues
-codex_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Review this code for performance anti-patterns:
-- N+1 query patterns
-- Resource leaks (memory, connections, file handles)
-- Blocking operations in async contexts
-- Inefficient loops and redundant computations
-
-Code context:
-{{context}}
-
-Output: List findings with severity (Critical/High/Medium/Low) and file:line references.""",
-    files=target_files
-)
-
-# Spawn gemini for industry benchmarks and patterns
-gemini_job = mcp__orchestrator__ai_spawn(
-    cli="gemini",
-    prompt=f"""Evaluate this code against performance best practices:
-- Industry benchmarks for similar operations
-- Framework-specific optimization patterns
-- Caching strategies and opportunities
-- Performance monitoring recommendations
-
-Code context:
-{{context}}
-
-Focus on actionable improvements with expected impact.""",
-    files=target_files
-)
+# Spawn all 3 models with identical prompts for diverse perspectives
+claude_job = mcp__orchestrator__ai_spawn(cli="claude", prompt=performance_prompt, files=target_files)
+codex_job = mcp__orchestrator__ai_spawn(cli="codex", prompt=performance_prompt, files=target_files)
+gemini_job = mcp__orchestrator__ai_spawn(cli="gemini", prompt=performance_prompt, files=target_files)
 
 # Fetch all results (running in parallel)
 claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)

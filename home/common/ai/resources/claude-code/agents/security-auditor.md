@@ -120,56 +120,34 @@ Before suggesting fixes, verify:
 
 ## Multi-Model Security Analysis
 
-For comprehensive security audits, spawn all 3 models in parallel:
+For comprehensive security audits, spawn all 3 models in parallel with the same prompt:
 
 ```python
-# Spawn claude for threat modeling and attack vectors
-claude_job = mcp__orchestrator__ai_spawn(
-    cli="claude",
-    prompt=f"""Perform security threat modeling on this code:
-- Identify attack surfaces and entry points
-- Map trust boundaries and data flows
-- Analyze authentication/authorization logic
-- Assess cryptographic implementations
+security_audit_prompt = f"""Perform a security audit on this code:
+
+1. Injection vulnerabilities (SQL, XSS, command, template, LDAP)
+2. Broken access control (IDOR, missing authz checks, CORS misconfig)
+3. Cryptographic failures (weak algorithms, hardcoded keys, insecure random)
+4. Authentication issues (weak passwords, session fixation, credential stuffing)
+5. Security misconfiguration (debug enabled, default creds, verbose errors)
+6. Data exposure (sensitive data in logs, unencrypted storage/transit)
+7. SSRF and request forgery vulnerabilities
+8. Insecure deserialization
 
 Code context:
 {{context}}
 
-Provide detailed findings with file:line references, CWE IDs, and exploitation scenarios.""",
-    files=target_files
-)
+Provide findings with:
+- Severity: 🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low
+- CWE ID where applicable
+- File:line references
+- Exploitation scenario
+- Remediation recommendation"""
 
-# Spawn codex for OWASP vulnerability detection
-codex_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Audit this code for OWASP Top 10 and CWE vulnerabilities:
-- A01: Broken Access Control (IDOR, missing authz)
-- A02: Cryptographic Failures (weak algos, hardcoded keys)
-- A03: Injection (SQL, XSS, command, template)
-- A04-A10: Other OWASP categories
-
-Code context:
-{{context}}
-
-Output: Vulnerability table with CWE ID, severity (Critical/High/Medium/Low), and file:line references.""",
-    files=target_files
-)
-
-# Spawn gemini for security frameworks and compliance
-gemini_job = mcp__orchestrator__ai_spawn(
-    cli="gemini",
-    prompt=f"""Evaluate against security frameworks and compliance:
-- SOC 2 controls (access logging, encryption)
-- PCI DSS requirements (if payment-related)
-- GDPR data protection principles
-- Industry security best practices
-
-Code context:
-{{context}}
-
-Focus on compliance gaps and remediation recommendations.""",
-    files=target_files
-)
+# Spawn all 3 models with identical prompts for diverse perspectives
+claude_job = mcp__orchestrator__ai_spawn(cli="claude", prompt=security_audit_prompt, files=target_files)
+codex_job = mcp__orchestrator__ai_spawn(cli="codex", prompt=security_audit_prompt, files=target_files)
+gemini_job = mcp__orchestrator__ai_spawn(cli="gemini", prompt=security_audit_prompt, files=target_files)
 
 # Fetch all results (running in parallel)
 claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)

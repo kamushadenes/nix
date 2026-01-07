@@ -169,56 +169,32 @@ When suggesting types:
 
 ## Multi-Model Analysis
 
-For thorough type safety analysis, spawn all 3 models in parallel:
+For thorough type safety analysis, spawn all 3 models in parallel with the same prompt:
 
 ```python
-# Spawn claude for type system design analysis
-claude_job = mcp__orchestrator__ai_spawn(
-    cli="claude",
-    prompt=f"""Analyze this code for type system design issues focusing on:
-- Type architecture and modeling decisions
-- Generic type usage and constraints
-- Type narrowing and discrimination patterns
-- Domain modeling with types
+type_safety_prompt = f"""Analyze this code for type safety issues:
+
+1. Missing type annotations (implicit any, untyped function returns)
+2. Unsafe casts and assertions (as Type without validation, non-null assertions)
+3. Null/undefined safety (potential null dereferences, missing null checks)
+4. Type widening issues (using Any/any to bypass type checking)
+5. Generic type problems (missing constraints, incorrect variance)
+6. Type:ignore/type:cast comments without justification
+7. Inconsistent types (interface doesn't match usage, optional vs required mismatch)
 
 Code context:
 {{context}}
 
-Provide detailed findings with file:line references and type design improvements.""",
-    files=target_files
-)
+Provide findings with:
+- Severity (Critical/High/Medium/Low)
+- File:line references
+- Type error explanation
+- Type-safe fix recommendation"""
 
-# Spawn codex for type safety violations
-codex_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Hunt for type safety issues in this code:
-- Implicit any types and missing annotations
-- Unsafe type assertions and casts
-- Null/undefined dereference risks
-- type:ignore comments without justification
-
-Code context:
-{{context}}
-
-Output: List findings with severity (Critical/High/Medium/Low) and file:line references.""",
-    files=target_files
-)
-
-# Spawn gemini for type patterns by language
-gemini_job = mcp__orchestrator__ai_spawn(
-    cli="gemini",
-    prompt=f"""Evaluate types against language-specific best practices:
-- TypeScript: strict mode, utility types, discriminated unions
-- Python: Protocol, TypeVar, Literal, type guards
-- Go: interface design, type assertions, generics
-- Rust: trait bounds, lifetime annotations
-
-Code context:
-{{context}}
-
-Focus on idiomatic type patterns for the detected language.""",
-    files=target_files
-)
+# Spawn all 3 models with identical prompts for diverse perspectives
+claude_job = mcp__orchestrator__ai_spawn(cli="claude", prompt=type_safety_prompt, files=target_files)
+codex_job = mcp__orchestrator__ai_spawn(cli="codex", prompt=type_safety_prompt, files=target_files)
+gemini_job = mcp__orchestrator__ai_spawn(cli="gemini", prompt=type_safety_prompt, files=target_files)
 
 # Fetch all results (running in parallel)
 claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)

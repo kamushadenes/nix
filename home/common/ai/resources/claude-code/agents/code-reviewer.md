@@ -114,56 +114,33 @@ FIX: Catch specific exceptions (`ValueError`, `KeyError`).
 
 ## Multi-Model Review
 
-For comprehensive reviews, spawn all 3 models in parallel:
+For comprehensive reviews, spawn all 3 models in parallel with the same prompt:
 
 ```python
-# Spawn claude for deep code quality analysis
-claude_job = mcp__orchestrator__ai_spawn(
-    cli="claude",
-    prompt=f"""Review this code focusing on:
-- Overall code quality and architecture
-- Logic correctness and edge cases
-- Maintainability and technical debt
-- Design patterns and best practices
+code_review_prompt = f"""Review this code for quality issues:
+
+1. Correctness (logic errors, edge cases, off-by-one errors)
+2. Security (injection, auth bypass, data exposure)
+3. Performance (N+1 queries, blocking calls, inefficient algorithms)
+4. Error handling (missing checks, swallowed exceptions)
+5. Resource management (leaks, unclosed handles)
+6. Concurrency (race conditions, deadlocks, thread safety)
+7. API usage (deprecated methods, incorrect configuration)
+8. Maintainability (readability, naming, code organization)
 
 Code context:
 {{context}}
 
-Provide detailed findings with file:line references and severity ratings.""",
-    files=target_files
-)
+Provide findings with:
+- Severity: 🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low
+- File:line references
+- Clear explanation of the issue
+- Specific fix recommendation"""
 
-# Spawn codex for static analysis style review
-codex_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Review this code for issues using static analysis focus:
-- Security vulnerabilities (injection, auth bypass)
-- Performance anti-patterns (N+1, blocking calls)
-- Resource management (leaks, unclosed handles)
-- Error handling gaps
-
-Code context:
-{{context}}
-
-Output: List findings with severity (Critical/High/Medium/Low) and file:line references.""",
-    files=target_files
-)
-
-# Spawn gemini for best practices and patterns
-gemini_job = mcp__orchestrator__ai_spawn(
-    cli="gemini",
-    prompt=f"""Evaluate this code against industry best practices:
-- Framework-specific patterns and idioms
-- Testing practices and coverage
-- Documentation completeness
-- Code organization and naming
-
-Code context:
-{{context}}
-
-Focus on actionable improvement suggestions.""",
-    files=target_files
-)
+# Spawn all 3 models with identical prompts for diverse perspectives
+claude_job = mcp__orchestrator__ai_spawn(cli="claude", prompt=code_review_prompt, files=target_files)
+codex_job = mcp__orchestrator__ai_spawn(cli="codex", prompt=code_review_prompt, files=target_files)
+gemini_job = mcp__orchestrator__ai_spawn(cli="gemini", prompt=code_review_prompt, files=target_files)
 
 # Fetch all results (running in parallel)
 claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)

@@ -155,56 +155,31 @@ async def safe_background_job():
 
 ## Multi-Model Analysis
 
-For thorough silent failure detection, spawn all 3 models in parallel:
+For thorough silent failure detection, spawn all 3 models in parallel with the same prompt:
 
 ```python
-# Spawn claude for error propagation path analysis
-claude_job = mcp__orchestrator__ai_spawn(
-    cli="claude",
-    prompt=f"""Analyze this code for silent failure patterns focusing on:
-- Error propagation paths and where errors get lost
-- Exception handling chains and their completeness
-- Failure modes that could go undetected in production
-- Observability gaps (missing logs, metrics, alerts)
+silent_failure_prompt = f"""Hunt for silent failures and error handling issues in this code:
+
+1. Swallowed exceptions (empty catch blocks, bare except, catch-and-ignore)
+2. Missing error checks (unchecked return values, ignored error cases)
+3. Hidden failures (default values hiding errors, silent retries)
+4. Async/concurrent failures (fire-and-forget, unhandled promise rejections)
+5. Error propagation gaps (where errors get lost in the chain)
+6. Observability gaps (missing logs, metrics, alerts for failure paths)
 
 Code context:
 {{context}}
 
-Provide detailed findings with file:line references and failure impact analysis.""",
-    files=target_files
-)
+Provide findings with:
+- Severity (Critical/High/Medium/Low)
+- File:line references
+- Impact analysis (what could go wrong in production)
+- Recommended fix with code example"""
 
-# Spawn codex for code-level exception handling issues
-codex_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Hunt for silent failures in this code:
-- Swallowed exceptions (empty catch blocks, bare except)
-- Missing error checks on return values
-- Fire-and-forget async operations
-- Default values that hide failures
-
-Code context:
-{{context}}
-
-Output: List findings with severity (Critical/High/Medium/Low) and file:line references.""",
-    files=target_files
-)
-
-# Spawn gemini for error handling best practices
-gemini_job = mcp__orchestrator__ai_spawn(
-    cli="gemini",
-    prompt=f"""Evaluate error handling against reliability best practices:
-- Industry patterns for resilient error handling
-- Framework-specific error handling idioms
-- Recommended logging and monitoring strategies
-- Circuit breaker and retry patterns
-
-Code context:
-{{context}}
-
-Focus on reliability improvements with implementation guidance.""",
-    files=target_files
-)
+# Spawn all 3 models with identical prompts for diverse perspectives
+claude_job = mcp__orchestrator__ai_spawn(cli="claude", prompt=silent_failure_prompt, files=target_files)
+codex_job = mcp__orchestrator__ai_spawn(cli="codex", prompt=silent_failure_prompt, files=target_files)
+gemini_job = mcp__orchestrator__ai_spawn(cli="gemini", prompt=silent_failure_prompt, files=target_files)
 
 # Fetch all results (running in parallel)
 claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)

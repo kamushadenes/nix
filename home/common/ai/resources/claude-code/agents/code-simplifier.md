@@ -174,56 +174,31 @@ for item in data:
 
 ## Multi-Model Analysis
 
-For thorough complexity analysis, spawn all 3 models in parallel:
+For thorough complexity analysis, spawn all 3 models in parallel with the same prompt:
 
 ```python
-# Spawn claude for architectural simplification analysis
-claude_job = mcp__orchestrator__ai_spawn(
-    cli="claude",
-    prompt=f"""Analyze this code for simplification opportunities focusing on:
-- Architectural complexity and over-engineering
-- Unnecessary abstraction layers
-- Design pattern misuse or overuse
-- Module/class responsibility distribution
+simplification_prompt = f"""Analyze this code for complexity and simplification opportunities:
+
+1. Complexity metrics (cyclomatic > 10, cognitive > 15, nesting > 4, function length > 50)
+2. Over-abstraction (unnecessary layers, pattern overuse, premature generalization)
+3. Complex conditionals (nested ifs, long boolean expressions)
+4. Unnecessary indirection (wrappers adding no value, middle-man classes)
+5. Clever code (one-liners that sacrifice readability)
+6. DRY violations and code duplication
 
 Code context:
 {{context}}
 
-Provide detailed findings with file:line references and simplification strategies.""",
-    files=target_files
-)
+Provide findings with:
+- Severity (Critical/High/Medium/Low)
+- File:line references
+- Complexity metrics where applicable
+- Simplified code alternative"""
 
-# Spawn codex for complexity metrics and refactoring
-codex_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Measure and analyze code complexity:
-- Cyclomatic complexity (flag functions > 10)
-- Cognitive complexity (flag functions > 15)
-- Nesting depth (flag > 4 levels)
-- Function length (flag > 50 lines)
-
-Code context:
-{{context}}
-
-Output: Complexity metrics table and specific refactoring suggestions with file:line references.""",
-    files=target_files
-)
-
-# Spawn gemini for clean code patterns
-gemini_job = mcp__orchestrator__ai_spawn(
-    cli="gemini",
-    prompt=f"""Evaluate code against clean code principles:
-- SOLID principles adherence
-- DRY violations and duplication
-- KISS principle violations
-- Language-specific idioms and best practices
-
-Code context:
-{{context}}
-
-Focus on practical simplification recommendations.""",
-    files=target_files
-)
+# Spawn all 3 models with identical prompts for diverse perspectives
+claude_job = mcp__orchestrator__ai_spawn(cli="claude", prompt=simplification_prompt, files=target_files)
+codex_job = mcp__orchestrator__ai_spawn(cli="codex", prompt=simplification_prompt, files=target_files)
+gemini_job = mcp__orchestrator__ai_spawn(cli="gemini", prompt=simplification_prompt, files=target_files)
 
 # Fetch all results (running in parallel)
 claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)

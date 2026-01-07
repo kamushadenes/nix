@@ -150,56 +150,32 @@ Common test file locations to check:
 
 ## Multi-Model Test Analysis
 
-For comprehensive test analysis, spawn all 3 models in parallel:
+For comprehensive test analysis, spawn all 3 models in parallel with the same prompt:
 
 ```python
-# Spawn claude for test coverage gap analysis
-claude_job = mcp__orchestrator__ai_spawn(
-    cli="claude",
-    prompt=f"""Analyze test coverage and identify gaps focusing on:
-- Acceptance criteria to test mapping
-- Critical path coverage assessment
-- Test architecture and organization
-- Integration test adequacy
+test_analysis_prompt = f"""Analyze test coverage and quality:
+
+1. Coverage gaps (untested functions, missing edge cases, uncovered branches)
+2. Boundary conditions (null, empty, max values, off-by-one)
+3. Error path testing (exception handling, failure scenarios)
+4. Concurrency testing (race conditions, deadlocks, async behavior)
+5. External dependency handling (mocking, timeouts, failure simulation)
+6. Test quality issues (flaky tests, slow tests, poor isolation)
+7. Test design (naming, structure, assertions, maintainability)
 
 Code context:
 {{context}}
 
-Provide detailed findings with specific test recommendations for each gap.""",
-    files=target_files
-)
+Provide findings with:
+- Priority: 🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low
+- File:line references
+- Missing test scenario description
+- Suggested test case outline"""
 
-# Spawn codex for adversarial test scenarios
-codex_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Review tests using adversarial thinking:
-- Boundary conditions (null, empty, max values)
-- Concurrency issues (race conditions, deadlocks)
-- External dependency failures (timeouts, errors)
-- Error path coverage
-
-Code context:
-{{context}}
-
-Output: Missing test scenarios with severity and test code suggestions.""",
-    files=target_files
-)
-
-# Spawn gemini for testing best practices
-gemini_job = mcp__orchestrator__ai_spawn(
-    cli="gemini",
-    prompt=f"""Evaluate tests against industry best practices:
-- Test design patterns for this framework
-- Production failure scenarios to cover
-- Test reliability and maintainability
-- Performance testing recommendations
-
-Code context:
-{{context}}
-
-Focus on practical improvements based on common production failures.""",
-    files=target_files
-)
+# Spawn all 3 models with identical prompts for diverse perspectives
+claude_job = mcp__orchestrator__ai_spawn(cli="claude", prompt=test_analysis_prompt, files=target_files)
+codex_job = mcp__orchestrator__ai_spawn(cli="codex", prompt=test_analysis_prompt, files=target_files)
+gemini_job = mcp__orchestrator__ai_spawn(cli="gemini", prompt=test_analysis_prompt, files=target_files)
 
 # Fetch all results (running in parallel)
 claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)

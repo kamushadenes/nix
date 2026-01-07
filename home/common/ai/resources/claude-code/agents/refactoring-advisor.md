@@ -190,56 +190,33 @@ When suggesting refactoring:
 
 ## Multi-Model Refactoring Analysis
 
-For comprehensive refactoring analysis, spawn all 3 models in parallel:
+For comprehensive refactoring analysis, spawn all 3 models in parallel with the same prompt:
 
 ```python
-# Spawn claude for architectural refactoring assessment
-claude_job = mcp__orchestrator__ai_spawn(
-    cli="claude",
-    prompt=f"""Analyze code for refactoring opportunities focusing on:
-- Architectural decomposition needs
-- Module boundaries and cohesion
-- Dependency structure improvements
-- Long-term maintainability gains
+refactoring_prompt = f"""Analyze code for refactoring opportunities:
+
+1. Size violations (files >15K LOC, classes >3K LOC, functions >500 LOC)
+2. Structural smells (long methods, deep nesting, long parameter lists)
+3. Duplication (copy-paste code, repeated conditionals)
+4. Coupling issues (feature envy, inappropriate intimacy, message chains)
+5. Abstraction problems (primitive obsession, data clumps, refused bequest)
+6. Decomposition opportunities (files, classes, functions that should be split)
+7. Design pattern opportunities (where patterns could improve structure)
 
 Code context:
 {{context}}
 
-Provide detailed refactoring recommendations with impact assessment and migration paths.""",
-    files=target_files
-)
+Provide findings with:
+- Priority: 🔴 Critical (must decompose), 🟠 High, 🟡 Medium, 🟢 Low
+- File:line references
+- Current metrics (LOC, complexity)
+- Suggested refactoring approach
+- API breakage risk assessment"""
 
-# Spawn codex for code smell detection
-codex_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Detect code smells and refactoring opportunities:
-- Size threshold violations (files, classes, functions)
-- Structural smells (long methods, deep nesting)
-- Duplication and coupling issues
-- API breakage risks for proposed changes
-
-Code context:
-{{context}}
-
-Output: Code smell inventory with severity, LOC metrics, and safe refactoring suggestions.""",
-    files=target_files
-)
-
-# Spawn gemini for refactoring patterns and best practices
-gemini_job = mcp__orchestrator__ai_spawn(
-    cli="gemini",
-    prompt=f"""Evaluate refactoring approaches against industry practices:
-- Design patterns applicable to these smells
-- Industry approaches to similar refactoring challenges
-- Incremental migration strategies
-- Testing strategies during refactoring
-
-Code context:
-{{context}}
-
-Focus on proven refactoring patterns with practical implementation guidance.""",
-    files=target_files
-)
+# Spawn all 3 models with identical prompts for diverse perspectives
+claude_job = mcp__orchestrator__ai_spawn(cli="claude", prompt=refactoring_prompt, files=target_files)
+codex_job = mcp__orchestrator__ai_spawn(cli="codex", prompt=refactoring_prompt, files=target_files)
+gemini_job = mcp__orchestrator__ai_spawn(cli="gemini", prompt=refactoring_prompt, files=target_files)
 
 # Fetch all results (running in parallel)
 claude_result = mcp__orchestrator__ai_fetch(job_id=claude_job.job_id, timeout=120)
