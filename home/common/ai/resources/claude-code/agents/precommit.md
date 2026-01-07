@@ -1,7 +1,7 @@
 ---
 name: precommit
 description: Pre-commit validation agent. Use before committing to get multi-model review of changes.
-tools: Read, Grep, Glob, Bash, mcp__pal__clink, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: haiku
 ---
 

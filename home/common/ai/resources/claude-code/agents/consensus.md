@@ -1,7 +1,7 @@
 ---
 name: consensus
 description: Multi-model perspective gathering. Use when you need diverse opinions on a problem or decision.
-tools: Read, Grep, Glob, mcp__pal__clink, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch, mcp__orchestrator__ai_review
+tools: Read, Grep, Glob, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch, mcp__orchestrator__ai_review
 model: haiku
 ---
 

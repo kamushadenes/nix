@@ -1,9 +1,9 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), mcp__pal__clink
-description: Run a multi-focus code review on current changes using clink for multi-model perspectives
+allowed-tools: Bash(git status:*), Bash(git diff:*), mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
+description: Run a multi-focus code review on current changes using parallel AI models
 ---
 
-Run a multi-focus code review on current changes using clink for multi-model perspectives.
+Run a multi-focus code review on current changes using parallel AI models for diverse perspectives.
 
 ## Steps
 
@@ -17,11 +17,12 @@ Run a multi-focus code review on current changes using clink for multi-model per
 diff=$(git diff HEAD)
 ```
 
-4. Run focused reviews using clink (sequentially - clink is synchronous):
+4. Spawn focused reviews in parallel using ai_spawn:
 
 ```python
 # Security focus
-security_review = mcp__pal__clink(
+security_job = mcp__orchestrator__ai_spawn(
+    cli="codex",
     prompt=f"""Review these changes focusing ONLY on security vulnerabilities:
 - Injection attacks (SQL, command, template)
 - Authentication/authorization issues
@@ -31,12 +32,12 @@ security_review = mcp__pal__clink(
 Changes:
 {diff}
 
-Output: List findings with severity (Critical/High/Medium/Low) and file:line references.""",
-    cli="codex"
+Output: List findings with severity (Critical/High/Medium/Low) and file:line references."""
 )
 
 # Code quality focus
-quality_review = mcp__pal__clink(
+quality_job = mcp__orchestrator__ai_spawn(
+    cli="codex",
     prompt=f"""Review these changes focusing ONLY on code quality:
 - Simplicity and readability
 - Naming conventions
@@ -46,12 +47,12 @@ quality_review = mcp__pal__clink(
 Changes:
 {diff}
 
-Output: List findings with severity and file:line references.""",
-    cli="codex"
+Output: List findings with severity and file:line references."""
 )
 
 # Error handling focus
-error_review = mcp__pal__clink(
+error_job = mcp__orchestrator__ai_spawn(
+    cli="codex",
     prompt=f"""Review these changes focusing ONLY on error handling:
 - Missing error checks
 - Silent failures (swallowed exceptions)
@@ -61,16 +62,23 @@ error_review = mcp__pal__clink(
 Changes:
 {diff}
 
-Output: List findings with severity and file:line references.""",
-    cli="codex"
+Output: List findings with severity and file:line references."""
 )
 ```
 
-5. Present findings organized by severity:
+5. Fetch all results (they ran in parallel):
+
+```python
+security_review = mcp__orchestrator__ai_fetch(job_id=security_job.job_id, timeout=120)
+quality_review = mcp__orchestrator__ai_fetch(job_id=quality_job.job_id, timeout=120)
+error_review = mcp__orchestrator__ai_fetch(job_id=error_job.job_id, timeout=120)
+```
+
+6. Present findings organized by severity:
 
    - **Critical Issues** - Must fix before committing
    - **Warnings** - Should address soon
    - **Suggestions** - Nice to have improvements
    - **Positive Notes** - What's done well
 
-6. Offer to help address any issues found
+7. Offer to help address any issues found

@@ -41,7 +41,6 @@ let
     "github"
     "Ref"
     "orchestrator"
-    "pal"
     "clickup"
     "vanta"
   ];
@@ -215,11 +214,6 @@ in
           "mcp__orchestrator__ai_fetch"
           "mcp__orchestrator__ai_list"
           "mcp__orchestrator__ai_review"
-
-          # MCP: PAL - CLI-to-CLI bridge (version/listmodels auto-allowed)
-          "mcp__pal__clink"
-          "mcp__pal__listmodels"
-          "mcp__pal__version"
 
           # MCP: ClickUp - Restricted to Iniciador projects via PreToolUse hook
           # Note: Tools are approved on first use. Add specific permissions here after

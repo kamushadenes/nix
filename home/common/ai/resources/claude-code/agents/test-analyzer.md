@@ -1,7 +1,7 @@
 ---
 name: test-analyzer
 description: Test coverage and quality analyst. Use PROACTIVELY after test changes or when reviewing test adequacy.
-tools: Read, Grep, Glob, Bash, mcp__pal__clink
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 

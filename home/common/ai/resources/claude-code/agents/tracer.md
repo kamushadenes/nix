@@ -1,7 +1,7 @@
 ---
 name: tracer
 description: Execution flow analysis agent. Use to trace code paths and understand complex logic.
-tools: Read, Grep, Glob, Bash, mcp__pal__clink, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 

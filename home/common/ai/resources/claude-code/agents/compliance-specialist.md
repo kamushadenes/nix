@@ -1,7 +1,7 @@
 ---
 name: compliance-specialist
 description: SOC 2 and ISO 27001 certification specialist. Use to fix Vanta failing controls, implement compliance requirements, and prepare for audits.
-tools: Read, Grep, Glob, Bash, mcp__pal__clink, mcp__vanta__*
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch, mcp__vanta__*
 model: opus
 ---
 

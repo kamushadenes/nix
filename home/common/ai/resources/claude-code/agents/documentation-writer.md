@@ -1,7 +1,7 @@
 ---
 name: documentation-writer
 description: Documentation quality analyst and writer. Use for API docs, README updates, and documentation completeness reviews.
-tools: Read, Grep, Glob, Bash, mcp__pal__clink
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 

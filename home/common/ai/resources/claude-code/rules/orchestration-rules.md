@@ -2,7 +2,7 @@
 
 ## Role Hierarchy
 
-Claude Code is the **orchestrator**. When calling external AI agents via clink:
+Claude Code is the **orchestrator**. When calling external AI agents via orchestrator MCP:
 
 | CLI    | Role        | Mode      | Capabilities                       |
 | ------ | ----------- | --------- | ---------------------------------- |
@@ -12,7 +12,7 @@ Claude Code is the **orchestrator**. When calling external AI agents via clink:
 
 ## Sub-Agent Delegation
 
-For complex workflows, delegate to specialized Claude Code sub-agents instead of calling clink directly. Sub-agents are in `~/.claude/agents/`:
+For complex workflows, delegate to specialized Claude Code sub-agents. Sub-agents are in `~/.claude/agents/`:
 
 | Sub-Agent               | Purpose                     |
 | ----------------------- | --------------------------- |
@@ -34,20 +34,43 @@ For complex workflows, delegate to specialized Claude Code sub-agents instead of
 | `thinkdeep`             | Extended thinking/analysis  |
 | `tracer`                | Execution flow analysis     |
 
-## Using clink for External AI
+## Using Orchestrator AI Tools
 
-The `clink` tool bridges to external AI CLIs:
+The orchestrator MCP provides tools for parallel AI CLI orchestration:
+
+### Synchronous Call (ai_call)
 
 ```python
-# Query an external model
-result = clink(
-    prompt="Review this code for security issues",
+# Blocking call - waits for result
+result = ai_call(
     cli="codex",  # or "claude" or "gemini"
+    prompt="Review this code for security issues",
     files=["src/auth/"]  # optional file context
 )
+# result.status, result.content, result.metadata
 ```
 
-**clink is synchronous** - it blocks until the external CLI completes.
+### Parallel Execution (ai_spawn + ai_fetch)
+
+```python
+# Spawn multiple CLIs in parallel
+claude_job = ai_spawn(cli="claude", prompt="Analyze architecture")
+codex_job = ai_spawn(cli="codex", prompt="Review for bugs")
+gemini_job = ai_spawn(cli="gemini", prompt="Research best practices")
+
+# Fetch results (all running in parallel)
+claude_result = ai_fetch(job_id=claude_job.job_id, timeout=120)
+codex_result = ai_fetch(job_id=codex_job.job_id, timeout=120)
+gemini_result = ai_fetch(job_id=gemini_job.job_id, timeout=120)
+```
+
+### Multi-Model Review (ai_review)
+
+```python
+# Convenience: spawns all 3 CLIs with same prompt
+review = ai_review(prompt="Review this function", files=["src/main.py"])
+# Returns job_ids for claude, codex, and gemini
+```
 
 ## Enforced Constraints
 
@@ -64,7 +87,7 @@ result = clink(
 
 ## Instruction Requirements
 
-When using clink for external agents (codex/gemini), the prompt **MUST** include:
+When using external agents (codex/gemini), the prompt **MUST** include:
 
 1. **Clear task description** - what exactly to do
 2. **Expected output format** - how to structure the response
@@ -89,7 +112,7 @@ Look at the code and tell me what you think
 
 ## When to Use External Agents
 
-**Multi-model orchestration is expensive and slow.** Each clink call takes 30-120 seconds. Use sparingly.
+**Multi-model orchestration has latency cost.** Use parallel execution to minimize wait time.
 
 **Do use when:**
 
@@ -106,11 +129,11 @@ Look at the code and tell me what you think
 - Minor refactoring or code cleanup
 - Single-file changes with clear scope
 
-**Default behavior**: Claude Code should make its own decisions for most work. Only escalate to multi-model consensus when the complexity genuinely warrants the time cost.
+**Default behavior**: Claude Code should make its own decisions for most work. Only escalate to multi-model consensus when the complexity genuinely warrants it.
 
-## Sub-Agents That Use clink (Use Sparingly)
+## Sub-Agents That Use Multi-Model (Use Sparingly)
 
-These sub-agents call external AI models and are slow:
+These sub-agents call external AI models:
 
 | Sub-Agent    | When to Use                                       |
 | ------------ | ------------------------------------------------- |
@@ -121,4 +144,4 @@ These sub-agents call external AI models and are slow:
 | `thinkdeep`  | Problems requiring extended analysis              |
 | `tracer`     | Complex execution flow analysis                   |
 
-**Most code reviews should use `code-reviewer` directly** (no clink) rather than multi-model consensus.
+**Most code reviews should use `code-reviewer` directly** rather than multi-model consensus.

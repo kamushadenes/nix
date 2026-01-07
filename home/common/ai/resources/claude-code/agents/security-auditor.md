@@ -1,7 +1,7 @@
 ---
 name: security-auditor
 description: Security vulnerability analyst. Use PROACTIVELY for security-sensitive code changes.
-tools: Read, Grep, Glob, Bash, mcp__pal__clink
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 

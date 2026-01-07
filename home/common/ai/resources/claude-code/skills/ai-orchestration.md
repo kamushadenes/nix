@@ -1,7 +1,7 @@
 ---
 name: ai-orchestration
 description: Multi-model AI collaboration via orchestrator MCP. Use when seeking second opinions, debugging complex issues, building consensus on architectural decisions, conducting code reviews, or needing external validation on analysis.
-triggers: second opinion, multi-model, consensus, external AI, clink, codex, gemini, model comparison, AI collaboration, expert validation, parallel AI, ai_spawn, ai_fetch
+triggers: second opinion, multi-model, consensus, external AI, codex, gemini, model comparison, AI collaboration, expert validation, parallel AI, ai_spawn, ai_fetch
 ---
 
 # AI CLI Orchestration
@@ -10,14 +10,13 @@ Query external AI models (claude, codex, gemini) for second opinions, debugging,
 
 ## Tools Overview
 
-| Tool        | Mode        | Description                                |
-| ----------- | ----------- | ------------------------------------------ |
-| `ai_call`   | Synchronous | Call AI and wait for result (like clink)   |
-| `ai_spawn`  | Async       | Start AI in background, get job ID         |
-| `ai_fetch`  | Async       | Get result from spawned AI (with timeout)  |
-| `ai_list`   | Utility     | List all running/completed AI jobs         |
+| Tool        | Mode        | Description                                  |
+| ----------- | ----------- | -------------------------------------------- |
+| `ai_call`   | Synchronous | Call AI and wait for result                  |
+| `ai_spawn`  | Async       | Start AI in background, get job ID           |
+| `ai_fetch`  | Async       | Get result from spawned AI (with timeout)    |
+| `ai_list`   | Utility     | List all running/completed AI jobs           |
 | `ai_review` | Convenience | Spawn all 3 AIs in parallel with same prompt |
-| `clink`     | Legacy      | PAL MCP's synchronous CLI bridge           |
 
 ## Role Hierarchy
 
@@ -42,9 +41,9 @@ codex_job = ai_spawn(cli="codex", prompt="Review this code for patterns...")
 gemini_job = ai_spawn(cli="gemini", prompt="Research best practices for...")
 
 # All running simultaneously! Fetch results:
-claude_result = ai_fetch(job_id=claude_job["job_id"], timeout=120)
-codex_result = ai_fetch(job_id=codex_job["job_id"], timeout=120)
-gemini_result = ai_fetch(job_id=gemini_job["job_id"], timeout=120)
+claude_result = ai_fetch(job_id=claude_job.job_id, timeout=120)
+codex_result = ai_fetch(job_id=codex_job.job_id, timeout=120)
+gemini_result = ai_fetch(job_id=gemini_job.job_id, timeout=120)
 
 # Total time = slowest model (~60s) instead of sum (~180s)
 ```
@@ -54,22 +53,22 @@ Or use `ai_review` for convenience:
 ```python
 # One call spawns all 3
 review = ai_review(prompt="Analyze this architecture decision...", files=["src/"])
-# Returns: {"jobs": {"claude": {"job_id": "abc"}, "codex": {...}, "gemini": {...}}}
+# Returns: AIReviewResult with jobs for claude, codex, and gemini
 
 # Fetch each result
-claude_result = ai_fetch(job_id=review["jobs"]["claude"]["job_id"], timeout=120)
+claude_result = ai_fetch(job_id=review.jobs["claude"].job_id, timeout=120)
 ```
 
 ### Sequential (When Needed)
 
-Use `ai_call` or `clink` when prompts depend on previous results:
+Use `ai_call` when prompts depend on previous results:
 
 ```python
 # First, get architecture analysis
 arch = ai_call(cli="claude", prompt="Design the auth architecture...")
 
 # Then, use that to get implementation details
-impl = ai_call(cli="codex", prompt=f"Given this architecture:\n{arch['content']}\n\nList implementation steps...")
+impl = ai_call(cli="codex", prompt=f"Given this architecture:\n{arch.content}\n\nList implementation steps...")
 ```
 
 ## When to Use External Models
@@ -99,7 +98,7 @@ job = ai_spawn(
     files=["src/file.py"],  # Optional: files to include as context
     timeout=300             # Max seconds for CLI to complete
 )
-# Returns: {"status": "spawned", "job_id": "abc123", "cli": "claude"}
+# Returns: AISpawnResult with status="spawned", job_id, cli
 ```
 
 ### ai_fetch
@@ -111,16 +110,16 @@ result = ai_fetch(
     job_id="abc123",  # From ai_spawn
     timeout=30        # Seconds to wait (0 = instant check)
 )
-# Returns one of:
-# {"status": "completed", "content": "...", "metadata": {...}}
-# {"status": "running", "message": "Job still running..."}
-# {"status": "failed", "error": "..."}
-# {"status": "timeout", "error": "CLI timed out..."}
+# Returns AIFetchResult with one of:
+# status="completed", content="...", metadata={...}
+# status="running", message="Job still running..."
+# status="failed", error="..."
+# status="timeout", error="CLI timed out..."
 ```
 
 ### ai_call
 
-Synchronous call (like clink):
+Synchronous call:
 
 ```python
 result = ai_call(
@@ -130,7 +129,7 @@ result = ai_call(
     timeout=300
 )
 # Blocks until complete
-# Returns: {"status": "success", "content": "...", "metadata": {...}}
+# Returns: AICallResult with status="success", content="...", metadata={...}
 ```
 
 ### ai_review
@@ -143,7 +142,7 @@ review = ai_review(
     files=["src/"],
     timeout=300
 )
-# Returns: {"jobs": {"claude": {...}, "codex": {...}, "gemini": {...}}}
+# Returns: AIReviewResult with jobs dict containing claude, codex, gemini job info
 ```
 
 ### ai_list
@@ -152,12 +151,12 @@ List all active jobs:
 
 ```python
 jobs = ai_list()
-# Returns: [{"job_id": "...", "cli": "claude", "status": "running", ...}]
+# Returns: AIListResult with list of AIJobInfo objects
 ```
 
 ## Sub-Agent Delegation
 
-For complex workflows, delegate to specialized sub-agents. They now support parallel execution via the new AI tools.
+For complex workflows, delegate to specialized sub-agents. They support parallel execution via the AI tools.
 
 ### Available Sub-Agents
 
@@ -195,9 +194,9 @@ review = ai_review(prompt="Should we use WebSockets or SSE for real-time updates
 
 # Fetch and compare
 results = {
-    "claude": ai_fetch(review["jobs"]["claude"]["job_id"], timeout=120),
-    "codex": ai_fetch(review["jobs"]["codex"]["job_id"], timeout=120),
-    "gemini": ai_fetch(review["jobs"]["gemini"]["job_id"], timeout=120),
+    "claude": ai_fetch(review.jobs["claude"].job_id, timeout=120),
+    "codex": ai_fetch(review.jobs["codex"].job_id, timeout=120),
+    "gemini": ai_fetch(review.jobs["gemini"].job_id, timeout=120),
 }
 
 # Synthesize: look for agreement, note disagreements

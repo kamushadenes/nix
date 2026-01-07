@@ -1,27 +1,6 @@
 # AI Agent Configurations
 
-This directory contains Nix configurations for AI CLI tools and their integrations.
-
-## Structure
-
-```
-ai/
-├── claude-code.nix      # Claude Code (Anthropic) - primary orchestrator
-├── codex-cli.nix        # Codex CLI (OpenAI) - read-only worker
-├── gemini-cli.nix       # Gemini CLI (Google) - read-only worker
-├── mcp-servers.nix      # Shared MCP server definitions
-└── resources/claude-code/
-    ├── commands/        # User-invocable slash commands
-    │   ├── code-review.md
-    │   ├── commit.md
-    │   └── commit-push-pr.md
-    ├── memory/          # Global CLAUDE.md content
-    ├── rules/           # Behavioral rules (loaded into ~/.claude/rules/)
-    ├── scripts/         # MCP server implementations
-    └── skills/          # Internal skills (Claude guidance, not user-invocable)
-        ├── ai-orchestration.md
-        └── automating-tmux-windows.md
-```
+Nix configurations for AI CLI tools (Claude Code, Codex CLI, Gemini CLI).
 
 ## Role Hierarchy
 
@@ -31,38 +10,12 @@ ai/
 | codex  | Worker       | Read-only | Code review, analysis            |
 | gemini | Worker       | Read-only | Web search, documentation lookup |
 
-## Key Files
+## Orchestrator MCP Tools
 
-### mcp-servers.nix
+The orchestrator MCP server (`scripts/orchestrator-mcp-server.py`) provides:
 
-Unified MCP server configuration with transformation functions:
-
-- `toClaudeCode` - JSON with type/url/command
-- `toCodex` - TOML format (uses mcp-remote for HTTP)
-- `toGemini` - JSON with httpUrl field
-
-Handles secret placeholders (`@SECRET@`) and agenix integration.
-
-### Orchestrator MCP Server
-
-`resources/claude-code/scripts/orchestrator-mcp-server.py` provides:
-
-- `tmux_*` tools - Terminal window automation
-
-For AI CLI orchestration, use PAL MCP's `clink` tool.
-
-### PAL MCP Server
-
-PAL MCP provides the `clink` tool for CLI-to-CLI bridging:
-
-- Query Claude, Codex, or Gemini CLIs from Claude Code
-- Synchronous execution - blocks until CLI completes
-- Supports file context and continuation IDs
-
-## Adding New AI CLIs
-
-1. Create `<cli-name>.nix` following existing patterns
-2. Import `mcp-servers.nix` for shared MCP config
-3. Add transformation function to `mcp-servers.nix` if format differs
-4. Update `home.nix` imports
-5. Add to orchestrator role hierarchy if it will be spawned as worker
+- `tmux_*` - Terminal window automation
+- `ai_call` - Synchronous AI CLI call
+- `ai_spawn` / `ai_fetch` - Async AI CLI (parallel execution)
+- `ai_list` - List AI jobs
+- `ai_review` - Spawn all 3 CLIs in parallel

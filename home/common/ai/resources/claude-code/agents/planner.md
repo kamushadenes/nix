@@ -1,7 +1,7 @@
 ---
 name: planner
 description: Project planning agent. Use for breaking down complex features or projects into implementation steps.
-tools: Read, Grep, Glob, mcp__pal__clink, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
+tools: Read, Grep, Glob, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: refactoring-advisor
 description: Identifies refactoring opportunities. Use PROACTIVELY when code has grown complex or during cleanup phases.
-tools: Read, Grep, Glob, Bash, mcp__pal__clink
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 

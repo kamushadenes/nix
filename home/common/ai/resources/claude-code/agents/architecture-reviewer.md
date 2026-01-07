@@ -1,7 +1,7 @@
 ---
 name: architecture-reviewer
 description: Comprehensive architecture review across 15 dimensions. Use for major features or refactoring.
-tools: Read, Grep, Glob, Bash, mcp__pal__clink
+tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
 ---
 
