@@ -19,3 +19,13 @@ The orchestrator MCP server (`scripts/orchestrator-mcp-server.py`) provides:
 - `ai_spawn` / `ai_fetch` - Async AI CLI (parallel execution)
 - `ai_list` - List AI jobs
 - `ai_review` - Spawn all 3 CLIs in parallel
+
+## Creating New Skills
+
+When creating new skills for Claude Code, use the `skill-creator` skill. It provides:
+
+- Guidelines for effective skill design
+- Progressive disclosure patterns for context efficiency
+- Utility scripts: `init_skill.py`, `package_skill.py`, `quick_validate.py`
+
+Skills location: `resources/claude-code/skills/`
