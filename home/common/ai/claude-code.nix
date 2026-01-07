@@ -470,6 +470,8 @@ in
     # Query and architecture agents
     ".claude/agents/query-clarifier.md".source = "${agentsDir}/query-clarifier.md";
     ".claude/agents/architecture-reviewer.md".source = "${agentsDir}/architecture-reviewer.md";
+    # Compliance and certification agents
+    ".claude/agents/compliance-specialist.md".source = "${agentsDir}/compliance-specialist.md";
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
