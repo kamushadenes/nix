@@ -93,6 +93,9 @@ let
 
       # Claude Code tool search
       ENABLE_TOOL_SEARCH = "true";
+
+      # Claude Code LSP tools
+      ENABLE_LSP_TOOLS = "1";
     };
 
     launchctl = mkVarExports (name: value: ''run /bin/launchctl setenv ${name} "${value}"'') globalVariables.base;
