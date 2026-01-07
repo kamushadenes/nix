@@ -72,10 +72,11 @@ in
     secretsDir = secretsDir;
     inherit private;
   } // {
-    # Vanta credentials - needs to be a file path, not substituted content
-    "claude-vanta-credentials" = {
+    # Iniciador Vanta credentials - needs file path, not substituted content
+    # Referenced directly in iniciador-vanta server config
+    "claude-iniciador-vanta-credentials" = {
       file = "${private}/home/common/ai/resources/claude/vanta-credentials.age";
-      path = "${secretsDir}/vanta-credentials.json";
+      path = "${secretsDir}/iniciador-vanta-credentials";
     };
   };
 
@@ -240,13 +241,14 @@ in
               }
             ];
           }
-          # Restrict ClickUp MCP to Iniciador project directories
+          # Workspace-scoped ClickUp restrictions
+          # Each workspace MCP is restricted to its project directories
           {
-            matcher = "mcp__clickup__.*";
+            matcher = "mcp__iniciador-clickup__.*";
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/restrict-clickup.sh";
+                command = "~/.claude/hooks/restrict-clickup.sh iniciador";
               }
             ];
           }
