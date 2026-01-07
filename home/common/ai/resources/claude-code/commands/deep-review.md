@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Task, AskUserQuestion
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Task, AskUserQuestion
 description: Comprehensive multi-agent code review using 9 specialized agents with 3-model consensus
 ---
 
@@ -10,13 +10,14 @@ Run a comprehensive deep review using all specialized review agents in parallel.
 1. **Ask the user what to review** using AskUserQuestion:
 
 ```
-Question: "What would you like to review?"
+Question: "What scope would you like to review?"
 Options:
-- "Changes only" - Review uncommitted changes (git diff)
+- "Uncommitted changes" - Review only uncommitted changes (git diff)
+- "Branch changes" - Review all changes on this branch vs main/master
 - "Entire codebase" - Review the full project
 ```
 
-2. **If reviewing changes only:**
+2. **If reviewing uncommitted changes:**
 
    a. Check if there are changes:
    ```bash
@@ -24,7 +25,7 @@ Options:
    ```
 
    b. If no changes, inform the user and stop:
-   > No uncommitted changes detected. Either make changes first, or run `/deep-review` and select "Entire codebase".
+   > No uncommitted changes detected. Either make changes first, or run `/deep-review` and select a different scope.
 
    c. Get the diff for context:
    ```bash
@@ -35,10 +36,44 @@ Options:
    d. Set the review context for agents:
    ```
    review_context = f"Review these uncommitted changes:\n\nChanged files: {changed_files}\n\n{diff}"
-   review_scope = "changes"
+   review_scope = "uncommitted"
    ```
 
-3. **If reviewing entire codebase:**
+3. **If reviewing branch changes:**
+
+   a. Determine the base branch (main or master):
+   ```bash
+   # Check which base branch exists
+   git rev-parse --verify main 2>/dev/null && base_branch="main" || base_branch="master"
+   ```
+
+   b. Get the current branch name:
+   ```bash
+   current_branch=$(git branch --show-current)
+   ```
+
+   c. Check if there are branch changes:
+   ```bash
+   git log ${base_branch}..HEAD --oneline
+   ```
+
+   d. If no changes, inform the user and stop:
+   > No changes found between current branch and ${base_branch}. You may already be on the base branch, or all changes have been merged.
+
+   e. Get the diff for context:
+   ```bash
+   diff=$(git diff ${base_branch}...HEAD)
+   changed_files=$(git diff --name-only ${base_branch}...HEAD)
+   commit_count=$(git rev-list --count ${base_branch}..HEAD)
+   ```
+
+   f. Set the review context for agents:
+   ```
+   review_context = f"Review branch changes ({commit_count} commits on {current_branch} vs {base_branch}):\n\nChanged files: {changed_files}\n\n{diff}"
+   review_scope = "branch"
+   ```
+
+4. **If reviewing entire codebase:**
 
    a. Identify key directories and files to review:
    ```bash
@@ -53,14 +88,16 @@ Options:
    target_files = ["src/", "lib/", "app/", "."]  # Agent will explore
    ```
 
-4. **Launch all 9 review agents in parallel** using the Task tool:
+5. **Launch all 9 review agents in parallel** using the Task tool:
 
 ```python
 # Each agent will internally spawn claude, codex, and gemini for 3-model analysis
 # Prompts are adjusted based on review_scope
 
-if review_scope == "changes":
+if review_scope == "uncommitted":
     context_intro = "Review these uncommitted changes"
+elif review_scope == "branch":
+    context_intro = "Review these branch changes"
 else:
     context_intro = "Review the entire codebase"
 
@@ -122,14 +159,14 @@ dependency_checker = Task(
 )
 ```
 
-5. Collect and aggregate results from all agents
+6. Collect and aggregate results from all agents
 
-6. Present unified findings organized by severity:
+7. Present unified findings organized by severity:
 
 ```markdown
 ## Deep Review Summary
 
-**Scope**: [Changes only | Entire codebase]
+**Scope**: [Uncommitted changes | Branch changes | Entire codebase]
 
 ### 🔴 Critical Issues (Must Fix)
 [Aggregated critical findings from all agents]
@@ -178,7 +215,7 @@ dependency_checker = Task(
 - **Divergent views**: [Issues needing human judgment]
 ```
 
-7. Offer to help address any issues found
+8. Offer to help address any issues found
 
 ## Notes
 
