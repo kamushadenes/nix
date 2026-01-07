@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Task
+allowed-tools: Bash(git status:*), Bash(git diff:*), Task, AskUserQuestion
 description: Comprehensive multi-agent code review using 9 specialized agents with 3-model consensus
 ---
 
@@ -7,82 +7,117 @@ Run a comprehensive deep review using all specialized review agents in parallel.
 
 ## Steps
 
-1. Check if there are changes to review:
+1. **Ask the user what to review** using AskUserQuestion:
 
-```bash
-git status --short
+```
+Question: "What would you like to review?"
+Options:
+- "Changes only" - Review uncommitted changes (git diff)
+- "Entire codebase" - Review the full project
 ```
 
-2. If there are no changes, inform the user:
+2. **If reviewing changes only:**
 
-> No changes detected. Run `/deep-review` after making code changes.
+   a. Check if there are changes:
+   ```bash
+   git status --short
+   ```
 
-3. If there are changes, get the diff for context:
+   b. If no changes, inform the user and stop:
+   > No uncommitted changes detected. Either make changes first, or run `/deep-review` and select "Entire codebase".
 
-```bash
-diff=$(git diff HEAD)
-changed_files=$(git diff --name-only HEAD)
-```
+   c. Get the diff for context:
+   ```bash
+   diff=$(git diff HEAD)
+   changed_files=$(git diff --name-only HEAD)
+   ```
+
+   d. Set the review context for agents:
+   ```
+   review_context = f"Review these uncommitted changes:\n\nChanged files: {changed_files}\n\n{diff}"
+   review_scope = "changes"
+   ```
+
+3. **If reviewing entire codebase:**
+
+   a. Identify key directories and files to review:
+   ```bash
+   # Get project structure
+   find . -type f -name "*.py" -o -name "*.ts" -o -name "*.js" -o -name "*.go" -o -name "*.rs" | head -100
+   ```
+
+   b. Set the review context for agents:
+   ```
+   review_context = "Review the entire codebase for issues. Focus on: src/, lib/, app/, or equivalent main source directories."
+   review_scope = "codebase"
+   target_files = ["src/", "lib/", "app/", "."]  # Agent will explore
+   ```
 
 4. **Launch all 9 review agents in parallel** using the Task tool:
 
 ```python
 # Each agent will internally spawn claude, codex, and gemini for 3-model analysis
+# Prompts are adjusted based on review_scope
+
+if review_scope == "changes":
+    context_intro = "Review these uncommitted changes"
+else:
+    context_intro = "Review the entire codebase"
 
 # Code Quality Agents
 code_reviewer = Task(
     subagent_type="code-reviewer",
-    prompt=f"Review these changes for code quality issues:\n\n{diff}",
+    prompt=f"{context_intro} for code quality issues:\n\n{review_context}",
     description="Code quality review"
 )
 
 security_auditor = Task(
     subagent_type="security-auditor",
-    prompt=f"Audit these changes for security vulnerabilities:\n\n{diff}",
+    prompt=f"{context_intro} for security vulnerabilities:\n\n{review_context}",
     description="Security audit"
 )
 
 test_analyzer = Task(
     subagent_type="test-analyzer",
-    prompt=f"Analyze test coverage for these changes:\n\nChanged files: {changed_files}\n\n{diff}",
+    prompt=f"{context_intro} - analyze test coverage:\n\n{review_context}",
     description="Test analysis"
 )
 
 # Performance & Reliability Agents
 performance_analyzer = Task(
     subagent_type="performance-analyzer",
-    prompt=f"Check these changes for performance issues:\n\n{diff}",
+    prompt=f"{context_intro} for performance issues:\n\n{review_context}",
     description="Performance analysis"
 )
 
 silent_failure_hunter = Task(
     subagent_type="silent-failure-hunter",
-    prompt=f"Hunt for silent failures in these changes:\n\n{diff}",
+    prompt=f"{context_intro} for silent failures:\n\n{review_context}",
     description="Silent failure detection"
 )
 
 type_checker = Task(
     subagent_type="type-checker",
-    prompt=f"Analyze type safety in these changes:\n\n{diff}",
+    prompt=f"{context_intro} for type safety issues:\n\n{review_context}",
     description="Type safety analysis"
 )
 
 # Architecture & Maintainability Agents
 code_simplifier = Task(
     subagent_type="code-simplifier",
-    prompt=f"Identify complexity issues in these changes:\n\n{diff}",
+    prompt=f"{context_intro} for complexity issues:\n\n{review_context}",
     description="Complexity analysis"
 )
 
 refactoring_advisor = Task(
     subagent_type="refactoring-advisor",
-    prompt=f"Identify refactoring opportunities in these changes:\n\n{diff}",
+    prompt=f"{context_intro} for refactoring opportunities:\n\n{review_context}",
     description="Refactoring analysis"
 )
 
 dependency_checker = Task(
     subagent_type="dependency-checker",
-    prompt=f"Check dependency health for these changes:\n\nChanged files: {changed_files}",
+    prompt=f"{context_intro} - check dependency health:\n\n{review_context}",
     description="Dependency analysis"
 )
 ```
@@ -93,6 +128,8 @@ dependency_checker = Task(
 
 ```markdown
 ## Deep Review Summary
+
+**Scope**: [Changes only | Entire codebase]
 
 ### 🔴 Critical Issues (Must Fix)
 [Aggregated critical findings from all agents]
@@ -147,5 +184,6 @@ dependency_checker = Task(
 
 - This command runs 9 agents in parallel, each spawning 3 AI models
 - Total of 27 AI model invocations for comprehensive coverage
-- Expect longer execution time (~2-3 minutes) due to multi-model analysis
+- Expect longer execution time (~2-3 minutes for changes, ~5+ minutes for full codebase)
 - Results are deduplicated and aggregated by severity
+- For large codebases, agents will focus on main source directories
