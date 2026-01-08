@@ -105,6 +105,7 @@ in
       dependency-audit = builtins.readFile "${commandsDir}/dependency-audit.md";
       deep-review = builtins.readFile "${commandsDir}/deep-review.md";
       beads-init = builtins.readFile "${commandsDir}/beads-init.md";
+      beads-merge = builtins.readFile "${commandsDir}/beads-merge.md";
     };
 
     # Note: rules option is not available in this home-manager version

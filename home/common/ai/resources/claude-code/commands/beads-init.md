@@ -15,9 +15,10 @@ Initialize this repository for beads issue tracking by running the following com
 
 1. **Skip if already initialized**: If `.beads/` directory exists, inform the user and stop.
 
-2. **Initialize beads**: Run `bd init` to create the `.beads/` directory and database.
+2. **Initialize beads**: Run `bd init --branch beads-sync` to create the `.beads/` directory and database.
 
 3. **Set up sync branch**: Run `bd migrate sync beads-sync` to configure the sync branch workflow.
+
    - This keeps beads commits on a separate `beads-sync` branch
    - The main branch stays clean (no beads commits mixed in)
    - Works with protected branch workflows (PRs required for main)
@@ -33,6 +34,7 @@ Initialize this repository for beads issue tracking by running the following com
 After completion, inform the user that the repository is ready for beads:
 
 **Quick reference:**
+
 - `bd create --title="..." --type=task` - Create an issue
 - `bd ready` - Show issues ready to work on
 - `bd update <id> --status=in_progress` - Claim work
@@ -40,6 +42,7 @@ After completion, inform the user that the repository is ready for beads:
 - `bd sync` - Manual sync (daemon handles this automatically)
 
 **The sync branch workflow:**
+
 - Beads data lives on `beads-sync` branch (via git worktree)
 - Your working branch stays clean of beads commits
 - Daemon auto-commits/pushes to sync branch in background

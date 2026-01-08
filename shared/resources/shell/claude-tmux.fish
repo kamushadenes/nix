@@ -23,6 +23,20 @@ function _c_workspace_base
     echo "$HOME/.local/share/git/workspaces"
 end
 
+# Helper: ensure beads daemon is running with auto-commit/auto-push
+function _c_ensure_beads_daemon
+    set target_dir $argv[1]
+    if test -z "$target_dir"
+        set target_dir (pwd)
+    end
+
+    if test -d "$target_dir/.beads"
+        # Restart daemon with proper flags (silent, don't fail if not running)
+        bd daemon --stop 2>/dev/null
+        bd daemon --start --auto-commit --auto-push 2>/dev/null
+    end
+end
+
 # Helper: get git info, sets global vars
 function _c_get_git_info
     set -g _git_root (git rev-parse --show-toplevel 2>/dev/null)
@@ -43,6 +57,9 @@ function _c_default
 
     # Find git root (closest parent with .git, or current dir)
     set git_root (git rev-parse --show-toplevel 2>/dev/null || pwd)
+
+    # Ensure beads daemon is running with proper flags
+    _c_ensure_beads_daemon "$git_root"
     set git_folder (basename "$git_root")
     set parent_folder (basename (dirname "$git_root"))
 
@@ -135,6 +152,9 @@ function _c_worktree
     # Set terminal title
     set title "Claude: $_parent_folder/$_git_folder ($branch)"
     printf '\033]0;%s\007' "$title"
+
+    # Ensure beads daemon is running with proper flags
+    _c_ensure_beads_daemon "$workspace_path"
 
     echo "Created workspace: $workspace_path"
     echo "Session: $session_name"
@@ -251,6 +271,9 @@ function _c_resume
         set repo_norm (echo "$ws_path" | sed "s|$workspace_base/||" | cut -d/ -f2)
 
         set session_name "claude-$parent_norm-$repo_norm-$norm_branch-$id"
+
+        # Ensure beads daemon is running with proper flags
+        _c_ensure_beads_daemon "$ws_path"
 
         echo "Starting new session: $session_name"
         if test -n "$TMUX"

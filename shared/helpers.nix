@@ -96,6 +96,9 @@ let
 
       # Claude Code LSP tools
       ENABLE_LSP_TOOLS = "1";
+
+      # Beads sync branch (for protected branch workflows)
+      BEADS_SYNC_BRANCH = "beads-sync";
     };
 
     launchctl = mkVarExports (name: value: ''run /bin/launchctl setenv ${name} "${value}"'') globalVariables.base;
