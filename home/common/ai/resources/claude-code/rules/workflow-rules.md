@@ -8,9 +8,10 @@
 
 ## Task Management
 
-- Use TodoWrite for multi-step tasks
-- Update status as you work
-- Only mark complete when verified
+- Use `bd` (beads) for ALL task tracking (see beads-rules.md)
+- TodoWrite is for execution steps WITHIN a beads issue
+- Update beads status as you work (`bd update`, `bd close`)
+- Only mark complete when verified AND beads issue closed
 
 ## Verification
 
