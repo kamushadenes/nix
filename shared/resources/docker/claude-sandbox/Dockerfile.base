@@ -23,6 +23,13 @@ RUN eval "$(devbox global shellenv --preserve-path-stack -r)" && \
 # Pre-cache devbox shellenv
 RUN devbox global shellenv > /etc/devbox_shellenv && chmod 644 /etc/devbox_shellenv
 
+# Symlink tools to /usr/local/bin so they're available to /bin/sh hooks
+RUN ln -sf /root/go/bin/tdd-guard-go /usr/local/bin/ && \
+    ln -sf /root/go/bin/bd /usr/local/bin/ && \
+    eval "$(devbox global shellenv --preserve-path-stack -r)" && \
+    ln -sf "$(which tdd-guard)" /usr/local/bin/ 2>/dev/null || true && \
+    ln -sf "$(which tdd-guard-vitest)" /usr/local/bin/ 2>/dev/null || true
+
 # Create non-root user with same UID as typical macOS user
 RUN useradd -m -s /bin/bash -u 501 claude 2>/dev/null || \
     useradd -m -s /bin/bash claude && \

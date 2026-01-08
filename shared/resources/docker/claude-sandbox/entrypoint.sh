@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Add Go tools installed during build to PATH (before devbox overwrites)
+export PATH="/root/go/bin:$PATH"
+
 # Source nix profile
 if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
     source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
@@ -15,6 +18,9 @@ fi
 if [ -f "devbox.json" ]; then
     eval "$(devbox shellenv 2>/dev/null)" || true
 fi
+
+# Ensure Go tools path is still in PATH after devbox shellenv
+export PATH="/root/go/bin:$PATH"
 
 # Force HOME to claude user (devbox shellenv may have set it to /root)
 export HOME=/home/claude
@@ -65,5 +71,6 @@ if [ -d /tmp/creds-staging/agenix ]; then
 fi
 
 echo "Starting Claude with --dangerously-skip-permissions..."
-# Use exec with -a to set argv[0] cleanly
-exec -a "claude" claude --dangerously-skip-permissions "$@"
+# Clear any terminal state and start claude fresh
+reset -I 2>/dev/null || true
+exec claude --dangerously-skip-permissions "$@"
