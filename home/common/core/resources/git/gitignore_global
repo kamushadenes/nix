@@ -110,3 +110,4 @@ coverage-final.json
 
 .claude/tdd-guard/
 .claude/settings.local.json
+.claude/ralph-loop.local.md
