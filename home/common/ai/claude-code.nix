@@ -68,18 +68,20 @@ in
   # Agenix Secrets
   #############################################################################
 
-  age.secrets = mcpServers.mkAgenixSecrets {
-    prefix = "claude";
-    secretsDir = secretsDir;
-    inherit private;
-  } // {
-    # Iniciador Vanta credentials - needs file path, not substituted content
-    # Referenced directly in iniciador-vanta server config
-    "claude-iniciador-vanta-credentials" = {
-      file = "${private}/home/common/ai/resources/claude/vanta-credentials.age";
-      path = "${secretsDir}/iniciador-vanta-credentials";
+  age.secrets =
+    mcpServers.mkAgenixSecrets {
+      prefix = "claude";
+      secretsDir = secretsDir;
+      inherit private;
+    }
+    // {
+      # Iniciador Vanta credentials - needs file path, not substituted content
+      # Referenced directly in iniciador-vanta server config
+      "claude-iniciador-vanta-credentials" = {
+        file = "${private}/home/common/ai/resources/claude/vanta-credentials.age";
+        path = "${secretsDir}/iniciador-vanta-credentials";
+      };
     };
-  };
 
   #############################################################################
   # Claude Code Configuration (uses home-manager built-in module)
@@ -453,7 +455,7 @@ in
             hooks = [
               {
                 type = "command";
-                command = "test -d .beads && bd prime || true";
+                command = "bd prime";
               }
             ];
           }
@@ -466,7 +468,7 @@ in
             hooks = [
               {
                 type = "command";
-                command = "test -d .beads && bd prime || true";
+                command = "bd prime";
               }
             ];
           }
@@ -595,6 +597,9 @@ in
         #"fullstack-dev-skills@fullstack-dev-skills" = true;
         #"superpowers@superpowers-marketplace" = true;
         "secrets-scanner@agent-security" = true;
+
+        # Beads issue tracking plugin
+        "beads@beads-marketplace" = true;
       };
     };
   };
