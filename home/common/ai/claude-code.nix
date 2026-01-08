@@ -385,6 +385,7 @@ in
           "Skill(codex-cli)"
           "Skill(hookify:writing-rules)"
           "Skill(deep-review)"
+          "Skill(ralph-loop:*)"
 
           # Read paths
           "Read(//Users/kamushadenes/**)"
@@ -585,7 +586,7 @@ in
         #"playwright@claude-plugins-official" = true;
         "typescript-lsp@claude-plugins-official" = true;
         "pyright-lsp@claude-plugins-official" = true;
-        "ralph-wiggum@claude-plugins-official" = true;
+        "ralph-loop@claude-plugins-official" = true;
         "hookify@claude-plugins-official" = true;
         #"commit-commands@claude-plugins-official" = true;
         #"security-guidance@claude-plugins-official" = true;
