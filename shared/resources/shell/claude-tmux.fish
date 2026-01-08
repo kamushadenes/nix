@@ -223,15 +223,18 @@ function _c_danger
     set -l mounts
     # Mount current directory at SAME path (critical for path consistency)
     set mounts $mounts "-v" "$current_dir:$current_dir"
-    # Mount claude config
+    # Mount claude config (to both /home/claude and /root since devbox may set HOME=/root)
     set mounts $mounts "-v" "$home_dir/.claude:/home/claude/.claude"
-    # Mount claude.json
+    set mounts $mounts "-v" "$home_dir/.claude:/root/.claude"
+    # Mount claude.json (to both paths)
     if test -f "$home_dir/.claude.json"
         set mounts $mounts "-v" "$home_dir/.claude.json:/home/claude/.claude.json:ro"
+        set mounts $mounts "-v" "$home_dir/.claude.json:/root/.claude.json:ro"
     end
-    # Mount credentials from keychain (extracted above)
+    # Mount credentials from keychain (extracted above) - to both paths
     if test -n "$creds_temp" -a -f "$creds_temp"
         set mounts $mounts "-v" "$creds_temp:/home/claude/.claude/.credentials.json:ro"
+        set mounts $mounts "-v" "$creds_temp:/root/.claude/.credentials.json:ro"
     end
     # Mount SSH for git operations
     if test -d "$home_dir/.ssh"
