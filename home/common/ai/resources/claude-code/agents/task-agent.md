@@ -64,9 +64,12 @@ Via `bd` CLI:
 | `bd show <id>`                                         | Get full task details with dependencies      |
 | `bd update <id> --status=<status>`                     | Update task status (in_progress, blocked)    |
 | `bd update <id> --assignee=<user>`                     | Assign task to someone                       |
-| `bd update <id> --external-ref=<ref>`                  | Link to external system (e.g., clickup-xxx)  |
+| `bd update <id> --external-ref=<ref>`                  | Set external reference (e.g., clickup-abc123)|
 | `bd create --title="..." --type=<type> --priority=<n>` | Create new issue                             |
-| `bd create ... --external-ref=<ref>`                   | Create with external link (e.g., clickup-xxx)|
+| `bd create ... --external-ref=<ref>`                   | Create with external link (gh-9, clickup-X)  |
+| `bd create ... --description="..."`                    | Create with description                      |
+| `bd create ... --due=<date>`                           | Create with due date (+1d, tomorrow, etc.)   |
+| `bd create ... --labels=<label1,label2>`               | Create with labels                           |
 | `bd dep add <issue> <depends-on>`                      | Add dependency (issue depends on depends-on) |
 | `bd close <id>`                                        | Mark task complete                           |
 | `bd close <id> --reason="..."`                         | Close with explanation                       |
@@ -74,7 +77,7 @@ Via `bd` CLI:
 | `bd stats`                                             | View project statistics                      |
 | `bd list --status=open`                                | List all open issues                         |
 | `bd list --status=in_progress`                         | List active work                             |
-| `bd list --json`                                       | List all issues as JSON (for sync)           |
+| `bd list --json`                                       | List issues as JSON (for scripting/sync)     |
 
 ## Priority Values
 
@@ -93,6 +96,18 @@ Use numeric priorities (0-4), NOT strings:
 - `task` - General work item
 - `bug` - Something broken that needs fixing
 - `feature` - New functionality
+
+## External References
+
+Use `--external-ref` to link beads issues with external systems:
+
+| System   | Format              | Example                                    |
+| -------- | ------------------- | ------------------------------------------ |
+| ClickUp  | `clickup-{task_id}` | `--external-ref=clickup-abc123xyz`         |
+| GitHub   | `gh-{issue_num}`    | `--external-ref=gh-42`                     |
+| Jira     | `jira-{key}`        | `--external-ref=jira-PROJ-123`             |
+
+This enables bidirectional sync - beads tracks the external ID to update the right task.
 
 ## Example Workflow
 
@@ -146,9 +161,14 @@ When invoked for ClickUp sync (detected by prompt mentioning "clickup-sync"), yo
 If `.beads/clickup.yaml` doesn't exist, run the interactive setup wizard:
 
 1. Call `mcp__iniciador-clickup__clickup_get_workspace_hierarchy` to list spaces
-2. Present spaces to user with `AskUserQuestion`, ask which to use
-3. Drill into selected space, list folders/lists
-4. User selects a List
+2. Return a structured list of spaces for the user to choose from:
+   ```
+   Available Spaces:
+   - A) Space Name 1 - description
+   - B) Space Name 2 - description (Recommended if obvious match)
+   ```
+3. Once user selects (via parent agent), drill into that space, list folders/lists
+4. Return structured list of lists for user to choose
 5. Write `.beads/clickup.yaml`:
 
 ```yaml
