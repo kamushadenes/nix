@@ -226,10 +226,10 @@ function _c_danger
     # Mount claude config (to both /home/claude and /root since devbox may set HOME=/root)
     set mounts $mounts "-v" "$home_dir/.claude:/home/claude/.claude"
     set mounts $mounts "-v" "$home_dir/.claude:/root/.claude"
-    # Mount claude.json (to both paths)
+    # Mount claude.json (to both paths - /root needs rw since claude-code writes to it)
     if test -f "$home_dir/.claude.json"
         set mounts $mounts "-v" "$home_dir/.claude.json:/home/claude/.claude.json:ro"
-        set mounts $mounts "-v" "$home_dir/.claude.json:/root/.claude.json:ro"
+        set mounts $mounts "-v" "$home_dir/.claude.json:/root/.claude.json"
     end
     # Mount credentials from keychain (extracted above) - to both paths
     if test -n "$creds_temp" -a -f "$creds_temp"
