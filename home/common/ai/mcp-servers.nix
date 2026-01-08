@@ -14,7 +14,7 @@
 # - args: Command arguments (for stdio transport)
 # - env: Environment variables (for stdio transport)
 # - timeout: Timeout in milliseconds
-{ config, lib, private ? null }:
+{ config, lib, pkgs ? null, private ? null }:
 let
   homeDir = config.home.homeDirectory;
 
@@ -276,4 +276,44 @@ rec {
         value = "${secretsDir}/${placeholderToPathName placeholder}";
       }) (builtins.filter (p: lib.hasAttr p secretFiles) secretPlaceholders)
     );
+
+  # Generate activation script for secret substitution
+  # Used by claude-code, codex-cli, and gemini-cli
+  # Requires pkgs to be passed when importing this module
+  # configPath: path to the config file to modify (e.g., ~/.codex/config.toml)
+  # secretsDir: directory where secrets are placed
+  mkActivationScript =
+    {
+      configPath,
+      secretsDir,
+    }:
+    assert pkgs != null;
+    let
+      subs = mkSecretSubstitutions secretsDir;
+    in
+    ''
+      run mkdir -p ${secretsDir}
+
+      # Remove existing config if it exists
+      run rm -f ${configPath}
+
+      # Copy template to working file
+      run cp ${configPath}.template ${configPath}
+
+      # Substitute each @PLACEHOLDER@ with its decrypted secret value
+      ${lib.concatMapStrings (
+        ph:
+        let
+          secretPath = subs.${ph};
+        in
+        ''
+          if [ -f "${secretPath}" ]; then
+            run ${lib.getExe pkgs.gnused} -i "s|${ph}|$(cat ${secretPath})|g" ${configPath}
+          fi
+        ''
+      ) (lib.attrNames subs)}
+
+      # Restrict permissions - config contains API keys
+      run chmod 600 ${configPath}
+    '';
 }

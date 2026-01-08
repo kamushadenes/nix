@@ -11,8 +11,8 @@
   ...
 }:
 let
-  # Import shared MCP server configuration
-  mcpServers = import ./mcp-servers.nix { inherit config lib; };
+  # Import shared MCP server configuration (with pkgs for activation script)
+  mcpServers = import ./mcp-servers.nix { inherit config lib pkgs; };
 
   # MCP servers to include for Codex CLI
   enabledServers = [
@@ -37,7 +37,6 @@ let
 
   # Secrets configuration
   secretsDir = "${config.home.homeDirectory}/.codex/secrets";
-  secretSubstitutions = mcpServers.mkSecretSubstitutions secretsDir;
 
   # Wrapper script for codex review with live colorized output
   codexReview = pkgs.writeScriptBin "codex-review" ''
@@ -151,31 +150,10 @@ in
   # Secret Substitution and Config Activation
   #############################################################################
 
-  home.activation.codexCliConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    run mkdir -p ${secretsDir}
-
-    # Remove existing config.toml if it exists
-    run rm -f ${config.home.homeDirectory}/.codex/config.toml
-
-    # Copy template to working file
-    run cp ${config.home.homeDirectory}/.codex/config.toml.template \
-           ${config.home.homeDirectory}/.codex/config.toml
-
-    # Substitute each @PLACEHOLDER@ with its decrypted secret value
-    ${lib.concatMapStrings (
-      ph:
-      let
-        secretPath = secretSubstitutions.${ph};
-      in
-      ''
-        if [ -f "${secretPath}" ]; then
-          run ${lib.getExe pkgs.gnused} -i "s|${ph}|$(cat ${secretPath})|g" \
-              ${config.home.homeDirectory}/.codex/config.toml
-        fi
-      ''
-    ) (lib.attrNames secretSubstitutions)}
-
-    # Restrict permissions - config contains API keys
-    run chmod 600 ${config.home.homeDirectory}/.codex/config.toml
-  '';
+  home.activation.codexCliConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] (
+    mcpServers.mkActivationScript {
+      configPath = "${config.home.homeDirectory}/.codex/config.toml";
+      secretsDir = secretsDir;
+    }
+  );
 }

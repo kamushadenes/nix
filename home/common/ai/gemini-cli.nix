@@ -11,8 +11,8 @@
   ...
 }:
 let
-  # Import shared MCP server configuration
-  mcpServers = import ./mcp-servers.nix { inherit config lib; };
+  # Import shared MCP server configuration (with pkgs for activation script)
+  mcpServers = import ./mcp-servers.nix { inherit config lib pkgs; };
 
   # MCP servers to include for Gemini CLI
   enabledServers = [
@@ -36,7 +36,6 @@ let
 
   # Secrets configuration
   secretsDir = "${config.home.homeDirectory}/.gemini/secrets";
-  secretSubstitutions = mcpServers.mkSecretSubstitutions secretsDir;
 
   # Template file for MCP servers (with placeholders)
   mcpConfigTemplate = builtins.toJSON mcpConfig;
@@ -76,31 +75,10 @@ in
   # Secret Substitution and Config Activation
   #############################################################################
 
-  home.activation.geminiCliConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    run mkdir -p ${secretsDir}
-
-    # Remove existing settings.json if it exists
-    run rm -f ${config.home.homeDirectory}/.gemini/settings.json
-
-    # Copy template to working file
-    run cp ${config.home.homeDirectory}/.gemini/settings.json.template \
-           ${config.home.homeDirectory}/.gemini/settings.json
-
-    # Substitute each @PLACEHOLDER@ with its decrypted secret value
-    ${lib.concatMapStrings (
-      ph:
-      let
-        secretPath = secretSubstitutions.${ph};
-      in
-      ''
-        if [ -f "${secretPath}" ]; then
-          run ${lib.getExe pkgs.gnused} -i "s|${ph}|$(cat ${secretPath})|g" \
-              ${config.home.homeDirectory}/.gemini/settings.json
-        fi
-      ''
-    ) (lib.attrNames secretSubstitutions)}
-
-    # Restrict permissions - config contains API keys
-    run chmod 600 ${config.home.homeDirectory}/.gemini/settings.json
-  '';
+  home.activation.geminiCliConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] (
+    mcpServers.mkActivationScript {
+      configPath = "${config.home.homeDirectory}/.gemini/settings.json";
+      secretsDir = secretsDir;
+    }
+  );
 }
