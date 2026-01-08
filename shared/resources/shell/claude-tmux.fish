@@ -218,14 +218,26 @@ function _c_danger
     set dir_hash (echo "$current_dir" | md5sum | cut -c1-8)
     set container_name "claude-danger-$dir_hash"
 
+    # Create temp staging directory and copy configs with dereferenced symlinks
+    # (home-manager creates symlinks to nix store which don't exist in container)
+    set -l staging_dir (mktemp -d)
+    if test -d "$home_dir/.claude"
+        cp -rL "$home_dir/.claude" "$staging_dir/.claude" 2>/dev/null || cp -r "$home_dir/.claude" "$staging_dir/.claude"
+    end
+    if test -f "$home_dir/.claude.json"
+        cp -L "$home_dir/.claude.json" "$staging_dir/.claude.json" 2>/dev/null || cp "$home_dir/.claude.json" "$staging_dir/.claude.json"
+    end
+
     # Build volume mounts
     set -l mounts
     # Mount current directory at SAME path (critical for path consistency)
     set mounts $mounts "-v" "$current_dir:$current_dir"
     # Stage claude config for copying (entrypoint copies to $HOME for full rw access)
-    set mounts $mounts "-v" "$home_dir/.claude:/tmp/claude-config-staging/.claude:ro"
-    if test -f "$home_dir/.claude.json"
-        set mounts $mounts "-v" "$home_dir/.claude.json:/tmp/claude-config-staging/.claude.json:ro"
+    if test -d "$staging_dir/.claude"
+        set mounts $mounts "-v" "$staging_dir/.claude:/tmp/claude-config-staging/.claude:ro"
+    end
+    if test -f "$staging_dir/.claude.json"
+        set mounts $mounts "-v" "$staging_dir/.claude.json:/tmp/claude-config-staging/.claude.json:ro"
     end
     # Mount credentials from keychain to separate path (entrypoint copies them)
     if test -n "$creds_temp" -a -f "$creds_temp"
@@ -284,9 +296,12 @@ function _c_danger
         $image_name \
         /entrypoint.sh $extra_args
 
-    # Cleanup temp credentials file
+    # Cleanup temp files
     if test -n "$creds_temp" -a -f "$creds_temp"
         rm -f "$creds_temp"
+    end
+    if test -n "$staging_dir" -a -d "$staging_dir"
+        rm -rf "$staging_dir"
     end
 end
 

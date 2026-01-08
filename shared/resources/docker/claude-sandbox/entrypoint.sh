@@ -24,11 +24,12 @@ sudo mkdir -p "$HOME/.config/google-chrome" "$HOME/.cache"
 sudo chown -R claude:claude "$HOME"
 
 # Copy claude config from staging area if present (allows modification)
+# Use -L to dereference symlinks (home-manager creates symlinks to nix store)
 if [ -d /tmp/claude-config-staging/.claude ]; then
-    cp -r /tmp/claude-config-staging/.claude "$HOME/"
+    cp -rL /tmp/claude-config-staging/.claude "$HOME/"
 fi
 if [ -f /tmp/claude-config-staging/.claude.json ]; then
-    cp /tmp/claude-config-staging/.claude.json "$HOME/"
+    cp -L /tmp/claude-config-staging/.claude.json "$HOME/"
 fi
 # Copy credentials from keychain (mounted separately)
 if [ -f /tmp/claude-credentials.json ]; then
