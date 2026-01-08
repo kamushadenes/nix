@@ -88,16 +88,22 @@ function _c_danger
             '# Install devbox' \
             'RUN curl -fsSL https://get.jetify.com/devbox | bash -s -- -f' \
             '' \
-            '# Install claude-code, go, nodejs, and python globally via devbox' \
-            'RUN /root/.local/bin/devbox global add claude-code go nodejs python3' \
+            '# Install claude-code and language runtimes globally via devbox' \
+            'RUN /root/.local/bin/devbox global add claude-code go nodejs python3 php php83Packages.composer rustup' \
             '' \
             '# Pre-warm devbox shellenv' \
             'RUN /root/.local/bin/devbox global shellenv > /root/.devbox_shellenv' \
             '' \
-            '# Install tdd-guard tools' \
+            '# Setup rust toolchain' \
+            'RUN . /root/.devbox_shellenv && rustup default stable' \
+            '' \
+            '# Install tdd-guard tools for all languages' \
             'RUN . /root/.devbox_shellenv && \\' \
             '    go install github.com/nizos/tdd-guard/reporters/go/cmd/tdd-guard-go@latest && \\' \
-            '    npm install -g tdd-guard' \
+            '    npm install -g tdd-guard tdd-guard-vitest && \\' \
+            '    pip install tdd-guard-pytest && \\' \
+            '    composer global require tdd-guard/phpunit && \\' \
+            '    cargo install tdd-guard-rust' \
             '' \
             'ENTRYPOINT ["/bin/bash", "-c"]' \
             | docker build -t $image_name -
