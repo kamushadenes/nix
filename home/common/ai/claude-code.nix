@@ -104,6 +104,7 @@ in
       architecture-review = builtins.readFile "${commandsDir}/architecture-review.md";
       dependency-audit = builtins.readFile "${commandsDir}/dependency-audit.md";
       deep-review = builtins.readFile "${commandsDir}/deep-review.md";
+      beads-init = builtins.readFile "${commandsDir}/beads-init.md";
     };
 
     # Note: rules option is not available in this home-manager version
@@ -440,6 +441,28 @@ in
               {
                 type = "command";
                 command = "tdd-guard";
+              }
+            ];
+          }
+          {
+            matcher = "";
+            hooks = [
+              {
+                type = "command";
+                command = "test -d .beads && bd prime || true";
+              }
+            ];
+          }
+        ];
+
+        # Run before context compaction
+        PreCompact = [
+          {
+            matcher = "";
+            hooks = [
+              {
+                type = "command";
+                command = "test -d .beads && bd prime || true";
               }
             ];
           }

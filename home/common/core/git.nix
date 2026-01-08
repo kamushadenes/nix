@@ -21,6 +21,11 @@
     source = ./resources/git/gitignore_global;
   };
 
+  xdg.configFile."git/attributes".text = ''
+    # Use bd merge for beads JSONL files
+    .beads/issues.jsonl merge=beads
+  '';
+
   xdg.configFile."git/template/hooks" = {
     source = ./resources/git/hooks;
   };
@@ -116,6 +121,7 @@
       core = {
         fsmonitor = true;
         excludesFile = "${config.home.homeDirectory}/${config.xdg.configFile."git/ignore".target}";
+        attributesFile = "${config.home.homeDirectory}/${config.xdg.configFile."git/attributes".target}";
         untrackedCache = "keep";
       };
 
@@ -130,6 +136,10 @@
 
       merge = {
         conflictstyle = "zdiff3";
+        beads = {
+          name = "bd JSONL merge driver";
+          driver = "bd merge %O %A %B";
+        };
       };
 
       rebase = {
