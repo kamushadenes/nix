@@ -100,7 +100,8 @@ RUN eval "$(devbox global shellenv --preserve-path-stack -r)" && hash -r && \
 # Pre-warm devbox shellenv and make it accessible to claude user
 RUN devbox global shellenv > /etc/devbox_shellenv && chmod 644 /etc/devbox_shellenv
 
-# Fix go binary permissions for non-root user
+# Fix permissions for non-root user access to devbox global packages
+RUN chmod 755 /root && chmod -R o+rX /root/.local /root/.nix-profile 2>/dev/null || true
 RUN chmod -R o+rx /root/go 2>/dev/null || true
 
 # Switch to non-root user for runtime
