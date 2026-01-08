@@ -84,8 +84,14 @@ function _c_build_base_image
     # Check if base image exists
     if not docker image inspect $base_image >/dev/null 2>&1
         echo "Building claude-sandbox base image (first time only)..."
-        docker build -t $base_image -f "$dockerfile_dir/Dockerfile.base" "$dockerfile_dir"
-        if test $status -ne 0
+        # Copy to temp dir to resolve symlinks (Docker can't follow nix store symlinks)
+        set build_ctx (mktemp -d)
+        cp -L "$dockerfile_dir/Dockerfile.base" "$build_ctx/Dockerfile"
+        cp -L "$dockerfile_dir/entrypoint.sh" "$build_ctx/" 2>/dev/null || true
+        docker build -t $base_image "$build_ctx"
+        set build_status $status
+        rm -rf "$build_ctx"
+        if test $build_status -ne 0
             echo "Error: Failed to build base image"
             return 1
         end
