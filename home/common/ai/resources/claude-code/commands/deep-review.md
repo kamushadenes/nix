@@ -20,20 +20,24 @@ Options:
 2. **If reviewing uncommitted changes:**
 
    a. Check if there are changes:
+
    ```bash
    git status --short
    ```
 
    b. If no changes, inform the user and stop:
+
    > No uncommitted changes detected. Either make changes first, or run `/deep-review` and select a different scope.
 
    c. Get the diff for context:
+
    ```bash
    diff=$(git diff HEAD)
    changed_files=$(git diff --name-only HEAD)
    ```
 
    d. Set the review context for agents:
+
    ```
    review_context = f"Review these uncommitted changes:\n\nChanged files: {changed_files}\n\n{diff}"
    review_scope = "uncommitted"
@@ -42,25 +46,30 @@ Options:
 3. **If reviewing branch changes:**
 
    a. Determine the base branch (main or master):
+
    ```bash
    # Check which base branch exists
    git rev-parse --verify main 2>/dev/null && base_branch="main" || base_branch="master"
    ```
 
    b. Get the current branch name:
+
    ```bash
    current_branch=$(git branch --show-current)
    ```
 
    c. Check if there are branch changes:
+
    ```bash
    git log ${base_branch}..HEAD --oneline
    ```
 
    d. If no changes, inform the user and stop:
+
    > No changes found between current branch and ${base_branch}. You may already be on the base branch, or all changes have been merged.
 
    e. Get the diff for context:
+
    ```bash
    diff=$(git diff ${base_branch}...HEAD)
    changed_files=$(git diff --name-only ${base_branch}...HEAD)
@@ -68,6 +77,7 @@ Options:
    ```
 
    f. Set the review context for agents:
+
    ```
    review_context = f"Review branch changes ({commit_count} commits on {current_branch} vs {base_branch}):\n\nChanged files: {changed_files}\n\n{diff}"
    review_scope = "branch"
@@ -76,12 +86,14 @@ Options:
 4. **If reviewing entire codebase:**
 
    a. Identify key directories and files to review:
+
    ```bash
    # Get project structure
    find . -type f -name "*.py" -o -name "*.ts" -o -name "*.js" -o -name "*.go" -o -name "*.rs" | head -100
    ```
 
    b. Set the review context for agents:
+
    ```
    review_context = "Review the entire codebase for issues. Focus on: src/, lib/, app/, or equivalent main source directories."
    review_scope = "codebase"
@@ -169,47 +181,61 @@ dependency_checker = Task(
 **Scope**: [Uncommitted changes | Branch changes | Entire codebase]
 
 ### 🔴 Critical Issues (Must Fix)
+
 [Aggregated critical findings from all agents]
 
 ### 🟠 High Priority (Should Fix)
+
 [Aggregated high severity findings]
 
 ### 🟡 Medium Priority (Recommended)
+
 [Aggregated medium severity findings]
 
 ### 🟢 Low Priority (Optional)
+
 [Aggregated low severity findings]
 
 ### Agent-Specific Insights
 
 #### Code Quality
+
 [Summary from code-reviewer]
 
 #### Security
+
 [Summary from security-auditor]
 
 #### Testing
+
 [Summary from test-analyzer]
 
 #### Performance
+
 [Summary from performance-analyzer]
 
 #### Error Handling
+
 [Summary from silent-failure-hunter]
 
 #### Type Safety
+
 [Summary from type-checker]
 
 #### Complexity
+
 [Summary from code-simplifier]
 
 #### Refactoring
+
 [Summary from refactoring-advisor]
 
 #### Dependencies
+
 [Summary from dependency-checker]
 
 ### Consensus Analysis
+
 - **All agents agree**: [High confidence issues]
 - **Most agents agree**: [Good confidence issues]
 - **Divergent views**: [Issues needing human judgment]

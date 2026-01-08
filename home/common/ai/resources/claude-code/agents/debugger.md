@@ -110,6 +110,7 @@ Based on multi-model analysis: Add eager loading for order items in validation
 ## Parallel Advantage
 
 Running models in parallel means:
+
 - 3 perspectives in ~60s instead of ~180s
 - Each model analyzes from its strength area simultaneously
 - Faster iteration on debugging hypotheses

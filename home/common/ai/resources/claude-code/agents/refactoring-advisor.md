@@ -278,6 +278,7 @@ gemini_result = mcp__orchestrator__ai_fetch(job_id=gemini_job.job_id, timeout=12
 ```
 
 Synthesize findings from all 3 models:
+
 - **Consensus issues** (all models agree) - High confidence, prioritize these
 - **Divergent opinions** - Present both perspectives for human judgment
 - **Unique insights** - Valuable findings from individual model expertise

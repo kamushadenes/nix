@@ -237,4 +237,3 @@ npm install package@latest
 - **Pin versions in production**
 - **Audit regularly for security**
 - **Consider maintenance burden**
-

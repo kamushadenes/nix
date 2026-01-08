@@ -105,11 +105,13 @@ Based on the multi-model analysis, the recommended approach is...
 ## Parallel vs Sequential
 
 **Parallel (New)**: Use `ai_spawn` + `ai_fetch` or `ai_review`
+
 - All models run simultaneously
 - Total time = slowest model (not sum of all)
 - Better for getting diverse opinions quickly
 
 **Sequential (Legacy)**: Use `clink` directly
+
 - Models run one after another
 - Total time = sum of all model times
 - Use when prompts depend on previous results

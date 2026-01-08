@@ -2,8 +2,7 @@
 #
 # Provides:
 # - MCP server for terminal automation (tmux_* tools)
-#
-# For AI CLI orchestration, use PAL MCP's clink tool.
+# - AI CLI orchestration tools (ai_call, ai_spawn, ai_fetch, ai_review)
 {
   config,
   lib,

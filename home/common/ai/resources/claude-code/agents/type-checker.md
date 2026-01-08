@@ -212,3 +212,4 @@ When suggesting types:
 - Make impossible states unrepresentable
 - Document complex generic constraints
 
+```

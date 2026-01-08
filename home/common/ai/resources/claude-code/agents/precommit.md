@@ -106,6 +106,7 @@ bugs = ai_call(
 ## Parallel Advantage
 
 Pre-commit checks benefit from parallelism:
+
 - 2 perspectives in ~30s instead of ~60s
 - Catch issues before they reach the commit
 - Quick iteration on fixes

@@ -216,4 +216,3 @@ for item in data:
 - **Flat is better than nested**
 - **Readability counts**
 - **If the implementation is hard to explain, it's a bad idea**
-

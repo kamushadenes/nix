@@ -127,6 +127,7 @@ Combine deep thinking from all sources:
 Based on extended analysis: **Expand-Contract with Feature Flags**
 
 Rationale:
+
 - Lower infrastructure cost than blue-green
 - More control than online schema tools
 - Fits existing Alembic workflow
@@ -157,6 +158,7 @@ Rationale:
 ## Parallel Advantage
 
 For deep thinking tasks, parallel execution is essential:
+
 - 3x the exploration depth in the same time
 - Different models surface different concerns
 - Cross-pollination of ideas in synthesis

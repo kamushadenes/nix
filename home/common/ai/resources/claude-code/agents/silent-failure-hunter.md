@@ -196,4 +196,3 @@ async def safe_background_job():
         logger.error(f"Background job failed: {e}")
         metrics.increment("background_job_failures")
 ````
-

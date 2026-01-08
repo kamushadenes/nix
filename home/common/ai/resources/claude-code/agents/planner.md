@@ -128,6 +128,7 @@ Synthesize into an actionable plan:
 ## Parallel Advantage
 
 Getting planning input from all models simultaneously:
+
 - Architecture (Claude) + Implementation (Codex) + Research (Gemini) in ~60s
 - Compare approaches before committing to a direction
 - Identify potential issues early

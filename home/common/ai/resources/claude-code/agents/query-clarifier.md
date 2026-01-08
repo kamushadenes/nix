@@ -29,19 +29,23 @@ You analyze queries to identify ambiguity, vagueness, or missing context before 
 **Clarity Rating:** Clear / Partially Clear / Unclear
 
 **Interpretation Alternatives:**
+
 - Interpretation A: [description]
 - Interpretation B: [description]
 
 **Missing Context:**
+
 - [ ] Time boundaries
 - [ ] Technology/domain scope
 - [ ] Success criteria
 
 **Clarifying Questions:**
+
 1. [Question to resolve ambiguity]
 2. [Question about scope]
 
 **Improved Query:**
+
 > [Refined, unambiguous version]
 
 **Confidence:** X% that we understand the intent

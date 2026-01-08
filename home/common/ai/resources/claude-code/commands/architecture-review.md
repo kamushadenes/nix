@@ -18,6 +18,7 @@ Perform a comprehensive architecture review using the architecture-reviewer agen
 4. **Provide actionable recommendations**
 
 Focus on:
+
 - Structural patterns and their correctness
 - Dependency health and coupling
 - Scalability and performance readiness

@@ -191,3 +191,4 @@ When suggesting fixes:
 - Prioritize readability when performance impact is minor
 - Suggest profiling for complex cases
 
+```
