@@ -13,5 +13,6 @@ if test -f "@cacheKeyAgePath@" && test ! -f "@cacheKeyPath@"; then
   fi
 fi
 
-# Run the rebuild
+# Run the rebuild and propagate exit code
 @nhCommand@
+return $?

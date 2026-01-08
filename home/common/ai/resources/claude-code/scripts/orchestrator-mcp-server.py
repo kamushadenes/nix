@@ -401,19 +401,24 @@ async def _run_ai_cli(
     stdout_text = stdout_bytes.decode("utf-8", errors="replace")
     stderr_text = stderr_bytes.decode("utf-8", errors="replace")
 
-    # Check for non-zero exit
-    if proc.returncode != 0:
-        # Try to parse anyway (some CLIs exit non-zero but have valid output)
-        pass
-
     parser = get_parser(parser_name)
     if parser:
-        return parser(stdout_text, stderr_text)
+        result = parser(stdout_text, stderr_text)
     else:
-        return ParsedResponse(
+        result = ParsedResponse(
             content=stdout_text,
             metadata={"stderr": stderr_text, "parser": "raw"}
         )
+
+    # Always include exit code and success status in metadata
+    result.metadata["exit_code"] = proc.returncode
+    result.metadata["success"] = proc.returncode == 0
+
+    # Include stderr in metadata if not already present and there was an error
+    if proc.returncode != 0 and "stderr" not in result.metadata:
+        result.metadata["stderr"] = stderr_text
+
+    return result
 
 
 async def _run_ai_job_async(job_id: str):
