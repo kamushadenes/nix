@@ -80,7 +80,7 @@ _c_build_base_image() {
 
     # Check if base image exists
     if ! docker image inspect "$base_image" >/dev/null 2>&1; then
-        echo "Building claude-sandbox base image (first time only)..."
+        echo "Building claude-sandbox base image (first time only)..." >&2
         # Copy to temp dir to resolve symlinks (Docker can't follow nix store symlinks)
         local build_ctx
         build_ctx=$(mktemp -d)
@@ -90,10 +90,10 @@ _c_build_base_image() {
         local build_status=$?
         rm -rf "$build_ctx"
         if test $build_status -ne 0; then
-            echo "Error: Failed to build base image"
+            echo "Error: Failed to build base image" >&2
             return 1
         fi
-        echo "Base image built successfully"
+        echo "Base image built successfully" >&2
     fi
     return 0
 }
@@ -126,7 +126,7 @@ _c_build_project_image() {
         return 0
     fi
 
-    echo "Building project image for devbox.json (hash: $devbox_hash)..."
+    echo "Building project image for devbox.json (hash: $devbox_hash)..." >&2
 
     # Create temp build context
     local build_ctx
@@ -169,7 +169,7 @@ DOCKERFILE
     rm -rf "$build_ctx"
 
     if test $build_status -ne 0; then
-        echo "Error: Failed to build project image"
+        echo "Error: Failed to build project image" >&2
         return 1
     fi
 
