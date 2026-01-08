@@ -16,7 +16,7 @@ RUN devbox global add claude-code go nodejs uv
 SHELL ["/bin/bash", "-c"]
 RUN eval "$(devbox global shellenv --preserve-path-stack -r)" && \
     go install github.com/nizos/tdd-guard/reporters/go/cmd/tdd-guard-go@latest && \
-    go install github.com/kamushadenes/beads/cmd/bd@latest && \
+    go install github.com/steveyegge/beads/cmd/bd@latest && \
     npm install -g tdd-guard tdd-guard-vitest && \
     pip3 install --break-system-packages tdd-guard-pytest
 
