@@ -113,6 +113,15 @@
     });
 
     settings = {
+      # Hide files from git status (like beads does for .beads/*.jsonl)
+      # Uses both flags: skip-worktree (clear error on add) + assume-unchanged (perf)
+      alias = {
+        hide = "update-index --skip-worktree --assume-unchanged";
+        unhide = "update-index --no-skip-worktree --no-assume-unchanged";
+        # List hidden files - flags: h=assume-unchanged, S=skip-worktree, s=both
+        hidden = "!git ls-files -v | grep -E '^[hsSC]'";
+      };
+
       user = {
         email = (helpers.mkEmail "kamus" "hadenes.io");
         name = "Henrique Goncalves";
