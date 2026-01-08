@@ -575,7 +575,6 @@ in
       # Marketplace sources (added via /plugin marketplace add <repo>):
       #   claude-plugins-official  -> anthropics/claude-code-plugins (built-in)
       #   claude-code-workflows    -> modelcontextprotocol/workflows
-      #   beads-marketplace        -> steveyegge/beads
       #   agent-security           -> (third-party security plugins)
       #
       # Plugin format: "plugin-name@marketplace-name" = true|false
@@ -605,9 +604,6 @@ in
         #"fullstack-dev-skills@fullstack-dev-skills" = true;
         #"superpowers@superpowers-marketplace" = true;
         "secrets-scanner@agent-security" = true;
-
-        # Beads issue tracking plugin
-        "beads@beads-marketplace" = true;
       };
     };
   };
