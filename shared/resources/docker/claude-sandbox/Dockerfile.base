@@ -23,12 +23,14 @@ RUN eval "$(devbox global shellenv --preserve-path-stack -r)" && \
 # Pre-cache devbox shellenv
 RUN devbox global shellenv > /etc/devbox_shellenv && chmod 644 /etc/devbox_shellenv
 
-# Symlink tools to /usr/local/bin so they're available to /bin/sh hooks
+# Symlink Go tools to /usr/local/bin (stable paths)
 RUN ln -sf /root/go/bin/tdd-guard-go /usr/local/bin/ && \
-    ln -sf /root/go/bin/bd /usr/local/bin/ && \
-    eval "$(devbox global shellenv --preserve-path-stack -r)" && \
-    ln -sf "$(which tdd-guard)" /usr/local/bin/ 2>/dev/null || true && \
-    ln -sf "$(which tdd-guard-vitest)" /usr/local/bin/ 2>/dev/null || true
+    ln -sf /root/go/bin/bd /usr/local/bin/
+
+# Create wrapper scripts for npm tools (nix store paths are dynamic)
+RUN printf '#!/bin/bash\nsource /etc/devbox_shellenv 2>/dev/null\nexec tdd-guard "$@"\n' > /usr/local/bin/tdd-guard && \
+    printf '#!/bin/bash\nsource /etc/devbox_shellenv 2>/dev/null\nexec tdd-guard-vitest "$@"\n' > /usr/local/bin/tdd-guard-vitest && \
+    chmod +x /usr/local/bin/tdd-guard /usr/local/bin/tdd-guard-vitest
 
 # Create non-root user with same UID as typical macOS user
 RUN useradd -m -s /bin/bash -u 501 claude 2>/dev/null || \
