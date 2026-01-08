@@ -82,11 +82,11 @@ function _c_danger
             '' \
             '# Install dependencies' \
             'RUN apt-get update -qq && \\' \
-            '    apt-get install -y -qq curl git xz-utils ca-certificates && \\' \
+            '    apt-get install -y -qq bash curl git xz-utils ca-certificates && \\' \
             '    apt-get clean && rm -rf /var/lib/apt/lists/*' \
             '' \
             '# Install devbox (installs to /usr/local/bin)' \
-            'RUN curl -fsSL https://get.jetify.com/devbox | FORCE=1 sh && \\' \
+            'RUN curl -fsSL https://get.jetify.com/devbox | FORCE=1 bash && \\' \
             '    which devbox && devbox version' \
             '' \
             '# Install claude-code and language runtimes globally via devbox' \
