@@ -33,3 +33,10 @@ RUN chmod 755 /root && \
     chmod -R o+rx /root/go 2>/dev/null || true
 
 ENV PATH="/root/go/bin:/usr/local/bin:$PATH"
+
+# Switch to non-root user
+USER claude
+ENV HOME=/home/claude
+
+COPY --chmod=755 entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
