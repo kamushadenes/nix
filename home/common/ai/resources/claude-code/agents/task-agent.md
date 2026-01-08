@@ -64,7 +64,9 @@ Via `bd` CLI:
 | `bd show <id>`                                         | Get full task details with dependencies      |
 | `bd update <id> --status=<status>`                     | Update task status (in_progress, blocked)    |
 | `bd update <id> --assignee=<user>`                     | Assign task to someone                       |
+| `bd update <id> --external-ref=<ref>`                  | Link to external system (e.g., clickup-xxx)  |
 | `bd create --title="..." --type=<type> --priority=<n>` | Create new issue                             |
+| `bd create ... --external-ref=<ref>`                   | Create with external link (e.g., clickup-xxx)|
 | `bd dep add <issue> <depends-on>`                      | Add dependency (issue depends on depends-on) |
 | `bd close <id>`                                        | Mark task complete                           |
 | `bd close <id> --reason="..."`                         | Close with explanation                       |
@@ -72,6 +74,7 @@ Via `bd` CLI:
 | `bd stats`                                             | View project statistics                      |
 | `bd list --status=open`                                | List all open issues                         |
 | `bd list --status=in_progress`                         | List active work                             |
+| `bd list --json`                                       | List all issues as JSON (for sync)           |
 
 ## Priority Values
 
