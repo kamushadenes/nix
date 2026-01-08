@@ -87,7 +87,7 @@ RUN curl -fsSL https://get.jetify.com/devbox | FORCE=1 bash && \
     which devbox && devbox version
 
 # Install claude-code and language runtimes globally via devbox
-RUN devbox global add claude-code go nodejs python3
+RUN devbox global add claude-code go nodejs python312 python312Packages.pip
 
 # Install tdd-guard tools
 SHELL ["/bin/bash", "-c"]
