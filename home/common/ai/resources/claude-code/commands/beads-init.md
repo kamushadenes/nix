@@ -47,3 +47,9 @@ After completion, inform the user that the repository is ready for beads:
 - Your working branch stays clean of beads commits
 - Daemon auto-commits/pushes to sync branch in background
 - Run `bd sync --status` to check sync state
+
+**Optional: ClickUp integration:**
+
+- Run `/clickup-sync` to link this repo with a ClickUp List
+- Tasks will sync bidirectionally between beads and ClickUp
+- See `.beads/clickup.yaml` for link configuration

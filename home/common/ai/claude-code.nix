@@ -110,6 +110,7 @@ in
       beads-init = builtins.readFile "${commandsDir}/beads-init.md";
       beads-merge = builtins.readFile "${commandsDir}/beads-merge.md";
       sync-ai-dev = builtins.readFile "${commandsDir}/sync-ai-dev.md";
+      clickup-sync = builtins.readFile "${commandsDir}/clickup-sync.md";
     };
 
     # Note: rules option is not available in this home-manager version
@@ -491,6 +492,10 @@ in
               }
               {
                 type = "command";
+                command = "~/.claude/hooks/Stop/clickup-sync.sh";
+              }
+              {
+                type = "command";
                 command = "echo \"Make sure to update AGENTS.md and README.md\"";
               }
             ];
@@ -664,6 +669,10 @@ in
     # Stop hooks
     ".claude/hooks/Stop/post-lint.sh" = {
       source = "${scriptsDir}/hooks/Stop/post-lint.sh";
+      executable = true;
+    };
+    ".claude/hooks/Stop/clickup-sync.sh" = {
+      source = "${scriptsDir}/hooks/Stop/clickup-sync.sh";
       executable = true;
     };
 

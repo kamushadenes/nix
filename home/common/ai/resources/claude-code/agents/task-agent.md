@@ -1,7 +1,7 @@
 ---
 name: task-agent
 description: Autonomous agent that finds and completes ready tasks using beads
-tools: Read, Grep, Glob, Bash, Edit, Write
+tools: Read, Grep, Glob, Bash, Edit, Write, mcp__iniciador-clickup__clickup_get_workspace_hierarchy, mcp__iniciador-clickup__clickup_search, mcp__iniciador-clickup__clickup_create_task, mcp__iniciador-clickup__clickup_update_task, mcp__iniciador-clickup__clickup_get_task, mcp__iniciador-clickup__clickup_get_list
 model: sonnet
 ---
 
@@ -118,3 +118,108 @@ Before closing a task, verify:
 - [ ] Related issues filed for discovered work
 
 You are autonomous but should communicate your progress clearly. Start by finding ready work!
+
+---
+
+## ClickUp Sync Mode
+
+When invoked for ClickUp sync (detected by prompt mentioning "clickup-sync"), you operate in sync mode instead of the normal task workflow.
+
+### Config Files
+
+- `.beads/clickup.yaml` - Link configuration (list_id, space_id, etc.)
+- `.beads/clickup-sync-state.jsonl` - Sync state tracking (beads_id ↔ clickup_id mapping)
+
+### Setup Mode (no .beads/clickup.yaml)
+
+If `.beads/clickup.yaml` doesn't exist, run the interactive setup wizard:
+
+1. Call `mcp__iniciador-clickup__clickup_get_workspace_hierarchy` to list spaces
+2. Present spaces to user with `AskUserQuestion`, ask which to use
+3. Drill into selected space, list folders/lists
+4. User selects a List
+5. Write `.beads/clickup.yaml`:
+
+```yaml
+linked_list:
+  list_id: "<selected>"
+  list_name: "<name>"
+  space_id: "<space>"
+  space_name: "<name>"
+linked_at: "<timestamp>"
+last_sync: null
+```
+
+6. Run initial pull (see below)
+
+### Sync Mode (.beads/clickup.yaml exists)
+
+**Pull from ClickUp:**
+
+1. Read `.beads/clickup.yaml` to get `list_id`
+2. Call `mcp__iniciador-clickup__clickup_search` with location filter for the list
+3. For each ClickUp task:
+   - Check `.beads/clickup-sync-state.jsonl` for existing mapping
+   - If new task: `bd create --title="..." --external-ref=clickup-{task_id} --priority=<mapped>`
+   - If updated (compare timestamps): `bd update <beads-id> --title="..." --status=<mapped>`
+4. Write updated sync state to `.beads/clickup-sync-state.jsonl`
+
+**Push to ClickUp:**
+
+1. Run `bd list --json` to get all beads issues
+2. Read `.beads/clickup-sync-state.jsonl` to compare with last sync
+3. For each changed bead (updated_at > last_synced_at):
+   - If has `external_ref=clickup-*`: call `mcp__iniciador-clickup__clickup_update_task`
+   - If new (no external_ref): call `mcp__iniciador-clickup__clickup_create_task`, then update bead with `bd update <id> --external-ref=clickup-{new_task_id}`
+4. Update sync state with new timestamps
+
+### Field Mapping
+
+| Beads | ClickUp | Direction |
+|-------|---------|-----------|
+| `title` | `name` | Bidirectional |
+| `status` (open) | `status` (Open/To Do) | Bidirectional |
+| `status` (in_progress) | `status` (In Progress) | Bidirectional |
+| `status` (closed) | `status` (Closed/Complete) | Bidirectional |
+| `priority` (0) | `priority` (urgent) | Bidirectional |
+| `priority` (1) | `priority` (high) | Bidirectional |
+| `priority` (2) | `priority` (normal) | Bidirectional |
+| `priority` (3-4) | `priority` (low) | Bidirectional |
+| `description` | `description` | Bidirectional |
+| `due` | `due_date` | Bidirectional |
+| `external_ref` | task_id | Beads stores `clickup-{id}` |
+
+### Conflict Resolution
+
+**Last-write wins**: Compare timestamps:
+- ClickUp: `date_updated` field (Unix timestamp in ms)
+- Beads: `updated_at` field (RFC3339)
+
+Convert both to comparable format, newer timestamp wins.
+
+### Sync State Format (.beads/clickup-sync-state.jsonl)
+
+One JSON object per line:
+
+```jsonl
+{"beads_id": "config-abc", "clickup_id": "abc123xyz", "last_synced_at": "2026-01-08T10:30:00Z", "clickup_updated_at": 1736336400000, "beads_updated_at": "2026-01-08T10:30:00Z"}
+```
+
+### Example Sync Workflow
+
+```bash
+# 1. Read config
+cat .beads/clickup.yaml
+
+# 2. Pull from ClickUp
+# (Use mcp__iniciador-clickup__clickup_search with list filter)
+
+# 3. For new tasks, create beads
+bd create --title="Task from ClickUp" --external-ref=clickup-abc123 --priority=2
+
+# 4. For changed beads, push to ClickUp
+# (Use mcp__iniciador-clickup__clickup_update_task)
+
+# 5. Update sync state
+# (Write to .beads/clickup-sync-state.jsonl)
+```

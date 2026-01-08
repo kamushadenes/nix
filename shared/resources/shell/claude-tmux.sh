@@ -223,10 +223,11 @@ _c_danger() {
 
     # Create temp staging directory and copy configs with dereferenced symlinks
     # (home-manager creates symlinks to nix store which don't exist in container)
+    # Use rsync to handle symlinks properly and exclude .git dirs
     local staging_dir
     staging_dir=$(mktemp -d)
     if test -d "$home_dir/.claude"; then
-        cp -rL "$home_dir/.claude" "$staging_dir/.claude" 2>/dev/null || cp -r "$home_dir/.claude" "$staging_dir/.claude"
+        rsync -rL --exclude='.git' --exclude='*.ipc' "$home_dir/.claude/" "$staging_dir/.claude/" 2>/dev/null || cp -r "$home_dir/.claude" "$staging_dir/.claude"
     fi
     if test -f "$home_dir/.claude.json"; then
         cp -L "$home_dir/.claude.json" "$staging_dir/.claude.json" 2>/dev/null || cp "$home_dir/.claude.json" "$staging_dir/.claude.json"

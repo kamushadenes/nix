@@ -12,6 +12,7 @@
 - TodoWrite is for execution steps WITHIN a beads issue
 - Update beads status as you work (`bd update`, `bd close`)
 - Only mark complete when verified AND beads issue closed
+- If `.beads/clickup.yaml` exists, run `/clickup-sync` to sync with ClickUp
 
 ## Verification
 

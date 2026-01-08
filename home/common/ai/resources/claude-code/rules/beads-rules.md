@@ -40,6 +40,26 @@ Use numeric priorities (0-4), NOT strings:
 - 3 (P3): Low - nice to have
 - 4 (P4): Backlog - someday/maybe
 
+## ClickUp Integration
+
+If `.beads/clickup.yaml` exists, ClickUp sync is enabled for this repo.
+
+**Check on session start:**
+```bash
+test -f .beads/clickup.yaml && echo "ClickUp linked"
+```
+
+**When ClickUp is linked:**
+- Run `/clickup-sync` at session start to pull latest tasks from ClickUp
+- The Stop hook will remind about unsyced changes
+- New beads issues can be pushed to ClickUp via `/clickup-sync`
+- Tasks flow bidirectionally: ClickUp ↔ beads
+
+**Field mapping:**
+- Beads `external_ref=clickup-{id}` links to ClickUp task
+- Priority: 0→urgent, 1→high, 2→normal, 3-4→low
+- Status: open→Open, in_progress→In Progress, closed→Closed
+
 ## Session Close Checklist
 
 Before ending ANY session:
@@ -47,6 +67,7 @@ Before ending ANY session:
 ```
 [ ] bd list --status=in_progress  (review active work)
 [ ] bd close <completed-ids>      (close finished issues)
+[ ] /clickup-sync                 (if .beads/clickup.yaml exists)
 [ ] git push                      (beads auto-syncs via daemon)
 ```
 
