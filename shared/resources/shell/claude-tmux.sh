@@ -290,17 +290,33 @@ _c_danger() {
     echo "   Workdir: $current_dir"
     echo ""
 
-    # Run container with entrypoint script directly (no bash wrapper)
-    docker run -it --rm \
-        --name "$container_name" \
-        --hostname "claude-sandbox" \
-        -w "$current_dir" \
-        -e "HOME=/home/claude" \
-        -e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" \
-        -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
-        "${mounts[@]}" \
-        "$image_name" \
-        /entrypoint.sh "$@"
+    # Determine how to run based on image type
+    # Project images have ENTRYPOINT baked in, base image doesn't
+    if test "$image_name" = "claude-sandbox:base"; then
+        # Base image: no ENTRYPOINT, must specify command
+        docker run -it --rm \
+            --name "$container_name" \
+            --hostname "claude-sandbox" \
+            -w "$current_dir" \
+            -e "HOME=/home/claude" \
+            -e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" \
+            -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
+            "${mounts[@]}" \
+            "$image_name" \
+            /entrypoint.sh "$@"
+    else
+        # Project image: has ENTRYPOINT ["/entrypoint.sh"], just pass args
+        docker run -it --rm \
+            --name "$container_name" \
+            --hostname "claude-sandbox" \
+            -w "$current_dir" \
+            -e "HOME=/home/claude" \
+            -e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" \
+            -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
+            "${mounts[@]}" \
+            "$image_name" \
+            "$@"
+    fi
 
     # Cleanup temp files
     if test -n "$creds_temp" && test -f "$creds_temp"; then
