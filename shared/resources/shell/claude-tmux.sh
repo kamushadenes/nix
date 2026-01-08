@@ -91,7 +91,7 @@ RUN devbox global add claude-code go nodejs python3
 
 # Install tdd-guard tools
 SHELL ["/bin/bash", "-c"]
-RUN eval "$(devbox global shellenv)" && \
+RUN eval "$(devbox global shellenv --preserve-path-stack -r)" && hash -r && \
     go install github.com/nizos/tdd-guard/reporters/go/cmd/tdd-guard-go@latest && \
     npm install -g tdd-guard tdd-guard-vitest && \
     pip install tdd-guard-pytest
