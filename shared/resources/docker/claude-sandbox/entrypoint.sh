@@ -26,6 +26,11 @@ fi
 if [ -f /tmp/claude-config-staging/.claude.json ]; then
     cp /tmp/claude-config-staging/.claude.json "$HOME/"
 fi
+# Copy credentials from keychain (mounted separately)
+if [ -f /tmp/claude-credentials.json ]; then
+    mkdir -p "$HOME/.claude"
+    cp /tmp/claude-credentials.json "$HOME/.claude/.credentials.json"
+fi
 
 echo "Starting Claude with --dangerously-skip-permissions..."
 exec claude --dangerously-skip-permissions "$@"

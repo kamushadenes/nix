@@ -228,9 +228,9 @@ function _c_danger
     if test -f "$home_dir/.claude.json"
         set mounts $mounts "-v" "$home_dir/.claude.json:/tmp/claude-config-staging/.claude.json:ro"
     end
-    # Mount credentials from keychain (extracted above)
+    # Mount credentials from keychain to separate path (entrypoint copies them)
     if test -n "$creds_temp" -a -f "$creds_temp"
-        set mounts $mounts "-v" "$creds_temp:/tmp/claude-config-staging/.claude/.credentials.json:ro"
+        set mounts $mounts "-v" "$creds_temp:/tmp/claude-credentials.json:ro"
     end
     # Mount SSH for git operations
     if test -d "$home_dir/.ssh"
