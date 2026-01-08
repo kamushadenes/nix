@@ -571,8 +571,16 @@ in
       };
 
       # Enabled plugins from various marketplaces
+      #
+      # Marketplace sources (added via /plugin marketplace add <repo>):
+      #   claude-plugins-official  -> anthropics/claude-code-plugins (built-in)
+      #   claude-code-workflows    -> modelcontextprotocol/workflows
+      #   beads-marketplace        -> steveyegge/beads
+      #   agent-security           -> (third-party security plugins)
+      #
+      # Plugin format: "plugin-name@marketplace-name" = true|false
       enabledPlugins = {
-        # Official plugins
+        # Official plugins (anthropics/claude-code-plugins)
         "gopls-lsp@claude-plugins-official" = true;
         #"playwright@claude-plugins-official" = true;
         "typescript-lsp@claude-plugins-official" = true;
