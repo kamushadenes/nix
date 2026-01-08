@@ -88,8 +88,8 @@ function _c_danger
             '# Install devbox' \
             'RUN curl -fsSL https://get.jetify.com/devbox | bash -s -- -f' \
             '' \
-            '# Install claude-code, go, and nodejs globally via devbox' \
-            'RUN /root/.local/bin/devbox global add claude-code go nodejs' \
+            '# Install claude-code, go, nodejs, and python globally via devbox' \
+            'RUN /root/.local/bin/devbox global add claude-code go nodejs python3' \
             '' \
             '# Pre-warm devbox shellenv' \
             'RUN /root/.local/bin/devbox global shellenv > /root/.devbox_shellenv' \
