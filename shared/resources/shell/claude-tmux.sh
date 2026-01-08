@@ -87,14 +87,13 @@ RUN curl -fsSL https://get.jetify.com/devbox | FORCE=1 bash && \
     which devbox && devbox version
 
 # Install claude-code and language runtimes globally via devbox
-RUN devbox global add claude-code go nodejs python312 python312Packages.pip
+RUN devbox global add claude-code go nodejs
 
 # Install tdd-guard tools
 SHELL ["/bin/bash", "-c"]
 RUN eval "$(devbox global shellenv --preserve-path-stack -r)" && hash -r && \
     go install github.com/nizos/tdd-guard/reporters/go/cmd/tdd-guard-go@latest && \
-    npm install -g tdd-guard tdd-guard-vitest && \
-    python3 -m pip install tdd-guard-pytest
+    npm install -g tdd-guard tdd-guard-vitest
 
 # Pre-warm devbox shellenv for runtime
 RUN devbox global shellenv > /root/.devbox_shellenv
