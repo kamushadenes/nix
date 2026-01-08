@@ -9,6 +9,7 @@
 
   # Casks
   homebrew.casks = [
+    "betterdisplay"
     "dockside"
     "hazel"
     "pdf-expert"
