@@ -1,13 +1,21 @@
 # Claude Code workspace manager
-# Usage: c [command] [args...]
+# Usage: c [OPTIONS] [COMMAND] [ARGS...]
+#
+# OPTIONS:
+#   -d, --danger         Run in Docker sandbox (can combine with commands)
+#
+# COMMANDS:
 #   c                    - Start tmux+claude in current directory
 #   c <args>             - Pass args to claude
-#   c danger|d [args]    - Run claude in Docker with full permissions (sandboxed)
 #   c work|w <branch>    - Create worktree for branch, start claude there
 #   c list|l             - List all workspaces
 #   c resume|r [id]      - Resume workspace (fzf if no id)
 #   c clean|x            - Interactive cleanup of old workspaces
 #   c help|h             - Show help
+#
+# EXAMPLES:
+#   c -d                 - Run Claude in Docker sandbox
+#   c -d w feature-x     - Create worktree + run in Docker sandbox
 
 # Helper: normalize string for directory name
 function _c_normalize
@@ -52,12 +60,122 @@ function _c_get_git_info
     return 0
 end
 
+# Helper: compute hash of devbox.json for project image tagging
+function _c_devbox_hash
+    set devbox_file $argv[1]
+    if test -f "$devbox_file"
+        md5sum "$devbox_file" | cut -c1-12
+    else
+        echo "none"
+    end
+end
+
+# Helper: build base image if needed
+function _c_build_base_image
+    set base_image "claude-sandbox:base"
+    set dockerfile_dir "$HOME/.config/docker/claude-sandbox"
+
+    if not test -f "$dockerfile_dir/Dockerfile.base"
+        echo "Error: Dockerfile.base not found at $dockerfile_dir"
+        echo "Run 'rebuild' to deploy Docker resources"
+        return 1
+    end
+
+    # Check if base image exists
+    if not docker image inspect $base_image >/dev/null 2>&1
+        echo "Building claude-sandbox base image (first time only)..."
+        docker build -t $base_image -f "$dockerfile_dir/Dockerfile.base" "$dockerfile_dir"
+        if test $status -ne 0
+            echo "Error: Failed to build base image"
+            return 1
+        end
+        echo "Base image built successfully"
+    end
+    return 0
+end
+
+# Helper: build project-specific image if devbox.json changed
+function _c_build_project_image
+    set current_dir $argv[1]
+    set devbox_file "$current_dir/devbox.json"
+    set entrypoint_src "$HOME/.config/docker/claude-sandbox/entrypoint.sh"
+
+    # Compute project hash
+    set devbox_hash (_c_devbox_hash "$devbox_file")
+    set project_image "claude-sandbox:project-$devbox_hash"
+
+    # Check if project image already exists
+    if docker image inspect $project_image >/dev/null 2>&1
+        echo $project_image
+        return 0
+    end
+
+    # Build base image first if needed
+    if not _c_build_base_image
+        return 1
+    end
+
+    # If no devbox.json, use base image directly
+    if test "$devbox_hash" = "none"
+        echo "claude-sandbox:base"
+        return 0
+    end
+
+    echo "Building project image for devbox.json (hash: $devbox_hash)..."
+
+    # Create temp build context
+    set build_ctx (mktemp -d)
+    cp "$devbox_file" "$build_ctx/"
+    test -f "$current_dir/devbox.lock" && cp "$current_dir/devbox.lock" "$build_ctx/"
+    cp "$entrypoint_src" "$build_ctx/"
+
+    # Generate project Dockerfile
+    cat > "$build_ctx/Dockerfile" << 'DOCKERFILE'
+FROM claude-sandbox:base
+
+# Copy project's devbox.json and install deps (as root)
+USER root
+COPY devbox.json devbox.lock* /tmp/project/
+WORKDIR /tmp/project
+RUN devbox install 2>&1 || echo "devbox install completed with warnings"
+
+# Pre-cache project shellenv
+RUN devbox shellenv > /etc/devbox_project_shellenv 2>/dev/null || true && chmod 644 /etc/devbox_project_shellenv 2>/dev/null || true
+
+# Fix permissions for non-root access
+RUN chmod 755 /root 2>/dev/null || true && \
+    chmod -R o+rX /root/.local /root/.nix-profile 2>/dev/null || true && \
+    chmod -R o+rx /root/go 2>/dev/null || true
+
+# Switch to non-root user
+USER claude
+ENV HOME=/home/claude
+
+COPY --chmod=755 entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+DOCKERFILE
+
+    # Build project image
+    docker build -t $project_image "$build_ctx"
+    set build_status $status
+
+    # Cleanup
+    rm -rf "$build_ctx"
+
+    if test $build_status -ne 0
+        echo "Error: Failed to build project image"
+        return 1
+    end
+
+    echo $project_image
+    return 0
+end
+
 # Danger mode: run claude in Docker container with full permissions
 function _c_danger
     set extra_args $argv
     set current_dir (pwd)
     set home_dir $HOME
-    set image_name "claude-sandbox:latest"
 
     # Check if docker is available
     if not command -q docker
@@ -78,68 +196,17 @@ function _c_danger
         if test -n "$keychain_creds"
             set creds_temp (mktemp)
             echo "$keychain_creds" > "$creds_temp"
-            echo "🔑 Extracted Claude credentials from keychain"
+            echo "Extracted Claude credentials from keychain"
         else
-            echo "⚠️  No Claude credentials found in keychain (will use ANTHROPIC_API_KEY if set)"
+            echo "No Claude credentials found in keychain (will use ANTHROPIC_API_KEY if set)"
         end
     end
 
-    # Check if claude-sandbox image exists, build if not
-    if not docker image inspect $image_name >/dev/null 2>&1
-        echo "🔨 Building claude-sandbox image (first time only)..."
-        printf '%s\n' \
-            'FROM ubuntu:24.04' \
-            'ENV DEBIAN_FRONTEND=noninteractive' \
-            '' \
-            '# Install dependencies (including python3/pip for tdd-guard-pytest)' \
-            'RUN apt-get update -qq && \\' \
-            '    apt-get install -y -qq bash curl git xz-utils ca-certificates sudo python3 python3-pip python3-venv && \\' \
-            '    apt-get clean && rm -rf /var/lib/apt/lists/*' \
-            '' \
-            '# Create non-root user (or use existing ubuntu user)' \
-            'RUN useradd -m -s /bin/bash claude 2>/dev/null || true && echo "claude ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers' \
-            '' \
-            '# Install devbox as root first (installs to /usr/local/bin)' \
-            'RUN curl -fsSL https://get.jetify.com/devbox | FORCE=1 bash && \\' \
-            '    chmod 755 /usr/local/bin/devbox && \\' \
-            '    which devbox && devbox version' \
-            '' \
-            '# Install claude-code and language runtimes globally via devbox (as root)' \
-            'RUN devbox global add claude-code go nodejs uv' \
-            '' \
-            '# Install tdd-guard tools (as root, so nix store is accessible)' \
-            'SHELL ["/bin/bash", "-c"]' \
-            'RUN eval "$(devbox global shellenv --preserve-path-stack -r)" && hash -r && \\' \
-            '    go install github.com/nizos/tdd-guard/reporters/go/cmd/tdd-guard-go@latest && \\' \
-            '    npm install -g tdd-guard tdd-guard-vitest && \\' \
-            '    pip3 install --break-system-packages tdd-guard-pytest' \
-            '' \
-            '# Pre-warm devbox shellenv and make it accessible to claude user' \
-            'RUN devbox global shellenv > /etc/devbox_shellenv && chmod 644 /etc/devbox_shellenv' \
-            '' \
-            '# Fix permissions for non-root user access to devbox global packages and nix store' \
-            'RUN chmod 755 /root && chmod -R o+rX /root/.local /root/.nix-profile 2>/dev/null || true' \
-            'RUN chmod -R o+rx /root/go 2>/dev/null || true' \
-            '# Allow claude user to access nix store for runtime package installs' \
-            'RUN chmod -R 777 /nix/var/nix 2>/dev/null || true' \
-            'RUN chmod -R 777 /nix/store 2>/dev/null || true' \
-            '# Pre-create per-user profiles directory for runtime devbox use' \
-            'RUN mkdir -p /nix/var/nix/profiles/per-user/claude && chmod -R 777 /nix/var/nix/profiles/per-user' \
-            '' \
-            '# Switch to non-root user for runtime' \
-            'USER claude' \
-            'WORKDIR /home/claude' \
-            'ENV HOME=/home/claude' \
-            'ENV PATH="/root/go/bin:/home/claude/.local/bin:/usr/local/bin:$PATH"' \
-            '' \
-            'ENTRYPOINT ["/bin/bash", "-c"]' \
-            | docker build -t $image_name -
-        if test $status -ne 0
-            echo "Error: Failed to build claude-sandbox image"
-            return 1
-        end
-        echo "✅ Image built successfully"
-        echo ""
+    # Build project image (handles base image building too)
+    set image_name (_c_build_project_image "$current_dir")
+    if test $status -ne 0
+        test -n "$creds_temp" && rm -f "$creds_temp"
+        return 1
     end
 
     # Container name based on directory
@@ -148,13 +215,13 @@ function _c_danger
 
     # Build volume mounts
     set -l mounts
-    # Mount current directory at same path
+    # Mount current directory at SAME path (critical for path consistency)
     set mounts $mounts "-v" "$current_dir:$current_dir"
     # Mount claude config
     set mounts $mounts "-v" "$home_dir/.claude:/home/claude/.claude"
     # Mount claude.json
     if test -f "$home_dir/.claude.json"
-        set mounts $mounts "-v" "$home_dir/.claude.json:/home/claude/.claude.json"
+        set mounts $mounts "-v" "$home_dir/.claude.json:/home/claude/.claude.json:ro"
     end
     # Mount credentials from keychain (extracted above)
     if test -n "$creds_temp" -a -f "$creds_temp"
@@ -169,12 +236,35 @@ function _c_danger
         set mounts $mounts "-v" "$home_dir/.gitconfig:/home/claude/.gitconfig:ro"
     end
 
-    echo "🐳 Starting Claude in Docker container (danger mode)..."
+    # Cloud credentials mounts
+    # AWS
+    if test -d "$home_dir/.aws"
+        set mounts $mounts "-v" "$home_dir/.aws:/home/claude/.aws:ro"
+    end
+    # Google Cloud
+    if test -d "$home_dir/.config/gcloud"
+        set mounts $mounts "-v" "$home_dir/.config/gcloud:/home/claude/.config/gcloud:ro"
+    end
+    # Kubernetes
+    if test -d "$home_dir/.kube"
+        set mounts $mounts "-v" "$home_dir/.kube:/home/claude/.kube:ro"
+    end
+    # Agenix secrets (macOS temp dir)
+    if test -n "$DARWIN_USER_TEMP_DIR" -a -d "$DARWIN_USER_TEMP_DIR/agenix"
+        set mounts $mounts "-v" "$DARWIN_USER_TEMP_DIR/agenix:/run/agenix:ro"
+    end
+    # Agenix secrets (Linux)
+    if test -d "/run/agenix"
+        set mounts $mounts "-v" "/run/agenix:/run/agenix:ro"
+    end
+
+    echo "Starting Claude in Docker container (danger mode)..."
     echo "   Container: $container_name"
+    echo "   Image: $image_name"
     echo "   Workdir: $current_dir"
     echo ""
 
-    # Run container with pre-built image
+    # Run container
     docker run -it --rm \
         --name "$container_name" \
         --hostname "claude-sandbox" \
@@ -184,28 +274,7 @@ function _c_danger
         -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
         $mounts \
         $image_name \
-        '
-            # Source nix profile first (installed as root during build)
-            if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
-                source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-            fi
-            source /etc/devbox_shellenv
-            # Override HOME set by shellenv (it was /root during build)
-            export HOME=/home/claude
-
-            # Check if project has devbox.json - use it at runtime
-            if [ -f "devbox.json" ]; then
-                echo "📦 Found devbox.json - installing project dependencies..."
-                sudo devbox install 2>/dev/null || echo "⚠️  devbox install failed, using global packages"
-                echo "🚀 Starting Claude with --dangerously-skip-permissions..."
-                echo ""
-                devbox run -- claude --dangerously-skip-permissions '"$extra_args"' 2>/dev/null || claude --dangerously-skip-permissions '"$extra_args"'
-            else
-                echo "🚀 Starting Claude with --dangerously-skip-permissions..."
-                echo ""
-                claude --dangerously-skip-permissions '"$extra_args"'
-            fi
-        '
+        $extra_args
 
     # Cleanup temp credentials file
     if test -n "$creds_temp" -a -f "$creds_temp"
@@ -250,6 +319,13 @@ end
 
 # Work: create worktree and start claude
 function _c_worktree
+    set use_danger $argv[1]
+    if test "$use_danger" = "--danger"
+        set -e argv[1]
+    else
+        set use_danger ""
+    end
+
     if test (count $argv) -lt 1
         echo "Usage: c work <branch>"
         return 1
@@ -321,12 +397,23 @@ function _c_worktree
     echo "Created workspace: $workspace_path"
     echo "Session: $session_name"
 
-    if test -n "$TMUX"
-        # Already in tmux, create new session and switch
-        tmux new-session -d -s "$session_name" -c "$workspace_path" "claude $extra_args"
-        tmux switch-client -t "$session_name"
+    # If danger mode, run in Docker from the workspace
+    if test -n "$use_danger"
+        cd "$workspace_path"
+        if test -n "$TMUX"
+            tmux new-session -d -s "$session_name" -c "$workspace_path" "c -d $extra_args"
+            tmux switch-client -t "$session_name"
+        else
+            tmux new-session -s "$session_name" -c "$workspace_path" "c -d $extra_args"
+        end
     else
-        tmux new-session -s "$session_name" -c "$workspace_path" "claude $extra_args"
+        if test -n "$TMUX"
+            # Already in tmux, create new session and switch
+            tmux new-session -d -s "$session_name" -c "$workspace_path" "claude $extra_args"
+            tmux switch-client -t "$session_name"
+        else
+            tmux new-session -s "$session_name" -c "$workspace_path" "claude $extra_args"
+        end
     end
 end
 
@@ -514,42 +601,94 @@ function _c_help
     echo "c - Claude Code workspace manager"
     echo ""
     echo "USAGE:"
-    echo "  c                      Start Claude in current directory"
-    echo "  c <args>               Pass args to Claude (e.g., c --help, c -p 'prompt')"
-    echo "  c danger|d [args]      Run Claude in Docker with full permissions (sandboxed)"
-    echo "  c work|w <branch>      Create worktree for branch, start Claude there"
-    echo "  c list|l               List all workspaces"
-    echo "  c resume|r [id]        Resume a workspace (fzf selection if no id)"
-    echo "  c clean|x              Interactive cleanup of old workspaces"
-    echo "  c help|h               Show this help"
+    echo "  c [OPTIONS] [COMMAND] [ARGS...]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -d, --danger         Run in Docker sandbox (combinable with commands)"
+    echo ""
+    echo "COMMANDS:"
+    echo "  c                    Start Claude in current directory"
+    echo "  c <args>             Pass args to Claude (e.g., c --help, c -p 'prompt')"
+    echo "  c work|w <branch>    Create worktree for branch, start Claude there"
+    echo "  c list|l             List all workspaces"
+    echo "  c resume|r [id]      Resume a workspace (fzf selection if no id)"
+    echo "  c clean|x            Interactive cleanup of old workspaces"
+    echo "  c help|h             Show this help"
+    echo ""
+    echo "EXAMPLES:"
+    echo "  c                      Start Claude normally"
+    echo "  c -d                   Run Claude in Docker sandbox"
+    echo "  c w feature-x          Create worktree for feature-x"
+    echo "  c -d w feature-x       Worktree + Docker sandbox"
+    echo "  c r a1b2               Resume workspace matching 'a1b2'"
+    echo "  c l                    Show all workspaces with status"
+    echo ""
+    echo "DOCKER SANDBOX:"
+    echo "  The -d option runs Claude in a Docker container with:"
+    echo "  - --dangerously-skip-permissions enabled"
+    echo "  - devbox packages from project's devbox.json"
+    echo "  - Cloud credentials (AWS, gcloud, kubectl)"
+    echo "  - SSH keys and git config"
     echo ""
     echo "WORKSPACE PATH:"
     echo "  ~/.local/share/git/workspaces/<parent>/<repo>/<branch>/<id>"
-    echo ""
-    echo "EXAMPLES:"
-    echo "  c w feature/my-feature   Create worktree for feature/my-feature"
-    echo "  c r a1b2                 Resume workspace matching 'a1b2'"
-    echo "  c l                      Show all workspaces with status"
-    echo "  c d                      Run Claude in Docker sandbox with full permissions"
+end
+
+# Parse options and dispatch
+set -l danger_mode ""
+set -l remaining_args
+
+# Parse leading options
+set -l i 1
+while test $i -le (count $argv)
+    switch $argv[$i]
+        case "-d" "--danger"
+            set danger_mode "1"
+        case "*"
+            # First non-option, rest are args
+            set remaining_args $argv[$i..-1]
+            break
+    end
+    set i (math $i + 1)
 end
 
 # Main dispatch
-switch "$argv[1]"
-    case ""
-        _c_default
-    case "danger" "d"
-        _c_danger $argv[2..-1]
-    case "work" "w"
-        _c_worktree $argv[2..-1]
-    case "list" "l"
-        _c_list
-    case "resume" "r"
-        _c_resume $argv[2..-1]
-    case "clean" "x"
-        _c_clean
-    case "help" "h"
-        _c_help
-    case "*"
-        # Pass through to claude (existing behavior)
-        _c_default $argv
+if test -n "$danger_mode"
+    # Danger mode enabled
+    switch "$remaining_args[1]"
+        case ""
+            _c_danger
+        case "work" "w"
+            _c_worktree --danger $remaining_args[2..-1]
+        case "list" "l"
+            _c_list
+        case "resume" "r"
+            _c_resume $remaining_args[2..-1]
+        case "clean" "x"
+            _c_clean
+        case "help" "h"
+            _c_help
+        case "*"
+            # Pass through to danger mode
+            _c_danger $remaining_args
+    end
+else
+    # Normal mode
+    switch "$argv[1]"
+        case ""
+            _c_default
+        case "work" "w"
+            _c_worktree "" $argv[2..-1]
+        case "list" "l"
+            _c_list
+        case "resume" "r"
+            _c_resume $argv[2..-1]
+        case "clean" "x"
+            _c_clean
+        case "help" "h"
+            _c_help
+        case "*"
+            # Pass through to claude (existing behavior)
+            _c_default $argv
+    end
 end
