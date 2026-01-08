@@ -32,11 +32,13 @@ bd sync --merge
 If main requires PRs:
 
 1. Ensure beads-sync is pushed:
+
    ```bash
    git push origin beads-sync
    ```
 
 2. Create a PR:
+
    ```bash
    gh pr create --base main --head beads-sync --title "Sync beads metadata" --body "Merge beads issue tracking data to main branch."
    ```
@@ -51,6 +53,7 @@ If main requires PRs:
 ### Handling merge conflicts
 
 If conflicts occur in `.beads/issues.jsonl`:
+
 1. Keep the line with the newer `updated_at` timestamp
 2. Remove conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`)
 3. Commit resolution and run `bd import`
