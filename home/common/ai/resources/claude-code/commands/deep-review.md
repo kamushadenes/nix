@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test -d:*), Bash(test -f:*), Bash(cat .beads/*:*), Bash(bd create:*), Bash(bd update:*), Task, AskUserQuestion, mcp__iniciador-clickup__clickup_create_task
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test:*),Bash(cat .beads/*:*), Bash(bd:*), Task, AskUserQuestion, mcp__iniciador-clickup__clickup_create_task
 description: Comprehensive multi-agent code review using 9 specialized agents with 3-model consensus
 ---
 
@@ -269,12 +269,12 @@ dependency_checker = Task(
 
     c. For each selected finding, create a beads issue using the appropriate priority:
 
-    | Severity | Priority | Title Format |
-    |----------|----------|--------------|
-    | Critical | 0 (P0) | `[CRITICAL] agent: description (file:line)` |
-    | High | 1 (P1) | `[HIGH] agent: description (file:line)` |
-    | Medium | 2 (P2) | `[MEDIUM] agent: description (file:line)` |
-    | Low | 3 (P3) | `[LOW] agent: description (file:line)` |
+    | Severity | Priority | Title Format                                |
+    | -------- | -------- | ------------------------------------------- |
+    | Critical | 0 (P0)   | `[CRITICAL] agent: description (file:line)` |
+    | High     | 1 (P1)   | `[HIGH] agent: description (file:line)`     |
+    | Medium   | 2 (P2)   | `[MEDIUM] agent: description (file:line)`   |
+    | Low      | 3 (P3)   | `[LOW] agent: description (file:line)`      |
 
     ```bash
     # Example for a critical security finding
@@ -292,6 +292,7 @@ dependency_checker = Task(
     ```
 
     If yes, for each created bead:
+
     - Call `mcp__iniciador-clickup__clickup_create_task` with the finding details
     - Update bead with `bd update <id> --external-ref=clickup-{new_task_id}`
 
