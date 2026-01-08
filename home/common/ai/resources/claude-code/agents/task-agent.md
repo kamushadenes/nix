@@ -153,8 +153,8 @@ When invoked for ClickUp sync (detected by prompt mentioning "clickup-sync"), yo
 
 ### Config Files
 
-- `.beads/clickup.yaml` - Link configuration (list_id, space_id, etc.)
-- `.beads/clickup-sync-state.jsonl` - Sync state tracking (beads_id ↔ clickup_id mapping)
+- `.beads/clickup.yaml` - Link configuration (list_id, space_id, last_sync timestamp)
+- Sync state is tracked via `external_ref` field on each bead (e.g., `clickup-abc123`)
 
 ### Setup Mode (no .beads/clickup.yaml)
 
@@ -185,24 +185,38 @@ last_sync: null
 
 ### Sync Mode (.beads/clickup.yaml exists)
 
+**Key Concept:** The `external_ref` field is the primary link between beads and ClickUp. Use it to find matching issues.
+
 **Pull from ClickUp:**
 
 1. Read `.beads/clickup.yaml` to get `list_id`
 2. Call `mcp__iniciador-clickup__clickup_search` with location filter for the list
 3. For each ClickUp task:
-   - Check `.beads/clickup-sync-state.jsonl` for existing mapping
-   - If new task: `bd create --title="..." --external-ref=clickup-{task_id} --priority=<mapped>`
-   - If updated (compare timestamps): `bd update <beads-id> --title="..." --status=<mapped>`
-4. Write updated sync state to `.beads/clickup-sync-state.jsonl`
+   - Search beads for matching external_ref: `bd list --json | jq '.[] | select(.external_ref == "clickup-{task_id}")'`
+   - If no match (new task): `bd create --title="..." --external-ref=clickup-{task_id} --priority=<mapped>`
+   - If match exists: compare timestamps, update bead if ClickUp is newer
+4. Update `.beads/clickup.yaml` with `last_sync` timestamp
 
 **Push to ClickUp:**
 
 1. Run `bd list --json` to get all beads issues
-2. Read `.beads/clickup-sync-state.jsonl` to compare with last sync
-3. For each changed bead (updated_at > last_synced_at):
-   - If has `external_ref=clickup-*`: call `mcp__iniciador-clickup__clickup_update_task`
-   - If new (no external_ref): call `mcp__iniciador-clickup__clickup_create_task`, then update bead with `bd update <id> --external-ref=clickup-{new_task_id}`
-4. Update sync state with new timestamps
+2. For each bead:
+   - If has `external_ref` starting with `clickup-`: extract task_id, call `mcp__iniciador-clickup__clickup_update_task` with the task_id
+   - If NO `external_ref`: create new task in ClickUp, then `bd update <id> --external-ref=clickup-{new_task_id}`
+3. Update `.beads/clickup.yaml` with `last_sync` timestamp
+
+**Finding linked beads by external_ref:**
+
+```bash
+# Find bead linked to ClickUp task abc123
+bd list --json | jq -r '.[] | select(.external_ref == "clickup-abc123") | .id'
+
+# Find all beads linked to ClickUp
+bd list --json | jq -r '.[] | select(.external_ref | startswith("clickup-"))'
+
+# Find unlinked beads (need to push to ClickUp)
+bd list --json | jq -r '.[] | select(.external_ref == null or .external_ref == "")'
+```
 
 ### Field Mapping
 
@@ -229,35 +243,28 @@ last_sync: null
 
 Convert both to comparable format, newer timestamp wins.
 
-### Sync State Format (.beads/clickup-sync-state.jsonl)
-
-One JSON object per line:
-
-```jsonl
-{
-  "beads_id": "config-abc",
-  "clickup_id": "abc123xyz",
-  "last_synced_at": "2026-01-08T10:30:00Z",
-  "clickup_updated_at": 1736336400000,
-  "beads_updated_at": "2026-01-08T10:30:00Z"
-}
-```
-
 ### Example Sync Workflow
 
 ```bash
 # 1. Read config
 cat .beads/clickup.yaml
 
-# 2. Pull from ClickUp
-# (Use mcp__iniciador-clickup__clickup_search with list filter)
+# 2. Pull from ClickUp - for each task found:
+# Check if bead exists with this external_ref
+existing=$(bd list --json | jq -r '.[] | select(.external_ref == "clickup-abc123") | .id')
+if [ -z "$existing" ]; then
+  # New task - create bead with external_ref
+  bd create --title="Task from ClickUp" --external-ref=clickup-abc123 --priority=2
+else
+  # Existing - update if ClickUp is newer
+  bd update "$existing" --title="Updated title" --status=in_progress
+fi
 
-# 3. For new tasks, create beads
-bd create --title="Task from ClickUp" --external-ref=clickup-abc123 --priority=2
+# 3. Push to ClickUp - for beads without external_ref:
+# Create in ClickUp, get new task_id, then link
+bd update bd-xyz --external-ref=clickup-newtaskid
 
-# 4. For changed beads, push to ClickUp
-# (Use mcp__iniciador-clickup__clickup_update_task)
-
-# 5. Update sync state
-# (Write to .beads/clickup-sync-state.jsonl)
+# 4. For beads WITH external_ref, update the linked ClickUp task:
+# Extract task_id from external_ref (e.g., "clickup-abc123" -> "abc123")
+# Call mcp__iniciador-clickup__clickup_update_task with that task_id
 ```

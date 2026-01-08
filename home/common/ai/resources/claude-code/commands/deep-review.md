@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test -d:*), Bash(bd create:*), Task, AskUserQuestion
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test -d:*), Bash(test -f:*), Bash(cat .beads/*:*), Bash(bd create:*), Bash(bd update:*), Task, AskUserQuestion, mcp__iniciador-clickup__clickup_create_task
 description: Comprehensive multi-agent code review using 9 specialized agents with 3-model consensus
 ---
 
@@ -281,9 +281,24 @@ dependency_checker = Task(
     bd create --title="[CRITICAL] security: SQL injection in user lookup (src/auth.py:45)" --type=bug --priority=0
     ```
 
-    d. Report created issues:
+    d. If ClickUp is linked (`.beads/clickup.yaml` exists), offer to sync new issues:
+
+    ```
+    Question: "Sync new issues to ClickUp?"
+    Header: "ClickUp Sync"
+    Options:
+    - "Yes, create in ClickUp" - Creates tasks and links via external_ref
+    - "No, keep local only" - Issues stay in beads only
+    ```
+
+    If yes, for each created bead:
+    - Call `mcp__iniciador-clickup__clickup_create_task` with the finding details
+    - Update bead with `bd update <id> --external-ref=clickup-{new_task_id}`
+
+    e. Report created issues:
 
     > Created X beads issues for the selected findings. Use `bd list` to view them.
+    > [If synced] Also created X tasks in ClickUp (linked via external_ref).
 
 ## Handling Subagent User Input Requests
 

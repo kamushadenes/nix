@@ -41,12 +41,18 @@ Spawn task-agent with this prompt:
 ```
 Run ClickUp sync SYNC mode (clickup-sync).
 
-Read .beads/clickup.yaml and .beads/clickup-sync-state.jsonl for context.
+Read .beads/clickup.yaml for the linked list_id.
 
-1. PULL: Fetch tasks from ClickUp and create/update beads issues
-2. PUSH: Find changed beads and update ClickUp tasks
+1. PULL: Fetch tasks from ClickUp list
+   - For each task, check if bead exists with external_ref=clickup-{task_id}
+   - If no match: create new bead with --external-ref=clickup-{task_id}
+   - If match: compare timestamps, update bead if ClickUp is newer
 
-Use last-write-wins for conflict resolution.
+2. PUSH: Find beads to sync to ClickUp
+   - Beads WITH external_ref starting with "clickup-": update the linked task
+   - Beads WITHOUT external_ref: create in ClickUp, then bd update --external-ref=clickup-{new_id}
+
+Use external_ref as the primary link. Use last-write-wins for conflicts.
 Report what was synced when complete.
 ```
 
