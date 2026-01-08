@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Task, AskUserQuestion
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test -d:*), Bash(bd create:*), Task, AskUserQuestion
 description: Comprehensive multi-agent code review using 9 specialized agents with 3-model consensus
 ---
 
@@ -100,7 +100,18 @@ Options:
    target_files = ["src/", "lib/", "app/", "."]  # Agent will explore
    ```
 
-5. **Launch all 9 review agents in parallel** using the Task tool:
+5. **Check if beads is initialized:**
+
+   ```bash
+   # Check if beads is available for issue tracking
+   if test -d .beads; then
+       beads_available=true
+   else
+       beads_available=false
+   fi
+   ```
+
+6. **Launch all 9 review agents in parallel** using the Task tool:
 
 ```python
 # Each agent will internally spawn claude, codex, and gemini for 3-model analysis
@@ -171,9 +182,9 @@ dependency_checker = Task(
 )
 ```
 
-6. Collect and aggregate results from all agents
+7. Collect and aggregate results from all agents
 
-7. Present unified findings organized by severity:
+8. Present unified findings organized by severity:
 
 ```markdown
 ## Deep Review Summary
@@ -241,7 +252,38 @@ dependency_checker = Task(
 - **Divergent views**: [Issues needing human judgment]
 ```
 
-8. Offer to help address any issues found
+9. Offer to help address any issues found
+
+10. **If beads is available, offer to create issues for findings:**
+
+    a. If `beads_available` is true and there are Critical or High severity findings:
+
+    b. Use AskUserQuestion to let user select which findings to track:
+
+    ```
+    Question: "Which findings would you like to track in beads?"
+    Header: "Track in beads"
+    Options: [List each Critical/High finding with brief description as label]
+    MultiSelect: true
+    ```
+
+    c. For each selected finding, create a beads issue using the appropriate priority:
+
+    | Severity | Priority | Title Format |
+    |----------|----------|--------------|
+    | Critical | 0 (P0) | `[CRITICAL] agent: description (file:line)` |
+    | High | 1 (P1) | `[HIGH] agent: description (file:line)` |
+    | Medium | 2 (P2) | `[MEDIUM] agent: description (file:line)` |
+    | Low | 3 (P3) | `[LOW] agent: description (file:line)` |
+
+    ```bash
+    # Example for a critical security finding
+    bd create --title="[CRITICAL] security: SQL injection in user lookup (src/auth.py:45)" --type=bug --priority=0
+    ```
+
+    d. Report created issues:
+
+    > Created X beads issues for the selected findings. Use `bd list` to view them.
 
 ## Notes
 
@@ -250,3 +292,4 @@ dependency_checker = Task(
 - Expect longer execution time (~2-3 minutes for changes, ~5+ minutes for full codebase)
 - Results are deduplicated and aggregated by severity
 - For large codebases, agents will focus on main source directories
+- If beads is initialized (`.beads/` directory exists), you can optionally create issues for findings
