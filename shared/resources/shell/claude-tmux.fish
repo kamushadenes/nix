@@ -87,7 +87,6 @@ function _c_build_base_image
         # Copy to temp dir to resolve symlinks (Docker can't follow nix store symlinks)
         set build_ctx (mktemp -d)
         cp -L "$dockerfile_dir/Dockerfile.base" "$build_ctx/Dockerfile"
-        cp -L "$dockerfile_dir/entrypoint.sh" "$build_ctx/" 2>/dev/null || true
         docker build -t $base_image "$build_ctx"
         set build_status $status
         rm -rf "$build_ctx"
@@ -261,6 +260,11 @@ function _c_danger
     if test -d "/run/agenix"
         set mounts $mounts "-v" "/run/agenix:/tmp/creds-staging/agenix:ro"
     end
+    # Mount entrypoint script (not baked into image, allows changes without rebuild)
+    set entrypoint_path "$HOME/.config/docker/claude-sandbox/entrypoint.sh"
+    if test -f "$entrypoint_path"
+        set mounts $mounts "-v" "$entrypoint_path:/entrypoint.sh:ro"
+    end
 
     echo "Starting Claude in Docker container (danger mode)..."
     echo "   Container: $container_name"
@@ -268,7 +272,7 @@ function _c_danger
     echo "   Workdir: $current_dir"
     echo ""
 
-    # Run container
+    # Run container with entrypoint script
     docker run -it --rm \
         --name "$container_name" \
         --hostname "claude-sandbox" \
@@ -278,7 +282,7 @@ function _c_danger
         -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
         $mounts \
         $image_name \
-        $extra_args
+        /entrypoint.sh $extra_args
 
     # Cleanup temp credentials file
     if test -n "$creds_temp" -a -f "$creds_temp"

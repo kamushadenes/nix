@@ -85,7 +85,6 @@ _c_build_base_image() {
         local build_ctx
         build_ctx=$(mktemp -d)
         cp -L "$dockerfile_dir/Dockerfile.base" "$build_ctx/Dockerfile"
-        cp -L "$dockerfile_dir/entrypoint.sh" "$build_ctx/" 2>/dev/null || true
         docker build -t "$base_image" "$build_ctx"
         local build_status=$?
         rm -rf "$build_ctx"
@@ -264,6 +263,11 @@ _c_danger() {
     if test -d "/run/agenix"; then
         mounts+=("-v" "/run/agenix:/tmp/creds-staging/agenix:ro")
     fi
+    # Mount entrypoint script (not baked into image, allows changes without rebuild)
+    local entrypoint_path="$HOME/.config/docker/claude-sandbox/entrypoint.sh"
+    if test -f "$entrypoint_path"; then
+        mounts+=("-v" "$entrypoint_path:/entrypoint.sh:ro")
+    fi
 
     echo "Starting Claude in Docker container (danger mode)..."
     echo "   Container: $container_name"
@@ -271,7 +275,7 @@ _c_danger() {
     echo "   Workdir: $current_dir"
     echo ""
 
-    # Run container
+    # Run container with entrypoint script
     docker run -it --rm \
         --name "$container_name" \
         --hostname "claude-sandbox" \
@@ -281,7 +285,7 @@ _c_danger() {
         -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
         "${mounts[@]}" \
         "$image_name" \
-        "$@"
+        /entrypoint.sh "$@"
 
     # Cleanup temp credentials file
     if test -n "$creds_temp" && test -f "$creds_temp"; then

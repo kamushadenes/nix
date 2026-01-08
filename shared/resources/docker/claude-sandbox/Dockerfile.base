@@ -38,5 +38,5 @@ ENV PATH="/root/go/bin:/usr/local/bin:$PATH"
 USER claude
 ENV HOME=/home/claude
 
-COPY --chmod=755 entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+# entrypoint.sh is mounted at runtime via -v, not baked into image
+CMD ["/bin/bash"]
