@@ -27,9 +27,8 @@ sudo chown -R claude:claude "$HOME"
 # Symlinks already dereferenced on host before mounting
 if [ -d /tmp/claude-config-staging/.claude ]; then
     cp -r /tmp/claude-config-staging/.claude "$HOME/"
-    # Clear session state to start clean (don't restore previous conversations)
-    rm -rf "$HOME/.claude/projects" "$HOME/.claude/ide" "$HOME/.claude/statsig" 2>/dev/null || true
-    rm -f "$HOME/.claude/conversation_"* "$HOME/.claude/.last_"* 2>/dev/null || true
+    # Clear auto-resume state but keep conversation history for /resume
+    rm -f "$HOME/.claude/.last_"* 2>/dev/null || true
 fi
 if [ -f /tmp/claude-config-staging/.claude.json ]; then
     cp /tmp/claude-config-staging/.claude.json "$HOME/"
