@@ -159,6 +159,10 @@ DOCKERFILE
         "${mounts[@]}" \
         "$image_name" \
         '
+            # Source nix profile first (installed as root during build)
+            if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+                source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+            fi
             source /etc/devbox_shellenv
 
             # Check if project has devbox.json - use it at runtime
