@@ -117,9 +117,12 @@ function _c_danger
             '# Pre-warm devbox shellenv and make it accessible to claude user' \
             'RUN devbox global shellenv > /etc/devbox_shellenv && chmod 644 /etc/devbox_shellenv' \
             '' \
-            '# Fix permissions for non-root user access to devbox global packages' \
+            '# Fix permissions for non-root user access to devbox global packages and nix store' \
             'RUN chmod 755 /root && chmod -R o+rX /root/.local /root/.nix-profile 2>/dev/null || true' \
             'RUN chmod -R o+rx /root/go 2>/dev/null || true' \
+            '# Allow claude user to access nix store for runtime package installs' \
+            'RUN chmod -R 777 /nix/var/nix 2>/dev/null || true' \
+            'RUN chmod -R 777 /nix/store 2>/dev/null || true' \
             '' \
             '# Switch to non-root user for runtime' \
             'USER claude' \
