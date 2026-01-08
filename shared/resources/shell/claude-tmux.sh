@@ -1,8 +1,5 @@
 # Claude Code workspace manager
-# Usage: c [OPTIONS] [COMMAND] [ARGS...]
-#
-# OPTIONS:
-#   -d, --danger         Run in Docker sandbox (can combine with commands)
+# Usage: c [COMMAND] [ARGS...]
 #
 # COMMANDS:
 #   c                    - Start tmux+claude in current directory
@@ -12,10 +9,6 @@
 #   c resume|r [id]      - Resume workspace (fzf if no id)
 #   c clean|x            - Interactive cleanup of old workspaces
 #   c help|h             - Show help
-#
-# EXAMPLES:
-#   c -d                 - Run Claude in Docker sandbox
-#   c -d w feature-x     - Create worktree + run in Docker sandbox
 
 # Helper: normalize string for directory name
 _c_normalize() {
@@ -57,276 +50,6 @@ _c_get_git_info() {
     return 0
 }
 
-# Helper: compute hash of devbox.json for project image tagging
-_c_devbox_hash() {
-    local devbox_file="$1"
-    if test -f "$devbox_file"; then
-        md5sum "$devbox_file" | cut -c1-12
-    else
-        echo "none"
-    fi
-}
-
-# Helper: build base image if needed
-_c_build_base_image() {
-    local base_image="claude-sandbox:base"
-    local dockerfile_dir="$HOME/.config/docker/claude-sandbox"
-
-    if ! test -f "$dockerfile_dir/Dockerfile.base"; then
-        echo "Error: Dockerfile.base not found at $dockerfile_dir"
-        echo "Run 'rebuild' to deploy Docker resources"
-        return 1
-    fi
-
-    # Check if base image exists
-    if ! docker image inspect "$base_image" >/dev/null 2>&1; then
-        echo "Building claude-sandbox base image (first time only)..." >&2
-        # Copy to temp dir to resolve symlinks (Docker can't follow nix store symlinks)
-        local build_ctx
-        build_ctx=$(mktemp -d)
-        cp -L "$dockerfile_dir/Dockerfile.base" "$build_ctx/Dockerfile"
-        docker build -t "$base_image" "$build_ctx"
-        local build_status=$?
-        rm -rf "$build_ctx"
-        if test $build_status -ne 0; then
-            echo "Error: Failed to build base image" >&2
-            return 1
-        fi
-        echo "Base image built successfully" >&2
-    fi
-    return 0
-}
-
-# Helper: build project-specific image if devbox.json changed
-_c_build_project_image() {
-    local current_dir="$1"
-    local devbox_file="$current_dir/devbox.json"
-    local entrypoint_src="$HOME/.config/docker/claude-sandbox/entrypoint.sh"
-
-    # Compute project hash
-    local devbox_hash
-    devbox_hash=$(_c_devbox_hash "$devbox_file")
-    local project_image="claude-sandbox:project-$devbox_hash"
-
-    # Check if project image already exists
-    if docker image inspect "$project_image" >/dev/null 2>&1; then
-        echo "$project_image"
-        return 0
-    fi
-
-    # Build base image first if needed
-    if ! _c_build_base_image; then
-        return 1
-    fi
-
-    # If no devbox.json, use base image directly
-    if test "$devbox_hash" = "none"; then
-        echo "claude-sandbox:base"
-        return 0
-    fi
-
-    echo "Building project image for devbox.json (hash: $devbox_hash)..." >&2
-
-    # Create temp build context
-    local build_ctx
-    build_ctx=$(mktemp -d)
-    cp "$devbox_file" "$build_ctx/"
-    test -f "$current_dir/devbox.lock" && cp "$current_dir/devbox.lock" "$build_ctx/"
-    cp "$entrypoint_src" "$build_ctx/"
-
-    # Generate project Dockerfile
-    cat > "$build_ctx/Dockerfile" << 'DOCKERFILE'
-FROM claude-sandbox:base
-
-# Copy project's devbox.json and install deps (as root)
-USER root
-COPY devbox.json devbox.lock* /tmp/project/
-WORKDIR /tmp/project
-RUN devbox install 2>&1 || echo "devbox install completed with warnings"
-
-# Pre-cache project shellenv
-RUN devbox shellenv > /etc/devbox_project_shellenv 2>/dev/null || true && chmod 644 /etc/devbox_project_shellenv 2>/dev/null || true
-
-# Fix permissions for non-root access
-RUN chmod 755 /root 2>/dev/null || true && \
-    chmod -R o+rX /root/.local /root/.nix-profile 2>/dev/null || true && \
-    chmod -R o+rx /root/go 2>/dev/null || true
-
-# Switch to non-root user
-USER claude
-ENV HOME=/home/claude
-
-COPY --chmod=755 entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
-DOCKERFILE
-
-    # Build project image
-    docker build -t "$project_image" "$build_ctx"
-    local build_status=$?
-
-    # Cleanup
-    rm -rf "$build_ctx"
-
-    if test $build_status -ne 0; then
-        echo "Error: Failed to build project image" >&2
-        return 1
-    fi
-
-    echo "$project_image"
-    return 0
-}
-
-# Danger mode: run claude in Docker container with full permissions
-_c_danger() {
-    local current_dir
-    current_dir=$(pwd)
-    local home_dir="$HOME"
-
-    # Check if docker is available
-    if ! command -v docker >/dev/null 2>&1; then
-        echo "Error: Docker is not installed or not in PATH"
-        return 1
-    fi
-
-    # Check if docker daemon is running
-    if ! docker info >/dev/null 2>&1; then
-        echo "Error: Docker daemon is not running"
-        return 1
-    fi
-
-    # Extract Claude OAuth credentials from keychain (macOS)
-    local creds_temp=""
-    if command -v security >/dev/null 2>&1; then
-        local keychain_creds
-        keychain_creds=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
-        if test -n "$keychain_creds"; then
-            creds_temp=$(mktemp)
-            echo "$keychain_creds" > "$creds_temp"
-            echo "Extracted Claude credentials from keychain"
-        else
-            echo "No Claude credentials found in keychain (will use ANTHROPIC_API_KEY if set)"
-        fi
-    fi
-
-    # Build project image (handles base image building too)
-    local image_name
-    image_name=$(_c_build_project_image "$current_dir")
-    if test $? -ne 0; then
-        test -n "$creds_temp" && rm -f "$creds_temp"
-        return 1
-    fi
-
-    # Container name based on directory
-    local dir_hash
-    dir_hash=$(echo "$current_dir" | md5sum | cut -c1-8)
-    local container_name="claude-danger-$dir_hash"
-
-    # Create temp staging directory and copy configs with dereferenced symlinks
-    # (home-manager creates symlinks to nix store which don't exist in container)
-    # Use rsync to handle symlinks properly and exclude .git dirs
-    local staging_dir
-    staging_dir=$(mktemp -d)
-    if test -d "$home_dir/.claude"; then
-        # Copy config but exclude transient session state
-        rsync -rL --exclude='.git' --exclude='*.ipc' --exclude='session-env' --exclude='shell-snapshots' --exclude='ide' --exclude='statsig' --exclude='telemetry' --exclude='cache' "$home_dir/.claude/" "$staging_dir/.claude/" 2>/dev/null || cp -r "$home_dir/.claude" "$staging_dir/.claude"
-    fi
-    if test -f "$home_dir/.claude.json"; then
-        cp -L "$home_dir/.claude.json" "$staging_dir/.claude.json" 2>/dev/null || cp "$home_dir/.claude.json" "$staging_dir/.claude.json"
-    fi
-
-    # Build volume mounts
-    local mounts=()
-    # Mount current directory at SAME path (critical for path consistency)
-    mounts+=("-v" "$current_dir:$current_dir")
-    # Stage claude config for copying (entrypoint copies to $HOME for full rw access)
-    if test -d "$staging_dir/.claude"; then
-        mounts+=("-v" "$staging_dir/.claude:/tmp/claude-config-staging/.claude:ro")
-    fi
-    if test -f "$staging_dir/.claude.json"; then
-        mounts+=("-v" "$staging_dir/.claude.json:/tmp/claude-config-staging/.claude.json:ro")
-    fi
-    # Mount credentials from keychain to separate path (entrypoint copies them)
-    if test -n "$creds_temp" && test -f "$creds_temp"; then
-        mounts+=("-v" "$creds_temp:/tmp/claude-credentials.json:ro")
-    fi
-    # Stage all credentials for copying (entrypoint copies to $HOME)
-    # SSH
-    if test -d "$home_dir/.ssh"; then
-        mounts+=("-v" "$home_dir/.ssh:/tmp/creds-staging/.ssh:ro")
-    fi
-    # Git config
-    if test -f "$home_dir/.gitconfig"; then
-        mounts+=("-v" "$home_dir/.gitconfig:/tmp/creds-staging/.gitconfig:ro")
-    fi
-    # AWS
-    if test -d "$home_dir/.aws"; then
-        mounts+=("-v" "$home_dir/.aws:/tmp/creds-staging/.aws:ro")
-    fi
-    # Google Cloud
-    if test -d "$home_dir/.config/gcloud"; then
-        mounts+=("-v" "$home_dir/.config/gcloud:/tmp/creds-staging/.config/gcloud:ro")
-    fi
-    # Kubernetes
-    if test -d "$home_dir/.kube"; then
-        mounts+=("-v" "$home_dir/.kube:/tmp/creds-staging/.kube:ro")
-    fi
-    # Agenix secrets (macOS temp dir)
-    if test -n "$DARWIN_USER_TEMP_DIR" && test -d "$DARWIN_USER_TEMP_DIR/agenix"; then
-        mounts+=("-v" "$DARWIN_USER_TEMP_DIR/agenix:/tmp/creds-staging/agenix:ro")
-    fi
-    # Agenix secrets (Linux)
-    if test -d "/run/agenix"; then
-        mounts+=("-v" "/run/agenix:/tmp/creds-staging/agenix:ro")
-    fi
-    # Mount entrypoint script (not baked into image, allows changes without rebuild)
-    local entrypoint_path="$HOME/.config/docker/claude-sandbox/entrypoint.sh"
-    if test -f "$entrypoint_path"; then
-        mounts+=("-v" "$entrypoint_path:/entrypoint.sh:ro")
-    fi
-
-    echo "Starting Claude in Docker container (danger mode)..."
-    echo "   Container: $container_name"
-    echo "   Image: $image_name"
-    echo "   Workdir: $current_dir"
-    echo ""
-
-    # Determine how to run based on image type
-    # Project images have ENTRYPOINT baked in, base image doesn't
-    if test "$image_name" = "claude-sandbox:base"; then
-        # Base image: no ENTRYPOINT, must specify command
-        docker run -it --rm \
-            --name "$container_name" \
-            --hostname "claude-sandbox" \
-            -w "$current_dir" \
-            -e "HOME=/home/claude" \
-            -e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" \
-            -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
-            "${mounts[@]}" \
-            "$image_name" \
-            /entrypoint.sh "$@"
-    else
-        # Project image: has ENTRYPOINT ["/entrypoint.sh"], just pass args
-        docker run -it --rm \
-            --name "$container_name" \
-            --hostname "claude-sandbox" \
-            -w "$current_dir" \
-            -e "HOME=/home/claude" \
-            -e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" \
-            -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
-            "${mounts[@]}" \
-            "$image_name" \
-            "$@"
-    fi
-
-    # Cleanup temp files
-    if test -n "$creds_temp" && test -f "$creds_temp"; then
-        rm -f "$creds_temp"
-    fi
-    if test -n "$staging_dir" && test -d "$staging_dir"; then
-        rm -rf "$staging_dir"
-    fi
-}
-
 # Default behavior: start tmux+claude in current dir
 _c_default() {
     # Find git root (closest parent with .git, or current dir)
@@ -363,12 +86,6 @@ _c_default() {
 
 # Work: create worktree and start claude
 _c_worktree() {
-    local use_danger=""
-    if test "$1" = "--danger"; then
-        use_danger="1"
-        shift
-    fi
-
     if test $# -lt 1; then
         echo "Usage: c work <branch>"
         return 1
@@ -441,23 +158,12 @@ _c_worktree() {
     echo "Created workspace: $workspace_path"
     echo "Session: $session_name"
 
-    # If danger mode, run in Docker from the workspace
-    if test -n "$use_danger"; then
-        cd "$workspace_path"
-        if test -n "$TMUX"; then
-            tmux new-session -d -s "$session_name" -c "$workspace_path" "c -d $extra_args"
-            tmux switch-client -t "$session_name"
-        else
-            tmux new-session -s "$session_name" -c "$workspace_path" "c -d $extra_args"
-        fi
+    if test -n "$TMUX"; then
+        # Already in tmux, create new session and switch
+        tmux new-session -d -s "$session_name" -c "$workspace_path" "claude $extra_args"
+        tmux switch-client -t "$session_name"
     else
-        if test -n "$TMUX"; then
-            # Already in tmux, create new session and switch
-            tmux new-session -d -s "$session_name" -c "$workspace_path" "claude $extra_args"
-            tmux switch-client -t "$session_name"
-        else
-            tmux new-session -s "$session_name" -c "$workspace_path" "claude $extra_args"
-        fi
+        tmux new-session -s "$session_name" -c "$workspace_path" "claude $extra_args"
     fi
 }
 
@@ -656,10 +362,7 @@ _c_help() {
     echo "c - Claude Code workspace manager"
     echo ""
     echo "USAGE:"
-    echo "  c [OPTIONS] [COMMAND] [ARGS...]"
-    echo ""
-    echo "OPTIONS:"
-    echo "  -d, --danger         Run in Docker sandbox (combinable with commands)"
+    echo "  c [COMMAND] [ARGS...]"
     echo ""
     echo "COMMANDS:"
     echo "  c                    Start Claude in current directory"
@@ -672,95 +375,38 @@ _c_help() {
     echo ""
     echo "EXAMPLES:"
     echo "  c                      Start Claude normally"
-    echo "  c -d                   Run Claude in Docker sandbox"
     echo "  c w feature-x          Create worktree for feature-x"
-    echo "  c -d w feature-x       Worktree + Docker sandbox"
     echo "  c r a1b2               Resume workspace matching 'a1b2'"
     echo "  c l                    Show all workspaces with status"
-    echo ""
-    echo "DOCKER SANDBOX:"
-    echo "  The -d option runs Claude in a Docker container with:"
-    echo "  - --dangerously-skip-permissions enabled"
-    echo "  - devbox packages from project's devbox.json"
-    echo "  - Cloud credentials (AWS, gcloud, kubectl)"
-    echo "  - SSH keys and git config"
     echo ""
     echo "WORKSPACE PATH:"
     echo "  ~/.local/share/git/workspaces/<parent>/<repo>/<branch>/<id>"
 }
 
-# Parse options and dispatch
-danger_mode=""
-remaining_args=()
-
-# Parse leading options
-while test $# -gt 0; do
-    case "$1" in
-        -d|--danger)
-            danger_mode="1"
-            shift
-            ;;
-        *)
-            # First non-option, rest are args
-            remaining_args=("$@")
-            break
-            ;;
-    esac
-done
-
 # Main dispatch
-if test -n "$danger_mode"; then
-    # Danger mode enabled
-    case "${remaining_args[0]}" in
-        "")
-            _c_danger
-            ;;
-        work|w)
-            _c_worktree --danger "${remaining_args[@]:1}"
-            ;;
-        list|l)
-            _c_list
-            ;;
-        resume|r)
-            _c_resume "${remaining_args[@]:1}"
-            ;;
-        clean|x)
-            _c_clean
-            ;;
-        help|h)
-            _c_help
-            ;;
-        *)
-            # Pass through to danger mode
-            _c_danger "${remaining_args[@]}"
-            ;;
-    esac
-else
-    # Normal mode (use original args before parsing)
-    case "$1" in
-        "")
-            _c_default
-            ;;
-        work|w)
-            shift
-            _c_worktree "" "$@"
-            ;;
-        list|l)
-            _c_list
-            ;;
-        resume|r)
-            shift
-            _c_resume "$@"
-            ;;
-        clean|x)
-            _c_clean
-            ;;
-        help|h)
-            _c_help
-            ;;
-        *)
-            # Pass through to claude (existing behavior)
-            _c_default "$@"
-            ;;
-    esac
-fi
+case "$1" in
+    "")
+        _c_default
+        ;;
+    work|w)
+        shift
+        _c_worktree "$@"
+        ;;
+    list|l)
+        _c_list
+        ;;
+    resume|r)
+        shift
+        _c_resume "$@"
+        ;;
+    clean|x)
+        _c_clean
+        ;;
+    help|h)
+        _c_help
+        ;;
+    *)
+        # Pass through to claude (existing behavior)
+        _c_default "$@"
+        ;;
+esac

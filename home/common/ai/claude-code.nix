@@ -25,7 +25,6 @@ let
   memoryDir = "${resourcesDir}/memory";
   commandsDir = "${resourcesDir}/commands";
   agentsDir = "${resourcesDir}/agents";
-  dockerDir = ../../../shared/resources/docker/claude-sandbox;
 
   # Read rule files from the rules directory
   ruleFiles = builtins.attrNames (builtins.readDir rulesDir);
@@ -136,6 +135,7 @@ in
           "Bash(rg:*)"
           "Bash(fd:*)"
           "Bash(mkdir:*)"
+          "Bash(test:*)"
           "Search"
 
           # Text processing
@@ -707,13 +707,6 @@ in
     ".claude/agents/compliance-specialist.md".source = "${agentsDir}/compliance-specialist.md";
     # Task automation agent (beads workflow)
     ".claude/agents/task-agent.md".source = "${agentsDir}/task-agent.md";
-
-    # Docker sandbox resources for `c -d` danger mode
-    ".config/docker/claude-sandbox/Dockerfile.base".source = "${dockerDir}/Dockerfile.base";
-    ".config/docker/claude-sandbox/entrypoint.sh" = {
-      source = "${dockerDir}/entrypoint.sh";
-      executable = true;
-    };
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
