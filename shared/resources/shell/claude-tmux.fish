@@ -78,9 +78,9 @@ function _c_danger
             'FROM ubuntu:24.04' \
             'ENV DEBIAN_FRONTEND=noninteractive' \
             '' \
-            '# Install dependencies' \
+            '# Install dependencies (including python3/pip for tdd-guard-pytest)' \
             'RUN apt-get update -qq && \\' \
-            '    apt-get install -y -qq bash curl git xz-utils ca-certificates sudo && \\' \
+            '    apt-get install -y -qq bash curl git xz-utils ca-certificates sudo python3 python3-pip python3-venv && \\' \
             '    apt-get clean && rm -rf /var/lib/apt/lists/*' \
             '' \
             '# Create non-root user' \
@@ -103,7 +103,8 @@ function _c_danger
             'SHELL ["/bin/bash", "-c"]' \
             'RUN eval "$(devbox global shellenv --preserve-path-stack -r)" && hash -r && \\' \
             '    go install github.com/nizos/tdd-guard/reporters/go/cmd/tdd-guard-go@latest && \\' \
-            '    npm install -g tdd-guard tdd-guard-vitest' \
+            '    npm install -g tdd-guard tdd-guard-vitest && \\' \
+            '    pip3 install --break-system-packages tdd-guard-pytest' \
             '' \
             '# Pre-warm devbox shellenv for runtime' \
             'RUN devbox global shellenv > /home/claude/.devbox_shellenv' \
