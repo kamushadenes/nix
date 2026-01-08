@@ -77,13 +77,20 @@ function _c_danger
         printf '%s\n' \
             'FROM ubuntu:24.04' \
             'ENV DEBIAN_FRONTEND=noninteractive' \
-            'ENV HOME=/root' \
-            'ENV PATH="/root/.local/bin:/usr/local/bin:$PATH"' \
             '' \
             '# Install dependencies' \
             'RUN apt-get update -qq && \\' \
-            '    apt-get install -y -qq bash curl git xz-utils ca-certificates && \\' \
+            '    apt-get install -y -qq bash curl git xz-utils ca-certificates sudo && \\' \
             '    apt-get clean && rm -rf /var/lib/apt/lists/*' \
+            '' \
+            '# Create non-root user' \
+            'RUN useradd -m -s /bin/bash claude && echo "claude ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers' \
+            '' \
+            '# Switch to non-root user' \
+            'USER claude' \
+            'WORKDIR /home/claude' \
+            'ENV HOME=/home/claude' \
+            'ENV PATH="/home/claude/.local/bin:/usr/local/bin:$PATH"' \
             '' \
             '# Install devbox (installs to /usr/local/bin)' \
             'RUN curl -fsSL https://get.jetify.com/devbox | FORCE=1 bash && \\' \
@@ -99,7 +106,7 @@ function _c_danger
             '    npm install -g tdd-guard tdd-guard-vitest' \
             '' \
             '# Pre-warm devbox shellenv for runtime' \
-            'RUN devbox global shellenv > /root/.devbox_shellenv' \
+            'RUN devbox global shellenv > /home/claude/.devbox_shellenv' \
             '' \
             'ENTRYPOINT ["/bin/bash", "-c"]' \
             | docker build -t $image_name -
@@ -120,18 +127,18 @@ function _c_danger
     # Mount current directory at same path
     set mounts $mounts "-v" "$current_dir:$current_dir"
     # Mount claude config
-    set mounts $mounts "-v" "$home_dir/.claude:/root/.claude"
+    set mounts $mounts "-v" "$home_dir/.claude:/home/claude/.claude"
     # Mount claude.json
     if test -f "$home_dir/.claude.json"
-        set mounts $mounts "-v" "$home_dir/.claude.json:/root/.claude.json"
+        set mounts $mounts "-v" "$home_dir/.claude.json:/home/claude/.claude.json"
     end
     # Mount SSH for git operations
     if test -d "$home_dir/.ssh"
-        set mounts $mounts "-v" "$home_dir/.ssh:/root/.ssh:ro"
+        set mounts $mounts "-v" "$home_dir/.ssh:/home/claude/.ssh:ro"
     end
     # Mount git config
     if test -f "$home_dir/.gitconfig"
-        set mounts $mounts "-v" "$home_dir/.gitconfig:/root/.gitconfig:ro"
+        set mounts $mounts "-v" "$home_dir/.gitconfig:/home/claude/.gitconfig:ro"
     end
 
     echo "🐳 Starting Claude in Docker container (danger mode)..."
@@ -144,13 +151,13 @@ function _c_danger
         --name "$container_name" \
         --hostname "claude-sandbox" \
         -w "$current_dir" \
-        -e "HOME=/root" \
+        -e "HOME=/home/claude" \
         -e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" \
         -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
         $mounts \
         $image_name \
         '
-            source /root/.devbox_shellenv
+            source /home/claude/.devbox_shellenv
 
             # Check if project has devbox.json - use it at runtime
             if [ -f "devbox.json" ]; then
