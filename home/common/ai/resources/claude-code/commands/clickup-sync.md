@@ -47,13 +47,16 @@ Read .beads/clickup.yaml for the linked list_id.
    - For each task, check if bead exists with external_ref=clickup-{task_id}
    - If no match: create new bead with --external-ref=clickup-{task_id}
    - If match: compare timestamps, update bead if ClickUp is newer
+   - PULL COMMENTS: For linked beads, fetch ClickUp comments and add missing ones to beads
 
 2. PUSH: Find beads to sync to ClickUp
    - Beads WITH external_ref starting with "clickup-": update the linked task
    - Beads WITHOUT external_ref: create in ClickUp, then bd update --external-ref=clickup-{new_id}
+   - PUSH COMMENTS: For linked beads, push bead comments missing from ClickUp
+   - CLOSE REASON: When a bead is closed with close_reason, post it as a ClickUp comment prefixed with "[Closed]"
 
 Use external_ref as the primary link. Use last-write-wins for conflicts.
-Report what was synced when complete.
+Report what was synced when complete (including comment counts).
 ```
 
 ## Important

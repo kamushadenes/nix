@@ -233,6 +233,8 @@ bd list --json | jq -r '.[] | select(.external_ref == null or .external_ref == "
 | `description`          | `description`              | Bidirectional               |
 | `due`                  | `due_date`                 | Bidirectional               |
 | `external_ref`         | task_id                    | Beads stores `clickup-{id}` |
+| `comments`             | `comments`                 | Bidirectional               |
+| `close_reason`         | comment (prefixed)         | Beads → ClickUp only        |
 
 ### Conflict Resolution
 
@@ -268,6 +270,72 @@ bd update bd-xyz --external-ref=clickup-newtaskid
 # Extract task_id from external_ref (e.g., "clickup-abc123" -> "abc123")
 # Call mcp__iniciador-clickup__clickup_update_task with that task_id
 ```
+
+### Comment Sync
+
+Comments are synced bidirectionally between beads and ClickUp. Use comment content hashing to detect duplicates.
+
+**Pull Comments from ClickUp:**
+
+```bash
+# For each linked bead:
+task_id="abc123"  # from external_ref
+bead_id="bd-xyz"
+
+# 1. Get ClickUp comments
+# Call mcp__iniciador-clickup__clickup_get_task_comments with task_id
+
+# 2. Get existing bead comments
+bd comments "$bead_id" --json
+
+# 3. For each ClickUp comment not in beads (match by text content):
+bd comments add "$bead_id" "[ClickUp] $comment_text" --author="$commenter_name"
+```
+
+**Push Comments to ClickUp:**
+
+```bash
+# For each linked bead with comments:
+task_id="abc123"  # from external_ref
+bead_id="bd-xyz"
+
+# 1. Get bead comments
+bd comments "$bead_id" --json
+
+# 2. Get ClickUp comments for comparison
+# Call mcp__iniciador-clickup__clickup_get_task_comments with task_id
+
+# 3. For each bead comment not in ClickUp (match by text content):
+# Skip comments that start with "[ClickUp]" (already from ClickUp)
+# Call mcp__iniciador-clickup__clickup_create_task_comment with:
+#   task_id: task_id
+#   comment_text: "[Beads] $comment_text"
+```
+
+**Close Reason Sync:**
+
+When a bead is closed with a `close_reason`, post it as a ClickUp comment:
+
+```bash
+# Check for closed beads with close_reason
+bd list --status=closed --json | jq -r '.[] | select(.close_reason != null and .close_reason != "")'
+
+# For each closed bead with external_ref:
+# 1. Check if close_reason comment already posted (look for "[Closed]" prefix)
+# 2. If not posted, create comment:
+# Call mcp__iniciador-clickup__clickup_create_task_comment with:
+#   task_id: extracted from external_ref
+#   comment_text: "[Closed] $close_reason"
+```
+
+**Comment Deduplication:**
+
+To avoid duplicate comments:
+- Beads comments from ClickUp are prefixed with `[ClickUp]`
+- ClickUp comments from Beads are prefixed with `[Beads]`
+- Close reason comments are prefixed with `[Closed]`
+- When comparing, strip these prefixes and compare normalized text
+- Skip sync if matching comment already exists
 
 ---
 
