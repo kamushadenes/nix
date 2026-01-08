@@ -691,6 +691,8 @@ in
     ".claude/agents/architecture-reviewer.md".source = "${agentsDir}/architecture-reviewer.md";
     # Compliance and certification agents
     ".claude/agents/compliance-specialist.md".source = "${agentsDir}/compliance-specialist.md";
+    # Task automation agent (beads workflow)
+    ".claude/agents/task-agent.md".source = "${agentsDir}/task-agent.md";
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
