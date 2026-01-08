@@ -123,6 +123,8 @@ function _c_danger
             '# Allow claude user to access nix store for runtime package installs' \
             'RUN chmod -R 777 /nix/var/nix 2>/dev/null || true' \
             'RUN chmod -R 777 /nix/store 2>/dev/null || true' \
+            '# Pre-create per-user profiles directory for runtime devbox use' \
+            'RUN mkdir -p /nix/var/nix/profiles/per-user/claude && chmod -R 777 /nix/var/nix/profiles/per-user' \
             '' \
             '# Switch to non-root user for runtime' \
             'USER claude' \
@@ -194,10 +196,10 @@ function _c_danger
             # Check if project has devbox.json - use it at runtime
             if [ -f "devbox.json" ]; then
                 echo "📦 Found devbox.json - installing project dependencies..."
-                devbox install 2>/dev/null
+                sudo devbox install 2>/dev/null || echo "⚠️  devbox install failed, using global packages"
                 echo "🚀 Starting Claude with --dangerously-skip-permissions..."
                 echo ""
-                devbox run -- claude --dangerously-skip-permissions '"$extra_args"'
+                devbox run -- claude --dangerously-skip-permissions '"$extra_args"' 2>/dev/null || claude --dangerously-skip-permissions '"$extra_args"'
             else
                 echo "🚀 Starting Claude with --dangerously-skip-permissions..."
                 echo ""
