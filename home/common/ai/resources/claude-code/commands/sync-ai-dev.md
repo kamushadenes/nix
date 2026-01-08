@@ -21,6 +21,8 @@ Sync resources from the Nix configuration to the standalone ai-dev repository fo
 | `resources/claude-code/memory/` | `resources/claude-code/memory/` |
 | `resources/claude-code/scripts/` | `resources/claude-code/scripts/` |
 | `resources/claude-code/config/` | `resources/claude-code/config/` |
+| `shared/resources/shell/claude-tmux.fish` | `resources/shell/fish/functions/c.fish` |
+| `shared/resources/shell/claude-tmux.sh` | `resources/shell/bash/c.sh` |
 
 ## Exclusions
 
@@ -87,6 +89,14 @@ When the user runs `/sync-ai-dev`:
      --exclude='__pycache__' \
      --exclude='.DS_Store' \
      "$SOURCE/config/" "$TARGET/config/"
+
+   # Sync shell functions
+   SHELL_SOURCE="$HOME/.config/nix/config/shared/resources/shell"
+   SHELL_TARGET="$HOME/Dropbox/Projects/Iniciador/ai-dev/resources/shell"
+
+   mkdir -p "$SHELL_TARGET/fish/functions" "$SHELL_TARGET/bash"
+   cp "$SHELL_SOURCE/claude-tmux.fish" "$SHELL_TARGET/fish/functions/c.fish"
+   cp "$SHELL_SOURCE/claude-tmux.sh" "$SHELL_TARGET/bash/c.sh"
    ```
 
 3. **Show changes:**
