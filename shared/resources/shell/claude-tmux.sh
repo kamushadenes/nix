@@ -99,10 +99,11 @@ RUN useradd -m -s /bin/bash claude 2>/dev/null || true && echo "claude ALL=(ALL)
 
 # Install devbox as root first (installs to /usr/local/bin)
 RUN curl -fsSL https://get.jetify.com/devbox | FORCE=1 bash && \
+    chmod 755 /usr/local/bin/devbox && \
     which devbox && devbox version
 
 # Install claude-code and language runtimes globally via devbox (as root)
-RUN devbox global add claude-code go nodejs
+RUN devbox global add claude-code go nodejs uv
 
 # Install tdd-guard tools (as root, so nix store is accessible)
 SHELL ["/bin/bash", "-c"]
