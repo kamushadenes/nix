@@ -90,17 +90,14 @@ function _c_danger
             '    which devbox && devbox version' \
             '' \
             '# Install claude-code and language runtimes globally via devbox' \
-            'RUN devbox global add claude-code go nodejs python3 php php83Packages.composer rustup' \
+            'RUN devbox global add claude-code go nodejs python3' \
             '' \
-            '# Setup rust toolchain and install tdd-guard tools' \
+            '# Install tdd-guard tools' \
             'SHELL ["/bin/bash", "-c"]' \
-            'RUN eval "$(devbox global shellenv)" && rustup default stable' \
             'RUN eval "$(devbox global shellenv)" && \\' \
             '    go install github.com/nizos/tdd-guard/reporters/go/cmd/tdd-guard-go@latest && \\' \
             '    npm install -g tdd-guard tdd-guard-vitest && \\' \
-            '    pip install tdd-guard-pytest && \\' \
-            '    composer global require tdd-guard/phpunit && \\' \
-            '    cargo install tdd-guard-rust' \
+            '    pip install tdd-guard-pytest' \
             '' \
             '# Pre-warm devbox shellenv for runtime' \
             'RUN devbox global shellenv > /root/.devbox_shellenv' \
