@@ -59,6 +59,7 @@ in
 
   home.packages = with pkgs; [
     nodePackages.prettier # Markdown/TypeScript formatting
+    # markdownlint-cli is installed in emacs.nix
     ruff # Python formatting
     github-mcp-server # GitHub MCP server binary
   ];
@@ -577,6 +578,9 @@ in
       source = "${scriptsDir}/hooks/git-safety-guard.py";
       executable = true;
     };
+
+    # Markdownlint configuration
+    ".claude/config/markdownlint.jsonc".source = "${resourcesDir}/config/markdownlint.jsonc";
 
     # Note: Orchestrator MCP server, CLI, and skills are now in orchestrator.nix
 
