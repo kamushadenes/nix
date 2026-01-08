@@ -289,7 +289,7 @@ _c_danger() {
     echo "   Workdir: $current_dir"
     echo ""
 
-    # Run container with entrypoint script
+    # Run container with entrypoint script via bash to avoid command leaking
     docker run -it --rm \
         --name "$container_name" \
         --hostname "claude-sandbox" \
@@ -299,7 +299,7 @@ _c_danger() {
         -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
         "${mounts[@]}" \
         "$image_name" \
-        /entrypoint.sh "$@"
+        /bin/bash -c "/entrypoint.sh $*"
 
     # Cleanup temp files
     if test -n "$creds_temp" && test -f "$creds_temp"; then

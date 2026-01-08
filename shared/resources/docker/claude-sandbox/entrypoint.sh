@@ -65,4 +65,5 @@ if [ -d /tmp/creds-staging/agenix ]; then
 fi
 
 echo "Starting Claude with --dangerously-skip-permissions..."
-exec claude --dangerously-skip-permissions "$@"
+# Use exec with -a to set argv[0] cleanly
+exec -a "claude" claude --dangerously-skip-permissions "$@"
