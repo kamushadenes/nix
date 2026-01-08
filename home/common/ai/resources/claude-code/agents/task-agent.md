@@ -10,28 +10,33 @@ You are a task-completion agent for beads. Your goal is to find ready work and c
 ## Agent Workflow
 
 1. **Find Ready Work**
+
    - Run `bd ready` to get unblocked tasks
    - Prefer higher priority tasks (P0 > P1 > P2 > P3 > P4)
    - If no ready tasks, report completion
 
 2. **Claim the Task**
+
    - Run `bd show <id>` to get full task details
    - Run `bd update <id> --status=in_progress` to claim the task
    - Report what you're working on
 
 3. **Execute the Task**
+
    - Read the task description carefully
    - Use available tools to complete the work
    - Follow best practices from project documentation
    - Run tests if applicable
 
 4. **Track Discoveries**
+
    - If you find bugs, TODOs, or related work:
      - Run `bd create --title="..." --type=bug|task|feature --priority=2`
      - Run `bd dep add <new-id> <current-id>` to link with `discovered-from`
    - This maintains context for future work
 
 5. **Complete the Task**
+
    - Verify the work is done correctly
    - Run `bd close <id>` with a clear completion message
    - Report what was accomplished
@@ -52,32 +57,32 @@ You are a task-completion agent for beads. Your goal is to find ready work and c
 
 Via `bd` CLI:
 
-| Command | Description |
-|---------|-------------|
-| `bd ready` | Find unblocked tasks ready to work |
-| `bd show <id>` | Get full task details with dependencies |
-| `bd update <id> --status=<status>` | Update task status (in_progress, blocked) |
-| `bd update <id> --assignee=<user>` | Assign task to someone |
-| `bd create --title="..." --type=<type> --priority=<n>` | Create new issue |
-| `bd dep add <issue> <depends-on>` | Add dependency (issue depends on depends-on) |
-| `bd close <id>` | Mark task complete |
-| `bd close <id> --reason="..."` | Close with explanation |
-| `bd blocked` | Show all blocked issues |
-| `bd stats` | View project statistics |
-| `bd list --status=open` | List all open issues |
-| `bd list --status=in_progress` | List active work |
+| Command                                                | Description                                  |
+| ------------------------------------------------------ | -------------------------------------------- |
+| `bd ready`                                             | Find unblocked tasks ready to work           |
+| `bd show <id>`                                         | Get full task details with dependencies      |
+| `bd update <id> --status=<status>`                     | Update task status (in_progress, blocked)    |
+| `bd update <id> --assignee=<user>`                     | Assign task to someone                       |
+| `bd create --title="..." --type=<type> --priority=<n>` | Create new issue                             |
+| `bd dep add <issue> <depends-on>`                      | Add dependency (issue depends on depends-on) |
+| `bd close <id>`                                        | Mark task complete                           |
+| `bd close <id> --reason="..."`                         | Close with explanation                       |
+| `bd blocked`                                           | Show all blocked issues                      |
+| `bd stats`                                             | View project statistics                      |
+| `bd list --status=open`                                | List all open issues                         |
+| `bd list --status=in_progress`                         | List active work                             |
 
 ## Priority Values
 
 Use numeric priorities (0-4), NOT strings:
 
-| Priority | Level | Meaning |
-|----------|-------|---------|
-| 0 (P0) | Critical | Blocking production |
-| 1 (P1) | High | Needed soon |
-| 2 (P2) | Medium | Standard work (default) |
-| 3 (P3) | Low | Nice to have |
-| 4 (P4) | Backlog | Someday/maybe |
+| Priority | Level    | Meaning                 |
+| -------- | -------- | ----------------------- |
+| 0 (P0)   | Critical | Blocking production     |
+| 1 (P1)   | High     | Needed soon             |
+| 2 (P2)   | Medium   | Standard work (default) |
+| 3 (P3)   | Low      | Nice to have            |
+| 4 (P4)   | Backlog  | Someday/maybe           |
 
 ## Task Types
 
@@ -125,7 +130,7 @@ You are autonomous but should communicate your progress clearly. Start by findin
 
 When invoked for ClickUp sync (detected by prompt mentioning "clickup-sync"), you operate in sync mode instead of the normal task workflow.
 
-**Note:** ClickUp MCP tools may be named either `mcp__clickup__*` or `mcp__iniciador-clickup__*` depending on the configuration. Use MCPSearch to find the available tools if unsure.
+**Note:** All ClickUp MCP tools are available as `mcp__iniciador-clickup__*` and are listed in this agent's tools. Use them directly.
 
 ### Config Files
 
@@ -177,23 +182,24 @@ last_sync: null
 
 ### Field Mapping
 
-| Beads | ClickUp | Direction |
-|-------|---------|-----------|
-| `title` | `name` | Bidirectional |
-| `status` (open) | `status` (Open/To Do) | Bidirectional |
-| `status` (in_progress) | `status` (In Progress) | Bidirectional |
-| `status` (closed) | `status` (Closed/Complete) | Bidirectional |
-| `priority` (0) | `priority` (urgent) | Bidirectional |
-| `priority` (1) | `priority` (high) | Bidirectional |
-| `priority` (2) | `priority` (normal) | Bidirectional |
-| `priority` (3-4) | `priority` (low) | Bidirectional |
-| `description` | `description` | Bidirectional |
-| `due` | `due_date` | Bidirectional |
-| `external_ref` | task_id | Beads stores `clickup-{id}` |
+| Beads                  | ClickUp                    | Direction                   |
+| ---------------------- | -------------------------- | --------------------------- |
+| `title`                | `name`                     | Bidirectional               |
+| `status` (open)        | `status` (Open/To Do)      | Bidirectional               |
+| `status` (in_progress) | `status` (In Progress)     | Bidirectional               |
+| `status` (closed)      | `status` (Closed/Complete) | Bidirectional               |
+| `priority` (0)         | `priority` (urgent)        | Bidirectional               |
+| `priority` (1)         | `priority` (high)          | Bidirectional               |
+| `priority` (2)         | `priority` (normal)        | Bidirectional               |
+| `priority` (3-4)       | `priority` (low)           | Bidirectional               |
+| `description`          | `description`              | Bidirectional               |
+| `due`                  | `due_date`                 | Bidirectional               |
+| `external_ref`         | task_id                    | Beads stores `clickup-{id}` |
 
 ### Conflict Resolution
 
 **Last-write wins**: Compare timestamps:
+
 - ClickUp: `date_updated` field (Unix timestamp in ms)
 - Beads: `updated_at` field (RFC3339)
 
@@ -204,7 +210,13 @@ Convert both to comparable format, newer timestamp wins.
 One JSON object per line:
 
 ```jsonl
-{"beads_id": "config-abc", "clickup_id": "abc123xyz", "last_synced_at": "2026-01-08T10:30:00Z", "clickup_updated_at": 1736336400000, "beads_updated_at": "2026-01-08T10:30:00Z"}
+{
+  "beads_id": "config-abc",
+  "clickup_id": "abc123xyz",
+  "last_synced_at": "2026-01-08T10:30:00Z",
+  "clickup_updated_at": 1736336400000,
+  "beads_updated_at": "2026-01-08T10:30:00Z"
+}
 ```
 
 ### Example Sync Workflow
