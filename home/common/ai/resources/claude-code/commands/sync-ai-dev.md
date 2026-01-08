@@ -23,6 +23,8 @@ Sync resources from the Nix configuration to the standalone ai-dev repository fo
 | `resources/claude-code/config/` | `resources/claude-code/config/` |
 | `shared/resources/shell/claude-tmux.fish` | `resources/shell/fish/functions/c.fish` |
 | `shared/resources/shell/claude-tmux.sh` | `resources/shell/bash/c.sh` |
+| (generated) | `resources/shell/env.sh` (Claude environment variables) |
+| (generated) | `resources/shell/fish/conf.d/claude-env.fish` (Claude environment variables) |
 
 ## Exclusions
 
@@ -94,9 +96,33 @@ When the user runs `/sync-ai-dev`:
    SHELL_SOURCE="$HOME/.config/nix/config/shared/resources/shell"
    SHELL_TARGET="$HOME/Dropbox/Projects/Iniciador/ai-dev/resources/shell"
 
-   mkdir -p "$SHELL_TARGET/fish/functions" "$SHELL_TARGET/bash"
+   mkdir -p "$SHELL_TARGET/fish/functions" "$SHELL_TARGET/fish/conf.d" "$SHELL_TARGET/bash"
    cp "$SHELL_SOURCE/claude-tmux.fish" "$SHELL_TARGET/fish/functions/c.fish"
    cp "$SHELL_SOURCE/claude-tmux.sh" "$SHELL_TARGET/bash/c.sh"
+
+   # Generate Claude environment variables for bash/zsh
+   cat > "$SHELL_TARGET/env.sh" << 'EOF'
+# Claude Code environment variables
+# Source this file in your shell profile (.bashrc, .zshrc, etc.)
+
+# Enable MCP tool search in Claude Code
+export ENABLE_TOOL_SEARCH="true"
+
+# Enable LSP tools in Claude Code
+export ENABLE_LSP_TOOLS="1"
+EOF
+
+   # Generate Claude environment variables for fish
+   cat > "$SHELL_TARGET/fish/conf.d/claude-env.fish" << 'EOF'
+# Claude Code environment variables
+# This file is auto-sourced by fish from conf.d/
+
+# Enable MCP tool search in Claude Code
+set -gx ENABLE_TOOL_SEARCH "true"
+
+# Enable LSP tools in Claude Code
+set -gx ENABLE_LSP_TOOLS "1"
+EOF
    ```
 
 3. **Show changes:**

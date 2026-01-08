@@ -387,6 +387,9 @@ in
           "Skill(deep-review)"
           "Skill(ralph-loop:*)"
 
+          # Plugin scripts - ralph-loop
+          "Bash(~/.claude/plugins/cache/claude-plugins-official/ralph-loop:*)"
+
           # Read paths
           "Read(//Users/kamushadenes/**)"
         ];

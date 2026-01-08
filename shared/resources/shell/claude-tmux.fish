@@ -2,6 +2,7 @@
 # Usage: c [command] [args...]
 #   c                    - Start tmux+claude in current directory
 #   c <args>             - Pass args to claude
+#   c danger|d [args]    - Run claude in Docker with full permissions (sandboxed)
 #   c work|w <branch>    - Create worktree for branch, start claude there
 #   c list|l             - List all workspaces
 #   c resume|r [id]      - Resume workspace (fzf if no id)
@@ -49,6 +50,82 @@ function _c_get_git_info
     set -g _git_folder_norm (_c_normalize "$_git_folder")
     set -g _parent_folder_norm (_c_normalize "$_parent_folder")
     return 0
+end
+
+# Danger mode: run claude in Docker container with full permissions
+function _c_danger
+    set extra_args $argv
+    set current_dir (pwd)
+    set home_dir $HOME
+
+    # Check if docker is available
+    if not command -q docker
+        echo "Error: Docker is not installed or not in PATH"
+        return 1
+    end
+
+    # Check if docker daemon is running
+    if not docker info >/dev/null 2>&1
+        echo "Error: Docker daemon is not running"
+        return 1
+    end
+
+    # Container name based on directory
+    set dir_hash (echo "$current_dir" | md5sum | cut -c1-8)
+    set container_name "claude-danger-$dir_hash"
+
+    # Build volume mounts
+    set -l mounts
+    # Mount current directory at same path
+    set mounts $mounts "-v" "$current_dir:$current_dir"
+    # Mount claude config
+    set mounts $mounts "-v" "$home_dir/.claude:/root/.claude"
+    # Mount claude.json
+    if test -f "$home_dir/.claude.json"
+        set mounts $mounts "-v" "$home_dir/.claude.json:/root/.claude.json"
+    end
+    # Mount SSH for git operations
+    if test -d "$home_dir/.ssh"
+        set mounts $mounts "-v" "$home_dir/.ssh:/root/.ssh:ro"
+    end
+    # Mount git config
+    if test -f "$home_dir/.gitconfig"
+        set mounts $mounts "-v" "$home_dir/.gitconfig:/root/.gitconfig:ro"
+    end
+
+    echo "🐳 Starting Claude in Docker container (danger mode)..."
+    echo "   Container: $container_name"
+    echo "   Workdir: $current_dir"
+    echo ""
+
+    # Run container with devbox and claude
+    docker run -it --rm \
+        --name "$container_name" \
+        --hostname "claude-sandbox" \
+        -w "$current_dir" \
+        -e "HOME=/root" \
+        -e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" \
+        -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
+        $mounts \
+        ubuntu:24.04 \
+        bash -c '
+            set -e
+            echo "📦 Installing dependencies..."
+            apt-get update -qq
+            apt-get install -y -qq curl git xz-utils >/dev/null 2>&1
+
+            echo "📦 Installing devbox..."
+            curl -fsSL https://get.jetify.com/devbox | bash -s -- -f >/dev/null 2>&1
+
+            echo "📦 Installing Claude Code via devbox..."
+            export PATH="/root/.local/bin:$PATH"
+            devbox global add claude-code >/dev/null 2>&1
+
+            echo "🚀 Starting Claude with --dangerously-skip-permissions..."
+            echo ""
+            eval "$(devbox global shellenv)"
+            claude --dangerously-skip-permissions '"$extra_args"'
+        '
 end
 
 # Default behavior: start tmux+claude in current dir
@@ -354,6 +431,7 @@ function _c_help
     echo "USAGE:"
     echo "  c                      Start Claude in current directory"
     echo "  c <args>               Pass args to Claude (e.g., c --help, c -p 'prompt')"
+    echo "  c danger|d [args]      Run Claude in Docker with full permissions (sandboxed)"
     echo "  c work|w <branch>      Create worktree for branch, start Claude there"
     echo "  c list|l               List all workspaces"
     echo "  c resume|r [id]        Resume a workspace (fzf selection if no id)"
@@ -367,12 +445,15 @@ function _c_help
     echo "  c w feature/my-feature   Create worktree for feature/my-feature"
     echo "  c r a1b2                 Resume workspace matching 'a1b2'"
     echo "  c l                      Show all workspaces with status"
+    echo "  c d                      Run Claude in Docker sandbox with full permissions"
 end
 
 # Main dispatch
 switch "$argv[1]"
     case ""
         _c_default
+    case "danger" "d"
+        _c_danger $argv[2..-1]
     case "work" "w"
         _c_worktree $argv[2..-1]
     case "list" "l"
