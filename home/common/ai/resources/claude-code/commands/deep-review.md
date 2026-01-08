@@ -285,6 +285,35 @@ dependency_checker = Task(
 
     > Created X beads issues for the selected findings. Use `bd list` to view them.
 
+## Handling Subagent User Input Requests
+
+Subagents cannot use AskUserQuestion directly (filtered at system level). When a subagent returns a response indicating it needs user input (structured options list), you must:
+
+1. **Detect the pattern**: Look for responses containing phrases like "Options:", "Select one:", "Choose:", or formatted option lists (A/B/C or numbered lists)
+
+2. **Present via AskUserQuestion**: Convert the subagent's options into an AskUserQuestion call:
+
+```python
+# If subagent returned:
+# "Options:
+#  - Option A: Link to existing list (recommended)
+#  - Option B: Create new list
+#  - Option C: Choose different space"
+
+# Present to user:
+AskUserQuestion(
+    question="Which option would you like?",
+    header="Selection",
+    options=[
+        {"label": "Link to existing list (Recommended)", "description": "Use the existing list found"},
+        {"label": "Create new list", "description": "Create a fresh list"},
+        {"label": "Choose different space", "description": "Browse other spaces"}
+    ]
+)
+```
+
+3. **Relay the choice**: If the subagent needs to continue with the user's selection, spawn it again with the choice included in the prompt.
+
 ## Notes
 
 - This command runs 9 agents in parallel, each spawning 3 AI models
