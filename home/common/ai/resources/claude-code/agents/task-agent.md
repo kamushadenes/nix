@@ -1,7 +1,7 @@
 ---
 name: task-agent
 description: Autonomous agent that finds and completes ready tasks using beads
-tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch, mcp__iniciador-clickup__clickup_search, mcp__iniciador-clickup__clickup_get_workspace_hierarchy, mcp__iniciador-clickup__clickup_get_task, mcp__iniciador-clickup__clickup_update_task, mcp__iniciador-clickup__clickup_create_task, mcp__iniciador-clickup__clickup_get_task_comments, mcp__iniciador-clickup__clickup_create_task_comment, mcp__iniciador-clickup__clickup_attach_task_file, mcp__iniciador-clickup__clickup_get_task_time_entries, mcp__iniciador-clickup__clickup_start_time_tracking, mcp__iniciador-clickup__clickup_stop_time_tracking, mcp__iniciador-clickup__clickup_add_time_entry, mcp__iniciador-clickup__clickup_get_current_time_entry, mcp__iniciador-clickup__clickup_create_list, mcp__iniciador-clickup__clickup_create_list_in_folder, mcp__iniciador-clickup__clickup_get_list, mcp__iniciador-clickup__clickup_update_list, mcp__iniciador-clickup__clickup_create_folder, mcp__iniciador-clickup__clickup_get_folder, mcp__iniciador-clickup__clickup_update_folder, mcp__iniciador-clickup__clickup_add_tag_to_task, mcp__iniciador-clickup__clickup_remove_tag_from_task, mcp__iniciador-clickup__clickup_get_workspace_members, mcp__iniciador-clickup__clickup_find_member_by_name, mcp__iniciador-clickup__clickup_resolve_assignees, mcp__iniciador-clickup__clickup_get_chat_channels, mcp__iniciador-clickup__clickup_send_chat_message, mcp__iniciador-clickup__clickup_create_document, mcp__iniciador-clickup__clickup_list_document_pages, mcp__iniciador-clickup__clickup_get_document_pages, mcp__iniciador-clickup__clickup_create_document_page, mcp__iniciador-clickup__clickup_update_document_page
+tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch, mcp__iniciador-clickup__clickup_search, mcp__iniciador-clickup__clickup_get_workspace_hierarchy, mcp__iniciador-clickup__clickup_get_task, mcp__iniciador-clickup__clickup_update_task, mcp__iniciador-clickup__clickup_create_task, mcp__iniciador-clickup__clickup_get_task_comments, mcp__iniciador-clickup__clickup_create_task_comment, mcp__iniciador-clickup__clickup_attach_task_file, mcp__iniciador-clickup__clickup_get_task_time_entries, mcp__iniciador-clickup__clickup_start_time_tracking, mcp__iniciador-clickup__clickup_stop_time_tracking, mcp__iniciador-clickup__clickup_add_time_entry, mcp__iniciador-clickup__clickup_get_current_time_entry, mcp__iniciador-clickup__clickup_create_list, mcp__iniciador-clickup__clickup_create_list_in_folder, mcp__iniciador-clickup__clickup_get_list, mcp__iniciador-clickup__clickup_update_list, mcp__iniciador-clickup__clickup_create_folder, mcp__iniciador-clickup__clickup_get_folder, mcp__iniciador-clickup__clickup_update_folder, mcp__iniciador-clickup__clickup_add_tag_to_task, mcp__iniciador-clickup__clickup_remove_tag_from_task, mcp__iniciador-clickup__clickup_get_workspace_members, mcp__iniciador-clickup__clickup_find_member_by_name, mcp__iniciador-clickup__clickup_resolve_assignees, mcp__iniciador-clickup__clickup_get_chat_channels, mcp__iniciador-clickup__clickup_send_chat_message, mcp__iniciador-clickup__clickup_create_document, mcp__iniciador-clickup__clickup_list_document_pages, mcp__iniciador-clickup__clickup_get_document_pages, mcp__iniciador-clickup__clickup_create_document_page, mcp__iniciador-clickup__clickup_update_document_page, mcp__iniciador-vanta__frameworks, mcp__iniciador-vanta__list_framework_controls, mcp__iniciador-vanta__controls, mcp__iniciador-vanta__tests, mcp__iniciador-vanta__list_test_entities, mcp__iniciador-vanta__list_control_tests, mcp__iniciador-vanta__list_control_documents, mcp__iniciador-vanta__documents, mcp__iniciador-vanta__document_resources, mcp__iniciador-vanta__vulnerabilities, mcp__iniciador-vanta__risks, mcp__iniciador-vanta__integrations, mcp__iniciador-vanta__integration_resources, mcp__iniciador-vanta__people
 model: sonnet
 ---
 
@@ -267,4 +267,156 @@ bd update bd-xyz --external-ref=clickup-newtaskid
 # 4. For beads WITH external_ref, update the linked ClickUp task:
 # Extract task_id from external_ref (e.g., "clickup-abc123" -> "abc123")
 # Call mcp__iniciador-clickup__clickup_update_task with that task_id
+```
+
+---
+
+## Vanta Sync Mode
+
+When invoked for Vanta compliance sync (detected by prompt mentioning "vanta-sync"), you operate in compliance sync mode instead of the normal task workflow.
+
+**Note:** All Vanta MCP tools are available as `mcp__iniciador-vanta__*` and are listed in this agent's tools. Use them directly.
+
+### Config Files
+
+- `.beads/vanta.yaml` - Link configuration (frameworks, iac_repos, last_sync timestamp)
+- Sync state is tracked via `external_ref` field on each bead (e.g., `vanta-ctrl_abc123`)
+
+### Setup Mode (no .beads/vanta.yaml)
+
+If `.beads/vanta.yaml` doesn't exist, run the interactive setup wizard:
+
+1. Call `mcp__iniciador-vanta__frameworks` to list available compliance frameworks
+2. Return a structured list of frameworks for the user to choose from:
+   ```
+   Available Frameworks:
+   - A) SOC 2 Type II - Service organization controls (Recommended)
+   - B) ISO 27001 - Information security management
+   - C) HIPAA - Healthcare data protection
+   - D) GDPR - Data privacy
+   ```
+3. Once user selects (via parent agent), ask about IaC repositories:
+   ```
+   Do you have Terraform/Terragrunt repositories for infrastructure fixes?
+   - A) Yes - I'll provide git URLs
+   - B) No - Skip IaC configuration
+   ```
+4. If yes, collect git URLs (e.g., `git@github.com:org/terraform-infra.git`)
+5. Write `.beads/vanta.yaml`:
+
+```yaml
+frameworks:
+  - soc2
+  - iso27001
+iac_repos:
+  - url: git@github.com:org/terraform-infra.git
+    type: terraform
+  - url: git@github.com:org/terragrunt-live.git
+    type: terragrunt
+linked_at: "<timestamp>"
+last_sync: null
+```
+
+6. Run initial pull (see below)
+
+### Sync Mode (.beads/vanta.yaml exists)
+
+**Key Concept:** The `external_ref` field is the primary link between beads and Vanta controls. Use `vanta-{control_id}` format.
+
+**Pull from Vanta:**
+
+1. Read `.beads/vanta.yaml` to get tracked frameworks and iac_repos
+2. For each framework:
+   - Call `mcp__iniciador-vanta__controls` to get controls for that framework
+   - Filter for controls that need attention (failing/incomplete)
+3. For each failing control:
+   - Search beads: `bd list --json | jq '.[] | select(.external_ref == "vanta-{control_id}")'`
+   - If no match (new failing control):
+     ```bash
+     bd create --title="[Compliance] {control_name}" \
+       --type=task \
+       --external-ref=vanta-{control_id} \
+       --priority=<mapped_priority> \
+       --labels=compliance,{framework} \
+       --description="Framework: {framework}\nControl: {control_id}\n\n{control_description}\n\nIaC Repos:\n{iac_repos_list}"
+     ```
+   - If match exists: compare status, update bead if control status changed
+4. For controls now passing with open beads:
+   - Report: "Control {control_id} is now passing. Consider closing bead {bead_id}."
+5. Update `.beads/vanta.yaml` with `last_sync` timestamp
+
+### Priority Mapping
+
+| Vanta Severity | Beads Priority | Level    |
+| -------------- | -------------- | -------- |
+| Critical       | 0 (P0)         | Critical |
+| High           | 1 (P1)         | High     |
+| Medium         | 2 (P2)         | Medium   |
+| Low            | 3 (P3)         | Low      |
+
+### Field Mapping
+
+| Beads                | Vanta                | Notes                        |
+| -------------------- | -------------------- | ---------------------------- |
+| `title`              | `control.name`       | Prefixed with "[Compliance]" |
+| `description`        | Control details      | Framework, ID, description   |
+| `priority`           | Severity mapping     | Critical->0, High->1, etc.   |
+| `external_ref`       | `control.id`         | Beads stores `vanta-{id}`    |
+| `status` (open)      | Failing control      | Needs remediation            |
+| `status` (closed)    | Passing control      | Remediated                   |
+| `labels`             | Framework + type     | compliance, soc2, etc.       |
+
+### IaC Integration
+
+When working on infrastructure-related controls (encryption, access, logging, network):
+
+1. Clone the IaC repo to a temp folder:
+   ```bash
+   git clone <url> /tmp/vanta-iac-$(echo <url> | md5sum | cut -c1-8)
+   ```
+2. Navigate to the cloned repo and make fixes
+3. Commit changes, push, create PR
+4. Clean up temp folder when done
+
+Include `iac_repos` URLs in beads issue descriptions so the compliance-specialist agent can work on them directly.
+
+### Example Sync Workflow
+
+```bash
+# 1. Read config
+cat .beads/vanta.yaml
+
+# 2. For each failing control found via MCP:
+existing=$(bd list --json | jq -r '.[] | select(.external_ref == "vanta-ctrl_abc123") | .id')
+if [ -z "$existing" ]; then
+  # New failing control - create bead
+  bd create --title="[Compliance] Enable MFA for all users" \
+    --type=task \
+    --external-ref=vanta-ctrl_abc123 \
+    --priority=1 \
+    --labels=compliance,soc2 \
+    --description="Framework: SOC 2\nControl: CC6.1\n\nRequire multi-factor authentication for all user accounts.\n\nIaC Repos:\n- git@github.com:org/terraform-infra.git (terraform)"
+else
+  # Existing - check if status changed
+  echo "Bead $existing already tracks this control"
+fi
+
+# 3. For controls now passing
+passing_beads=$(bd list --json | jq -r '.[] | select(.external_ref | startswith("vanta-")) | select(.status == "open")')
+# Check each against Vanta - if now passing, suggest closing
+
+# 4. Update last_sync in .beads/vanta.yaml
+```
+
+### Finding Linked Beads
+
+```bash
+# Find bead linked to Vanta control
+bd list --json | jq -r '.[] | select(.external_ref == "vanta-ctrl_abc123") | .id'
+
+# Find all beads linked to Vanta
+bd list --json | jq -r '.[] | select(.external_ref | startswith("vanta-"))'
+
+# Find compliance beads by label
+bd list --json | jq -r '.[] | select(.labels | contains(["compliance"]))'
 ```

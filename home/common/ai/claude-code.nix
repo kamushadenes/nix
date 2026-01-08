@@ -110,6 +110,7 @@ in
       beads-merge = builtins.readFile "${commandsDir}/beads-merge.md";
       sync-ai-dev = builtins.readFile "${commandsDir}/sync-ai-dev.md";
       clickup-sync = builtins.readFile "${commandsDir}/clickup-sync.md";
+      vanta-sync = builtins.readFile "${commandsDir}/vanta-sync.md";
     };
 
     # Note: rules option is not available in this home-manager version
@@ -413,6 +414,22 @@ in
           "mcp__iniciador-clickup__clickup_create_document_page"
           "mcp__iniciador-clickup__clickup_update_document_page"
 
+          # MCP: Vanta - Compliance monitoring and control tracking
+          "mcp__iniciador-vanta__frameworks"
+          "mcp__iniciador-vanta__list_framework_controls"
+          "mcp__iniciador-vanta__controls"
+          "mcp__iniciador-vanta__tests"
+          "mcp__iniciador-vanta__list_test_entities"
+          "mcp__iniciador-vanta__list_control_tests"
+          "mcp__iniciador-vanta__list_control_documents"
+          "mcp__iniciador-vanta__documents"
+          "mcp__iniciador-vanta__document_resources"
+          "mcp__iniciador-vanta__vulnerabilities"
+          "mcp__iniciador-vanta__risks"
+          "mcp__iniciador-vanta__integrations"
+          "mcp__iniciador-vanta__integration_resources"
+          "mcp__iniciador-vanta__people"
+
           # Skills
           "Skill(codex-cli)"
           "Skill(hookify:writing-rules)"
@@ -523,6 +540,10 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/Stop/clickup-sync.sh";
+              }
+              {
+                type = "command";
+                command = "~/.claude/hooks/Stop/vanta-sync.sh";
               }
               {
                 type = "command";
@@ -703,6 +724,10 @@ in
     };
     ".claude/hooks/Stop/clickup-sync.sh" = {
       source = "${scriptsDir}/hooks/Stop/clickup-sync.sh";
+      executable = true;
+    };
+    ".claude/hooks/Stop/vanta-sync.sh" = {
+      source = "${scriptsDir}/hooks/Stop/vanta-sync.sh";
       executable = true;
     };
 
