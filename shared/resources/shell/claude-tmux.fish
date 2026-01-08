@@ -78,21 +78,22 @@ function _c_danger
             'FROM ubuntu:24.04' \
             'ENV DEBIAN_FRONTEND=noninteractive' \
             'ENV HOME=/root' \
-            'ENV PATH="/root/.local/bin:$PATH"' \
+            'ENV PATH="/root/.local/bin:/usr/local/bin:$PATH"' \
             '' \
             '# Install dependencies' \
             'RUN apt-get update -qq && \\' \
             '    apt-get install -y -qq curl git xz-utils ca-certificates && \\' \
             '    apt-get clean && rm -rf /var/lib/apt/lists/*' \
             '' \
-            '# Install devbox' \
-            'RUN curl -fsSL https://get.jetify.com/devbox | bash -s -- -f' \
+            '# Install devbox (installs to /usr/local/bin)' \
+            'RUN curl -fsSL https://get.jetify.com/devbox | FORCE=1 sh && \\' \
+            '    which devbox && devbox version' \
             '' \
             '# Install claude-code and language runtimes globally via devbox' \
-            'RUN /root/.local/bin/devbox global add claude-code go nodejs python3 php php83Packages.composer rustup' \
+            'RUN devbox global add claude-code go nodejs python3 php php83Packages.composer rustup' \
             '' \
             '# Pre-warm devbox shellenv' \
-            'RUN /root/.local/bin/devbox global shellenv > /root/.devbox_shellenv' \
+            'RUN devbox global shellenv > /root/.devbox_shellenv' \
             '' \
             '# Setup rust toolchain' \
             'RUN . /root/.devbox_shellenv && rustup default stable' \
