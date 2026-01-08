@@ -130,30 +130,30 @@ function _c_build_project_image
     cp "$entrypoint_src" "$build_ctx/"
 
     # Generate project Dockerfile
-    cat > "$build_ctx/Dockerfile" << 'DOCKERFILE'
-FROM claude-sandbox:base
-
-# Copy project's devbox.json and install deps (as root)
-USER root
-COPY devbox.json devbox.lock* /tmp/project/
-WORKDIR /tmp/project
-RUN devbox install 2>&1 || echo "devbox install completed with warnings"
-
-# Pre-cache project shellenv
-RUN devbox shellenv > /etc/devbox_project_shellenv 2>/dev/null || true && chmod 644 /etc/devbox_project_shellenv 2>/dev/null || true
-
-# Fix permissions for non-root access
-RUN chmod 755 /root 2>/dev/null || true && \
-    chmod -R o+rX /root/.local /root/.nix-profile 2>/dev/null || true && \
-    chmod -R o+rx /root/go 2>/dev/null || true
-
-# Switch to non-root user
-USER claude
-ENV HOME=/home/claude
-
-COPY --chmod=755 entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
-DOCKERFILE
+    printf '%s\n' \
+        'FROM claude-sandbox:base' \
+        '' \
+        '# Copy project'\''s devbox.json and install deps (as root)' \
+        'USER root' \
+        'COPY devbox.json devbox.lock* /tmp/project/' \
+        'WORKDIR /tmp/project' \
+        'RUN devbox install 2>&1 || echo "devbox install completed with warnings"' \
+        '' \
+        '# Pre-cache project shellenv' \
+        'RUN devbox shellenv > /etc/devbox_project_shellenv 2>/dev/null || true && chmod 644 /etc/devbox_project_shellenv 2>/dev/null || true' \
+        '' \
+        '# Fix permissions for non-root access' \
+        'RUN chmod 755 /root 2>/dev/null || true && \\' \
+        '    chmod -R o+rX /root/.local /root/.nix-profile 2>/dev/null || true && \\' \
+        '    chmod -R o+rx /root/go 2>/dev/null || true' \
+        '' \
+        '# Switch to non-root user' \
+        'USER claude' \
+        'ENV HOME=/home/claude' \
+        '' \
+        'COPY --chmod=755 entrypoint.sh /entrypoint.sh' \
+        'ENTRYPOINT ["/entrypoint.sh"]' \
+        > "$build_ctx/Dockerfile"
 
     # Build project image
     docker build -t $project_image "$build_ctx"
