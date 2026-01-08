@@ -54,6 +54,7 @@ _c_danger() {
     local current_dir
     current_dir=$(pwd)
     local home_dir="$HOME"
+    local image_name="claude-sandbox:latest"
 
     # Check if docker is available
     if ! command -v docker >/dev/null 2>&1; then
@@ -65,6 +66,44 @@ _c_danger() {
     if ! docker info >/dev/null 2>&1; then
         echo "Error: Docker daemon is not running"
         return 1
+    fi
+
+    # Check if claude-sandbox image exists, build if not
+    if ! docker image inspect "$image_name" >/dev/null 2>&1; then
+        echo "🔨 Building claude-sandbox image (first time only)..."
+        docker build -t "$image_name" - <<'DOCKERFILE'
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+ENV HOME=/root
+ENV PATH="/root/.local/bin:$PATH"
+
+# Install dependencies
+RUN apt-get update -qq && \
+    apt-get install -y -qq curl git xz-utils ca-certificates && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install devbox
+RUN curl -fsSL https://get.jetify.com/devbox | bash -s -- -f
+
+# Install claude-code, go, and nodejs globally via devbox
+RUN /root/.local/bin/devbox global add claude-code go nodejs
+
+# Pre-warm devbox shellenv
+RUN /root/.local/bin/devbox global shellenv > /root/.devbox_shellenv
+
+# Install tdd-guard tools
+RUN . /root/.devbox_shellenv && \
+    go install github.com/nizos/tdd-guard/reporters/go/cmd/tdd-guard-go@latest && \
+    npm install -g tdd-guard
+
+ENTRYPOINT ["/bin/bash", "-c"]
+DOCKERFILE
+        if test $? -ne 0; then
+            echo "Error: Failed to build claude-sandbox image"
+            return 1
+        fi
+        echo "✅ Image built successfully"
+        echo ""
     fi
 
     # Container name based on directory
@@ -96,7 +135,7 @@ _c_danger() {
     echo "   Workdir: $current_dir"
     echo ""
 
-    # Run container with devbox and claude
+    # Run container with pre-built image
     docker run -it --rm \
         --name "$container_name" \
         --hostname "claude-sandbox" \
@@ -105,24 +144,22 @@ _c_danger() {
         -e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" \
         -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
         "${mounts[@]}" \
-        ubuntu:24.04 \
-        bash -c '
-            set -e
-            echo "📦 Installing dependencies..."
-            apt-get update -qq
-            apt-get install -y -qq curl git xz-utils >/dev/null 2>&1
+        "$image_name" \
+        '
+            source /root/.devbox_shellenv
 
-            echo "📦 Installing devbox..."
-            curl -fsSL https://get.jetify.com/devbox | bash -s -- -f >/dev/null 2>&1
-
-            echo "📦 Installing Claude Code via devbox..."
-            export PATH="/root/.local/bin:$PATH"
-            devbox global add claude-code >/dev/null 2>&1
-
-            echo "🚀 Starting Claude with --dangerously-skip-permissions..."
-            echo ""
-            eval "$(devbox global shellenv)"
-            claude --dangerously-skip-permissions '"$*"'
+            # Check if project has devbox.json - use it at runtime
+            if [ -f "devbox.json" ]; then
+                echo "📦 Found devbox.json - installing project dependencies..."
+                devbox install 2>/dev/null
+                echo "🚀 Starting Claude with --dangerously-skip-permissions..."
+                echo ""
+                devbox run -- claude --dangerously-skip-permissions '"$*"'
+            else
+                echo "🚀 Starting Claude with --dangerously-skip-permissions..."
+                echo ""
+                claude --dangerously-skip-permissions '"$*"'
+            fi
         '
 }
 
