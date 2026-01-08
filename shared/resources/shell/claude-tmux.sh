@@ -68,6 +68,20 @@ _c_danger() {
         return 1
     fi
 
+    # Extract Claude OAuth credentials from keychain (macOS)
+    local creds_temp=""
+    if command -v security >/dev/null 2>&1; then
+        local keychain_creds
+        keychain_creds=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
+        if test -n "$keychain_creds"; then
+            creds_temp=$(mktemp)
+            echo "$keychain_creds" > "$creds_temp"
+            echo "🔑 Extracted Claude credentials from keychain"
+        else
+            echo "⚠️  No Claude credentials found in keychain (will use ANTHROPIC_API_KEY if set)"
+        fi
+    fi
+
     # Check if claude-sandbox image exists, build if not
     if ! docker image inspect "$image_name" >/dev/null 2>&1; then
         echo "🔨 Building claude-sandbox image (first time only)..."
@@ -135,6 +149,10 @@ DOCKERFILE
     if test -f "$home_dir/.claude.json"; then
         mounts+=("-v" "$home_dir/.claude.json:/home/claude/.claude.json")
     fi
+    # Mount credentials from keychain (extracted above)
+    if test -n "$creds_temp" && test -f "$creds_temp"; then
+        mounts+=("-v" "$creds_temp:/home/claude/.claude/.credentials.json:ro")
+    fi
     # Mount SSH for git operations
     if test -d "$home_dir/.ssh"; then
         mounts+=("-v" "$home_dir/.ssh:/home/claude/.ssh:ro")
@@ -181,6 +199,11 @@ DOCKERFILE
                 claude --dangerously-skip-permissions '"$*"'
             fi
         '
+
+    # Cleanup temp credentials file
+    if test -n "$creds_temp" && test -f "$creds_temp"; then
+        rm -f "$creds_temp"
+    fi
 }
 
 # Default behavior: start tmux+claude in current dir

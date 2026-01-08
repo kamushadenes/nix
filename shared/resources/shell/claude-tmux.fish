@@ -71,6 +71,19 @@ function _c_danger
         return 1
     end
 
+    # Extract Claude OAuth credentials from keychain (macOS)
+    set -l creds_temp ""
+    if command -q security
+        set -l keychain_creds (security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
+        if test -n "$keychain_creds"
+            set creds_temp (mktemp)
+            echo "$keychain_creds" > "$creds_temp"
+            echo "🔑 Extracted Claude credentials from keychain"
+        else
+            echo "⚠️  No Claude credentials found in keychain (will use ANTHROPIC_API_KEY if set)"
+        end
+    end
+
     # Check if claude-sandbox image exists, build if not
     if not docker image inspect $image_name >/dev/null 2>&1
         echo "🔨 Building claude-sandbox image (first time only)..."
@@ -137,6 +150,10 @@ function _c_danger
     if test -f "$home_dir/.claude.json"
         set mounts $mounts "-v" "$home_dir/.claude.json:/home/claude/.claude.json"
     end
+    # Mount credentials from keychain (extracted above)
+    if test -n "$creds_temp" -a -f "$creds_temp"
+        set mounts $mounts "-v" "$creds_temp:/home/claude/.claude/.credentials.json:ro"
+    end
     # Mount SSH for git operations
     if test -d "$home_dir/.ssh"
         set mounts $mounts "-v" "$home_dir/.ssh:/home/claude/.ssh:ro"
@@ -183,6 +200,11 @@ function _c_danger
                 claude --dangerously-skip-permissions '"$extra_args"'
             fi
         '
+
+    # Cleanup temp credentials file
+    if test -n "$creds_temp" -a -f "$creds_temp"
+        rm -f "$creds_temp"
+    end
 end
 
 # Default behavior: start tmux+claude in current dir
