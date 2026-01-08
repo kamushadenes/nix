@@ -12,10 +12,11 @@ RUN curl -fsSL https://get.jetify.com/devbox | FORCE=1 bash
 # Core global packages
 RUN devbox global add claude-code go nodejs uv
 
-# TDD-guard tools
+# TDD-guard tools and beads
 SHELL ["/bin/bash", "-c"]
 RUN eval "$(devbox global shellenv --preserve-path-stack -r)" && \
     go install github.com/nizos/tdd-guard/reporters/go/cmd/tdd-guard-go@latest && \
+    go install github.com/kamushadenes/beads/cmd/bd@latest && \
     npm install -g tdd-guard tdd-guard-vitest && \
     pip3 install --break-system-packages tdd-guard-pytest
 
