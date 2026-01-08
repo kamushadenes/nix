@@ -223,7 +223,8 @@ function _c_danger
     # Use rsync to handle symlinks properly and exclude .git dirs
     set -l staging_dir (mktemp -d)
     if test -d "$home_dir/.claude"
-        rsync -rL --exclude='.git' --exclude='*.ipc' "$home_dir/.claude/" "$staging_dir/.claude/" 2>/dev/null || cp -r "$home_dir/.claude" "$staging_dir/.claude"
+        # Copy config but exclude transient session state
+        rsync -rL --exclude='.git' --exclude='*.ipc' --exclude='session-env' --exclude='shell-snapshots' --exclude='ide' --exclude='statsig' --exclude='telemetry' --exclude='cache' "$home_dir/.claude/" "$staging_dir/.claude/" 2>/dev/null || cp -r "$home_dir/.claude" "$staging_dir/.claude"
     end
     if test -f "$home_dir/.claude.json"
         cp -L "$home_dir/.claude.json" "$staging_dir/.claude.json" 2>/dev/null || cp "$home_dir/.claude.json" "$staging_dir/.claude.json"
@@ -285,7 +286,7 @@ function _c_danger
     echo "   Workdir: $current_dir"
     echo ""
 
-    # Run container with entrypoint script via bash to avoid command leaking
+    # Run container with entrypoint script directly (no bash wrapper)
     docker run -it --rm \
         --name "$container_name" \
         --hostname "claude-sandbox" \
@@ -295,7 +296,7 @@ function _c_danger
         -e "CLAUDE_CODE_USE_BEDROCK=$CLAUDE_CODE_USE_BEDROCK" \
         $mounts \
         $image_name \
-        /bin/bash -c "/entrypoint.sh $extra_args"
+        /entrypoint.sh $extra_args
 
     # Cleanup temp files
     if test -n "$creds_temp" -a -f "$creds_temp"
