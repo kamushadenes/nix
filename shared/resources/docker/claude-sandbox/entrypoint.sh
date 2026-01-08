@@ -19,6 +19,10 @@ fi
 # Force HOME to claude user (devbox shellenv may have set it to /root)
 export HOME=/home/claude
 
+# Ensure home directory and config dirs exist with correct ownership
+sudo mkdir -p "$HOME/.config/google-chrome" "$HOME/.cache"
+sudo chown -R claude:claude "$HOME"
+
 # Copy claude config from staging area if present (allows modification)
 if [ -d /tmp/claude-config-staging/.claude ]; then
     cp -r /tmp/claude-config-staging/.claude "$HOME/"
