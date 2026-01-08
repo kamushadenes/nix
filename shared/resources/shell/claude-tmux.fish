@@ -167,6 +167,8 @@ function _c_danger
                 source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
             fi
             source /etc/devbox_shellenv
+            # Override HOME set by shellenv (it was /root during build)
+            export HOME=/home/claude
 
             # Check if project has devbox.json - use it at runtime
             if [ -f "devbox.json" ]; then
