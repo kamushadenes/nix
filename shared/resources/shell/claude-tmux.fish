@@ -223,18 +223,14 @@ function _c_danger
     set -l mounts
     # Mount current directory at SAME path (critical for path consistency)
     set mounts $mounts "-v" "$current_dir:$current_dir"
-    # Mount claude config (to both /home/claude and /root since devbox may set HOME=/root)
-    set mounts $mounts "-v" "$home_dir/.claude:/home/claude/.claude"
-    set mounts $mounts "-v" "$home_dir/.claude:/root/.claude"
-    # Mount claude.json (to both paths - /root needs rw since claude-code writes to it)
+    # Stage claude config for copying (entrypoint copies to $HOME for full rw access)
+    set mounts $mounts "-v" "$home_dir/.claude:/tmp/claude-config-staging/.claude:ro"
     if test -f "$home_dir/.claude.json"
-        set mounts $mounts "-v" "$home_dir/.claude.json:/home/claude/.claude.json:ro"
-        set mounts $mounts "-v" "$home_dir/.claude.json:/root/.claude.json"
+        set mounts $mounts "-v" "$home_dir/.claude.json:/tmp/claude-config-staging/.claude.json:ro"
     end
-    # Mount credentials from keychain (extracted above) - to both paths
+    # Mount credentials from keychain (extracted above)
     if test -n "$creds_temp" -a -f "$creds_temp"
-        set mounts $mounts "-v" "$creds_temp:/home/claude/.claude/.credentials.json:ro"
-        set mounts $mounts "-v" "$creds_temp:/root/.claude/.credentials.json:ro"
+        set mounts $mounts "-v" "$creds_temp:/tmp/claude-config-staging/.claude/.credentials.json:ro"
     end
     # Mount SSH for git operations
     if test -d "$home_dir/.ssh"
