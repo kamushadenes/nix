@@ -73,5 +73,4 @@ fi
 echo "Starting Claude with --dangerously-skip-permissions..."
 # Clear any terminal state and start claude fresh
 reset -I 2>/dev/null || true
-# Run claude inside devbox shell so child processes (hooks) inherit PATH
-exec devbox run -- claude --dangerously-skip-permissions "$@"
+exec claude --dangerously-skip-permissions "$@"
