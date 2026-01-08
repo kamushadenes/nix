@@ -225,6 +225,9 @@ in
           "Bash(gh run:*)"
           "Bash(gh release:*)"
 
+          # Beads issue tracking
+          "Bash(bd:*)"
+
           # Terraform / Terragrunt
           "Bash(terraform plan:*)"
           "Bash(terraform show:*)"
