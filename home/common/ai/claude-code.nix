@@ -108,6 +108,7 @@ in
       deep-review = builtins.readFile "${commandsDir}/deep-review.md";
       beads-init = builtins.readFile "${commandsDir}/beads-init.md";
       beads-merge = builtins.readFile "${commandsDir}/beads-merge.md";
+      sync-ai-dev = builtins.readFile "${commandsDir}/sync-ai-dev.md";
     };
 
     # Note: rules option is not available in this home-manager version
