@@ -80,31 +80,34 @@ RUN apt-get update -qq && \
     apt-get install -y -qq bash curl git xz-utils ca-certificates sudo python3 python3-pip python3-venv && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN useradd -m -s /bin/bash claude && echo "claude ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+# Create non-root user with same UID as typical host user for better file permissions
+RUN useradd -m -s /bin/bash -u 1000 claude && echo "claude ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Switch to non-root user
-USER claude
-WORKDIR /home/claude
-ENV HOME=/home/claude
-ENV PATH="/home/claude/.local/bin:/usr/local/bin:$PATH"
-
-# Install devbox (installs to /usr/local/bin)
+# Install devbox as root first (installs to /usr/local/bin)
 RUN curl -fsSL https://get.jetify.com/devbox | FORCE=1 bash && \
     which devbox && devbox version
 
-# Install claude-code and language runtimes globally via devbox
+# Install claude-code and language runtimes globally via devbox (as root)
 RUN devbox global add claude-code go nodejs
 
-# Install tdd-guard tools
+# Install tdd-guard tools (as root, so nix store is accessible)
 SHELL ["/bin/bash", "-c"]
 RUN eval "$(devbox global shellenv --preserve-path-stack -r)" && hash -r && \
     go install github.com/nizos/tdd-guard/reporters/go/cmd/tdd-guard-go@latest && \
     npm install -g tdd-guard tdd-guard-vitest && \
     pip3 install --break-system-packages tdd-guard-pytest
 
-# Pre-warm devbox shellenv for runtime
-RUN devbox global shellenv > /home/claude/.devbox_shellenv
+# Pre-warm devbox shellenv and make it accessible to claude user
+RUN devbox global shellenv > /etc/devbox_shellenv && chmod 644 /etc/devbox_shellenv
+
+# Fix go binary permissions for non-root user
+RUN chmod -R o+rx /root/go 2>/dev/null || true
+
+# Switch to non-root user for runtime
+USER claude
+WORKDIR /home/claude
+ENV HOME=/home/claude
+ENV PATH="/root/go/bin:/home/claude/.local/bin:/usr/local/bin:$PATH"
 
 ENTRYPOINT ["/bin/bash", "-c"]
 DOCKERFILE
@@ -156,7 +159,7 @@ DOCKERFILE
         "${mounts[@]}" \
         "$image_name" \
         '
-            source /home/claude/.devbox_shellenv
+            source /etc/devbox_shellenv
 
             # Check if project has devbox.json - use it at runtime
             if [ -f "devbox.json" ]; then
