@@ -28,8 +28,9 @@ let
             allowSubstitutes = false;
             preferLocalBuild = true;
           }
+          # Use pipe instead of process substitution for POSIX compatibility
           ''
-            ${lib.getExe' pkgs.remarshal "remarshal"} -if yaml -i <(echo "$yaml") -of json -o $out
+            echo "$yaml" | ${lib.getExe' pkgs.remarshal "remarshal"} -if yaml -of json -o $out
           ''
       )
     );
@@ -53,8 +54,9 @@ let
           allowSubstitutes = false;
           preferLocalBuild = true;
         }
+        # Use pipe instead of process substitution for POSIX compatibility
         ''
-          ${lib.getExe' pkgs.remarshal "remarshal"} -if json -i <(echo "$json") -of toml -o $out
+          echo "$json" | ${lib.getExe' pkgs.remarshal "remarshal"} -if json -of toml -o $out
         ''
     );
 
@@ -83,7 +85,7 @@ let
       EDITOR = "nvim";
 
       NH_FLAKE = "${config.home.homeDirectory}/.config/nix/config/?submodules=1";
-      DARWIN_USER_TEMP_DIR = lib.optionals pkgs.stdenv.isDarwin ''$(${lib.getExe' pkgs.coreutils "printf"} '%s' "$(${lib.getExe pkgs.getconf} DARWIN_USER_TEMP_DIR)" | ${lib.getExe' pkgs.coreutils "tr"} -d "\n")'';
+      DARWIN_USER_TEMP_DIR = lib.optionalString pkgs.stdenv.isDarwin ''$(${lib.getExe' pkgs.coreutils "printf"} '%s' "$(${lib.getExe pkgs.getconf} DARWIN_USER_TEMP_DIR)" | ${lib.getExe' pkgs.coreutils "tr"} -d "\n")'';
 
       # Work around https://github.com/Homebrew/brew/issues/13219
       HOMEBREW_SSH_CONFIG_PATH = "${config.xdg.configHome}/ssh/brew_config";
@@ -258,12 +260,27 @@ let
   #                                      #
   ########################################
 
+  # Convert agenix secret path for shell config file use
+  # Agenix paths contain shell variables/commands that need proper escaping
+  # Darwin: $(getconf DARWIN_USER_TEMP_DIR)/agenix/filename -> ${DARWIN_USER_TEMP_DIR}/agenix/filename
+  # Linux: /run/user/UID/agenix/filename -> ${XDG_RUNTIME_DIR}/agenix/filename
   mkAgenixPathSubst =
     path:
+    let
+      pathStr = builtins.toString path;
+      # Extract the /agenix/... suffix from the path
+      suffix =
+        let
+          # Darwin paths: $(getconf DARWIN_USER_TEMP_DIR)/agenix/...
+          # Linux paths: /run/user/UID/agenix/... or similar
+          match = lib.strings.match ".*(/agenix/.*)" pathStr;
+        in
+        if match != null then builtins.head match else "/agenix/unknown";
+    in
     if pkgs.stdenv.isDarwin then
-      "\${DARWIN_USER_TEMP_DIR}${lib.concatStrings (lib.strings.match ".*\)(.*)" (builtins.toString path))}"
+      "\${DARWIN_USER_TEMP_DIR}${suffix}"
     else
-      "\${XDG_RUNTIME_DIR}${lib.concatStrings (lib.strings.match ".[A-Z_]+\(.*\)" (builtins.toString path))}";
+      "\${XDG_RUNTIME_DIR}${suffix}";
 
 in
 {

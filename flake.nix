@@ -33,11 +33,12 @@
     }:
     let
       # Fetch private submodule from local path with submodules enabled
-      # Uses absolute path because flake source is copied to nix store without submodules
+      # Uses HOME env var for portability (requires --impure flag)
+      # Uses ref="main" instead of allRefs=true to avoid exposing entire git history
       private = builtins.fetchGit {
-        url = "file:///Users/kamushadenes/.config/nix/config";
+        url = "file://${builtins.getEnv "HOME"}/.config/nix/config";
         submodules = true;
-        allRefs = true;
+        ref = "main";
       } + "/private";
 
       # Helper to create Darwin host configurations

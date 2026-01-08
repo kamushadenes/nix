@@ -263,7 +263,7 @@ rec {
           file = "${private}/${secretFiles.${placeholder}}";
           path = "${secretsDir}/${placeholderToPathName placeholder}";
         };
-      }) (builtins.filter (p: secretFiles ? ${p}) secretPlaceholders)
+      }) (builtins.filter (p: lib.hasAttr p secretFiles) secretPlaceholders)
     );
 
   # Generate secret substitutions mapping for activation scripts
@@ -274,6 +274,6 @@ rec {
       map (placeholder: {
         name = placeholder;
         value = "${secretsDir}/${placeholderToPathName placeholder}";
-      }) (builtins.filter (p: secretFiles ? ${p}) secretPlaceholders)
+      }) (builtins.filter (p: lib.hasAttr p secretFiles) secretPlaceholders)
     );
 }
