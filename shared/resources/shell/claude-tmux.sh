@@ -80,8 +80,8 @@ RUN apt-get update -qq && \
     apt-get install -y -qq bash curl git xz-utils ca-certificates sudo python3 python3-pip python3-venv && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user with same UID as typical host user for better file permissions
-RUN useradd -m -s /bin/bash -u 1000 claude && echo "claude ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+# Create non-root user (or use existing ubuntu user)
+RUN useradd -m -s /bin/bash claude 2>/dev/null || true && echo "claude ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Install devbox as root first (installs to /usr/local/bin)
 RUN curl -fsSL https://get.jetify.com/devbox | FORCE=1 bash && \
