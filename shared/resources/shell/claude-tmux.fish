@@ -232,35 +232,34 @@ function _c_danger
     if test -n "$creds_temp" -a -f "$creds_temp"
         set mounts $mounts "-v" "$creds_temp:/tmp/claude-credentials.json:ro"
     end
-    # Mount SSH for git operations
+    # Stage all credentials for copying (entrypoint copies to $HOME)
+    # SSH
     if test -d "$home_dir/.ssh"
-        set mounts $mounts "-v" "$home_dir/.ssh:/home/claude/.ssh:ro"
+        set mounts $mounts "-v" "$home_dir/.ssh:/tmp/creds-staging/.ssh:ro"
     end
-    # Mount git config
+    # Git config
     if test -f "$home_dir/.gitconfig"
-        set mounts $mounts "-v" "$home_dir/.gitconfig:/home/claude/.gitconfig:ro"
+        set mounts $mounts "-v" "$home_dir/.gitconfig:/tmp/creds-staging/.gitconfig:ro"
     end
-
-    # Cloud credentials mounts
     # AWS
     if test -d "$home_dir/.aws"
-        set mounts $mounts "-v" "$home_dir/.aws:/home/claude/.aws:ro"
+        set mounts $mounts "-v" "$home_dir/.aws:/tmp/creds-staging/.aws:ro"
     end
     # Google Cloud
     if test -d "$home_dir/.config/gcloud"
-        set mounts $mounts "-v" "$home_dir/.config/gcloud:/home/claude/.config/gcloud:ro"
+        set mounts $mounts "-v" "$home_dir/.config/gcloud:/tmp/creds-staging/.config/gcloud:ro"
     end
     # Kubernetes
     if test -d "$home_dir/.kube"
-        set mounts $mounts "-v" "$home_dir/.kube:/home/claude/.kube:ro"
+        set mounts $mounts "-v" "$home_dir/.kube:/tmp/creds-staging/.kube:ro"
     end
     # Agenix secrets (macOS temp dir)
     if test -n "$DARWIN_USER_TEMP_DIR" -a -d "$DARWIN_USER_TEMP_DIR/agenix"
-        set mounts $mounts "-v" "$DARWIN_USER_TEMP_DIR/agenix:/run/agenix:ro"
+        set mounts $mounts "-v" "$DARWIN_USER_TEMP_DIR/agenix:/tmp/creds-staging/agenix:ro"
     end
     # Agenix secrets (Linux)
     if test -d "/run/agenix"
-        set mounts $mounts "-v" "/run/agenix:/run/agenix:ro"
+        set mounts $mounts "-v" "/run/agenix:/tmp/creds-staging/agenix:ro"
     end
 
     echo "Starting Claude in Docker container (danger mode)..."

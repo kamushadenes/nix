@@ -36,5 +36,30 @@ if [ -f /tmp/claude-credentials.json ]; then
     cp /tmp/claude-credentials.json "$HOME/.claude/.credentials.json"
 fi
 
+# Copy all staged credentials to home directory
+if [ -d /tmp/creds-staging/.ssh ]; then
+    cp -r /tmp/creds-staging/.ssh "$HOME/"
+    chmod 700 "$HOME/.ssh"
+    chmod 600 "$HOME/.ssh"/* 2>/dev/null || true
+fi
+if [ -f /tmp/creds-staging/.gitconfig ]; then
+    cp /tmp/creds-staging/.gitconfig "$HOME/"
+fi
+if [ -d /tmp/creds-staging/.aws ]; then
+    cp -r /tmp/creds-staging/.aws "$HOME/"
+fi
+if [ -d /tmp/creds-staging/.config/gcloud ]; then
+    mkdir -p "$HOME/.config"
+    cp -r /tmp/creds-staging/.config/gcloud "$HOME/.config/"
+fi
+if [ -d /tmp/creds-staging/.kube ]; then
+    cp -r /tmp/creds-staging/.kube "$HOME/"
+fi
+if [ -d /tmp/creds-staging/agenix ]; then
+    sudo mkdir -p /run/agenix
+    sudo cp -r /tmp/creds-staging/agenix/* /run/agenix/ 2>/dev/null || true
+    sudo chmod -R 400 /run/agenix/* 2>/dev/null || true
+fi
+
 echo "Starting Claude with --dangerously-skip-permissions..."
 exec claude --dangerously-skip-permissions "$@"

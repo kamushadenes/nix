@@ -235,35 +235,34 @@ _c_danger() {
     if test -n "$creds_temp" && test -f "$creds_temp"; then
         mounts+=("-v" "$creds_temp:/tmp/claude-credentials.json:ro")
     fi
-    # Mount SSH for git operations
+    # Stage all credentials for copying (entrypoint copies to $HOME)
+    # SSH
     if test -d "$home_dir/.ssh"; then
-        mounts+=("-v" "$home_dir/.ssh:/home/claude/.ssh:ro")
+        mounts+=("-v" "$home_dir/.ssh:/tmp/creds-staging/.ssh:ro")
     fi
-    # Mount git config
+    # Git config
     if test -f "$home_dir/.gitconfig"; then
-        mounts+=("-v" "$home_dir/.gitconfig:/home/claude/.gitconfig:ro")
+        mounts+=("-v" "$home_dir/.gitconfig:/tmp/creds-staging/.gitconfig:ro")
     fi
-
-    # Cloud credentials mounts
     # AWS
     if test -d "$home_dir/.aws"; then
-        mounts+=("-v" "$home_dir/.aws:/home/claude/.aws:ro")
+        mounts+=("-v" "$home_dir/.aws:/tmp/creds-staging/.aws:ro")
     fi
     # Google Cloud
     if test -d "$home_dir/.config/gcloud"; then
-        mounts+=("-v" "$home_dir/.config/gcloud:/home/claude/.config/gcloud:ro")
+        mounts+=("-v" "$home_dir/.config/gcloud:/tmp/creds-staging/.config/gcloud:ro")
     fi
     # Kubernetes
     if test -d "$home_dir/.kube"; then
-        mounts+=("-v" "$home_dir/.kube:/home/claude/.kube:ro")
+        mounts+=("-v" "$home_dir/.kube:/tmp/creds-staging/.kube:ro")
     fi
     # Agenix secrets (macOS temp dir)
     if test -n "$DARWIN_USER_TEMP_DIR" && test -d "$DARWIN_USER_TEMP_DIR/agenix"; then
-        mounts+=("-v" "$DARWIN_USER_TEMP_DIR/agenix:/run/agenix:ro")
+        mounts+=("-v" "$DARWIN_USER_TEMP_DIR/agenix:/tmp/creds-staging/agenix:ro")
     fi
     # Agenix secrets (Linux)
     if test -d "/run/agenix"; then
-        mounts+=("-v" "/run/agenix:/run/agenix:ro")
+        mounts+=("-v" "/run/agenix:/tmp/creds-staging/agenix:ro")
     fi
 
     echo "Starting Claude in Docker container (danger mode)..."
