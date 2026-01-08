@@ -190,6 +190,7 @@ in
           "Bash(go generate:*)"
           "Bash(golangci-lint run:*)"
           "Bash(gofmt:*)"
+          "Bash(goimports:*)"
 
           # Just task runner
           "Bash(just lint:*)"
@@ -374,7 +375,7 @@ in
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/git-safety-guard.py";
+                command = "~/.claude/hooks/PreToolUse/git-safety-guard.py";
               }
             ];
           }
@@ -385,7 +386,7 @@ in
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/restrict-clickup.sh iniciador";
+                command = "~/.claude/hooks/PreToolUse/restrict-clickup.sh iniciador";
               }
             ];
           }
@@ -424,7 +425,7 @@ in
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/post-lint.sh";
+                command = "~/.claude/hooks/Stop/post-lint.sh";
               }
               {
                 type = "command";
@@ -460,7 +461,7 @@ in
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/format-python.sh";
+                command = "~/.claude/hooks/PostToolUse/format-python.sh";
               }
             ];
           }
@@ -470,7 +471,7 @@ in
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/format-typescript.sh";
+                command = "~/.claude/hooks/PostToolUse/format-typescript.sh";
               }
             ];
           }
@@ -480,7 +481,7 @@ in
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/format-nix.sh";
+                command = "~/.claude/hooks/PostToolUse/format-nix.sh";
               }
             ];
           }
@@ -490,7 +491,17 @@ in
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/format-markdown.sh";
+                command = "~/.claude/hooks/PostToolUse/format-markdown.sh";
+              }
+            ];
+          }
+          # Auto-format Go files
+          {
+            matcher = "Edit(*.go)|Write(*.go)|Update(*.go)";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PostToolUse/format-go.sh";
               }
             ];
           }
@@ -549,33 +560,41 @@ in
       executable = true;
     };
 
-    # Auto-format hooks
-    ".claude/hooks/format-python.sh" = {
-      source = "${scriptsDir}/hooks/format-python.sh";
+    # PreToolUse hooks
+    ".claude/hooks/PreToolUse/git-safety-guard.py" = {
+      source = "${scriptsDir}/hooks/PreToolUse/git-safety-guard.py";
       executable = true;
     };
-    ".claude/hooks/format-typescript.sh" = {
-      source = "${scriptsDir}/hooks/format-typescript.sh";
+    ".claude/hooks/PreToolUse/restrict-clickup.sh" = {
+      source = "${scriptsDir}/hooks/PreToolUse/restrict-clickup.sh";
       executable = true;
     };
-    ".claude/hooks/format-nix.sh" = {
-      source = "${scriptsDir}/hooks/format-nix.sh";
+
+    # PostToolUse hooks
+    ".claude/hooks/PostToolUse/format-python.sh" = {
+      source = "${scriptsDir}/hooks/PostToolUse/format-python.sh";
       executable = true;
     };
-    ".claude/hooks/format-markdown.sh" = {
-      source = "${scriptsDir}/hooks/format-markdown.sh";
+    ".claude/hooks/PostToolUse/format-typescript.sh" = {
+      source = "${scriptsDir}/hooks/PostToolUse/format-typescript.sh";
       executable = true;
     };
-    ".claude/hooks/post-lint.sh" = {
-      source = "${scriptsDir}/hooks/post-lint.sh";
+    ".claude/hooks/PostToolUse/format-nix.sh" = {
+      source = "${scriptsDir}/hooks/PostToolUse/format-nix.sh";
       executable = true;
     };
-    ".claude/hooks/restrict-clickup.sh" = {
-      source = "${scriptsDir}/hooks/restrict-clickup.sh";
+    ".claude/hooks/PostToolUse/format-markdown.sh" = {
+      source = "${scriptsDir}/hooks/PostToolUse/format-markdown.sh";
       executable = true;
     };
-    ".claude/hooks/git-safety-guard.py" = {
-      source = "${scriptsDir}/hooks/git-safety-guard.py";
+    ".claude/hooks/PostToolUse/format-go.sh" = {
+      source = "${scriptsDir}/hooks/PostToolUse/format-go.sh";
+      executable = true;
+    };
+
+    # Stop hooks
+    ".claude/hooks/Stop/post-lint.sh" = {
+      source = "${scriptsDir}/hooks/Stop/post-lint.sh";
       executable = true;
     };
 
