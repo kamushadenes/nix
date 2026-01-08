@@ -145,3 +145,43 @@ These sub-agents call external AI models:
 | `tracer`     | Complex execution flow analysis                   |
 
 **Most code reviews should use `code-reviewer` directly** rather than multi-model consensus.
+
+## Handling Subagent User Input Requests (IMPORTANT)
+
+Subagents **cannot** use AskUserQuestion - it's filtered at the system level ([anthropics/claude-code#12890](https://github.com/anthropics/claude-code/issues/12890)). When you receive a subagent response containing user options, **you must present them via AskUserQuestion**.
+
+### Detection Pattern
+
+Look for subagent responses containing:
+- "Options:", "Select one:", "Choose:", "Which would you like?"
+- Formatted lists: "A)", "B)", "C)" or "1.", "2.", "3." or "- Option X"
+- "(recommended)" markers on preferred choices
+
+### Required Action
+
+When detected, **immediately** convert to AskUserQuestion:
+
+```python
+# Subagent returned:
+# "Which would you like to link?
+#  - A) Link to 'ANTIF - Tarefas' (recommended)
+#  - B) Explore a different space
+#  - C) Something else"
+
+# YOU MUST call AskUserQuestion:
+AskUserQuestion(
+    question="Which would you like to link?",
+    header="ClickUp Link",
+    options=[
+        {"label": "Link to 'ANTIF - Tarefas' (Recommended)", "description": "Use the existing antifraud tasks list"},
+        {"label": "Explore a different space", "description": "Browse other ClickUp spaces"},
+        {"label": "Something else", "description": "Specify a custom option"}
+    ]
+)
+```
+
+### Relay User Choice
+
+After the user selects, either:
+1. Act on the choice directly if you can complete the task
+2. Spawn the subagent again with the selection: `"User selected: Link to 'ANTIF - Tarefas'. Continue with this choice."`
