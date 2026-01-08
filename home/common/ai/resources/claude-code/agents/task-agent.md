@@ -125,6 +125,8 @@ You are autonomous but should communicate your progress clearly. Start by findin
 
 When invoked for ClickUp sync (detected by prompt mentioning "clickup-sync"), you operate in sync mode instead of the normal task workflow.
 
+**Note:** ClickUp MCP tools may be named either `mcp__clickup__*` or `mcp__iniciador-clickup__*` depending on the configuration. Use MCPSearch to find the available tools if unsure.
+
 ### Config Files
 
 - `.beads/clickup.yaml` - Link configuration (list_id, space_id, etc.)
