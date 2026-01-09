@@ -148,9 +148,9 @@ class SyncEngine:
                 existing_bead = bead_by_clickup_id.get(task.id)
 
                 if existing_bead is None:
-                    # Create new bead
+                    # Create new bead (first-time import from ClickUp)
                     bead_id = self._create_bead_from_task(task)
-                    self.log(f"Created bead for task: {task.name}")
+                    self.log(f"[PULL: New] Created bead {bead_id} from ClickUp task: {task.name}")
                     result.pulled_created += 1
 
                     # Record sync state for new bead
@@ -166,7 +166,7 @@ class SyncEngine:
 
                     if do_sync and direction == "pull":
                         self._update_bead_from_task(existing_bead, task)
-                        self.log(f"Updated bead {existing_bead.id}: {task.name}")
+                        self.log(f"[PULL: Update] Updated bead {existing_bead.id}: {task.name}")
                         result.pulled_updated += 1
 
                         # Update sync state
@@ -176,7 +176,7 @@ class SyncEngine:
                             self.sync_state, existing_bead.id, bead_hash, task_hash
                         )
                     else:
-                        self.log(f"Skipped (no change or push pending): {task.name}")
+                        self.log(f"[PULL: Skip] No change or push pending: {task.name}")
                         result.pulled_skipped += 1
 
             except Exception as e:
@@ -188,6 +188,21 @@ class SyncEngine:
         """Push beads to ClickUp."""
         all_beads = self.beads.list_issues(include_closed=True)
         self.log(f"Processing {len(all_beads)} beads for push")
+
+        # Detect potential duplicates by title
+        beads_by_title: dict[str, list[Bead]] = {}
+        for bead in all_beads:
+            title_normalized = bead.title.strip().lower()
+            if title_normalized not in beads_by_title:
+                beads_by_title[title_normalized] = []
+            beads_by_title[title_normalized].append(bead)
+
+        duplicates = {title: beads for title, beads in beads_by_title.items() if len(beads) > 1}
+        if duplicates:
+            self.log("⚠️  Warning: Potential duplicate beads detected (same title):")
+            for title, beads in duplicates.items():
+                bead_ids = ", ".join(b.id for b in beads)
+                self.log(f"   '{title}': {bead_ids}")
 
         for bead in all_beads:
             try:
@@ -202,7 +217,7 @@ class SyncEngine:
 
                     if do_sync and direction == "push":
                         self._update_task_from_bead(task_id, bead)
-                        self.log(f"Updated ClickUp task: {bead.title}")
+                        self.log(f"[PUSH: Update] Updated ClickUp task {task_id}: {bead.title}")
                         result.pushed_updated += 1
 
                         # Post close_reason as comment if closed
@@ -218,13 +233,13 @@ class SyncEngine:
                             self.sync_state, bead.id, bead_hash, bead_hash
                         )
                     else:
-                        self.log(f"Skipped (no change or pull pending): {bead.title}")
+                        self.log(f"[PUSH: Skip] No change or pull pending: {bead.title}")
                         result.pushed_skipped += 1
 
                 else:
-                    # No external ref - create in ClickUp
+                    # No external ref - create in ClickUp (first-time link)
                     task_id = self._create_task_from_bead(bead)
-                    self.log(f"Created ClickUp task: {bead.title}")
+                    self.log(f"[PUSH: Link] Created ClickUp task {task_id} from bead {bead.id}: {bead.title}")
 
                     # Update bead with external ref
                     self.beads.update_issue(
