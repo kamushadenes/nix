@@ -45,8 +45,10 @@ rec {
       pathPrefixes = [
         "${homeDir}/Dropbox/Projects/Altinity"
       ];
-      # Altinity uses only common MCPs (no workspace-specific ones yet)
-      mcpServers = [ ];
+      # Altinity-specific MCP servers
+      mcpServers = [
+        "altinity-slack"
+      ];
     };
   };
 
