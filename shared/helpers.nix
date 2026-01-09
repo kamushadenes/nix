@@ -101,6 +101,9 @@ let
 
       # Beads sync branch (for protected branch workflows)
       BEADS_SYNC_BRANCH = "beads-sync";
+
+      # Happy Coder server URL
+      HAPPY_SERVER_URL = "https://happy.hyades.io";
     };
 
     launchctl = mkVarExports (name: value: ''run /bin/launchctl setenv ${name} "${value}"'') globalVariables.base;
