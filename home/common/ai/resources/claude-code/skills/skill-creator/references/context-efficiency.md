@@ -2,15 +2,37 @@
 
 Techniques for optimizing token usage in skills, agents, rules, and commands.
 
+Source: [developertoolkit.ai performance tuning guide](https://developertoolkit.ai/en/claude-code/advanced-techniques/performance-tuning/)
+
+## Performance Targets
+
+| Metric | Target | Notes |
+|--------|--------|-------|
+| Response latency | < 2 seconds | For simple tasks |
+| Token efficiency | > 80% | Useful content per token |
+| Context utilization | > 70% | Relevance in loaded context |
+| First-attempt success | > 90% | For routine operations |
+| Context clear threshold | > 80% | Clear when reaching this capacity |
+
 ## Token Budget Targets
 
 | Component       | Target           | Rationale                |
 | --------------- | ---------------- | ------------------------ |
 | Root CLAUDE.md  | ~500 tokens      | Always loaded, high cost |
+| Subdirectory CLAUDE.md | ~300 tokens | Per-module context |
 | Rules           | ~500 tokens each | Always loaded            |
 | Agent body      | 400-600 tokens   | Delegate to templates    |
 | Skill SKILL.md  | ~500 tokens      | Delegate to references   |
 | Reference files | ~300 tokens each | Loaded on-demand         |
+
+## Thinking Token Budgets
+
+| Task Type | Token Range | Examples |
+|-----------|-------------|----------|
+| Quick fixes | 0-1,000 | Typos, formatting |
+| Standard dev | 5,000-10,000 | Features, bug fixes |
+| Complex analysis | 20,000-50,000 | Refactoring, debugging |
+| Deep architecture | 100,000-128,000 | System design |
 
 ## Hierarchical Context Management
 
@@ -137,6 +159,50 @@ When compressing existing prompts:
 - **Token Efficiency**: >80% useful content per token
 - **Context Utilization**: >70% relevance in loaded context
 - **First-Attempt Success**: >90% for routine operations
+
+## Essential Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/clear` | Reset context between unrelated tasks |
+| `/compact` | Compress conversation, keep code/errors/decisions |
+| `/context` | Check current token usage and loaded files |
+| `--add-dir` | Load only specific directories for focused work |
+
+## Workflow Patterns
+
+**Batch Processing:** Group similar operations in sets of 5 for efficiency.
+
+**Progressive Enhancement:** Basic → validation → security → optimization (build incrementally).
+
+**Parallel Instances:** Run separate terminals for independent concerns (frontend/backend/tests).
+
+**Checkpoint Strategy:** Git commit before major changes for easy rollback.
+
+## Large Codebase Handling
+
+For files exceeding **10,000 lines**:
+
+- Target specific line ranges, not entire files
+- Use search to locate relevant methods first
+- Create coordination docs (e.g., `REFACTOR_PLAN.md`) for multi-module changes
+- Work module-by-module systematically
+
+## Troubleshooting
+
+| Problem | Solutions |
+|---------|-----------|
+| Slow responses | Clear context, specific queries, faster model, reduce concurrent ops |
+| Quality degradation | Reset context, refresh CLAUDE.md, break into steps, upgrade model |
+| Token limit errors | Aggressive `/compact`, split operations, clear between tasks |
+
+## Performance Baselines
+
+| Operation | Duration | Tokens |
+|-----------|----------|--------|
+| Simple feature | 2-5 min | 5-10K |
+| Bug fix | 1-3 min | 2-5K |
+| Module refactor | 10-20 min | 20-50K |
 
 ## Anti-Patterns to Avoid
 
