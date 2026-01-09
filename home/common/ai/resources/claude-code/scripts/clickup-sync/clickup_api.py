@@ -29,9 +29,11 @@ class ClickUpAPI:
         """
         self.token = token
         self.session = requests.Session()
+        # ClickUp OAuth requires "Bearer" prefix
+        auth_header = token if token.startswith("Bearer ") else f"Bearer {token}"
         self.session.headers.update(
             {
-                "Authorization": token,
+                "Authorization": auth_header,
                 "Content-Type": "application/json",
             }
         )

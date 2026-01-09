@@ -16,7 +16,7 @@ from pathlib import Path
 try:
     from . import (
         BeadsClient,
-        ClickUpAPI,
+        ClickUpMCPClient,
         ConfigError,
         KeychainError,
         SyncEngine,
@@ -27,7 +27,7 @@ try:
 except ImportError:
     # Running as standalone script
     from beads_client import BeadsClient
-    from clickup_api import ClickUpAPI
+    from mcp_client import ClickUpMCPClient
     from config import ConfigError, load_config, save_config
     from keychain import KeychainError, get_clickup_token
     from sync_engine import SyncEngine
@@ -104,7 +104,7 @@ Examples:
         return 0
 
     # Initialize clients
-    api = ClickUpAPI(token)
+    api = ClickUpMCPClient(token)
     beads = BeadsClient(cwd=".")
     engine = SyncEngine(api, beads, config, verbose=args.verbose)
 

@@ -4,11 +4,11 @@ from datetime import datetime, timezone
 
 try:
     from .beads_client import BeadsClient
-    from .clickup_api import ClickUpAPI
+    from .mcp_client import ClickUpMCPClient
     from .models import Bead, BeadStatus, ClickUpTask, SyncConfig, SyncResult
 except ImportError:
     from beads_client import BeadsClient
-    from clickup_api import ClickUpAPI
+    from mcp_client import ClickUpMCPClient
     from models import Bead, BeadStatus, ClickUpTask, SyncConfig, SyncResult
 
 # Status mapping: Beads -> ClickUp
@@ -91,7 +91,7 @@ class SyncEngine:
 
     def __init__(
         self,
-        api: ClickUpAPI,
+        api: ClickUpMCPClient,
         beads: BeadsClient,
         config: SyncConfig,
         verbose: bool = False,
@@ -100,7 +100,7 @@ class SyncEngine:
         Initialize sync engine.
 
         Args:
-            api: ClickUp API client
+            api: ClickUp MCP client
             beads: Beads CLI client
             config: Sync configuration
             verbose: Enable verbose output
