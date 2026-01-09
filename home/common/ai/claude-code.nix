@@ -140,6 +140,7 @@ in
       sync-ai-dev = builtins.readFile "${commandsDir}/sync-ai-dev.md";
       clickup-sync = builtins.readFile "${commandsDir}/clickup-sync.md";
       vanta-sync = builtins.readFile "${commandsDir}/vanta-sync.md";
+      plan-to-beads = builtins.readFile "${commandsDir}/plan-to-beads.md";
     };
 
     # Note: rules option is not available in this home-manager version
