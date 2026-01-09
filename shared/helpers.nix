@@ -67,8 +67,8 @@ let
   ########################################
 
   # Factory for generating variable exports in different shell formats
-  mkVarExports = formatFn: vars:
-    lib.concatMapStringsSep "\n" (var: formatFn var vars.${var}) (lib.attrNames vars);
+  mkVarExports =
+    formatFn: vars: lib.concatMapStringsSep "\n" (var: formatFn var vars.${var}) (lib.attrNames vars);
 
   globalVariables = {
     base = {
@@ -103,10 +103,12 @@ let
       BEADS_SYNC_BRANCH = "beads-sync";
 
       # Happy Coder server URL (local network)
-      HAPPY_SERVER_URL = "http://happy.hyades.io:3000";
+      HAPPY_SERVER_URL = "https://happy.hyades.io";
     };
 
-    launchctl = mkVarExports (name: value: ''run /bin/launchctl setenv ${name} "${value}"'') globalVariables.base;
+    launchctl = mkVarExports (
+      name: value: ''run /bin/launchctl setenv ${name} "${value}"''
+    ) globalVariables.base;
     shell = mkVarExports (name: value: ''export ${name}="${value}"'') globalVariables.base;
     fishShell = mkVarExports (name: value: ''set -x ${name} "${value}"'') globalVariables.base;
   };
@@ -118,11 +120,11 @@ let
   ########################################
 
   # Apply named substitutions to a string (e.g., "@placeholder@" -> value)
-  applySubst = subst: str:
-    builtins.foldl'
-      (s: name: builtins.replaceStrings [ name ] [ subst.${name} ] s)
-      str
-      (builtins.attrNames subst);
+  applySubst =
+    subst: str:
+    builtins.foldl' (s: name: builtins.replaceStrings [ name ] [ subst.${name} ] s) str (
+      builtins.attrNames subst
+    );
 
   ########################################
   #                                      #
