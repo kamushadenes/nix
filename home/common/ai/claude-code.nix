@@ -118,7 +118,7 @@ in
 
   programs.claude-code = {
     enable = true;
-    package = pkgs-unstable.claude-code;
+    package = null;
 
     # Note: mcpServers are NOT set here because home-manager doesn't support
     # secret substitution. They're managed separately below via ~/.claude.json
