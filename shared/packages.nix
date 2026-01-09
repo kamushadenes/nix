@@ -41,7 +41,40 @@ let
       mainProgram = "lazyworktree";
     };
   };
+
+  # Happy Coder CLI - Mobile and Web client wrapper for Claude Code and Codex
+  # Built from the happy-cli repository (not the main happy repo)
+  happy-coder = pkgs.mkYarnPackage rec {
+    pname = "happy-coder";
+    version = "0.13.0";
+
+    src = pkgs.fetchFromGitHub {
+      owner = "slopus";
+      repo = "happy-cli";
+      rev = "f9cb1216bdaacd885cd55d7eae676ad6c675a48a"; # v0.13.0 commit
+      hash = "sha256-q4o8FHBhZsNL+D8rREjPzI1ky5+p3YNSxKc1OlA2pcs=";
+    };
+
+    offlineCache = pkgs.fetchYarnDeps {
+      yarnLock = "${src}/yarn.lock";
+      hash = "sha256-DlUUAj5b47KFhUBsftLjxYJJxyCxW9/xfp3WUCCClDY=";
+    };
+
+    buildPhase = ''
+      export HOME=$PWD
+      yarn --offline run build
+    '';
+
+    distPhase = "true"; # Skip the default dist phase
+
+    meta = {
+      description = "Mobile and Web client for Claude Code and Codex";
+      homepage = "https://github.com/slopus/happy-cli";
+      license = lib.licenses.mit;
+      mainProgram = "happy";
+    };
+  };
 in
 {
-  inherit gitSquash colorScript lazyworktree;
+  inherit gitSquash colorScript lazyworktree happy-coder;
 }

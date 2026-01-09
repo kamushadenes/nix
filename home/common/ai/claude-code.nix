@@ -12,6 +12,7 @@
   pkgs,
   pkgs-unstable,
   private,
+  packages,
   ...
 }:
 let
@@ -91,7 +92,7 @@ in
     # markdownlint-cli is installed in emacs.nix
     ruff # Python formatting
     github-mcp-server # GitHub MCP server binary
-    pkgs-unstable.happy-coder # Mobile/web client wrapper for Claude Code and Codex
+    packages.happy-coder # Mobile/web client wrapper for Claude Code and Codex (custom build)
 
     # ClickUp sync script for bidirectional beads<->ClickUp synchronization
     (
