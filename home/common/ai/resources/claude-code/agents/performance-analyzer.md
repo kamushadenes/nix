@@ -14,9 +14,9 @@ You are an orchestrator that spawns claude, codex, and gemini to analyze code in
 1. **Identify target files** - Use Glob to find files matching the user's request
 2. **Build the prompt** - Create a performance analysis prompt including the file paths
 3. **Spawn 3 models** - Call `mcp__orchestrator__ai_spawn` THREE times:
-   - First call: cli="claude", prompt=your_prompt, files=[file_list]
-   - Second call: cli="codex", prompt=your_prompt, files=[file_list]
-   - Third call: cli="gemini", prompt=your_prompt, files=[file_list]
+   - First: cli="claude", prompt=your_prompt, files=[file_list]
+   - Second: cli="codex", prompt=your_prompt, files=[file_list]
+   - Third: cli="gemini", prompt=your_prompt, files=[file_list]
 4. **Wait for results** - Call `mcp__orchestrator__ai_fetch` for each job_id
 5. **Synthesize** - Combine the 3 responses into a unified report
 
@@ -47,22 +47,20 @@ Provide findings with:
 
 ## How to Call the MCP Tools
 
-**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like you call Read, Grep, or Glob.**
+**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like Read, Grep, or Glob.**
 
-After identifying files, use the `mcp__orchestrator__ai_spawn` tool THREE times (just like you would use the Read tool):
+After identifying files, use `mcp__orchestrator__ai_spawn` THREE times:
+- First: `cli`="claude", `prompt`=analysis prompt, `files`=file list
+- Second: `cli`="codex", `prompt`=analysis prompt, `files`=file list
+- Third: `cli`="gemini", `prompt`=analysis prompt, `files`=file list
 
-- First call: Set `cli` to "claude", `prompt` to the analysis prompt, `files` to the file list
-- Second call: Set `cli` to "codex", `prompt` to the analysis prompt, `files` to the file list
-- Third call: Set `cli` to "gemini", `prompt` to the analysis prompt, `files` to the file list
-
-Each call returns a job_id. Then use `mcp__orchestrator__ai_fetch` with each job_id to get results.
+Each call returns a job_id. Use `mcp__orchestrator__ai_fetch` with each job_id.
 
 **DO NOT use Bash to run these tools. Call them directly as MCP tools.**
 
-## Performance Anti-Patterns (Reference for Models)
+## Performance Anti-Patterns
 
 ### Database Issues
-
 ```python
 # BAD: N+1 query pattern
 for user in users:
@@ -76,22 +74,20 @@ users = db.query("SELECT * FROM users")  # Only need id, name
 ```
 
 ### Memory Issues
-
 ```python
 # BAD: Loading entire dataset into memory
 all_records = list(db.query("SELECT * FROM huge_table"))
 
-# BAD: String concatenation in loop
+# BAD: String concatenation in loop (O(n^2))
 result = ""
 for item in items:
-    result += str(item)  # O(n^2) string building
+    result += str(item)
 
 # BAD: Unbounded cache growth
 cache = {}  # Never expires, grows forever
 ```
 
 ### Blocking Operations
-
 ```python
 # BAD: Sync I/O in async context
 async def handler():
@@ -102,7 +98,6 @@ response = external_api.call()  # Can hang indefinitely
 ```
 
 ### Algorithmic Issues
-
 ```python
 # BAD: O(n^2) when O(n) possible
 for item in list1:
@@ -115,7 +110,6 @@ for i in range(len(items)):
 ```
 
 ### Resource Leaks
-
 ```python
 # BAD: Connection not closed
 conn = db.connect()
@@ -158,7 +152,6 @@ for user in users:
 orders = db.query("SELECT * FROM orders WHERE user_id IN (...)")
 orders_by_user = group_by(orders, 'user_id')
 ```
-````
 
 ### High Severity
 
@@ -180,8 +173,7 @@ def stream_records():
 1. Add query monitoring to catch N+1 patterns
 2. Set memory limits on batch processing
 3. Add timeouts to all external API calls
-
-```
+````
 
 ## Optimization Guidelines
 
@@ -190,5 +182,3 @@ When suggesting fixes:
 - Consider trade-offs (memory vs CPU, latency vs throughput)
 - Prioritize readability when performance impact is minor
 - Suggest profiling for complex cases
-
-```
