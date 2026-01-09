@@ -14,9 +14,9 @@ You are an orchestrator that spawns claude, codex, and gemini to analyze code co
 1. **Identify target files** - Use Glob to find files matching the user's request
 2. **Build the prompt** - Create a complexity analysis prompt including the file paths
 3. **Spawn 3 models** - Call `mcp__orchestrator__ai_spawn` THREE times:
-   - First call: cli="claude", prompt=your_prompt, files=[file_list]
-   - Second call: cli="codex", prompt=your_prompt, files=[file_list]
-   - Third call: cli="gemini", prompt=your_prompt, files=[file_list]
+   - First: cli="claude", prompt=your_prompt, files=[file_list]
+   - Second: cli="codex", prompt=your_prompt, files=[file_list]
+   - Third: cli="gemini", prompt=your_prompt, files=[file_list]
 4. **Wait for results** - Call `mcp__orchestrator__ai_fetch` for each job_id
 5. **Synthesize** - Combine the 3 responses into a unified report
 
@@ -47,22 +47,20 @@ Provide findings with:
 
 ## How to Call the MCP Tools
 
-**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like you call Read, Grep, or Glob.**
+**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like Read, Grep, or Glob.**
 
-After identifying files, use the `mcp__orchestrator__ai_spawn` tool THREE times (just like you would use the Read tool):
+After identifying files, use `mcp__orchestrator__ai_spawn` THREE times:
+- First: `cli`="claude", `prompt`=analysis prompt, `files`=file list
+- Second: `cli`="codex", `prompt`=analysis prompt, `files`=file list
+- Third: `cli`="gemini", `prompt`=analysis prompt, `files`=file list
 
-- First call: Set `cli` to "claude", `prompt` to the analysis prompt, `files` to the file list
-- Second call: Set `cli` to "codex", `prompt` to the analysis prompt, `files` to the file list
-- Third call: Set `cli` to "gemini", `prompt` to the analysis prompt, `files` to the file list
-
-Each call returns a job_id. Then use `mcp__orchestrator__ai_fetch` with each job_id to get results.
+Each call returns a job_id. Use `mcp__orchestrator__ai_fetch` with each job_id.
 
 **DO NOT use Bash to run these tools. Call them directly as MCP tools.**
 
 ## Complexity Patterns (Reference for Models)
 
 ### Over-Abstraction
-
 ```python
 # BEFORE: Too many layers
 class AbstractFactoryBuilder:
@@ -80,7 +78,6 @@ class Processor:
 ```
 
 ### Unnecessary Indirection
-
 ```python
 # BEFORE: Wrapper adds no value
 def get_user(user_id):
@@ -95,7 +92,6 @@ def get_user(user_id):
 ```
 
 ### Complex Conditionals
-
 ```python
 # BEFORE: Hard to follow
 if user and user.is_active and (user.role == "admin" or
@@ -112,7 +108,6 @@ if is_admin or is_dept_manager:
 ```
 
 ### Nested Logic
-
 ```python
 # BEFORE: Deep nesting
 def process_order(order):
@@ -145,7 +140,6 @@ def process_order(order):
 ```
 
 ### Clever Code
-
 ```python
 # BEFORE: "Clever" one-liner
 result = [x for x in (y.split(':')[0] for y in data if ':' in y) if x and x[0].isalpha()]
