@@ -115,6 +115,25 @@ _c_ensure_beads_daemon() {
     fi
 }
 
+# Helper: build happy command with claude args
+# Usage: _c_build_happy_cmd [args...]
+# Outputs happy command with --claude-env and --claude-arg flags
+_c_build_happy_cmd() {
+    local cmd="happy"
+
+    # Add CLAUDE_CONFIG_DIR if set
+    if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+        cmd="$cmd --claude-env CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR"
+    fi
+
+    # Add each argument as --claude-arg
+    for arg in "$@"; do
+        cmd="$cmd --claude-arg '$arg'"
+    done
+
+    echo "$cmd"
+}
+
 # Helper: get git info, sets global vars
 _c_get_git_info() {
     _git_root=$(git rev-parse --show-toplevel 2>/dev/null)
@@ -158,27 +177,19 @@ _c_default() {
     # Set Ghostty window/tab title
     printf '\033]0;%s\007' "$title"
 
+    # Build happy command with proper args
+    happy_cmd=$(_c_build_happy_cmd "$@")
+
     if test -n "${TMUX:-}"; then
-        # Already in tmux - run claude with explicit env to override inherited vars
-        if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
-            CLAUDE_CONFIG_DIR="$CLAUDE_CONFIG_DIR" claude "$@"
-        else
-            env -u CLAUDE_CONFIG_DIR claude "$@"
-        fi
+        # Already in tmux - run happy directly
+        eval "$happy_cmd"
     else
         # Generate session name: claude-<parent>-<git_folder>-<timestamp>
         timestamp=$(date +%s)
         session_name="claude-$parent_folder_norm-$git_folder_norm-$timestamp"
 
-        # Start tmux and run claude inside (exit tmux when claude exits)
-        if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
-            tmux new-session -s "$session_name" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude $*"
-        else
-            # Remove from tmux global env (prevents inheritance from previous -e usage)
-            # then start session without the variable
-            tmux set-environment -gu CLAUDE_CONFIG_DIR 2>/dev/null || true
-            tmux new-session -s "$session_name" "claude $*"
-        fi
+        # Start tmux and run happy inside (exit tmux when happy exits)
+        tmux new-session -s "$session_name" "$happy_cmd"
     fi
 }
 
@@ -268,22 +279,16 @@ _c_worktree() {
         echo "Account: $account"
     fi
 
+    # Build happy command with extra args
+    # shellcheck disable=SC2086
+    happy_cmd=$(_c_build_happy_cmd $extra_args)
+
     if test -n "${TMUX:-}"; then
         # Already in tmux, create new session and switch
-        if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
-            tmux new-session -d -s "$session_name" -c "$workspace_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude $extra_args"
-        else
-            tmux set-environment -gu CLAUDE_CONFIG_DIR 2>/dev/null || true
-            tmux new-session -d -s "$session_name" -c "$workspace_path" "claude $extra_args"
-        fi
+        tmux new-session -d -s "$session_name" -c "$workspace_path" "$happy_cmd"
         tmux switch-client -t "$session_name"
     else
-        if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
-            tmux new-session -s "$session_name" -c "$workspace_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude $extra_args"
-        else
-            tmux set-environment -gu CLAUDE_CONFIG_DIR 2>/dev/null || true
-            tmux new-session -s "$session_name" -c "$workspace_path" "claude $extra_args"
-        fi
+        tmux new-session -s "$session_name" -c "$workspace_path" "$happy_cmd"
     fi
 }
 
@@ -417,21 +422,15 @@ $id	$project	$branch	$ws_path"
         if [ -n "$account" ]; then
             echo "Account: $account"
         fi
+
+        # Build happy command (no extra args for resume)
+        happy_cmd=$(_c_build_happy_cmd)
+
         if test -n "${TMUX:-}"; then
-            if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
-                tmux new-session -d -s "$session_name" -c "$ws_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude"
-            else
-                tmux set-environment -gu CLAUDE_CONFIG_DIR 2>/dev/null || true
-                tmux new-session -d -s "$session_name" -c "$ws_path" "claude"
-            fi
+            tmux new-session -d -s "$session_name" -c "$ws_path" "$happy_cmd"
             tmux switch-client -t "$session_name"
         else
-            if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
-                tmux new-session -s "$session_name" -c "$ws_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude"
-            else
-                tmux set-environment -gu CLAUDE_CONFIG_DIR 2>/dev/null || true
-                tmux new-session -s "$session_name" -c "$ws_path" "claude"
-            fi
+            tmux new-session -s "$session_name" -c "$ws_path" "$happy_cmd"
         fi
     fi
 }
@@ -557,7 +556,7 @@ case "${1:-}" in
         _c_help
         ;;
     *)
-        # Pass through to claude (existing behavior)
+        # Pass through to happy/claude (existing behavior)
         _c_default "$@"
         ;;
 esac
