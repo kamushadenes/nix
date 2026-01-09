@@ -39,18 +39,9 @@ Consider: complexity, browser support, scaling, resource usage.""",
 # Returns: {"jobs": {"claude": {"job_id": "abc123"}, "codex": {...}, "gemini": {...}}}
 
 # Option B: Spawn individually for different prompts per model
-claude_job = ai_spawn(
-    cli="claude",
-    prompt="Analyze the tradeoffs between WebSockets and SSE. Focus on architecture and scalability."
-)
-codex_job = ai_spawn(
-    cli="codex",
-    prompt="Compare WebSockets vs SSE. Focus on implementation complexity and code maintainability."
-)
-gemini_job = ai_spawn(
-    cli="gemini",
-    prompt="Research WebSockets vs SSE best practices. Include real-world examples and industry standards."
-)
+claude_job = ai_spawn(cli="claude", prompt="Analyze WebSockets vs SSE. Focus on architecture and scalability.")
+codex_job = ai_spawn(cli="codex", prompt="Compare WebSockets vs SSE. Focus on implementation complexity and code maintainability.")
+gemini_job = ai_spawn(cli="gemini", prompt="Research WebSockets vs SSE best practices. Include real-world examples and industry standards.")
 ```
 
 ### 3. Fetch Results
@@ -58,12 +49,10 @@ gemini_job = ai_spawn(
 Retrieve results from each model (all are running in parallel):
 
 ```python
-# Fetch each result with timeout (blocks until ready or timeout)
 claude_result = ai_fetch(job_id=review["jobs"]["claude"]["job_id"], timeout=120)
 codex_result = ai_fetch(job_id=review["jobs"]["codex"]["job_id"], timeout=120)
 gemini_result = ai_fetch(job_id=review["jobs"]["gemini"]["job_id"], timeout=120)
 
-# Check status and extract content
 if claude_result["status"] == "completed":
     claude_opinion = claude_result["content"]
 ```
@@ -86,32 +75,26 @@ Combine perspectives into a coherent summary:
 | Gemini | SSE            | Common pattern for dashboards            |
 
 ### Areas of Agreement
-
 - [Points all models agree on]
 
 ### Areas of Divergence
-
 - [Points where models differ]
 
 ### Synthesis
-
 Based on the multi-model analysis, the recommended approach is...
 
 ### Caveats
-
 - [Any limitations or edge cases noted]
 ```
 
 ## Parallel vs Sequential
 
-**Parallel (New)**: Use `ai_spawn` + `ai_fetch` or `ai_review`
-
+**Parallel (Preferred)**: Use `ai_spawn` + `ai_fetch` or `ai_review`
 - All models run simultaneously
 - Total time = slowest model (not sum of all)
 - Better for getting diverse opinions quickly
 
 **Sequential (Legacy)**: Use `clink` directly
-
 - Models run one after another
 - Total time = sum of all model times
 - Use when prompts depend on previous results

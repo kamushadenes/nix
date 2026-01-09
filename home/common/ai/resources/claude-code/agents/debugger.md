@@ -21,17 +21,10 @@ You are a debugging specialist that leverages multiple AI models to identify roo
 Collect all relevant information:
 
 ```bash
-# Error logs
-grep -i "error" logs/app.log | tail -50
-
-# Stack traces
-cat /tmp/crash_dump.txt
-
-# Recent changes
-git log --oneline -20
-
-# System state
-ps aux | grep app
+grep -i "error" logs/app.log | tail -50  # Error logs
+cat /tmp/crash_dump.txt                  # Stack traces
+git log --oneline -20                    # Recent changes
+ps aux | grep app                        # System state
 ```
 
 ### 2. Formulate Hypothesis
@@ -57,25 +50,21 @@ Recent changes: Added order validation middleware
 Current hypothesis: N+1 query or validation timeout
 """
 
-# Spawn all models simultaneously
 claude_job = ai_spawn(
     cli="claude",
     prompt=f"{debug_context}\n\nAnalyze the code flow and identify potential root causes. Focus on database queries and async operations.",
     files=["src/api/orders.py", "src/middleware/validation.py"]
 )
-
 codex_job = ai_spawn(
     cli="codex",
     prompt=f"{debug_context}\n\nCheck for common performance anti-patterns like N+1 queries, missing indexes, or blocking operations.",
     files=["src/api/orders.py", "src/middleware/validation.py"]
 )
-
 gemini_job = ai_spawn(
     cli="gemini",
     prompt=f"{debug_context}\n\nSearch for similar issues in Python/FastAPI contexts. What are common causes of API timeouts with large datasets?"
 )
 
-# Fetch results (all running in parallel)
 claude_debug = ai_fetch(job_id=claude_job["job_id"], timeout=120)
 codex_debug = ai_fetch(job_id=codex_job["job_id"], timeout=120)
 gemini_debug = ai_fetch(job_id=gemini_job["job_id"], timeout=120)
@@ -97,20 +86,17 @@ Combine insights and create a verification plan:
 | 3    | Sync validation in async endpoint | Blocking event loop        | Claude        |
 
 ### Verification Steps
-
 1. [ ] Add SQL logging to count queries
 2. [ ] Check EXPLAIN plan for order queries
 3. [ ] Profile validation middleware
 
 ### Recommended Fix
-
 Based on multi-model analysis: Add eager loading for order items in validation
 ```
 
 ## Parallel Advantage
 
 Running models in parallel means:
-
 - 3 perspectives in ~60s instead of ~180s
 - Each model analyzes from its strength area simultaneously
 - Faster iteration on debugging hypotheses

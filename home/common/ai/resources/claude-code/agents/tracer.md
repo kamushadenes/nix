@@ -32,14 +32,9 @@ Focus: Where does order validation happen?
 Find entry points and key components:
 
 ```bash
-# Find route definition
-grep -r "orders" src/api/ --include="*.py"
-
-# Find related models
-grep -r "class Order" src/ --include="*.py"
-
-# Find middleware
-grep -r "middleware" src/ --include="*.py"
+grep -r "orders" src/api/ --include="*.py"   # Find route definition
+grep -r "class Order" src/ --include="*.py"  # Find related models
+grep -r "middleware" src/ --include="*.py"   # Find middleware
 ```
 
 ### 3. Trace with Multi-Model Assistance (Parallel)
@@ -53,9 +48,7 @@ Goal: Understand full request lifecycle
 Focus: Where does order validation happen?
 """
 
-# Spawn models in parallel for different trace aspects
-claude_job = ai_spawn(
-    cli="claude",
+claude_job = ai_spawn(cli="claude",
     prompt=f"""{trace_context}
 
 Trace the execution flow for POST /api/orders:
@@ -64,19 +57,15 @@ Trace the execution flow for POST /api/orders:
 3. Note where control transfers
 4. Identify side effects (DB, external calls)
 5. Document the return path""",
-    files=["src/api/orders.py", "src/services/order.py", "src/models/order.py"]
-)
+    files=["src/api/orders.py", "src/services/order.py", "src/models/order.py"])
 
-codex_job = ai_spawn(
-    cli="codex",
+codex_job = ai_spawn(cli="codex",
     prompt=f"""{trace_context}
 
 Trace specifically where validation happens in the order creation flow.
 Identify: validation functions, error handling, where validation fails return to caller.""",
-    files=["src/api/orders.py", "src/services/order.py"]
-)
+    files=["src/api/orders.py", "src/services/order.py"])
 
-# Fetch results (running in parallel)
 claude_trace = ai_fetch(job_id=claude_job["job_id"], timeout=120)
 codex_trace = ai_fetch(job_id=codex_job["job_id"], timeout=120)
 ```

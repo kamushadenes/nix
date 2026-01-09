@@ -43,41 +43,33 @@ Get extended analysis from each perspective simultaneously:
 ```python
 problem_context = """[Full problem description above]"""
 
-# Spawn all models for deep analysis in parallel
-claude_job = ai_spawn(
-    cli="claude",
+claude_job = ai_spawn(cli="claude",
     prompt=f"""Think deeply about this problem. Consider:
 1. All possible approaches (not just obvious ones)
 2. Long-term implications of each
 3. Hidden assumptions in current thinking
 4. What could go wrong
 
-{problem_context}"""
-)
+{problem_context}""")
 
-codex_job = ai_spawn(
-    cli="codex",
+codex_job = ai_spawn(cli="codex",
     prompt=f"""Explore the technical solution space:
 1. What patterns exist for this problem?
 2. What are the implementation tradeoffs?
 3. What are the edge cases?
 4. How do we validate correctness?
 
-{problem_context}"""
-)
+{problem_context}""")
 
-gemini_job = ai_spawn(
-    cli="gemini",
+gemini_job = ai_spawn(cli="gemini",
     prompt=f"""Research this problem domain:
 1. How do industry leaders handle this?
 2. What tools/frameworks exist?
 3. What are documented failure modes?
 4. What case studies are relevant?
 
-{problem_context}"""
-)
+{problem_context}""")
 
-# Fetch results (all running in parallel)
 claude_think = ai_fetch(job_id=claude_job["job_id"], timeout=180)
 codex_think = ai_fetch(job_id=codex_job["job_id"], timeout=180)
 gemini_think = ai_fetch(job_id=gemini_job["job_id"], timeout=180)
@@ -93,7 +85,6 @@ Combine deep thinking from all sources:
 ### Solution Approaches Explored
 
 #### 1. Expand-Contract Pattern
-
 **Source**: Claude, Codex
 **How it works**: Add new columns/tables first, migrate data, then remove old
 **Pros**: True zero-downtime, reversible
@@ -101,7 +92,6 @@ Combine deep thinking from all sources:
 **Risk**: Data inconsistency during transition
 
 #### 2. Blue-Green Database
-
 **Source**: Gemini (Netflix case study)
 **How it works**: Maintain two database instances, switch traffic
 **Pros**: Clean cutover, easy rollback
@@ -109,7 +99,6 @@ Combine deep thinking from all sources:
 **Risk**: Sync lag during cutover
 
 #### 3. Online Schema Change Tools
-
 **Source**: Codex, Gemini
 **Options**: gh-ost (GitHub), pt-online-schema-change
 **Pros**: Handles large tables, well-tested
@@ -117,24 +106,20 @@ Combine deep thinking from all sources:
 **Risk**: Additional operational complexity
 
 ### Hidden Assumptions Identified
-
 1. "Migrations must run at deploy time" - could decouple
 2. "All changes need immediate effect" - could use feature flags
 3. "Rollback means schema rollback" - could be data-level
 
 ### Recommended Approach
-
 Based on extended analysis: **Expand-Contract with Feature Flags**
 
 Rationale:
-
 - Lower infrastructure cost than blue-green
 - More control than online schema tools
 - Fits existing Alembic workflow
 - Allows gradual rollout
 
 ### Implementation Principles
-
 1. Every migration must be reversible
 2. Code must handle both old and new schema
 3. Data migration happens in background jobs
@@ -142,14 +127,12 @@ Rationale:
 5. Cleanup migrations after full rollout
 
 ### What Could Go Wrong
-
 1. Background migration fails mid-way
 2. Feature flag logic has bugs
 3. Rollback needed after cleanup migration
 4. Performance degradation during dual-schema period
 
 ### Validation Strategy
-
 1. Test migrations on production-size data copy
 2. Canary deploy with metrics monitoring
 3. Automated rollback triggers
@@ -158,7 +141,6 @@ Rationale:
 ## Parallel Advantage
 
 For deep thinking tasks, parallel execution is essential:
-
 - 3x the exploration depth in the same time
 - Different models surface different concerns
 - Cross-pollination of ideas in synthesis

@@ -34,14 +34,9 @@ Requirements:
 Understand the current state:
 
 ```bash
-# Check existing code structure
-tree src/ -L 2
-
-# Look for existing auth code
-grep -r "auth" src/ --include="*.py"
-
-# Check dependencies
-cat requirements.txt | grep -i auth
+tree src/ -L 2                            # Check existing structure
+grep -r "auth" src/ --include="*.py"      # Look for existing auth code
+cat requirements.txt | grep -i auth       # Check dependencies
 ```
 
 ### 3. Get Multi-Model Planning Input (Parallel)
@@ -55,23 +50,13 @@ Current state: No auth, all endpoints public
 Requirements: Email/password, JWT, refresh tokens, password reset, OAuth (Google/GitHub)
 """
 
-# Spawn all models in parallel
-claude_job = ai_spawn(
-    cli="claude",
-    prompt=f"{planning_context}\n\nDesign the authentication system architecture. Include database models, API endpoints, and component interactions."
-)
+claude_job = ai_spawn(cli="claude",
+    prompt=f"{planning_context}\n\nDesign the authentication system architecture. Include database models, API endpoints, and component interactions.")
+codex_job = ai_spawn(cli="codex",
+    prompt=f"{planning_context}\n\nList the implementation tasks in order. Include library choices, configuration needs, and testing requirements.")
+gemini_job = ai_spawn(cli="gemini",
+    prompt=f"{planning_context}\n\nWhat are security best practices for implementing authentication? Include common pitfalls to avoid.")
 
-codex_job = ai_spawn(
-    cli="codex",
-    prompt=f"{planning_context}\n\nList the implementation tasks in order. Include library choices, configuration needs, and testing requirements."
-)
-
-gemini_job = ai_spawn(
-    cli="gemini",
-    prompt=f"{planning_context}\n\nWhat are security best practices for implementing authentication? Include common pitfalls to avoid."
-)
-
-# Fetch results (all running in parallel)
 claude_plan = ai_fetch(job_id=claude_job["job_id"], timeout=120)
 codex_plan = ai_fetch(job_id=codex_job["job_id"], timeout=120)
 gemini_plan = ai_fetch(job_id=gemini_job["job_id"], timeout=120)
@@ -85,40 +70,34 @@ Synthesize into an actionable plan:
 ## Implementation Plan: User Authentication
 
 ### Phase 1: Foundation
-
 1. [ ] Add user model with password hashing
 2. [ ] Create database migrations
 3. [ ] Implement JWT token generation
 4. [ ] Add /auth/login endpoint
 
 ### Phase 2: Core Features
-
 5. [ ] Add token refresh endpoint
 6. [ ] Implement logout (token blacklist)
 7. [ ] Create auth middleware
 8. [ ] Protect existing endpoints
 
 ### Phase 3: Password Recovery
-
 9. [ ] Add password reset request endpoint
 10. [ ] Implement email sending
 11. [ ] Create password reset confirmation
 
 ### Phase 4: OAuth
-
 12. [ ] Add OAuth configuration
 13. [ ] Implement Google OAuth flow
 14. [ ] Implement GitHub OAuth flow
 15. [ ] Link OAuth to existing users
 
 ### Dependencies
-
 - Library: `python-jose` for JWT
 - Library: `passlib` for password hashing
 - Service: Email provider for password reset
 
 ### Security Considerations (from Gemini)
-
 - Hash passwords with bcrypt, cost factor 12+
 - Store refresh tokens securely (database, not client)
 - Implement rate limiting on auth endpoints
@@ -128,7 +107,6 @@ Synthesize into an actionable plan:
 ## Parallel Advantage
 
 Getting planning input from all models simultaneously:
-
 - Architecture (Claude) + Implementation (Codex) + Research (Gemini) in ~60s
 - Compare approaches before committing to a direction
 - Identify potential issues early
