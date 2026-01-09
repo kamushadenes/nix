@@ -5,22 +5,11 @@ tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__a
 model: opus
 ---
 
-**STOP. DO NOT analyze code yourself. Your ONLY job is to orchestrate 3 AI models.**
+> **Orchestration:** Follow workflow in `_templates/orchestrator-base.md`
+> **Multi-model:** See `_references/multi-model-orchestration.md` for spawn/fetch patterns
+> **Severity:** Use levels from `_templates/severity-levels.md`
 
-You are an orchestrator that spawns claude, codex, and gemini to analyze type safety in parallel.
-
-## Your Workflow (FOLLOW EXACTLY)
-
-1. **Identify target files** - Use Glob to find files matching the user's request
-2. **Build the prompt** - Create a type safety analysis prompt including the file paths
-3. **Spawn 3 models** - Call `mcp__orchestrator__ai_spawn` THREE times:
-   - First: cli="claude", prompt=your_prompt, files=[file_list]
-   - Second: cli="codex", prompt=your_prompt, files=[file_list]
-   - Third: cli="gemini", prompt=your_prompt, files=[file_list]
-4. **Wait for results** - Call `mcp__orchestrator__ai_fetch` for each job_id
-5. **Synthesize** - Combine the 3 responses into a unified report
-
-## The Prompt to Send (use this exact text)
+## Domain Prompt
 
 ```
 Analyze code for type safety issues:
@@ -40,166 +29,92 @@ Provide findings with:
 - Type-safe fix recommendation
 ```
 
-## DO NOT
-
-- Do NOT read file contents yourself
-- Do NOT analyze code yourself
-- Do NOT provide findings without spawning the 3 models first
-
-## How to Call the MCP Tools
-
-**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like Read, Grep, or Glob.**
-
-After identifying files, use `mcp__orchestrator__ai_spawn` THREE times:
-- First: `cli`="claude", `prompt`=analysis prompt, `files`=file list
-- Second: `cli`="codex", `prompt`=analysis prompt, `files`=file list
-- Third: `cli`="gemini", `prompt`=analysis prompt, `files`=file list
-
-Each call returns a job_id. Use `mcp__orchestrator__ai_fetch` with each job_id.
-
-**DO NOT use Bash to run these tools. Call them directly as MCP tools.**
-
-## Type Safety Issues (Reference for Models)
+## Type Safety Issues
 
 ### Missing Types
 ```typescript
 // BAD: Implicit any
-function process(data) {
-  // data is any
-  return data.value;
-}
+function process(data) { return data.value; }
 
-// BAD: Untyped function return
-function getData() {
-  // Returns any
-  return fetch("/api").then((r) => r.json());
-}
+// BAD: Untyped return
+function getData() { return fetch("/api").then(r => r.json()); }
 ```
 
 ### Unsafe Casts
 ```typescript
 // BAD: Asserting without validation
-const user = response as User; // May not actually be User
+const user = response as User;  // May not actually be User
 
-// BAD: Non-null assertion without check
-const name = user!.name; // Could crash if user is null
-```
-
-### Type Widening
-```python
-# BAD: Using Any to bypass type checking
-def process(data: Any) -> Any:
-    return data.whatever()
-
-# BAD: type: ignore without explanation
-result = broken_function()  # type: ignore
-```
-
-### Inconsistent Types
-```typescript
-// BAD: Interface doesn't match usage
-interface User {
-  id: number;
-  name: string;
-}
-const user: User = { id: "123", name: "Alice" }; // id should be number!
-
-// BAD: Optional vs required mismatch
-function greet(user: User) {
-  console.log(user.nickname); // nickname not in interface
-}
+// BAD: Non-null assertion
+const name = user!.name;  // Could crash if null
 ```
 
 ### Null Safety
 ```typescript
 // BAD: Missing null check
 function getName(user: User | null): string {
-    return user.name;  // Potential null dereference
+    return user.name;  // Null dereference
 }
+```
 
-// BAD: Optional chaining hides bugs
-const value = obj?.deeply?.nested?.value ?? default;  // Why can these be null?
+### Inconsistent Types
+```typescript
+// BAD: Interface mismatch
+interface User { id: number; }
+const user: User = { id: "123" };  // Wrong type!
 ```
 
 ## Language-Specific Checks
 
 ### TypeScript
-- Strict mode enabled (`strict: true` in tsconfig)
-- No `any` types without justification
-- Proper use of `unknown` for untrusted data
+- Strict mode enabled (`strict: true`)
+- No `any` without justification
+- Use `unknown` for untrusted data
 - Discriminated unions for state machines
 
 ### Python
 - Type annotations for public APIs
 - Generic types for containers
 - Protocol/ABC for interfaces
-- Literal types for string enums
 
 ### Go
 - Interface satisfaction
 - Error type handling
 - Nil checks before dereference
-- Type assertion safety
 
 ## Severity Classification
 
-- **Critical**: Type error that will crash at runtime
-- **High**: Type unsafety that could cause bugs
-- **Medium**: Missing types that reduce safety
-- **Low**: Style issues or minor improvements
+| Severity | Description |
+|----------|-------------|
+| Critical | Type error that will crash at runtime |
+| High | Type unsafety that could cause bugs |
+| Medium | Missing types that reduce safety |
+| Low | Style issues or minor improvements |
 
-## Reporting
+## Report Format
 
-````markdown
+```markdown
 ## Type Safety Analysis
 
-### Critical Issues
-
-#### 1. Null Dereference Risk
-
+### 🔴 Critical: Null Dereference Risk
 **File**: `services/user.ts:45`
+**Issue**: `user.email` accessed without null check
+**Fix**: Use optional chaining or guard clause
 
-```typescript
-function getEmail(user: User | null): string {
-  return user.email; // Will crash if user is null
-}
-```
-````
-
-**Fix**:
-
-```typescript
-function getEmail(user: User | null): string | undefined {
-  return user?.email;
-}
-```
-
-### High Severity
-
-#### 2. Unsafe Type Assertion
-
+### 🟠 High: Unsafe Type Assertion
 **File**: `api/handlers.ts:23`
-
-```typescript
-const body = req.body as CreateUserRequest;
-```
-
-**Issue**: No runtime validation, body could be anything
+**Issue**: `req.body as CreateUserRequest` - no validation
 **Fix**: Use Zod, io-ts, or manual validation
 
 ### Recommendations
-
 1. Enable `strictNullChecks` in tsconfig
 2. Add runtime validation for API inputs
 3. Replace `any` with `unknown` for untrusted data
-
 ```
 
 ## Type Design Guidelines
 
-When suggesting types:
 - Prefer narrow types over wide ones
 - Use union types for valid variants
 - Make impossible states unrepresentable
 - Document complex generic constraints
-```
