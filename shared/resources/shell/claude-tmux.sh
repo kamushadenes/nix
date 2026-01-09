@@ -4,12 +4,14 @@
 #
 # OPTIONS:
 #   -a <account>         - Override automatic account detection (e.g., -a iniciador)
+#   -l                   - Run Claude locally (bypass Happy wrapper)
 #
 # COMMANDS:
 #   c                    - Start tmux+claude in current directory
 #   c <args>             - Pass args to claude
 #   c work|w <branch>    - Create worktree for branch, start claude there
-#   c list|l             - List all workspaces
+#   c local|lo           - Start Claude locally without Happy wrapper
+#   c list              - List all workspaces
 #   c resume|r [id]      - Resume workspace (fzf if no id)
 #   c clean|x            - Interactive cleanup of old workspaces
 #   c help|h             - Show help
@@ -25,8 +27,10 @@ set -u
 
 # Global: account override (set via -a flag)
 _C_ACCOUNT_OVERRIDE=""
+# Global: use local Claude (bypass Happy)
+_C_USE_LOCAL="false"
 
-# Parse global options (-a <account>)
+# Parse global options (-a <account>, -l for local)
 while [ $# -gt 0 ]; do
     case "$1" in
         -a)
@@ -36,6 +40,10 @@ while [ $# -gt 0 ]; do
             fi
             _C_ACCOUNT_OVERRIDE="$2"
             shift 2
+            ;;
+        -l)
+            _C_USE_LOCAL="true"
+            shift
             ;;
         *)
             break
@@ -115,11 +123,16 @@ _c_ensure_beads_daemon() {
     fi
 }
 
-# Helper: build happy command with claude args
-# Usage: _c_build_happy_cmd [args...]
-# Happy is transparent - passes all args directly to claude
-_c_build_happy_cmd() {
-    local cmd="happy"
+# Helper: build command (happy or claude) with args
+# Usage: _c_build_cmd [args...]
+# Respects _C_USE_LOCAL flag - if true, uses claude directly, otherwise uses happy
+_c_build_cmd() {
+    local cmd
+    if [ "$_C_USE_LOCAL" = "true" ]; then
+        cmd="claude"
+    else
+        cmd="happy"
+    fi
 
     for arg in "$@"; do
         cmd="$cmd '$arg'"
@@ -171,12 +184,12 @@ _c_default() {
     # Set Ghostty window/tab title
     printf '\033]0;%s\007' "$title"
 
-    # Build happy command with proper args
-    happy_cmd=$(_c_build_happy_cmd "$@")
+    # Build command (happy or claude) with proper args
+    cmd=$(_c_build_cmd "$@")
 
     if test -n "${TMUX:-}"; then
-        # Already in tmux - run happy directly (env var already exported)
-        eval "$happy_cmd"
+        # Already in tmux - run command directly (env var already exported)
+        eval "$cmd"
     else
         # Generate session name: claude-<parent>-<git_folder>-<timestamp>
         timestamp=$(date +%s)
@@ -184,12 +197,12 @@ _c_default() {
 
         # Build full command with CLAUDE_CONFIG_DIR if account-specific
         if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
-            full_cmd="CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' $happy_cmd"
+            full_cmd="CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' $cmd"
         else
-            full_cmd="$happy_cmd"
+            full_cmd="$cmd"
         fi
 
-        # Start tmux and run happy inside (exit tmux when happy exits)
+        # Start tmux and run command inside (exit tmux when command exits)
         tmux new-session -s "$session_name" "$full_cmd"
     fi
 }
@@ -280,15 +293,15 @@ _c_worktree() {
         echo "Account: $account"
     fi
 
-    # Build happy command with extra args
+    # Build command (happy or claude) with extra args
     # shellcheck disable=SC2086
-    happy_cmd=$(_c_build_happy_cmd $extra_args)
+    cmd=$(_c_build_cmd $extra_args)
 
     # Build full command with CLAUDE_CONFIG_DIR if account-specific
     if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
-        full_cmd="CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' $happy_cmd"
+        full_cmd="CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' $cmd"
     else
-        full_cmd="$happy_cmd"
+        full_cmd="$cmd"
     fi
 
     if test -n "${TMUX:-}"; then
@@ -431,14 +444,14 @@ $id	$project	$branch	$ws_path"
             echo "Account: $account"
         fi
 
-        # Build happy command (no extra args for resume)
-        happy_cmd=$(_c_build_happy_cmd)
+        # Build command (happy or claude) - no extra args for resume
+        cmd=$(_c_build_cmd)
 
         # Build full command with CLAUDE_CONFIG_DIR if account-specific
         if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
-            full_cmd="CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' $happy_cmd"
+            full_cmd="CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' $cmd"
         else
-            full_cmd="$happy_cmd"
+            full_cmd="$cmd"
         fi
 
         if test -n "${TMUX:-}"; then
@@ -522,12 +535,14 @@ _c_help() {
     echo ""
     echo "OPTIONS:"
     echo "  -a <account>         Override automatic account detection"
+    echo "  -l                   Run Claude locally (bypass Happy wrapper)"
     echo ""
     echo "COMMANDS:"
-    echo "  c                    Start Claude in current directory"
+    echo "  c                    Start Claude in current directory (via Happy)"
     echo "  c <args>             Pass args to Claude (e.g., c --help, c -p 'prompt')"
     echo "  c work|w <branch>    Create worktree for branch, start Claude there"
-    echo "  c list|l             List all workspaces"
+    echo "  c local|lo [args]    Start Claude locally without Happy wrapper"
+    echo "  c list               List all workspaces"
     echo "  c resume|r [id]      Resume a workspace (fzf selection if no id)"
     echo "  c clean|x            Interactive cleanup of old workspaces"
     echo "  c help|h             Show this help"
@@ -537,12 +552,19 @@ _c_help() {
     echo "  Sets CLAUDE_CONFIG_DIR to use account-specific MCP servers."
     echo "  Use -a to override: c -a iniciador"
     echo ""
+    echo "LOCAL MODE:"
+    echo "  By default, 'c' uses Happy as a wrapper for Claude Code."
+    echo "  Use 'c local' or 'c -l' to run Claude directly without Happy."
+    echo ""
     echo "EXAMPLES:"
-    echo "  c                      Start Claude normally"
+    echo "  c                      Start Claude via Happy"
+    echo "  c -l                   Start Claude locally (no Happy)"
+    echo "  c local                Start Claude locally (no Happy)"
     echo "  c -a iniciador         Start Claude with iniciador account"
+    echo "  c -l -a iniciador      Start Claude locally with iniciador account"
     echo "  c w feature-x          Create worktree for feature-x"
     echo "  c r a1b2               Resume workspace matching 'a1b2'"
-    echo "  c l                    Show all workspaces with status"
+    echo "  c list                 Show all workspaces with status"
     echo ""
     echo "WORKSPACE PATH:"
     echo "  ~/.local/share/git/workspaces/<parent>/<repo>/<branch>/<id>"
@@ -557,7 +579,13 @@ case "${1:-}" in
         shift
         _c_worktree "$@"
         ;;
-    list|l)
+    local|lo)
+        # Set local mode and run default behavior
+        _C_USE_LOCAL="true"
+        shift
+        _c_default "$@"
+        ;;
+    list)
         _c_list
         ;;
     resume|r)
