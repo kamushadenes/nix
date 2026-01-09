@@ -268,28 +268,59 @@ dependency_checker = Task(
     ```
 
     c. For each selected finding, create a beads issue with:
-       - **Title**: Brief identifier with severity, agent, and issue summary
-       - **Description**: Detailed context including:
-         - What the issue is
-         - File path and line number
-         - Function/method name where it occurs
-         - Why it's a problem (impact/risk)
-         - Code snippet showing the issue
-         - Suggested fix or recommendation
 
-    | Severity | Priority | Title Format                        |
-    | -------- | -------- | ----------------------------------- |
-    | Critical | 0 (P0)   | `[CRITICAL] agent: brief issue`     |
-    | High     | 1 (P1)   | `[HIGH] agent: brief issue`         |
-    | Medium   | 2 (P2)   | `[MEDIUM] agent: brief issue`       |
-    | Low      | 3 (P3)   | `[LOW] agent: brief issue`          |
+    | Flag | Content |
+    | ---- | ------- |
+    | `--title` | Brief identifier: `[SEVERITY] agent: issue summary` |
+    | `--type` | `bug` for defects, `task` for improvements |
+    | `--priority` | 0-3 based on severity (see table below) |
+    | `--labels` | Agent source + category: `agent:<name>,<category>[,<subcategory>]` |
+    | `--notes` | Confidence level: "All 3 models agree" / "2 of 3 agree" / "Divergent views" |
+    | `--acceptance` | Criteria for when the issue is considered fixed |
+    | `--description` | Detailed context (see template below) |
 
+    **Priority mapping:**
+
+    | Severity | Priority |
+    | -------- | -------- |
+    | Critical | 0 (P0)   |
+    | High     | 1 (P1)   |
+    | Medium   | 2 (P2)   |
+    | Low      | 3 (P3)   |
+
+    **Description template:**
+    ```markdown
+    ## Issue
+    [Brief description of the problem]
+
+    ## Location
+    - **File**: [file path]
+    - **Line**: [line number]
+    - **Function**: `[function_name()]`
+
+    ## Problem
+    [Detailed explanation of why this is a problem, including impact/risk]
+    [Code snippet showing the issue]
+
+    ## Related Files
+    - [Other files that may need similar fixes]
+
+    ## References
+    - [Links to OWASP, docs, best practices, etc.]
+
+    ## Recommendation
+    [Suggested fix with code example if applicable]
+    ```
+
+    **Example for a critical security finding:**
     ```bash
-    # Example for a critical security finding
     bd create \
       --title="[CRITICAL] security: SQL injection vulnerability" \
       --type=bug \
       --priority=0 \
+      --labels="agent:security-auditor,security,sql-injection" \
+      --notes="Confidence: All 3 models agree" \
+      --acceptance="All database queries use parameterized statements" \
       --description="$(cat <<'EOF'
     ## Issue
     SQL injection vulnerability in user authentication flow.
@@ -306,6 +337,14 @@ dependency_checker = Task(
     \`\`\`
 
     This allows attackers to inject arbitrary SQL, potentially bypassing authentication or exfiltrating data.
+
+    ## Related Files
+    - src/db/queries.py (similar pattern on line 78)
+    - src/admin/users.py (similar pattern on line 112)
+
+    ## References
+    - https://owasp.org/www-community/attacks/SQL_Injection
+    - https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html
 
     ## Recommendation
     Use parameterized queries:
