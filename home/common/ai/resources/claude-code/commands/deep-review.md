@@ -3,7 +3,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(gi
 description: Comprehensive multi-agent code review using 9 specialized agents with 3-model consensus
 ---
 
-Run a comprehensive deep review using all specialized review agents in parallel. Each agent uses 3 AI models (claude, codex, gemini) for thorough analysis.
+Run a comprehensive deep review using all specialized review agents in parallel. Each agent uses 3 AI models (claude, codex, gemini) for thorough analysis. If beads is initialized (`.beads/` directory exists), you MUST create issues for findings at the end.
 
 ## Steps
 
@@ -254,7 +254,7 @@ dependency_checker = Task(
 
 9. Offer to help address any issues found
 
-10. **If beads is available, offer to create issues for findings:**
+10. **If beads is available, create issues for findings:**
 
     a. If `beads_available` is true and there are Critical or High severity findings:
 
@@ -337,4 +337,4 @@ AskUserQuestion(
 - Expect longer execution time (~2-3 minutes for changes, ~5+ minutes for full codebase)
 - Results are deduplicated and aggregated by severity
 - For large codebases, agents will focus on main source directories
-- If beads is initialized (`.beads/` directory exists), you can optionally create issues for findings
+- If beads is initialized (`.beads/` directory exists), you MUST create issues for findings

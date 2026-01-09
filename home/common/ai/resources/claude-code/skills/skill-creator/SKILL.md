@@ -286,6 +286,7 @@ Consult these helpful guides based on your skill's needs:
 
 - **Multi-step processes**: See references/workflows.md for sequential workflows and conditional logic
 - **Specific output formats or quality standards**: See references/output-patterns.md for template and example patterns
+- **Token optimization**: See references/context-efficiency.md for compression techniques and token budgets
 
 These files contain established best practices for effective skill design.
 
