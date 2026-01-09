@@ -41,24 +41,12 @@ let
     }) ruleFiles
   );
 
-  # Use merged enabled servers from mcp-servers.nix (public + private)
-  enabledServers = mcpServers.enabledServers;
-
-  # Transform to Claude Code format
-  mcpServersConfig = mcpServers.toClaudeCode enabledServers;
-
   # Secrets configuration
   secretsDir = "${config.home.homeDirectory}/.claude/secrets";
   secretSubstitutions = mcpServers.mkSecretSubstitutions secretsDir;
 
-  # Template file for MCP servers (with placeholders) and additional settings
-  mcpConfigTemplate = builtins.toJSON {
-    mcpServers = mcpServersConfig;
-    claudeInChromeDefaultEnabled = true;
-    hasCompletedClaudeInChromeOnboarding = true;
-  };
-
   # Default MCP config (common servers only, for non-account directories)
+  # Account-specific directories get their own configs with additional servers
   defaultMcpConfigTemplate = mcpServers.mkMcpConfig accountsConfig.commonMcpServers;
 
   # Generate account directory entries for home.file
@@ -395,7 +383,8 @@ in
 
   home.file = {
     # MCP template with @PLACEHOLDER@ values - secrets substituted at activation
-    ".claude/mcp-servers.json.template".text = mcpConfigTemplate;
+    # Default config only includes common MCP servers (account-specific dirs add their own)
+    ".claude/mcp-servers.json.template".text = defaultMcpConfigTemplate;
 
     # Statusline script - executable bash script for custom status display
     ".claude/statusline-command.sh" = {
@@ -519,12 +508,19 @@ in
     ) (lib.attrNames secretSubstitutions)}
 
     # Merge MCP servers into ~/.claude.json using jq
-    # This preserves existing user settings while updating mcpServers
+    # IMPORTANT: Replace mcpServers entirely (removes stale entries)
+    # but preserve all other user settings including OAuth state
     if [ -f "${config.home.homeDirectory}/.claude.json" ]; then
-      run ${lib.getExe pkgs.jq} -s '.[0] * .[1]' \
-          ${config.home.homeDirectory}/.claude.json \
-          ${config.home.homeDirectory}/.claude/mcp-servers.json \
-          > ${config.home.homeDirectory}/.claude.json.tmp
+      run ${lib.getExe pkgs.jq} -s '
+        # Start with existing config, delete old mcpServers
+        (.[0] | del(.mcpServers))
+        # Merge with new config (which has fresh mcpServers)
+        * .[1]
+      ' ${config.home.homeDirectory}/.claude.json \
+        ${config.home.homeDirectory}/.claude/mcp-servers.json \
+        > ${config.home.homeDirectory}/.claude.json.tmp
+      # Remove target first (may be read-only), then move
+      run rm -f ${config.home.homeDirectory}/.claude.json
       run mv ${config.home.homeDirectory}/.claude.json.tmp \
              ${config.home.homeDirectory}/.claude.json
     else
@@ -559,9 +555,22 @@ in
         ''
       ) (lib.attrNames secretSubstitutions)}
 
-      # Create account-specific .claude.json (mcp-servers.json IS the config for accounts)
-      run cp ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json \
-             ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json
+      # Merge into account-specific .claude.json
+      # Replace mcpServers entirely but preserve other settings (OAuth, etc.)
+      if [ -f "${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json" ]; then
+        run ${lib.getExe pkgs.jq} -s '
+          (.[0] | del(.mcpServers)) * .[1]
+        ' ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json \
+          ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json \
+          > ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json.tmp
+        # Remove target first (may be read-only), then move
+        run rm -f ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json
+        run mv ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json.tmp \
+               ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json
+      else
+        run cp ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json \
+               ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json
+      fi
     '') accountsConfig.accountNames}
   '';
 }
