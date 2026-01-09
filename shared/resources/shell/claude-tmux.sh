@@ -159,19 +159,24 @@ _c_default() {
     printf '\033]0;%s\007' "$title"
 
     if test -n "${TMUX:-}"; then
-        # Already in tmux, just run claude
-        claude "$@"
+        # Already in tmux - run claude with explicit env to override inherited vars
+        if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+            CLAUDE_CONFIG_DIR="$CLAUDE_CONFIG_DIR" claude "$@"
+        else
+            env -u CLAUDE_CONFIG_DIR claude "$@"
+        fi
     else
         # Generate session name: claude-<parent>-<git_folder>-<timestamp>
         timestamp=$(date +%s)
         session_name="claude-$parent_folder_norm-$git_folder_norm-$timestamp"
 
         # Start tmux and run claude inside (exit tmux when claude exits)
-        # Pass CLAUDE_CONFIG_DIR to tmux session if account is set
+        # Always explicitly set or unset CLAUDE_CONFIG_DIR to prevent inheritance issues
         if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
             tmux new-session -s "$session_name" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude $*"
         else
-            tmux new-session -s "$session_name" "claude $*"
+            # Explicitly unset to prevent inheriting stale values from parent environment
+            tmux new-session -s "$session_name" -e "CLAUDE_CONFIG_DIR=" "claude $*"
         fi
     fi
 }
@@ -264,17 +269,18 @@ _c_worktree() {
 
     if test -n "${TMUX:-}"; then
         # Already in tmux, create new session and switch
+        # Always explicitly set or unset CLAUDE_CONFIG_DIR to prevent inheritance issues
         if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
             tmux new-session -d -s "$session_name" -c "$workspace_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude $extra_args"
         else
-            tmux new-session -d -s "$session_name" -c "$workspace_path" "claude $extra_args"
+            tmux new-session -d -s "$session_name" -c "$workspace_path" -e "CLAUDE_CONFIG_DIR=" "claude $extra_args"
         fi
         tmux switch-client -t "$session_name"
     else
         if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
             tmux new-session -s "$session_name" -c "$workspace_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude $extra_args"
         else
-            tmux new-session -s "$session_name" -c "$workspace_path" "claude $extra_args"
+            tmux new-session -s "$session_name" -c "$workspace_path" -e "CLAUDE_CONFIG_DIR=" "claude $extra_args"
         fi
     fi
 }
@@ -409,18 +415,19 @@ $id	$project	$branch	$ws_path"
         if [ -n "$account" ]; then
             echo "Account: $account"
         fi
+        # Always explicitly set or unset CLAUDE_CONFIG_DIR to prevent inheritance issues
         if test -n "${TMUX:-}"; then
             if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
                 tmux new-session -d -s "$session_name" -c "$ws_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude"
             else
-                tmux new-session -d -s "$session_name" -c "$ws_path" "claude"
+                tmux new-session -d -s "$session_name" -c "$ws_path" -e "CLAUDE_CONFIG_DIR=" "claude"
             fi
             tmux switch-client -t "$session_name"
         else
             if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
                 tmux new-session -s "$session_name" -c "$ws_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude"
             else
-                tmux new-session -s "$session_name" -c "$ws_path" "claude"
+                tmux new-session -s "$session_name" -c "$ws_path" -e "CLAUDE_CONFIG_DIR=" "claude"
             fi
         fi
     fi
