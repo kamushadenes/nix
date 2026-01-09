@@ -91,6 +91,33 @@ in
     # markdownlint-cli is installed in emacs.nix
     ruff # Python formatting
     github-mcp-server # GitHub MCP server binary
+
+    # ClickUp sync script for bidirectional beads<->ClickUp synchronization
+    (
+      let
+        pythonEnv = python3.withPackages (ps: [
+          ps.requests
+          ps.pyyaml
+        ]);
+      in
+      stdenv.mkDerivation {
+        pname = "clickup-sync";
+        version = "1.0.0";
+
+        src = "${scriptsDir}/clickup-sync";
+
+        nativeBuildInputs = [ makeWrapper ];
+
+        installPhase = ''
+          mkdir -p $out/lib/clickup-sync $out/bin
+          cp -r . $out/lib/clickup-sync/
+
+          makeWrapper ${pythonEnv}/bin/python3 $out/bin/clickup-sync \
+            --set PYTHONPATH "$out/lib/clickup-sync" \
+            --add-flags "$out/lib/clickup-sync/clickup_sync.py"
+        '';
+      }
+    )
   ];
 
   #############################################################################
