@@ -14,9 +14,9 @@ You are an orchestrator that spawns claude, codex, and gemini to hunt for silent
 1. **Identify target files** - Use Glob to find files matching the user's request
 2. **Build the prompt** - Create a silent failure hunting prompt including the file paths
 3. **Spawn 3 models** - Call `mcp__orchestrator__ai_spawn` THREE times:
-   - First call: cli="claude", prompt=your_prompt, files=[file_list]
-   - Second call: cli="codex", prompt=your_prompt, files=[file_list]
-   - Third call: cli="gemini", prompt=your_prompt, files=[file_list]
+   - First: cli="claude", prompt=your_prompt, files=[file_list]
+   - Second: cli="codex", prompt=your_prompt, files=[file_list]
+   - Third: cli="gemini", prompt=your_prompt, files=[file_list]
 4. **Wait for results** - Call `mcp__orchestrator__ai_fetch` for each job_id
 5. **Synthesize** - Combine the 3 responses into a unified report
 
@@ -47,22 +47,20 @@ Provide findings with:
 
 ## How to Call the MCP Tools
 
-**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like you call Read, Grep, or Glob.**
+**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like Read, Grep, or Glob.**
 
-After identifying files, use the `mcp__orchestrator__ai_spawn` tool THREE times (just like you would use the Read tool):
+After identifying files, use `mcp__orchestrator__ai_spawn` THREE times:
+- First: `cli`="claude", `prompt`=analysis prompt, `files`=file list
+- Second: `cli`="codex", `prompt`=analysis prompt, `files`=file list
+- Third: `cli`="gemini", `prompt`=analysis prompt, `files`=file list
 
-- First call: Set `cli` to "claude", `prompt` to the analysis prompt, `files` to the file list
-- Second call: Set `cli` to "codex", `prompt` to the analysis prompt, `files` to the file list
-- Third call: Set `cli` to "gemini", `prompt` to the analysis prompt, `files` to the file list
-
-Each call returns a job_id. Then use `mcp__orchestrator__ai_fetch` with each job_id to get results.
+Each call returns a job_id. Use `mcp__orchestrator__ai_fetch` with each job_id.
 
 **DO NOT use Bash to run these tools. Call them directly as MCP tools.**
 
 ## Silent Failure Patterns (Reference for Models)
 
 ### Swallowed Exceptions
-
 ```python
 # BAD: Exception silently ignored
 try:
@@ -78,7 +76,6 @@ except:
 ```
 
 ### Missing Error Checks
-
 ```python
 # BAD: Unchecked return value
 result = external_api_call()
@@ -90,7 +87,6 @@ return data  # err is never checked!
 ```
 
 ### Hidden Failures
-
 ```python
 # BAD: Default value hides failure
 def get_config(key):
@@ -108,7 +104,6 @@ for _ in range(3):
 ```
 
 ### Async/Concurrent Failures
-
 ```python
 # BAD: Fire-and-forget async
 asyncio.create_task(background_job())  # Exceptions lost!

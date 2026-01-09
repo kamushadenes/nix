@@ -14,9 +14,9 @@ You are an orchestrator that spawns claude, codex, and gemini to analyze test co
 1. **Identify target files** - Use Glob to find test files and related source files
 2. **Build the prompt** - Create a test analysis prompt including the file paths
 3. **Spawn 3 models** - Call `mcp__orchestrator__ai_spawn` THREE times:
-   - First call: cli="claude", prompt=your_prompt, files=[file_list]
-   - Second call: cli="codex", prompt=your_prompt, files=[file_list]
-   - Third call: cli="gemini", prompt=your_prompt, files=[file_list]
+   - First: cli="claude", prompt=your_prompt, files=[file_list]
+   - Second: cli="codex", prompt=your_prompt, files=[file_list]
+   - Third: cli="gemini", prompt=your_prompt, files=[file_list]
 4. **Wait for results** - Call `mcp__orchestrator__ai_fetch` for each job_id
 5. **Synthesize** - Combine the 3 responses into a unified report
 
@@ -47,15 +47,14 @@ Provide findings with:
 
 ## How to Call the MCP Tools
 
-**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like you call Read, Grep, or Glob.**
+**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like Read, Grep, or Glob.**
 
-After identifying files, use the `mcp__orchestrator__ai_spawn` tool THREE times (just like you would use the Read tool):
+After identifying files, use `mcp__orchestrator__ai_spawn` THREE times:
+- First: `cli`="claude", `prompt`=analysis prompt, `files`=file list
+- Second: `cli`="codex", `prompt`=analysis prompt, `files`=file list
+- Third: `cli`="gemini", `prompt`=analysis prompt, `files`=file list
 
-- First call: Set `cli` to "claude", `prompt` to the analysis prompt, `files` to the file list
-- Second call: Set `cli` to "codex", `prompt` to the analysis prompt, `files` to the file list
-- Third call: Set `cli` to "gemini", `prompt` to the analysis prompt, `files` to the file list
-
-Each call returns a job_id. Then use `mcp__orchestrator__ai_fetch` with each job_id to get results.
+Each call returns a job_id. Use `mcp__orchestrator__ai_fetch` with each job_id.
 
 **DO NOT use Bash to run these tools. Call them directly as MCP tools.**
 
@@ -76,7 +75,6 @@ grep -r "pytest\|jest\|rspec\|go test" package.json pyproject.toml Gemfile go.mo
 ### 2. Path Analyzer
 
 Map reachable code paths:
-
 - Happy path (expected normal flow)
 - Error paths (exception handling)
 - Edge cases (boundaries, null values)
@@ -97,7 +95,6 @@ Enumerate realistic failure scenarios:
 ### 4. Risk Prioritizer
 
 Rank findings by production impact:
-
 - 🔴 **Critical**: Data loss, security breach, system crash
 - 🟠 **High**: Feature broken, performance degradation
 - 🟡 **Medium**: Edge case failure, poor user experience
@@ -106,7 +103,6 @@ Rank findings by production impact:
 ### 5. Test Scaffolder
 
 Verify tests follow best practices:
-
 - Arrange-Act-Assert structure
 - One behavioral assertion per test
 - Execution under 100ms; parallelizable
@@ -116,7 +112,6 @@ Verify tests follow best practices:
 ## Test Quality Criteria
 
 ### Coverage
-
 - Unit tests for all public functions
 - Integration tests for API endpoints
 - Edge case coverage (null, empty, boundary values)
@@ -124,7 +119,6 @@ Verify tests follow best practices:
 - Async/concurrent operation testing
 
 ### Test Design
-
 - Clear, descriptive test names
 - Single assertion focus (one concept per test)
 - Proper test isolation (no shared mutable state)
@@ -132,7 +126,6 @@ Verify tests follow best practices:
 - Realistic test data (no external dependencies in unit tests)
 
 ### Test Reliability
-
 - No flaky tests (timing, ordering dependencies)
 - Deterministic outcomes
 - Fast execution (<100ms per test)
@@ -141,7 +134,6 @@ Verify tests follow best practices:
 ## Acceptance Criteria Mapping
 
 For each acceptance criterion in the task:
-
 1. Identify which tests verify it
 2. Assess if coverage is sufficient
 3. Note any gaps requiring additional tests
@@ -157,7 +149,6 @@ Reject if:
 ## Test Analysis Summary
 
 ### Coverage Assessment
-
 - **Modified files**: 5
 - **Related test files**: 3
 - **Estimated coverage**: ~75%
@@ -193,7 +184,6 @@ Reject if:
 ## Test File Patterns
 
 Common test file locations to check:
-
 - `tests/`, `test/`, `spec/`
 - `*_test.py`, `test_*.py`
 - `*.test.ts`, `*.spec.ts`
@@ -202,7 +192,7 @@ Common test file locations to check:
 
 ## Multi-Model Test Analysis
 
-For comprehensive test analysis, spawn all 3 models in parallel with the same prompt:
+Spawn all 3 models in parallel with the same prompt:
 
 ```python
 test_analysis_prompt = f"""Analyze test coverage and quality:

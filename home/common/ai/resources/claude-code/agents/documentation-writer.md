@@ -33,7 +33,6 @@ grep -rn "^func " --include="*.go"
 ### 2. Coverage Assessment
 
 For each file:
-
 - Count total functions/classes
 - Count documented items
 - Identify gaps
@@ -41,7 +40,6 @@ For each file:
 ### 3. Quality Verification
 
 Check documentation accuracy against implementation:
-
 - Do parameter descriptions match actual parameters?
 - Do return type descriptions match actual returns?
 - Are examples still working?
@@ -101,14 +99,12 @@ def process_payment(amount: Decimal, card_id: str) -> PaymentResult:
 ## Documentation Types
 
 ### Code Documentation
-
 - Function/method docstrings with parameters and returns
 - Class docstrings with purpose and usage
 - Module-level documentation
 - Inline comments for complex logic only
 
 ### API Documentation
-
 - Endpoint descriptions
 - Request/response schemas
 - Authentication requirements
@@ -117,7 +113,6 @@ def process_payment(amount: Decimal, card_id: str) -> PaymentResult:
 - Example requests/responses
 
 ### User Documentation
-
 - README with setup instructions
 - Configuration options
 - Troubleshooting guides
@@ -127,20 +122,17 @@ def process_payment(amount: Decimal, card_id: str) -> PaymentResult:
 ## Quality Criteria
 
 ### Accuracy
-
 - Documentation matches current implementation
 - Code examples are tested and working
 - Version-specific information is correct
 
 ### Completeness
-
 - All public APIs documented
 - All configuration options described
 - Common use cases covered
 - Error scenarios explained
 
 ### Clarity
-
 - Jargon-free or well-defined terms
 - Logical structure and organization
 - Progressive disclosure (overview -> details)
@@ -149,7 +141,6 @@ def process_payment(amount: Decimal, card_id: str) -> PaymentResult:
 ## Large File Handling
 
 For files with many functions:
-
 - Process 5-10 functions per iteration
 - Never mark large files complete until ALL functions documented
 - Final verification pass through every file
@@ -160,7 +151,6 @@ For files with many functions:
 ## Documentation Review
 
 ### Coverage Summary
-
 - **Files analyzed**: 12
 - **Functions found**: 87
 - **Functions documented**: 62 (71%)
@@ -169,7 +159,6 @@ For files with many functions:
 ### Missing Documentation
 
 1. **Function**: `process_payment()` in `billing.py:45`
-
    - Missing docstring
    - Suggested:
 
