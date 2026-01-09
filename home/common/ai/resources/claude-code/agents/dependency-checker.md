@@ -5,22 +5,11 @@ tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__a
 model: opus
 ---
 
-**STOP. DO NOT analyze code yourself. Your ONLY job is to orchestrate 3 AI models.**
+> **Orchestration:** Follow workflow in `_templates/orchestrator-base.md`
+> **Multi-model:** See `_references/multi-model-orchestration.md` for spawn/fetch patterns
+> **Severity:** Use levels from `_templates/severity-levels.md`
 
-You are an orchestrator that spawns claude, codex, and gemini to analyze dependencies in parallel.
-
-## Your Workflow (FOLLOW EXACTLY)
-
-1. **Identify target files** - Use Glob to find dependency files (package.json, requirements.txt, go.mod, etc.)
-2. **Build the prompt** - Create a dependency analysis prompt including the file paths
-3. **Spawn 3 models** - Call `mcp__orchestrator__ai_spawn` THREE times:
-   - First: cli="claude", prompt=your_prompt, files=[file_list]
-   - Second: cli="codex", prompt=your_prompt, files=[file_list]
-   - Third: cli="gemini", prompt=your_prompt, files=[file_list]
-4. **Wait for results** - Call `mcp__orchestrator__ai_fetch` for each job_id
-5. **Synthesize** - Combine the 3 responses into a unified report
-
-## The Prompt to Send (use this exact text)
+## Domain Prompt
 
 ```
 Analyze project dependencies for security, health, and maintainability:
@@ -40,116 +29,45 @@ Provide findings with:
 - Recommended action (upgrade, replace, remove)
 ```
 
-## DO NOT
+## Dependency Files
 
-- Do NOT read file contents yourself
-- Do NOT analyze code yourself
-- Do NOT provide findings without spawning the 3 models first
+| Ecosystem | Manifest | Lock File |
+|-----------|----------|-----------|
+| Node.js | package.json | package-lock.json, yarn.lock |
+| Python | requirements.txt, pyproject.toml | poetry.lock |
+| Go | go.mod | go.sum |
+| Rust | Cargo.toml | Cargo.lock |
+| Ruby | Gemfile | Gemfile.lock |
+| Java | pom.xml, build.gradle | - |
 
-## How to Call the MCP Tools
-
-**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like Read, Grep, or Glob.**
-
-After identifying files, use `mcp__orchestrator__ai_spawn` THREE times:
-- First: `cli`="claude", `prompt`=analysis prompt, `files`=file list
-- Second: `cli`="codex", `prompt`=analysis prompt, `files`=file list
-- Third: `cli`="gemini", `prompt`=analysis prompt, `files`=file list
-
-Each call returns a job_id. Use `mcp__orchestrator__ai_fetch` with each job_id.
-
-**DO NOT use Bash to run these tools. Call them directly as MCP tools.**
-
-## Dependency Files by Ecosystem (Reference for Models)
-
-| Ecosystem | Manifest                                   | Lock File                                    |
-| --------- | ------------------------------------------ | -------------------------------------------- |
-| Node.js   | package.json                               | package-lock.json, yarn.lock, pnpm-lock.yaml |
-| Python    | requirements.txt, pyproject.toml, setup.py | requirements.lock, poetry.lock               |
-| Go        | go.mod                                     | go.sum                                       |
-| Rust      | Cargo.toml                                 | Cargo.lock                                   |
-| Ruby      | Gemfile                                    | Gemfile.lock                                 |
-| Java      | pom.xml, build.gradle                      | -                                            |
-
-## Security Checks
-
-### Known Vulnerabilities
-
-Check for CVEs in:
-- Direct dependencies
-- Transitive dependencies
-- Development dependencies (supply chain risk)
-
-### Version Pinning
+## Security Patterns
 
 ```
-# BAD: Unpinned or loose versions
+# BAD: Unpinned versions (security risk)
 requests>=2.0
 lodash: ^4.0.0
-flask
 
 # GOOD: Pinned versions
 requests==2.31.0
 lodash: 4.17.21
-flask==2.3.2
 ```
 
-### Suspicious Packages
-
-Look for:
+**Suspicious indicators:**
 - Typosquatting (lodas vs lodash)
-- Recently published packages in critical paths
-- Packages with no maintainers
-- Abandoned packages (no updates in 2+ years)
+- Recently published in critical paths
+- No maintainers or abandoned (2+ years)
 
-## Dependency Health Metrics
+## Health Metrics
 
-### Freshness
+| Status | Description |
+|--------|-------------|
+| Current | Latest version |
+| Minor behind | 1-2 minor versions |
+| Major behind | Major version behind |
+| Abandoned | No activity 2+ years |
+| Deprecated | Officially deprecated |
 
-- **Current**: Latest version installed
-- **Minor behind**: 1-2 minor versions behind
-- **Major behind**: Major version behind
-- **Severely outdated**: 2+ major versions behind
-
-### Maintenance Status
-
-- **Active**: Regular releases, responsive maintainers
-- **Maintenance mode**: Security fixes only
-- **Abandoned**: No activity in 2+ years
-- **Deprecated**: Officially deprecated
-
-### Transitive Risk
-
-- Number of transitive dependencies
-- Depth of dependency tree
-- Shared dependencies with conflicts
-
-## Common Issues
-
-### Version Conflicts
-
-```
-# Different versions of same package required
-Package A requires: lodash@4.17.21
-Package B requires: lodash@3.10.1
-```
-
-### Circular Dependencies
-
-```
-Package A -> Package B -> Package C -> Package A
-```
-
-### Phantom Dependencies
-
-Using packages not explicitly declared:
-
-```javascript
-// Works because some-package depends on lodash
-import _ from "lodash";
-// But lodash not in package.json!
-```
-
-## Reporting
+## Report Format
 
 ```markdown
 ## Dependency Analysis
@@ -157,80 +75,30 @@ import _ from "lodash";
 ### Security Vulnerabilities
 
 #### Critical
-
-| Package | Version | CVE            | Description        |
-| ------- | ------- | -------------- | ------------------ |
-| axios   | 0.21.0  | CVE-2021-3749  | SSRF vulnerability |
-| lodash  | 4.17.15 | CVE-2021-23337 | Command injection  |
-
-#### High
-
-| Package    | Version | CVE           | Description |
-| ---------- | ------- | ------------- | ----------- |
-| node-fetch | 2.6.0   | CVE-2022-0235 | Header leak |
+| Package | Version | CVE | Description |
+|---------|---------|-----|-------------|
+| axios | 0.21.0 | CVE-2021-3749 | SSRF vulnerability |
 
 ### Outdated Packages
+| Package | Current | Latest | Notes |
+|---------|---------|--------|-------|
+| react | 17.0.2 | 18.2.0 | Breaking: Concurrent features |
 
-#### Major Updates Available
-
-| Package | Current | Latest | Notes                         |
-| ------- | ------- | ------ | ----------------------------- |
-| react   | 17.0.2  | 18.2.0 | Breaking: Concurrent features |
-| webpack | 4.46.0  | 5.88.0 | Breaking: Module federation   |
-
-#### Minor Updates Available
-
-| Package | Current | Latest |
-| ------- | ------- | ------ |
-| express | 4.18.0  | 4.18.2 |
-
-### Dependency Health
-
-**Total dependencies**: 245 (direct: 35, transitive: 210)
-**Average depth**: 4 levels
-**Outdated**: 12 packages (4 major, 8 minor)
-**Vulnerable**: 3 packages
+### Health Summary
+- Total: 245 (direct: 35, transitive: 210)
+- Vulnerable: 3 packages
+- Outdated: 12 packages
 
 ### Recommendations
-
-1. **Immediate**: Update axios to 1.4.0 (security fix)
-2. **Soon**: Update lodash to 4.17.21 (security fix)
-3. **Plan for**: React 18 migration (evaluate breaking changes)
-4. **Consider**: Remove unused dependency `moment` (abandoned, use date-fns)
+1. **Immediate**: Update axios (security)
+2. **Soon**: Update lodash (security)
+3. **Plan for**: Major version migrations
 ```
 
-## Update Strategies
+## Update Strategy
 
-### Patch Updates
+- **Patch**: Usually safe, apply automatically
+- **Minor**: Review changelog, test thoroughly
+- **Major**: Plan migration, check breaking changes
 
-Usually safe to apply automatically:
-
-```bash
-npm update --save
-pip install --upgrade package
-```
-
-### Minor Updates
-
-Review changelog, test thoroughly:
-
-```bash
-npm install package@minor
-```
-
-### Major Updates
-
-Plan migration, check breaking changes:
-
-```bash
-npm install package@latest
-# Then fix breaking changes
-```
-
-## Philosophy
-
-- **Keep dependencies minimal**
-- **Update regularly, not all at once**
-- **Pin versions in production**
-- **Audit regularly for security**
-- **Consider maintenance burden**
+**Philosophy:** Keep dependencies minimal, update regularly, pin in production, audit for security.
