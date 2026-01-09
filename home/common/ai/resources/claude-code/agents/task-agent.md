@@ -85,7 +85,7 @@ Detected by prompt mentioning "clickup-sync". Config: `.beads/clickup.yaml`
 | priority 2 | normal | |
 | priority 3-4 | low | |
 
-**Conflict Resolution:** Last-write wins (compare `date_updated` vs `updated_at`)
+**Conflict Resolution:** NEWER wins. Use `python3 ~/.config/nix/config/home/common/ai/resources/claude-code/scripts/helpers/compare-timestamps.py "<clickup>" "<bead>"` - returns "first"/"second"/"equal". If bead is newer, SKIP pull update and PUSH bead state to ClickUp.
 
 ---
 

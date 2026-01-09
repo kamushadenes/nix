@@ -53,15 +53,30 @@ last_sync: "<timestamp>"
 
 ### Sync Operations
 
+**Timestamp Comparison (CRITICAL):**
+```bash
+python3 ~/.config/nix/config/home/common/ai/resources/claude-code/scripts/helpers/compare-timestamps.py "<clickup_date_updated>" "<bead_updated_at>"
+```
+- Returns: `first` (ClickUp newer), `second` (bead newer), `equal`
+- **NEWER wins** - never overwrite newer local state with older remote state
+
 **Pull (ClickUp → Beads):**
 1. Read config for `list_id`
 2. `mcp__iniciador-clickup__clickup_search` with list filter
-3. For each task: match by `external_ref`, create or update bead
+3. For each task:
+   - Match by `external_ref=clickup-{task_id}`
+   - If no match: create bead
+   - If match: compare `date_updated` vs `updated_at`
+     - ClickUp newer → update bead
+     - Bead newer/equal → **SKIP** (preserve local state)
 4. Update `last_sync` timestamp
 
 **Push (Beads → ClickUp):**
 1. `bd list --json` for local issues
-2. For each with `external_ref`: update ClickUp task
+2. For each with `external_ref`:
+   - Compare timestamps
+   - Bead newer → update ClickUp task
+   - ClickUp newer → skip (handled in pull)
 3. For each without: create ClickUp task, set `external_ref`
 
 ### MCP Tools

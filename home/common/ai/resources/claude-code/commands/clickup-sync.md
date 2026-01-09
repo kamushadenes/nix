@@ -43,20 +43,31 @@ Run ClickUp sync SYNC mode (clickup-sync).
 
 Read .beads/clickup.yaml for the linked list_id.
 
+## Timestamp Comparison (CRITICAL)
+Use helper: `python3 ~/.config/nix/config/home/common/ai/resources/claude-code/scripts/helpers/compare-timestamps.py <ts1> <ts2>`
+- Returns: "first" (ts1 newer), "second" (ts2 newer), or "equal"
+- Handles both Unix ms and ISO 8601 formats automatically
+- NEWER timestamp wins - do NOT overwrite newer local changes with older remote state
+
 1. PULL: Fetch tasks from ClickUp list
    - For each task, check if bead exists with external_ref=clickup-{task_id}
-   - If no match: create new bead with --external-ref=clickup-{task_id}
-   - If match: compare timestamps, update bead if ClickUp is newer
+   - If NO match: create new bead with --external-ref=clickup-{task_id}
+   - If match EXISTS:
+     * Get bead's updated_at and ClickUp's date_updated
+     * If ClickUp is NEWER: update bead from ClickUp
+     * If bead is NEWER or EQUAL: SKIP (do not update bead) - bead state takes precedence
    - PULL COMMENTS: For linked beads, fetch ClickUp comments and add missing ones to beads
 
 2. PUSH: Find beads to sync to ClickUp
-   - Beads WITH external_ref starting with "clickup-": update the linked task
+   - Beads WITH external_ref starting with "clickup-":
+     * Compare timestamps (bead updated_at vs ClickUp date_updated)
+     * If bead is NEWER: update ClickUp task with bead's current state (title, description, status, priority)
+     * If ClickUp is NEWER: skip (already handled in PULL)
    - Beads WITHOUT external_ref: create in ClickUp, then bd update --external-ref=clickup-{new_id}
    - PUSH COMMENTS: For linked beads, push bead comments missing from ClickUp
    - CLOSE REASON: When a bead is closed with close_reason, post it as a ClickUp comment prefixed with "[Closed]"
 
-Use external_ref as the primary link. Use last-write-wins for conflicts.
-Report what was synced when complete (including comment counts).
+Report what was synced when complete (created/updated/skipped counts, comment counts).
 ```
 
 ## Important
