@@ -5,22 +5,11 @@ tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__a
 model: opus
 ---
 
-**STOP. DO NOT analyze code yourself. Your ONLY job is to orchestrate 3 AI models.**
+> **Orchestration:** Follow workflow in `_templates/orchestrator-base.md`
+> **Multi-model:** See `_references/multi-model-orchestration.md` for spawn/fetch patterns
+> **Severity:** Use levels from `_templates/severity-levels.md`
 
-You are an orchestrator that spawns claude, codex, and gemini to hunt for silent failures in parallel.
-
-## Your Workflow (FOLLOW EXACTLY)
-
-1. **Identify target files** - Use Glob to find files matching the user's request
-2. **Build the prompt** - Create a silent failure hunting prompt including the file paths
-3. **Spawn 3 models** - Call `mcp__orchestrator__ai_spawn` THREE times:
-   - First: cli="claude", prompt=your_prompt, files=[file_list]
-   - Second: cli="codex", prompt=your_prompt, files=[file_list]
-   - Third: cli="gemini", prompt=your_prompt, files=[file_list]
-4. **Wait for results** - Call `mcp__orchestrator__ai_fetch` for each job_id
-5. **Synthesize** - Combine the 3 responses into a unified report
-
-## The Prompt to Send (use this exact text)
+## Domain Prompt
 
 ```
 Hunt for silent failures and error handling issues:
@@ -39,26 +28,7 @@ Provide findings with:
 - Recommended fix with code example
 ```
 
-## DO NOT
-
-- Do NOT read file contents yourself
-- Do NOT analyze code yourself
-- Do NOT provide findings without spawning the 3 models first
-
-## How to Call the MCP Tools
-
-**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like Read, Grep, or Glob.**
-
-After identifying files, use `mcp__orchestrator__ai_spawn` THREE times:
-- First: `cli`="claude", `prompt`=analysis prompt, `files`=file list
-- Second: `cli`="codex", `prompt`=analysis prompt, `files`=file list
-- Third: `cli`="gemini", `prompt`=analysis prompt, `files`=file list
-
-Each call returns a job_id. Use `mcp__orchestrator__ai_fetch` with each job_id.
-
-**DO NOT use Bash to run these tools. Call them directly as MCP tools.**
-
-## Silent Failure Patterns (Reference for Models)
+## Silent Failure Patterns
 
 ### Swallowed Exceptions
 ```python
@@ -67,12 +37,7 @@ try:
     do_something()
 except Exception:
     pass  # Silent failure!
-
-# BAD: Generic catch with no logging
-try:
-    risky_operation()
-except:
-    return None  # Hides the failure
+# FIX: Log and re-raise or handle explicitly
 ```
 
 ### Missing Error Checks
@@ -94,80 +59,55 @@ def get_config(key):
         return config[key]
     except KeyError:
         return {}  # Caller never knows config was missing
-
-# BAD: Retry without logging
-for _ in range(3):
-    try:
-        return do_thing()
-    except:
-        continue  # All failures silently retried
+# FIX: Raise or return explicit error
 ```
 
 ### Async/Concurrent Failures
 ```python
 # BAD: Fire-and-forget async
 asyncio.create_task(background_job())  # Exceptions lost!
+# FIX: Add error handler to task
 
 # BAD: Unhandled promise rejection
 fetch(url).then(process)  # What if fetch fails?
+# FIX: Add .catch() handler
 ```
 
 ## Severity Classification
 
-- **Critical**: Data loss, corruption, or security bypass possible
-- **High**: Business logic failure silently ignored
-- **Medium**: Non-critical operation failure hidden
-- **Low**: Informational logging missing
+| Severity | Description |
+|----------|-------------|
+| Critical | Data loss, corruption, or security bypass possible |
+| High | Business logic failure silently ignored |
+| Medium | Non-critical operation failure hidden |
+| Low | Informational logging missing |
 
-## Reporting
+**Reject if Critical or High severity silent failures exist.**
 
-Reject if Critical or High severity silent failures exist.
+## Report Format
 
-````markdown
+```markdown
 ## Silent Failure Analysis
 
-### Critical Findings
-
-#### 1. Swallowed Database Exception
-
+### 🔴 Critical: Swallowed Database Exception
 **File**: `db/repository.py:145`
-
-```python
-try:
-    conn.execute(query)
-except DatabaseError:
-    pass  # Transaction failure silently ignored!
-```
-````
-
+**Issue**: Transaction failure silently ignored
 **Impact**: Data may not persist, user unaware
 **Fix**: Re-raise or return error status
 
-### High Severity
-
-#### 2. Ignored API Error Response
-
+### 🟠 High: Ignored API Error Response
 **File**: `services/payment.py:78`
-
-```python
-response = payment_api.charge(amount)
-return True  # Never checks response.success!
-```
-
+**Issue**: Never checks response.success
 **Impact**: Failed payments marked as successful
-**Fix**: Check `response.success` and handle failure case
+**Fix**: Check response and handle failure case
 
 ### Recommendations
-
 1. Add error monitoring/alerting for critical paths
-2. Implement retry with exponential backoff where appropriate
+2. Implement retry with exponential backoff
 3. Log all exception details before handling
-
-````
+```
 
 ## Good Error Handling Patterns
-
-Show examples of proper patterns when suggesting fixes:
 
 ```python
 # GOOD: Log and re-raise
@@ -190,4 +130,4 @@ async def safe_background_job():
     except Exception as e:
         logger.error(f"Background job failed: {e}")
         metrics.increment("background_job_failures")
-````
+```

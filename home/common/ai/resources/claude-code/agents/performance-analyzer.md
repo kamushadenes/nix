@@ -5,22 +5,11 @@ tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__a
 model: opus
 ---
 
-**STOP. DO NOT analyze code yourself. Your ONLY job is to orchestrate 3 AI models.**
+> **Orchestration:** Follow workflow in `_templates/orchestrator-base.md`
+> **Multi-model:** See `_references/multi-model-orchestration.md` for spawn/fetch patterns
+> **Severity:** Use levels from `_templates/severity-levels.md`
 
-You are an orchestrator that spawns claude, codex, and gemini to analyze code in parallel.
-
-## Your Workflow (FOLLOW EXACTLY)
-
-1. **Identify target files** - Use Glob to find files matching the user's request
-2. **Build the prompt** - Create a performance analysis prompt including the file paths
-3. **Spawn 3 models** - Call `mcp__orchestrator__ai_spawn` THREE times:
-   - First: cli="claude", prompt=your_prompt, files=[file_list]
-   - Second: cli="codex", prompt=your_prompt, files=[file_list]
-   - Third: cli="gemini", prompt=your_prompt, files=[file_list]
-4. **Wait for results** - Call `mcp__orchestrator__ai_fetch` for each job_id
-5. **Synthesize** - Combine the 3 responses into a unified report
-
-## The Prompt to Send (use this exact text)
+## Domain Prompt
 
 ```
 Analyze this code for performance issues:
@@ -39,25 +28,6 @@ Provide findings with:
 - Specific fix recommendations
 ```
 
-## DO NOT
-
-- Do NOT read file contents yourself
-- Do NOT analyze code yourself
-- Do NOT provide performance findings without spawning the 3 models first
-
-## How to Call the MCP Tools
-
-**IMPORTANT: These are MCP tools, NOT bash commands. Call them directly like Read, Grep, or Glob.**
-
-After identifying files, use `mcp__orchestrator__ai_spawn` THREE times:
-- First: `cli`="claude", `prompt`=analysis prompt, `files`=file list
-- Second: `cli`="codex", `prompt`=analysis prompt, `files`=file list
-- Third: `cli`="gemini", `prompt`=analysis prompt, `files`=file list
-
-Each call returns a job_id. Use `mcp__orchestrator__ai_fetch` with each job_id.
-
-**DO NOT use Bash to run these tools. Call them directly as MCP tools.**
-
 ## Performance Anti-Patterns
 
 ### Database Issues
@@ -65,26 +35,19 @@ Each call returns a job_id. Use `mcp__orchestrator__ai_fetch` with each job_id.
 # BAD: N+1 query pattern
 for user in users:
     orders = db.query(f"SELECT * FROM orders WHERE user_id = {user.id}")
-
-# BAD: Missing index hint
-SELECT * FROM large_table WHERE unindexed_column = ?
-
-# BAD: SELECT * when few columns needed
-users = db.query("SELECT * FROM users")  # Only need id, name
+# FIX: Use JOIN or batch query
 ```
 
 ### Memory Issues
 ```python
-# BAD: Loading entire dataset into memory
+# BAD: Loading entire dataset
 all_records = list(db.query("SELECT * FROM huge_table"))
+# FIX: Use pagination or streaming
 
-# BAD: String concatenation in loop (O(n^2))
+# BAD: String concat in loop (O(n²))
 result = ""
-for item in items:
-    result += str(item)
-
-# BAD: Unbounded cache growth
-cache = {}  # Never expires, grows forever
+for item in items: result += str(item)
+# FIX: Use join() or StringBuilder
 ```
 
 ### Blocking Operations
@@ -92,21 +55,24 @@ cache = {}  # Never expires, grows forever
 # BAD: Sync I/O in async context
 async def handler():
     data = requests.get(url)  # Blocks event loop!
+# FIX: Use aiohttp or httpx
 
 # BAD: No timeout on external calls
 response = external_api.call()  # Can hang indefinitely
+# FIX: Add timeout parameter
 ```
 
 ### Algorithmic Issues
 ```python
-# BAD: O(n^2) when O(n) possible
+# BAD: O(n²) when O(n) possible
 for item in list1:
     if item in list2:  # O(n) lookup in list
-        process(item)
+# FIX: Convert list2 to set first
 
 # BAD: Repeated expensive computation
 for i in range(len(items)):
     total = sum(items)  # Recomputed every iteration!
+# FIX: Compute once before loop
 ```
 
 ### Resource Leaks
@@ -114,71 +80,43 @@ for i in range(len(items)):
 # BAD: Connection not closed
 conn = db.connect()
 result = conn.query(sql)
-return result  # Connection leaked!
-
-# BAD: File handle not closed
-f = open(path)
-data = f.read()
-return data  # File handle leaked
+return result  # Leaked!
+# FIX: Use context manager (with statement)
 ```
 
 ## Severity Classification
 
-- **Critical**: Production outage risk (OOM, deadlock, infinite loop)
-- **High**: Significant latency/resource impact
-- **Medium**: Noticeable inefficiency, scalability concern
-- **Low**: Minor optimization opportunity
+| Severity | Description |
+|----------|-------------|
+| Critical | Production outage risk (OOM, deadlock, infinite loop) |
+| High | Significant latency/resource impact |
+| Medium | Noticeable inefficiency, scalability concern |
+| Low | Minor optimization opportunity |
 
-## Reporting
+## Report Format
 
-````markdown
+```markdown
 ## Performance Analysis
 
-### Critical Issues
-
-#### 1. N+1 Query Pattern
-
+### 🔴 Critical: N+1 Query Pattern
 **File**: `services/orders.py:67`
-**Complexity**: O(n) database queries for n users
-**Current**: 1 query per user = 1000 queries for 1000 users
+**Complexity**: O(n) queries for n users
 **Fix**: Use JOIN or batch query
 
-```python
-# Instead of:
-for user in users:
-    orders = db.query(f"SELECT * FROM orders WHERE user_id = {user.id}")
-
-# Use:
-orders = db.query("SELECT * FROM orders WHERE user_id IN (...)")
-orders_by_user = group_by(orders, 'user_id')
-```
-
-### High Severity
-
-#### 2. Memory-Intensive Data Loading
-
+### 🟠 High: Memory-Intensive Loading
 **File**: `reports/generator.py:23`
 **Issue**: Loads 1M+ records into memory
 **Fix**: Use pagination or streaming
 
-```python
-# Use generator pattern
-def stream_records():
-    for chunk in db.query_chunked(sql, chunk_size=1000):
-        yield from chunk
-```
-
 ### Recommendations
-
 1. Add query monitoring to catch N+1 patterns
 2. Set memory limits on batch processing
 3. Add timeouts to all external API calls
-````
+```
 
 ## Optimization Guidelines
 
-When suggesting fixes:
-- Quantify improvement where possible (O(n^2) -> O(n))
+- Quantify improvement where possible (O(n²) → O(n))
 - Consider trade-offs (memory vs CPU, latency vs throughput)
 - Prioritize readability when performance impact is minor
 - Suggest profiling for complex cases
