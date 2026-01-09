@@ -1,76 +1,33 @@
-# Beads Task Tracking Rules (MANDATORY)
+# Beads Task Tracking (MANDATORY)
 
-## Core Requirement
+Use `bd` (beads) for ALL task tracking.
 
-You MUST use `bd` (beads) for ALL task tracking. This is NON-NEGOTIABLE.
+## When to Use
 
-## When to Use Beads
+- Multi-session work, interruptible tasks, dependencies, discovered work
+- Any task beyond a single simple interaction
 
-ALWAYS create beads issues for:
+## Never
 
-- Multi-session work (persistence across context boundaries)
-- Features, bugs, or tasks that may be interrupted
-- Work with dependencies on other tasks
-- Discovered work that needs tracking
-- ANY task lasting more than a single, simple interaction
+- TodoWrite-only for multi-step work (must have backing beads issue)
+- Skip status updates or leave sessions without sync
+- TODO comments in code (use beads)
 
-## Forbidden Patterns
+## Workflow
 
-NEVER do the following:
+1. `bd ready` → `bd update <id> --status=in_progress`
+2. TodoWrite for execution steps, beads for parent task
+3. `bd close <id>` before session end
+4. `bd create --title="..." --type=task|bug|feature` for new work
 
-- Track multi-step work ONLY in TodoWrite without a backing beads issue
-- Forget to update beads status when starting/completing work
-- Leave sessions without syncing beads (`bd sync` or daemon handles this)
-- Create TODO comments in code for tracked work (use beads instead)
+## Priorities
 
-## Required Workflow
+0=critical, 1=high, 2=medium (default), 3=low, 4=backlog
 
-1. **Starting Work**: Check `bd ready` first, then `bd update <id> --status=in_progress`
-2. **During Work**: Use TodoWrite for granular execution steps, but the parent task MUST be in beads
-3. **Completing Work**: `bd close <id>` before marking any session complete
-4. **Discovering Work**: `bd create --title="..." --type=task|bug|feature` immediately
+## ClickUp
 
-## Priority Values
+If `.beads/clickup.yaml` exists: `/clickup-sync` at session start/end
 
-Use numeric priorities (0-4), NOT strings:
+## Session Close
 
-- 0 (P0): Critical - blocking production
-- 1 (P1): High - needed soon
-- 2 (P2): Medium - standard work (default)
-- 3 (P3): Low - nice to have
-- 4 (P4): Backlog - someday/maybe
-
-## ClickUp Integration
-
-If `.beads/clickup.yaml` exists, ClickUp sync is enabled for this repo.
-
-**Check on session start:**
-```bash
-test -f .beads/clickup.yaml && echo "ClickUp linked"
-```
-
-**When ClickUp is linked:**
-- Run `/clickup-sync` at session start to pull latest tasks from ClickUp
-- The Stop hook will remind about unsyced changes
-- New beads issues can be pushed to ClickUp via `/clickup-sync`
-- Tasks flow bidirectionally: ClickUp ↔ beads
-
-**Field mapping:**
-- Beads `external_ref=clickup-{id}` links to ClickUp task
-- Priority: 0→urgent, 1→high, 2→normal, 3-4→low
-- Status: open→Open, in_progress→In Progress, closed→Closed
-
-## Session Close Checklist
-
-Before ending ANY session:
-
-```
-[ ] bd list --status=in_progress  (review active work)
-[ ] bd close <completed-ids>      (close finished issues)
-[ ] /clickup-sync                 (if .beads/clickup.yaml exists)
-[ ] git push                      (beads auto-syncs via daemon)
-```
-
-## Enforcement
-
-This rule is enforced. Failure to use beads for task tracking is a workflow violation.
+`bd list --status=in_progress` → `bd close <ids>` → `/clickup-sync` → `git push`
