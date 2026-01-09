@@ -5,6 +5,7 @@
 - Shift+Tab enters plan mode for complex tasks
 - Explore without modifying files
 - Exit plan mode before making changes
+- After completing a plan, run `/plan-to-beads` to convert it to beads tasks
 
 ## Task Management
 
