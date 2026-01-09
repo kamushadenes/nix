@@ -10,6 +10,9 @@ let
   # Resource files directory
   resourcesDir = ./resources/shell;
 
+  # Import account configuration for multi-account support
+  accountsConfig = import ../home/common/ai/claude-accounts.nix { inherit config lib; };
+
   # SSH keys to be loaded
   sshKeys = [ config.age.secrets."id_ed25519.age".path ];
 
@@ -37,6 +40,12 @@ let
   # Helper to apply substitutions to a string
   applySubst = subst: str: builtins.foldl' (s: name: builtins.replaceStrings [ name ] [ subst.${name} ] s) str (builtins.attrNames subst);
 
+  # Substitutions for c script (Claude workspace manager with multi-account support)
+  cScriptSubst = {
+    "@ACCOUNT_PATTERNS@" = accountsConfig.allAccountPatternVars;
+    "@ACCOUNT_DETECTION_LOGIC@" = accountsConfig.allAccountDetectionLogic;
+  };
+
   # Read script files - bash/zsh versions (use POSIX syntax where possible)
   bashScripts = {
     mkcd = builtins.readFile "${resourcesDir}/mkcd.sh";
@@ -60,9 +69,11 @@ let
   };
 
   # Standalone scripts (installed to PATH, not shell functions)
+  # These are processed with substitutions and return content (not paths)
   standaloneScripts = {
-    # Claude Code workspace manager - bash script with shebang
-    c = "${resourcesDir}/claude-tmux.sh";
+    # Claude Code workspace manager - bash script with multi-account support
+    # Returns processed content with account patterns substituted
+    c = applySubst cScriptSubst (builtins.readFile "${resourcesDir}/claude-tmux.sh");
   };
 
   # Common PATH additions

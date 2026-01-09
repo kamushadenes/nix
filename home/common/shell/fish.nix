@@ -19,8 +19,9 @@
       sudo -Hu "${osConfig.homebrew.user}" "${osConfig.homebrew.brewPrefix}/brew" "$@"
     '')
 
-    # Claude Code workspace manager - standalone bash script
-    (writeScriptBin "c" (builtins.readFile shellCommon.standaloneScripts.c))
+    # Claude Code workspace manager - standalone bash script with multi-account support
+    # standaloneScripts.c now returns processed content with account patterns
+    (writeScriptBin "c" shellCommon.standaloneScripts.c)
   ];
 
   programs = {

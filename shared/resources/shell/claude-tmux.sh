@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Claude Code workspace manager
-# Usage: c [COMMAND] [ARGS...]
+# Claude Code workspace manager with multi-account support
+# Usage: c [OPTIONS] [COMMAND] [ARGS...]
+#
+# OPTIONS:
+#   -a <account>         - Override automatic account detection (e.g., -a iniciador)
 #
 # COMMANDS:
 #   c                    - Start tmux+claude in current directory
@@ -10,10 +13,81 @@
 #   c resume|r [id]      - Resume workspace (fzf if no id)
 #   c clean|x            - Interactive cleanup of old workspaces
 #   c help|h             - Show help
+#
+# MULTI-ACCOUNT:
+#   Automatically detects account based on git remote URL or directory path.
+#   Sets CLAUDE_CONFIG_DIR to use account-specific MCP servers.
+#   Use -a to override automatic detection.
 
 # Note: Using set -u to catch unset variables, but not set -e
 # since many commands intentionally return non-zero (grep no match, etc.)
 set -u
+
+# Global: account override (set via -a flag)
+_C_ACCOUNT_OVERRIDE=""
+
+# Parse global options (-a <account>)
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -a)
+            if [ $# -lt 2 ]; then
+                echo "Error: -a requires an account name"
+                exit 1
+            fi
+            _C_ACCOUNT_OVERRIDE="$2"
+            shift 2
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+#############################################################################
+# Account Pattern Definitions (generated from Nix)
+#############################################################################
+@ACCOUNT_PATTERNS@
+
+#############################################################################
+# Account Detection Functions
+#############################################################################
+
+# Detect account from git remote URL or directory path
+# Usage: _c_detect_account [directory]
+# Returns: account name or empty string
+# Note: If _C_ACCOUNT_OVERRIDE is set, returns that instead
+_c_detect_account() {
+    local target_dir="${1:-$(pwd)}"
+    local git_remote=""
+
+    # Check for manual override first
+    if [ -n "$_C_ACCOUNT_OVERRIDE" ]; then
+        echo "$_C_ACCOUNT_OVERRIDE"
+        return 0
+    fi
+
+    # Try to get git remote URL
+    if git -C "$target_dir" rev-parse --git-dir >/dev/null 2>&1; then
+        git_remote=$(git -C "$target_dir" remote get-url origin 2>/dev/null || echo "")
+    fi
+
+    # Check each account's patterns (generated from Nix)
+    @ACCOUNT_DETECTION_LOGIC@
+
+    # No match - use default
+    echo ""
+}
+
+# Set CLAUDE_CONFIG_DIR environment variable for detected account
+# Usage: _c_set_account_env <account>
+_c_set_account_env() {
+    local account="$1"
+    if [ -n "$account" ]; then
+        export CLAUDE_CONFIG_DIR="$HOME/.claude/accounts/$account"
+    else
+        unset CLAUDE_CONFIG_DIR 2>/dev/null || true
+    fi
+}
 
 # Helper: normalize string for directory name
 _c_normalize() {
@@ -60,6 +134,10 @@ _c_default() {
     # Find git root (closest parent with .git, or current dir)
     git_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 
+    # Detect and set account for MCP server configuration
+    account=$(_c_detect_account "$git_root")
+    _c_set_account_env "$account"
+
     # Ensure beads daemon is running with proper flags
     _c_ensure_beads_daemon "$git_root"
 
@@ -70,8 +148,12 @@ _c_default() {
     git_folder_norm=$(_c_normalize "$git_folder")
     parent_folder_norm=$(_c_normalize "$parent_folder")
 
-    # Title: Claude: Parent/GitFolder
-    title="Claude: $parent_folder/$git_folder"
+    # Title: Claude: Parent/GitFolder (with account if set)
+    if [ -n "$account" ]; then
+        title="Claude: $parent_folder/$git_folder [$account]"
+    else
+        title="Claude: $parent_folder/$git_folder"
+    fi
 
     # Set Ghostty window/tab title
     printf '\033]0;%s\007' "$title"
@@ -85,7 +167,12 @@ _c_default() {
         session_name="claude-$parent_folder_norm-$git_folder_norm-$timestamp"
 
         # Start tmux and run claude inside (exit tmux when claude exits)
-        tmux new-session -s "$session_name" "claude $*"
+        # Pass CLAUDE_CONFIG_DIR to tmux session if account is set
+        if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+            tmux new-session -s "$session_name" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude $*"
+        else
+            tmux new-session -s "$session_name" "claude $*"
+        fi
     fi
 }
 
@@ -144,17 +231,26 @@ _c_worktree() {
         return 1
     fi
 
-    # Write metadata
+    # Detect and set account for MCP server configuration
+    account=$(_c_detect_account "$workspace_path")
+    _c_set_account_env "$account"
+
+    # Write metadata (including account for resume)
     echo "created_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$workspace_path/.workspace-meta"
     echo "original_repo=$_git_root" >> "$workspace_path/.workspace-meta"
     echo "branch=$branch" >> "$workspace_path/.workspace-meta"
     echo "id=$uuid" >> "$workspace_path/.workspace-meta"
+    echo "account=$account" >> "$workspace_path/.workspace-meta"
 
     # Start tmux with claude in the worktree
     session_name="claude-$_parent_folder_norm-$_git_folder_norm-$norm_branch-$uuid"
 
-    # Set terminal title
-    title="Claude: $_parent_folder/$_git_folder ($branch)"
+    # Set terminal title (with account if set)
+    if [ -n "$account" ]; then
+        title="Claude: $_parent_folder/$_git_folder ($branch) [$account]"
+    else
+        title="Claude: $_parent_folder/$_git_folder ($branch)"
+    fi
     printf '\033]0;%s\007' "$title"
 
     # Ensure beads daemon is running with proper flags
@@ -162,13 +258,24 @@ _c_worktree() {
 
     echo "Created workspace: $workspace_path"
     echo "Session: $session_name"
+    if [ -n "$account" ]; then
+        echo "Account: $account"
+    fi
 
     if test -n "${TMUX:-}"; then
         # Already in tmux, create new session and switch
-        tmux new-session -d -s "$session_name" -c "$workspace_path" "claude $extra_args"
+        if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+            tmux new-session -d -s "$session_name" -c "$workspace_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude $extra_args"
+        else
+            tmux new-session -d -s "$session_name" -c "$workspace_path" "claude $extra_args"
+        fi
         tmux switch-client -t "$session_name"
     else
-        tmux new-session -s "$session_name" -c "$workspace_path" "claude $extra_args"
+        if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+            tmux new-session -s "$session_name" -c "$workspace_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude $extra_args"
+        else
+            tmux new-session -s "$session_name" -c "$workspace_path" "claude $extra_args"
+        fi
     fi
 }
 
@@ -182,8 +289,8 @@ _c_list() {
     fi
 
     # Header
-    printf "%-20s %-30s %-10s %-6s %s\n" "PROJECT" "BRANCH" "ID" "TMUX" "PATH"
-    printf '%s\n' "$(printf '%100s' | tr ' ' '-')"
+    printf "%-20s %-25s %-10s %-12s %-6s %s\n" "PROJECT" "BRANCH" "ID" "ACCOUNT" "TMUX" "PATH"
+    printf '%s\n' "$(printf '%110s' | tr ' ' '-')"
 
     # Find all workspace metadata files
     find "$workspace_base" -name ".workspace-meta" -type f 2>/dev/null | sort | while read -r meta; do
@@ -193,6 +300,8 @@ _c_list() {
         project=$(echo "$ws_path" | sed "s|$workspace_base/||" | cut -d/ -f1-2 | tr '/' '-')
         branch=$(grep "^branch=" "$meta" 2>/dev/null | cut -d= -f2-)
         id=$(grep "^id=" "$meta" 2>/dev/null | cut -d= -f2-)
+        account=$(grep "^account=" "$meta" 2>/dev/null | cut -d= -f2-)
+        account="${account:--}"
 
         # Check for tmux session (match by id)
         has_tmux="no"
@@ -200,7 +309,7 @@ _c_list() {
             has_tmux="yes"
         fi
 
-        printf "%-20s %-30s %-10s %-6s %s\n" "$project" "$branch" "$id" "$has_tmux" "$ws_path"
+        printf "%-20s %-25s %-10s %-12s %-6s %s\n" "$project" "$branch" "$id" "$account" "$has_tmux" "$ws_path"
     done
 }
 
@@ -281,6 +390,13 @@ $id	$project	$branch	$ws_path"
         branch=$(grep "^branch=" "$meta" 2>/dev/null | cut -d= -f2-)
         norm_branch=$(_c_normalize "$branch")
 
+        # Restore account from metadata (or detect if not saved)
+        account=$(grep "^account=" "$meta" 2>/dev/null | cut -d= -f2-)
+        if [ -z "$account" ]; then
+            account=$(_c_detect_account "$ws_path")
+        fi
+        _c_set_account_env "$account"
+
         parent_norm=$(echo "$ws_path" | sed "s|$workspace_base/||" | cut -d/ -f1)
         repo_norm=$(echo "$ws_path" | sed "s|$workspace_base/||" | cut -d/ -f2)
 
@@ -290,11 +406,22 @@ $id	$project	$branch	$ws_path"
         _c_ensure_beads_daemon "$ws_path"
 
         echo "Starting new session: $session_name"
+        if [ -n "$account" ]; then
+            echo "Account: $account"
+        fi
         if test -n "${TMUX:-}"; then
-            tmux new-session -d -s "$session_name" -c "$ws_path" "claude"
+            if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+                tmux new-session -d -s "$session_name" -c "$ws_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude"
+            else
+                tmux new-session -d -s "$session_name" -c "$ws_path" "claude"
+            fi
             tmux switch-client -t "$session_name"
         else
-            tmux new-session -s "$session_name" -c "$ws_path" "claude"
+            if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+                tmux new-session -s "$session_name" -c "$ws_path" -e "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "claude"
+            else
+                tmux new-session -s "$session_name" -c "$ws_path" "claude"
+            fi
         fi
     fi
 }
@@ -364,10 +491,13 @@ _c_clean() {
 
 # Help: show usage
 _c_help() {
-    echo "c - Claude Code workspace manager"
+    echo "c - Claude Code workspace manager with multi-account support"
     echo ""
     echo "USAGE:"
-    echo "  c [COMMAND] [ARGS...]"
+    echo "  c [OPTIONS] [COMMAND] [ARGS...]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -a <account>         Override automatic account detection"
     echo ""
     echo "COMMANDS:"
     echo "  c                    Start Claude in current directory"
@@ -378,8 +508,14 @@ _c_help() {
     echo "  c clean|x            Interactive cleanup of old workspaces"
     echo "  c help|h             Show this help"
     echo ""
+    echo "MULTI-ACCOUNT:"
+    echo "  Automatically detects account based on git remote URL or directory path."
+    echo "  Sets CLAUDE_CONFIG_DIR to use account-specific MCP servers."
+    echo "  Use -a to override: c -a iniciador"
+    echo ""
     echo "EXAMPLES:"
     echo "  c                      Start Claude normally"
+    echo "  c -a iniciador         Start Claude with iniciador account"
     echo "  c w feature-x          Create worktree for feature-x"
     echo "  c r a1b2               Resume workspace matching 'a1b2'"
     echo "  c l                    Show all workspaces with status"

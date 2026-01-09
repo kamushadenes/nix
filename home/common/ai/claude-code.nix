@@ -18,6 +18,9 @@ let
   # Import shared MCP server configuration (with private merge support)
   mcpServers = import ./mcp-servers.nix { inherit config lib private; };
 
+  # Import account configuration for multi-account support
+  accountsConfig = import ./claude-accounts.nix { inherit config lib; };
+
   # Import permissions configuration (extracted for maintainability)
   permissions = import ./claude-code-permissions.nix;
 
@@ -54,6 +57,41 @@ let
     claudeInChromeDefaultEnabled = true;
     hasCompletedClaudeInChromeOnboarding = true;
   };
+
+  # Default MCP config (common servers only, for non-account directories)
+  defaultMcpConfigTemplate = mcpServers.mkMcpConfig accountsConfig.commonMcpServers;
+
+  # Generate account directory entries for home.file
+  # Each account gets:
+  # - mcp-servers.json.template (with account-specific servers)
+  # - Symlinks to shared resources (settings.json, rules/, hooks/, etc.)
+  accountFileEntries = lib.foldl' (
+    acc: name:
+    let
+      accountMcps = accountsConfig.getAccountMcps name;
+      accountDir = ".claude/accounts/${name}";
+      homeDir = config.home.homeDirectory;
+    in
+    acc
+    // {
+      # Account-specific MCP servers template
+      "${accountDir}/mcp-servers.json.template".text = mcpServers.mkMcpConfig accountMcps;
+
+      # Symlinks to shared resources
+      "${accountDir}/settings.json".source =
+        config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/settings.json";
+      "${accountDir}/rules".source = config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/rules";
+      "${accountDir}/hooks".source = config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/hooks";
+      "${accountDir}/agents".source = config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/agents";
+      "${accountDir}/commands".source =
+        config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/commands";
+      "${accountDir}/secrets".source =
+        config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/secrets";
+      "${accountDir}/config".source = config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/config";
+      "${accountDir}/statusline-command.sh".source =
+        config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/statusline-command.sh";
+    }
+  ) { } accountsConfig.accountNames;
 in
 {
   #############################################################################
@@ -449,7 +487,8 @@ in
     value = {
       text = content;
     };
-  }) rulesConfig;
+  }) rulesConfig
+  // accountFileEntries;
 
   #############################################################################
   # Secret Substitution and MCP Config Activation
@@ -492,5 +531,37 @@ in
       run cp ${config.home.homeDirectory}/.claude/mcp-servers.json \
              ${config.home.homeDirectory}/.claude.json
     fi
+
+    #############################################################################
+    # Process Account-Specific MCP Configurations
+    #############################################################################
+
+    ${lib.concatMapStrings (name: ''
+      # Process ${name} account MCP config
+      run mkdir -p ${config.home.homeDirectory}/.claude/accounts/${name}
+      run rm -f ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json
+
+      # Copy account template to working file
+      run cp ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json.template \
+             ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json
+
+      # Substitute @PLACEHOLDER@ values in account config
+      ${lib.concatMapStrings (
+        ph:
+        let
+          secretPath = secretSubstitutions.${ph};
+        in
+        ''
+          if [ -f "${secretPath}" ]; then
+            run ${lib.getExe pkgs.gnused} -i "s|${ph}|$(cat ${secretPath})|g" \
+                ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json
+          fi
+        ''
+      ) (lib.attrNames secretSubstitutions)}
+
+      # Create account-specific .claude.json (mcp-servers.json IS the config for accounts)
+      run cp ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json \
+             ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json
+    '') accountsConfig.accountNames}
   '';
 }

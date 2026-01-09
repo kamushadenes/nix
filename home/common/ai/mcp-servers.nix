@@ -277,6 +277,16 @@ rec {
       }) (builtins.filter (p: lib.hasAttr p secretFiles) secretPlaceholders)
     );
 
+  # Generate MCP config JSON for a specific list of servers
+  # Used for account-specific configurations
+  mkMcpConfig =
+    serverNames:
+    builtins.toJSON {
+      mcpServers = toClaudeCode serverNames;
+      claudeInChromeDefaultEnabled = true;
+      hasCompletedClaudeInChromeOnboarding = true;
+    };
+
   # Generate activation script for secret substitution
   # Used by claude-code, codex-cli, and gemini-cli
   # Requires pkgs to be passed when importing this module
