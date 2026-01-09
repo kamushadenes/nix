@@ -1,15 +1,31 @@
 """Core sync engine for bidirectional ClickUp-Beads synchronization."""
 
-from datetime import datetime, timezone
+from pathlib import Path
 
 try:
     from .beads_client import BeadsClient
     from .mcp_client import ClickUpMCPClient
     from .models import Bead, BeadStatus, ClickUpTask, SyncConfig, SyncResult
+    from .sync_state import (
+        compute_bead_hash,
+        compute_task_hash,
+        load_sync_state,
+        save_sync_state,
+        should_sync,
+        update_sync_state,
+    )
 except ImportError:
     from beads_client import BeadsClient
     from mcp_client import ClickUpMCPClient
     from models import Bead, BeadStatus, ClickUpTask, SyncConfig, SyncResult
+    from sync_state import (
+        compute_bead_hash,
+        compute_task_hash,
+        load_sync_state,
+        save_sync_state,
+        should_sync,
+        update_sync_state,
+    )
 
 # Status mapping: Beads -> ClickUp
 STATUS_BEAD_TO_CLICKUP = {
@@ -52,40 +68,6 @@ PRIORITY_CLICKUP_TO_BEAD = {
 }
 
 
-def compare_timestamps(
-    ts1: datetime,
-    ts2: datetime,
-    tolerance_seconds: float = 1.0,
-) -> str:
-    """
-    Compare two timestamps.
-
-    Args:
-        ts1: First timestamp
-        ts2: Second timestamp
-        tolerance_seconds: Tolerance for "equal" comparison
-
-    Returns:
-        "first" if ts1 is newer
-        "second" if ts2 is newer
-        "equal" if within tolerance
-    """
-    # Ensure both are timezone-aware (assume UTC if naive)
-    if ts1.tzinfo is None:
-        ts1 = ts1.replace(tzinfo=timezone.utc)
-    if ts2.tzinfo is None:
-        ts2 = ts2.replace(tzinfo=timezone.utc)
-
-    diff = (ts1 - ts2).total_seconds()
-
-    if abs(diff) < tolerance_seconds:
-        return "equal"
-    elif diff > 0:
-        return "first"
-    else:
-        return "second"
-
-
 class SyncEngine:
     """Bidirectional sync engine for ClickUp and Beads."""
 
@@ -95,6 +77,7 @@ class SyncEngine:
         beads: BeadsClient,
         config: SyncConfig,
         verbose: bool = False,
+        beads_dir: Path = Path(".beads"),
     ):
         """
         Initialize sync engine.
@@ -104,11 +87,14 @@ class SyncEngine:
             beads: Beads CLI client
             config: Sync configuration
             verbose: Enable verbose output
+            beads_dir: Path to .beads directory
         """
         self.api = api
         self.beads = beads
         self.config = config
         self.verbose = verbose
+        self.beads_dir = beads_dir
+        self.sync_state = load_sync_state(beads_dir)
 
     def log(self, msg: str) -> None:
         """Log a message if verbose mode is enabled."""
@@ -135,6 +121,9 @@ class SyncEngine:
         self.log("=== PUSH Phase (Beads -> ClickUp) ===")
         self._push(result)
 
+        # Save sync state
+        save_sync_state(self.sync_state, self.beads_dir)
+
         return result
 
     def _pull(self, result: SyncResult) -> None:
@@ -160,21 +149,34 @@ class SyncEngine:
 
                 if existing_bead is None:
                     # Create new bead
-                    self._create_bead_from_task(task)
+                    bead_id = self._create_bead_from_task(task)
                     self.log(f"Created bead for task: {task.name}")
                     result.pulled_created += 1
+
+                    # Record sync state for new bead
+                    task_hash = compute_task_hash(task)
+                    update_sync_state(
+                        self.sync_state, bead_id, task_hash, task_hash
+                    )
                 else:
-                    # Compare timestamps
-                    cmp = compare_timestamps(
-                        task.date_updated, existing_bead.updated_at
+                    # Use hash-based sync decision
+                    do_sync, direction = should_sync(
+                        existing_bead, task, self.sync_state
                     )
 
-                    if cmp == "first":  # ClickUp is newer
+                    if do_sync and direction == "pull":
                         self._update_bead_from_task(existing_bead, task)
                         self.log(f"Updated bead {existing_bead.id}: {task.name}")
                         result.pulled_updated += 1
-                    else:  # Bead is newer or equal
-                        self.log(f"Skipped (local newer): {task.name}")
+
+                        # Update sync state
+                        bead_hash = compute_task_hash(task)  # After update, bead matches task
+                        task_hash = compute_task_hash(task)
+                        update_sync_state(
+                            self.sync_state, existing_bead.id, bead_hash, task_hash
+                        )
+                    else:
+                        self.log(f"Skipped (no change or push pending): {task.name}")
                         result.pulled_skipped += 1
 
             except Exception as e:
@@ -192,13 +194,13 @@ class SyncEngine:
                 if bead.external_ref and bead.external_ref.startswith(
                     "clickup-"
                 ):
-                    # Existing link - check if bead is newer
+                    # Existing link - use hash-based sync decision
                     task_id = bead.external_ref[8:]
                     task = self.api.get_task(task_id)
 
-                    cmp = compare_timestamps(bead.updated_at, task.date_updated)
+                    do_sync, direction = should_sync(bead, task, self.sync_state)
 
-                    if cmp == "first":  # Bead is newer
+                    if do_sync and direction == "push":
                         self._update_task_from_bead(task_id, bead)
                         self.log(f"Updated ClickUp task: {bead.title}")
                         result.pushed_updated += 1
@@ -209,8 +211,14 @@ class SyncEngine:
                             and bead.close_reason
                         ):
                             self._post_close_reason(task_id, bead.close_reason)
+
+                        # Update sync state
+                        bead_hash = compute_bead_hash(bead)
+                        update_sync_state(
+                            self.sync_state, bead.id, bead_hash, bead_hash
+                        )
                     else:
-                        self.log(f"Skipped (remote newer): {bead.title}")
+                        self.log(f"Skipped (no change or pull pending): {bead.title}")
                         result.pushed_skipped += 1
 
                 else:
@@ -223,6 +231,12 @@ class SyncEngine:
                         bead.id, external_ref=f"clickup-{task_id}"
                     )
                     result.pushed_created += 1
+
+                    # Record sync state for new task
+                    bead_hash = compute_bead_hash(bead)
+                    update_sync_state(
+                        self.sync_state, bead.id, bead_hash, bead_hash
+                    )
 
             except Exception as e:
                 error = f"Push error for bead {bead.id}: {e}"

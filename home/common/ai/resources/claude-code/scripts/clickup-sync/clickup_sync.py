@@ -106,7 +106,7 @@ Examples:
     # Initialize clients
     api = ClickUpMCPClient(token)
     beads = BeadsClient(cwd=".")
-    engine = SyncEngine(api, beads, config, verbose=args.verbose)
+    engine = SyncEngine(api, beads, config, verbose=args.verbose, beads_dir=beads_dir)
 
     # Run sync
     print(f"Syncing with ClickUp list: {config.list_name}...")
