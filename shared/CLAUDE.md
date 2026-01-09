@@ -14,8 +14,7 @@ shared/
     ├── mkcd.fish             # Fish version
     ├── rebuild.sh            # Bash/Zsh version (with template substitution)
     ├── rebuild.fish          # Fish version (with template substitution)
-    ├── claude-tmux.sh        # Bash/Zsh version (c function)
-    ├── claude-tmux.fish      # Fish version (c function)
+    ├── claude-tmux.sh        # Standalone bash script (installed as 'c' in PATH)
     ├── ca.sh                 # Bash/Zsh version (attach to tmux session)
     ├── ca.fish               # Fish version (attach to tmux session)
     ├── rga-fzf.sh            # Bash/Zsh version
@@ -25,6 +24,13 @@ shared/
     ├── help.fish             # Fish version
     └── add-go-build-tags.fish  # Fish-only (no bash/zsh equivalent)
 ```
+
+### Standalone Scripts
+
+Some scripts are complex enough to be standalone executables rather than shell functions. These are installed to PATH via `pkgs.writeScriptBin` and work in all shells.
+
+Scripts in `standaloneScripts` attrset:
+- `c` (claude-tmux.sh) - Claude Code workspace manager with tmux integration
 
 ### Why Separate Versions Are Required
 

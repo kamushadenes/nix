@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Claude Code workspace manager
 # Usage: c [COMMAND] [ARGS...]
 #
@@ -9,6 +10,10 @@
 #   c resume|r [id]      - Resume workspace (fzf if no id)
 #   c clean|x            - Interactive cleanup of old workspaces
 #   c help|h             - Show help
+
+# Note: Using set -u to catch unset variables, but not set -e
+# since many commands intentionally return non-zero (grep no match, etc.)
+set -u
 
 # Helper: normalize string for directory name
 _c_normalize() {
@@ -71,7 +76,7 @@ _c_default() {
     # Set Ghostty window/tab title
     printf '\033]0;%s\007' "$title"
 
-    if test -n "$TMUX"; then
+    if test -n "${TMUX:-}"; then
         # Already in tmux, just run claude
         claude "$@"
     else
@@ -158,7 +163,7 @@ _c_worktree() {
     echo "Created workspace: $workspace_path"
     echo "Session: $session_name"
 
-    if test -n "$TMUX"; then
+    if test -n "${TMUX:-}"; then
         # Already in tmux, create new session and switch
         tmux new-session -d -s "$session_name" -c "$workspace_path" "claude $extra_args"
         tmux switch-client -t "$session_name"
@@ -202,7 +207,7 @@ _c_list() {
 # Resume: resume a workspace
 _c_resume() {
     workspace_base=$(_c_workspace_base)
-    filter_id="$1"
+    filter_id="${1:-}"
 
     if ! test -d "$workspace_base"; then
         echo "No workspaces found"
@@ -265,7 +270,7 @@ $id	$project	$branch	$ws_path"
     if test -n "$existing_session"; then
         # Attach to existing session
         echo "Attaching to session: $existing_session"
-        if test -n "$TMUX"; then
+        if test -n "${TMUX:-}"; then
             tmux switch-client -t "$existing_session"
         else
             tmux attach-session -t "$existing_session"
@@ -285,7 +290,7 @@ $id	$project	$branch	$ws_path"
         _c_ensure_beads_daemon "$ws_path"
 
         echo "Starting new session: $session_name"
-        if test -n "$TMUX"; then
+        if test -n "${TMUX:-}"; then
             tmux new-session -d -s "$session_name" -c "$ws_path" "claude"
             tmux switch-client -t "$session_name"
         else
@@ -384,7 +389,7 @@ _c_help() {
 }
 
 # Main dispatch
-case "$1" in
+case "${1:-}" in
     "")
         _c_default
         ;;

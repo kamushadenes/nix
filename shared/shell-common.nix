@@ -41,7 +41,6 @@ let
   bashScripts = {
     mkcd = builtins.readFile "${resourcesDir}/mkcd.sh";
     rebuild = applySubst rebuildSubst (builtins.readFile "${resourcesDir}/rebuild.sh");
-    claudeTmux = builtins.readFile "${resourcesDir}/claude-tmux.sh";
     claudeAttach = builtins.readFile "${resourcesDir}/ca.sh";
     rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.sh";
     flushdns = builtins.readFile "${resourcesDir}/flushdns.sh";
@@ -52,13 +51,18 @@ let
   fishScripts = {
     mkcd = builtins.readFile "${resourcesDir}/mkcd.fish";
     rebuild = applySubst rebuildSubst (builtins.readFile "${resourcesDir}/rebuild.fish");
-    claudeTmux = builtins.readFile "${resourcesDir}/claude-tmux.fish";
     claudeAttach = builtins.readFile "${resourcesDir}/ca.fish";
     rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.fish";
     flushdns = builtins.readFile "${resourcesDir}/flushdns.sh"; # Simple command, works in fish
     help = builtins.readFile "${resourcesDir}/help.fish";
     # Fish-only (uses fish-specific array slicing syntax)
     addGoBuildTags = builtins.readFile "${resourcesDir}/add-go-build-tags.fish";
+  };
+
+  # Standalone scripts (installed to PATH, not shell functions)
+  standaloneScripts = {
+    # Claude Code workspace manager - bash script with shebang
+    c = "${resourcesDir}/claude-tmux.sh";
   };
 
   # Common PATH additions
@@ -88,7 +92,7 @@ let
 
 in
 {
-  inherit sshKeys pathAdditions ghosttyResourcesDir hasPackage;
+  inherit sshKeys pathAdditions ghosttyResourcesDir hasPackage standaloneScripts;
 
   # Common aliases (shell-agnostic)
   aliases = lib.mkMerge [
@@ -126,10 +130,7 @@ in
           body = fishScripts.rebuild;
         };
 
-        c = {
-          description = "Start Claude Code inside tmux";
-          body = fishScripts.claudeTmux;
-        };
+        # Note: 'c' is now a standalone script in PATH (see standaloneScripts)
 
         ca = {
           description = "Attach to existing tmux session via fzf selection";
@@ -171,10 +172,10 @@ in
 
   # Bash/Zsh shared definitions
   bashZsh = {
+    # Note: 'c' is now a standalone script in PATH (see standaloneScripts)
     functions = ''
       mkcd() { ${bashScripts.mkcd} }
       rebuild() { ${bashScripts.rebuild} }
-      c() { ${bashScripts.claudeTmux} }
       ca() { ${bashScripts.claudeAttach} }
       rga-fzf() { ${bashScripts.rgaFzf} }
     '';

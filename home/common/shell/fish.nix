@@ -18,6 +18,9 @@
       cd "${osConfig.homebrew.brewPrefix}"
       sudo -Hu "${osConfig.homebrew.user}" "${osConfig.homebrew.brewPrefix}/brew" "$@"
     '')
+
+    # Claude Code workspace manager - standalone bash script
+    (writeScriptBin "c" (builtins.readFile shellCommon.standaloneScripts.c))
   ];
 
   programs = {
