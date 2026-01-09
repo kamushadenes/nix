@@ -320,6 +320,7 @@
     "Skill(hookify:writing-rules)"
     "Skill(deep-review)"
     "Skill(ralph-loop:*)"
+    "Skill(plan-to-beads)"
 
     # Plugin scripts - ralph-loop
     "Bash(~/.claude/plugins/cache/claude-plugins-official/ralph-loop:*)"
