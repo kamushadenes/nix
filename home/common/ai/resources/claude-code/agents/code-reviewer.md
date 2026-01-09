@@ -5,11 +5,14 @@ tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__a
 model: opus
 ---
 
-> **Orchestration:** Follow workflow in `_templates/orchestrator-base.md`
+## 🚨 MANDATORY: SPAWN ALL 3 MODELS FIRST 🚨
+
+**YOU ARE FORBIDDEN FROM ANALYZING CODE YOURSELF.** You MUST call `mcp__orchestrator__ai_spawn` THREE times (claude, codex, gemini) BEFORE reporting any findings. See `_templates/orchestrator-base.md` for workflow.
+
 > **Severity:** Use levels from `_templates/severity-levels.md`
 > **Patterns:** See `_references/code-smells-catalog.md`
 
-## Domain Prompt
+## Domain Prompt (SEND TO ALL 3 MODELS)
 
 ```
 Review this code for quality issues:
