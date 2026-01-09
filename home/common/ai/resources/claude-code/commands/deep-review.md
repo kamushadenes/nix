@@ -267,18 +267,53 @@ dependency_checker = Task(
     MultiSelect: true
     ```
 
-    c. For each selected finding, create a beads issue using the appropriate priority:
+    c. For each selected finding, create a beads issue with:
+       - **Title**: Brief identifier with severity, agent, and issue summary
+       - **Description**: Detailed context including:
+         - What the issue is
+         - File path and line number
+         - Function/method name where it occurs
+         - Why it's a problem (impact/risk)
+         - Code snippet showing the issue
+         - Suggested fix or recommendation
 
-    | Severity | Priority | Title Format                                |
-    | -------- | -------- | ------------------------------------------- |
-    | Critical | 0 (P0)   | `[CRITICAL] agent: description (file:line)` |
-    | High     | 1 (P1)   | `[HIGH] agent: description (file:line)`     |
-    | Medium   | 2 (P2)   | `[MEDIUM] agent: description (file:line)`   |
-    | Low      | 3 (P3)   | `[LOW] agent: description (file:line)`      |
+    | Severity | Priority | Title Format                        |
+    | -------- | -------- | ----------------------------------- |
+    | Critical | 0 (P0)   | `[CRITICAL] agent: brief issue`     |
+    | High     | 1 (P1)   | `[HIGH] agent: brief issue`         |
+    | Medium   | 2 (P2)   | `[MEDIUM] agent: brief issue`       |
+    | Low      | 3 (P3)   | `[LOW] agent: brief issue`          |
 
     ```bash
     # Example for a critical security finding
-    bd create --title="[CRITICAL] security: SQL injection in user lookup (src/auth.py:45)" --type=bug --priority=0
+    bd create \
+      --title="[CRITICAL] security: SQL injection vulnerability" \
+      --type=bug \
+      --priority=0 \
+      --description="$(cat <<'EOF'
+    ## Issue
+    SQL injection vulnerability in user authentication flow.
+
+    ## Location
+    - **File**: src/auth.py
+    - **Line**: 45
+    - **Function**: `lookup_user()`
+
+    ## Problem
+    The `lookup_user()` function concatenates user input directly into SQL query without parameterization:
+    \`\`\`python
+    query = f"SELECT * FROM users WHERE username = '{username}'"
+    \`\`\`
+
+    This allows attackers to inject arbitrary SQL, potentially bypassing authentication or exfiltrating data.
+
+    ## Recommendation
+    Use parameterized queries:
+    \`\`\`python
+    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    \`\`\`
+    EOF
+    )"
     ```
 
     d. If ClickUp is linked (`.beads/clickup.yaml` exists), offer to sync new issues:
