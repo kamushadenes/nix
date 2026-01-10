@@ -50,11 +50,13 @@ flake.nix              # Entry point - defines inputs and machine configurations
 │   ├── common/        # Cross-platform home-manager modules
 │   │   ├── ai/        # AI agents (claude-code, codex-cli, gemini-cli, orchestrator)
 │   │   ├── core/      # git, ssh, nix, agenix, fonts
-│   │   ├── shell/     # fish, bash, starship, kitty, ghostty
-│   │   ├── dev/       # go, node, python, java, clang, clojure
+│   │   ├── dev/       # go, node, python, java, clang, clojure, android, embedded
 │   │   ├── editors/   # nvim, emacs, vscode
 │   │   ├── infra/     # cloud, docker, kubernetes, terraform
-│   │   └── security/  # gpg, security tools
+│   │   ├── media/     # media tools
+│   │   ├── security/  # gpg, security tools
+│   │   ├── shell/     # fish, bash, starship, kitty, ghostty
+│   │   └── utils/     # aichat, miscellaneous utilities
 │   ├── macos/         # macOS-specific (aerospace, bettertouchtool, sketchybar)
 │   └── linux/         # Linux-specific (display, systemd)
 │

@@ -4,11 +4,11 @@ Nix configurations for AI CLI tools (Claude Code, Codex CLI, Gemini CLI).
 
 ## Role Hierarchy
 
-| CLI    | Role         | Mode      | Purpose                          |
-| ------ | ------------ | --------- | -------------------------------- |
-| claude | Orchestrator | Full      | Primary agent, spawns workers    |
-| codex  | Worker       | Read-only | Code review, analysis            |
-| gemini | Worker       | Read-only | Web search, documentation lookup |
+| CLI    | Role       | Mode      | Purpose                          |
+| ------ | ---------- | --------- | -------------------------------- |
+| claude | Worker     | Full      | Any tool/command                 |
+| codex  | Reviewer   | Read-only | Code review, analysis            |
+| gemini | Researcher | Read-only | Web search, documentation lookup |
 
 ## Orchestrator MCP Tools
 
