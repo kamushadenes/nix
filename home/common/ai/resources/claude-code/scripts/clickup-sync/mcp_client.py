@@ -268,7 +268,17 @@ class ClickUpMCPClient:
             args["tags"] = tags
 
         result = self._call_tool("clickup_create_task", args)
-        return result.get("id", "") if isinstance(result, dict) else str(result)
+        # Debug: print the raw result to understand the format
+        import sys
+        print(f"DEBUG create_task result: {result}", file=sys.stderr)
+        # Handle various response formats from ClickUp MCP
+        if isinstance(result, dict):
+            # Try 'id' first, then 'task_id', then nested 'task.id'
+            task_id = result.get("id") or result.get("task_id")
+            if not task_id and "task" in result:
+                task_id = result["task"].get("id") if isinstance(result["task"], dict) else None
+            return task_id or ""
+        return str(result) if result else ""
 
     def update_task(
         self,
