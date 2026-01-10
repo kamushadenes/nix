@@ -28,11 +28,14 @@ except ImportError:
     )
 
 # Status mapping: Beads -> ClickUp
+# NOTE: These are common ClickUp status names. If your list uses different
+# status names (e.g., "backlog", "done"), update these mappings accordingly.
+# The sync will skip status updates for statuses that don't exist in the list.
 STATUS_BEAD_TO_CLICKUP = {
-    BeadStatus.OPEN: "open",
+    BeadStatus.OPEN: "to do",
     BeadStatus.IN_PROGRESS: "in progress",
-    BeadStatus.BLOCKED: "blocked",
-    BeadStatus.CLOSED: "complete",
+    BeadStatus.BLOCKED: "on hold",
+    BeadStatus.CLOSED: "closed",
 }
 
 # Status mapping: ClickUp -> Beads (case-insensitive)
@@ -324,26 +327,36 @@ class SyncEngine:
             tags=bead.labels if bead.labels else None,
         )
 
-        # If bead is closed, update task status
-        if bead.status == BeadStatus.CLOSED:
-            self.api.update_task(task_id, status="complete")
-        elif bead.status == BeadStatus.IN_PROGRESS:
-            self.api.update_task(task_id, status="in progress")
+        # Try to update status if not open (may fail if status doesn't exist)
+        status = STATUS_BEAD_TO_CLICKUP.get(bead.status)
+        if status and bead.status != BeadStatus.OPEN:
+            try:
+                self.api.update_task(task_id, status=status)
+            except Exception as e:
+                self.log(f"  Warning: Could not set status to '{status}': {e}")
 
         return task_id
 
     def _update_task_from_bead(self, task_id: str, bead: Bead) -> None:
         """Update an existing ClickUp task from a bead."""
-        status = STATUS_BEAD_TO_CLICKUP.get(bead.status, "open")
         priority = PRIORITY_BEAD_TO_CLICKUP.get(bead.priority, 3)
 
+        # First update name, description, priority (these always work)
         self.api.update_task(
             task_id,
             name=bead.title,
             description=bead.description,
-            status=status,
             priority=priority,
         )
+
+        # Try to update status separately - may fail if status doesn't exist in list
+        status = STATUS_BEAD_TO_CLICKUP.get(bead.status)
+        if status:
+            try:
+                self.api.update_task(task_id, status=status)
+            except Exception as e:
+                # Status update failed - likely status doesn't exist in this list
+                self.log(f"  Warning: Could not update status to '{status}': {e}")
 
     def _post_close_reason(self, task_id: str, reason: str) -> None:
         """Post close reason as a comment on ClickUp task."""
