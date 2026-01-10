@@ -268,9 +268,6 @@ class ClickUpMCPClient:
             args["tags"] = tags
 
         result = self._call_tool("clickup_create_task", args)
-        # Debug: print the raw result to understand the format
-        import sys
-        print(f"DEBUG create_task result: {result}", file=sys.stderr)
         # Handle various response formats from ClickUp MCP
         if isinstance(result, dict):
             # Try 'id' first, then 'task_id', then nested 'task.id'
