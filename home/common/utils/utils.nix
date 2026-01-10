@@ -2,10 +2,12 @@
   pkgs,
   pkgs-unstable,
   lib,
+  packages,
   ...
 }:
 {
   home.packages = with pkgs; [
+    packages.nix-remote-setup
     trash-cli
     asciinema
     gam
