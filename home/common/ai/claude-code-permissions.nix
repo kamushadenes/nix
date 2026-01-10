@@ -121,6 +121,7 @@
 
     # Beads issue tracking
     "Bash(bd:*)"
+    "Bash(clickup-sync:*)"
 
     # Terraform / Terragrunt
     "Bash(terraform plan:*)"
