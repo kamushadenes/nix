@@ -25,12 +25,18 @@ class ClickUpAPI:
         Initialize API client.
 
         Args:
-            token: OAuth access token
+            token: API token (Personal API Key or OAuth token)
         """
         self.token = token
         self.session = requests.Session()
-        # ClickUp OAuth requires "Bearer" prefix
-        auth_header = token if token.startswith("Bearer ") else f"Bearer {token}"
+        # Personal API keys (pk_*) use token directly
+        # OAuth tokens use Bearer prefix
+        if token.startswith("pk_"):
+            auth_header = token
+        elif token.startswith("Bearer "):
+            auth_header = token
+        else:
+            auth_header = f"Bearer {token}"
         self.session.headers.update(
             {
                 "Authorization": auth_header,
