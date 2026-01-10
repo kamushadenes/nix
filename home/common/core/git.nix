@@ -22,8 +22,7 @@
   };
 
   xdg.configFile."git/attributes".text = ''
-    # Use bd merge for beads JSONL files
-    .beads/issues.jsonl merge=beads
+    # Git attributes file
   '';
 
   xdg.configFile."git/template/hooks" = {
@@ -113,7 +112,7 @@
     });
 
     settings = {
-      # Hide files from git status (like beads does for .beads/*.jsonl)
+      # Hide files from git status
       # Uses both flags: skip-worktree (clear error on add) + assume-unchanged (perf)
       alias = {
         hide = "update-index --skip-worktree --assume-unchanged";
@@ -145,10 +144,6 @@
 
       merge = {
         conflictstyle = "zdiff3";
-        beads = {
-          name = "bd JSONL merge driver";
-          driver = "bd merge %O %A %B";
-        };
       };
 
       rebase = {

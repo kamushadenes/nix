@@ -112,17 +112,6 @@ _c_workspace_base() {
     echo "$HOME/.local/share/git/workspaces"
 }
 
-# Helper: ensure beads daemon is running with auto-commit/auto-push
-_c_ensure_beads_daemon() {
-    local target_dir="${1:-$(pwd)}"
-
-    if test -d "$target_dir/.beads"; then
-        # Restart daemon with proper flags (silent, don't fail if not running)
-        bd daemon --stop 2>/dev/null
-        bd daemon --start --auto-commit --auto-push 2>/dev/null
-    fi
-}
-
 # Helper: build command (happy or claude) with args
 # Usage: _c_build_cmd [args...]
 # Respects _C_USE_LOCAL flag - if true, uses claude directly, otherwise uses happy
@@ -164,8 +153,6 @@ _c_default() {
     account=$(_c_detect_account "$git_root")
     _c_set_account_env "$account"
 
-    # Ensure beads daemon is running with proper flags
-    _c_ensure_beads_daemon "$git_root"
 
     git_folder=$(basename "$git_root")
     parent_folder=$(basename "$(dirname "$git_root")")
@@ -284,8 +271,6 @@ _c_worktree() {
     fi
     printf '\033]0;%s\007' "$title"
 
-    # Ensure beads daemon is running with proper flags
-    _c_ensure_beads_daemon "$workspace_path"
 
     echo "Created workspace: $workspace_path"
     echo "Session: $session_name"
@@ -436,8 +421,6 @@ $id	$project	$branch	$ws_path"
 
         session_name="claude-$parent_norm-$repo_norm-$norm_branch-$id"
 
-        # Ensure beads daemon is running with proper flags
-        _c_ensure_beads_daemon "$ws_path"
 
         echo "Starting new session: $session_name"
         if [ -n "$account" ]; then
