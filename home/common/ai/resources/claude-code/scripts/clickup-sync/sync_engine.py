@@ -1,5 +1,6 @@
 """Core sync engine for bidirectional ClickUp-Beads synchronization."""
 
+import fcntl
 from pathlib import Path
 
 try:
@@ -69,6 +70,10 @@ PRIORITY_CLICKUP_TO_BEAD = {
 }
 
 
+class SyncLockError(Exception):
+    """Raised when sync lock cannot be acquired."""
+
+
 class SyncEngine:
     """Bidirectional sync engine for ClickUp and Beads."""
 
@@ -96,6 +101,7 @@ class SyncEngine:
         self.verbose = verbose
         self.beads_dir = beads_dir
         self.sync_state = load_sync_state(beads_dir)
+        self._lock_file = None
 
         # Build status mapping (config overrides defaults)
         self.status_bead_to_clickup = DEFAULT_STATUS_BEAD_TO_CLICKUP.copy()
@@ -107,6 +113,30 @@ class SyncEngine:
         if self.verbose:
             print(f"  {msg}")
 
+    def _acquire_lock(self) -> None:
+        """Acquire exclusive sync lock to prevent concurrent syncs."""
+        lock_path = self.beads_dir / "clickup-sync.lock"
+        self._lock_file = open(lock_path, "w")
+        try:
+            fcntl.flock(self._lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except (OSError, IOError) as e:
+            self._lock_file.close()
+            self._lock_file = None
+            raise SyncLockError(
+                "Another sync is already running. "
+                "If you're sure no other sync is running, remove .beads/clickup-sync.lock"
+            ) from e
+
+    def _release_lock(self) -> None:
+        """Release sync lock."""
+        if self._lock_file:
+            try:
+                fcntl.flock(self._lock_file.fileno(), fcntl.LOCK_UN)
+                self._lock_file.close()
+            except Exception:
+                pass
+            self._lock_file = None
+
     def sync(self) -> SyncResult:
         """
         Run full bidirectional sync.
@@ -117,41 +147,86 @@ class SyncEngine:
         Returns:
             SyncResult with counts and errors
         """
-        result = SyncResult()
+        # Acquire lock to prevent concurrent syncs
+        self._acquire_lock()
 
-        # Phase 1: PULL
-        self.log("=== PULL Phase (ClickUp -> Beads) ===")
-        self._pull(result)
+        try:
+            result = SyncResult()
 
-        # Phase 2: PUSH
-        self.log("=== PUSH Phase (Beads -> ClickUp) ===")
-        self._push(result)
+            # Fetch ClickUp tasks once and share between phases
+            self.log("Fetching ClickUp tasks...")
+            clickup_tasks = self.api.get_all_tasks(self.config.list_id)
+            self.log(f"Fetched {len(clickup_tasks)} tasks from ClickUp")
 
-        # Save sync state
-        save_sync_state(self.sync_state, self.beads_dir)
+            # Build task lookup by normalized title for duplicate detection
+            self._clickup_tasks_by_title: dict[str, ClickUpTask] = {}
+            for task in clickup_tasks:
+                title_normalized = task.name.strip().lower()
+                # Keep first occurrence (oldest task ID is likely the original)
+                if title_normalized not in self._clickup_tasks_by_title:
+                    self._clickup_tasks_by_title[title_normalized] = task
 
-        return result
+            # Phase 1: PULL
+            self.log("=== PULL Phase (ClickUp -> Beads) ===")
+            self._pull(result, clickup_tasks)
 
-    def _pull(self, result: SyncResult) -> None:
+            # Phase 2: PUSH
+            self.log("=== PUSH Phase (Beads -> ClickUp) ===")
+            self._push(result)
+
+            # Only save sync state if no critical errors occurred
+            if not result.errors:
+                save_sync_state(self.sync_state, self.beads_dir)
+            else:
+                self.log("⚠️  Errors occurred; sync state NOT saved to prevent inconsistency")
+
+            return result
+        finally:
+            self._release_lock()
+
+    def _pull(self, result: SyncResult, clickup_tasks: list[ClickUpTask]) -> None:
         """Pull tasks from ClickUp to beads."""
-        # Get all ClickUp tasks
-        clickup_tasks = self.api.get_all_tasks(self.config.list_id)
-        self.log(f"Fetched {len(clickup_tasks)} tasks from ClickUp")
-
         # Get all beads with external refs
         all_beads = self.beads.list_issues(include_closed=True)
         bead_by_clickup_id: dict[str, Bead] = {}
+        bead_by_title: dict[str, Bead] = {}
 
         for b in all_beads:
             if b.external_ref and b.external_ref.startswith("clickup-"):
                 clickup_id = b.external_ref[8:]  # Remove "clickup-" prefix
                 bead_by_clickup_id[clickup_id] = b
+            # Also index by normalized title for fallback matching
+            title_normalized = b.title.strip().lower()
+            if title_normalized not in bead_by_title:
+                bead_by_title[title_normalized] = b
 
         self.log(f"Found {len(bead_by_clickup_id)} beads with ClickUp refs")
 
         for task in clickup_tasks:
             try:
                 existing_bead = bead_by_clickup_id.get(task.id)
+
+                # If no match by external_ref, try title-based matching
+                if existing_bead is None:
+                    title_normalized = task.name.strip().lower()
+                    title_match = bead_by_title.get(title_normalized)
+
+                    if title_match and not title_match.external_ref:
+                        # Found unlinked bead with same title - link it instead of creating
+                        self.log(
+                            f"[PULL: Link] Linking existing bead {title_match.id} "
+                            f"to ClickUp task {task.id} by title match: {task.name}"
+                        )
+                        self.beads.update_issue(
+                            title_match.id, external_ref=f"clickup-{task.id}"
+                        )
+                        # Update sync state
+                        task_hash = compute_task_hash(task)
+                        update_sync_state(
+                            self.sync_state, title_match.id, task_hash, task_hash
+                        )
+                        result.pulled_updated += 1
+                        continue
 
                 if existing_bead is None:
                     # Create new bead (first-time import from ClickUp)
@@ -243,26 +318,96 @@ class SyncEngine:
                         result.pushed_skipped += 1
 
                 else:
-                    # No external ref - create in ClickUp (first-time link)
-                    task_id = self._create_task_from_bead(bead)
-                    self.log(f"[PUSH: Link] Created ClickUp task {task_id} from bead {bead.id}: {bead.title}")
+                    # No external ref - check for existing ClickUp task by title first
+                    title_normalized = bead.title.strip().lower()
+                    existing_task = self._clickup_tasks_by_title.get(title_normalized)
 
-                    # Update bead with external ref
-                    self.beads.update_issue(
-                        bead.id, external_ref=f"clickup-{task_id}"
-                    )
-                    result.pushed_created += 1
+                    if existing_task:
+                        # Found existing task with same title - link instead of create
+                        self.log(
+                            f"[PUSH: Link] Linking bead {bead.id} to existing "
+                            f"ClickUp task {existing_task.id} by title match: {bead.title}"
+                        )
+                        self.beads.update_issue(
+                            bead.id, external_ref=f"clickup-{existing_task.id}"
+                        )
+                        result.pushed_updated += 1
 
-                    # Record sync state for new task
-                    bead_hash = compute_bead_hash(bead)
-                    update_sync_state(
-                        self.sync_state, bead.id, bead_hash, bead_hash
-                    )
+                        # Update sync state
+                        bead_hash = compute_bead_hash(bead)
+                        task_hash = compute_task_hash(existing_task)
+                        update_sync_state(
+                            self.sync_state, bead.id, bead_hash, task_hash
+                        )
+                    else:
+                        # No existing task - create new one (atomic operation)
+                        task_id = self._create_task_and_link_bead(bead, result)
+                        if task_id:
+                            self.log(
+                                f"[PUSH: Link] Created ClickUp task {task_id} "
+                                f"from bead {bead.id}: {bead.title}"
+                            )
 
             except Exception as e:
                 error = f"Push error for bead {bead.id}: {e}"
                 self.log(f"ERROR: {error}")
                 result.errors.append(error)
+
+    def _create_task_and_link_bead(self, bead: Bead, result: SyncResult) -> str | None:
+        """
+        Create ClickUp task and link to bead atomically.
+
+        If task creation succeeds but linking fails, we record the error with
+        recovery instructions rather than leaving orphaned tasks.
+
+        Returns:
+            Task ID if successful, None if failed
+        """
+        task_id = None
+        try:
+            # Step 1: Create ClickUp task
+            task_id = self._create_task_from_bead(bead)
+
+            # Step 2: Update bead with external ref (atomic with step 1)
+            try:
+                self.beads.update_issue(
+                    bead.id, external_ref=f"clickup-{task_id}"
+                )
+            except Exception as link_error:
+                # CRITICAL: Task created but linking failed
+                # Provide recovery instructions
+                error = (
+                    f"CRITICAL: Created ClickUp task {task_id} but failed to link "
+                    f"bead {bead.id}. Manual fix required: "
+                    f"'bd update {bead.id} --external-ref clickup-{task_id}'. "
+                    f"Error: {link_error}"
+                )
+                self.log(f"ERROR: {error}")
+                result.errors.append(error)
+                return None
+
+            result.pushed_created += 1
+
+            # Record sync state for new task
+            bead_hash = compute_bead_hash(bead)
+            update_sync_state(
+                self.sync_state, bead.id, bead_hash, bead_hash
+            )
+
+            return task_id
+
+        except Exception as e:
+            if task_id:
+                # Task was created but something else failed
+                error = (
+                    f"Error after creating ClickUp task {task_id} for bead {bead.id}: {e}. "
+                    f"Manual cleanup may be needed."
+                )
+            else:
+                error = f"Failed to create ClickUp task for bead {bead.id}: {e}"
+            self.log(f"ERROR: {error}")
+            result.errors.append(error)
+            return None
 
     def _create_bead_from_task(self, task: ClickUpTask) -> str:
         """Create a new bead from a ClickUp task."""

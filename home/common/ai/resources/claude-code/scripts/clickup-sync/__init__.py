@@ -4,7 +4,7 @@ from .beads_client import BeadsClient, BeadsError
 from .clickup_api import ClickUpAPI, ClickUpAPIError
 from .config import ConfigError, load_config, save_config
 from .models import Bead, BeadStatus, ClickUpTask, SyncConfig, SyncResult
-from .sync_engine import SyncEngine
+from .sync_engine import SyncEngine, SyncLockError
 
 __all__ = [
     "Bead",
@@ -17,6 +17,7 @@ __all__ = [
     "ConfigError",
     "SyncConfig",
     "SyncEngine",
+    "SyncLockError",
     "SyncResult",
     "load_config",
     "save_config",
