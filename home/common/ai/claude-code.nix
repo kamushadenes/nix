@@ -94,32 +94,6 @@ in
     github-mcp-server # GitHub MCP server binary
     packages.happy-coder # Mobile/web client wrapper for Claude Code and Codex (custom build)
 
-    # ClickUp sync script for bidirectional beads<->ClickUp synchronization
-    (
-      let
-        pythonEnv = python3.withPackages (ps: [
-          ps.requests
-          ps.pyyaml
-        ]);
-      in
-      stdenv.mkDerivation {
-        pname = "clickup-sync";
-        version = "1.0.0";
-
-        src = "${scriptsDir}/clickup-sync";
-
-        nativeBuildInputs = [ makeWrapper ];
-
-        installPhase = ''
-          mkdir -p $out/lib/clickup-sync $out/bin
-          cp -r . $out/lib/clickup-sync/
-
-          makeWrapper ${pythonEnv}/bin/python3 $out/bin/clickup-sync \
-            --set PYTHONPATH "$out/lib/clickup-sync" \
-            --add-flags "$out/lib/clickup-sync/clickup_sync.py"
-        '';
-      }
-    )
   ];
 
   #############################################################################
@@ -169,12 +143,9 @@ in
       architecture-review = builtins.readFile "${commandsDir}/architecture-review.md";
       dependency-audit = builtins.readFile "${commandsDir}/dependency-audit.md";
       deep-review = builtins.readFile "${commandsDir}/deep-review.md";
-      beads-init = builtins.readFile "${commandsDir}/beads-init.md";
-      beads-merge = builtins.readFile "${commandsDir}/beads-merge.md";
       sync-ai-dev = builtins.readFile "${commandsDir}/sync-ai-dev.md";
-      clickup-sync = builtins.readFile "${commandsDir}/clickup-sync.md";
       vanta-sync = builtins.readFile "${commandsDir}/vanta-sync.md";
-      plan-to-beads = builtins.readFile "${commandsDir}/plan-to-beads.md";
+      plan-to-tasks = builtins.readFile "${commandsDir}/plan-to-tasks.md";
     };
 
     # Note: rules option is not available in this home-manager version
@@ -245,29 +216,10 @@ in
               }
             ];
           }
-          {
-            matcher = "";
-            hooks = [
-              {
-                type = "command";
-                command = "bd prime";
-              }
-            ];
-          }
         ];
 
         # Run before context compaction
-        PreCompact = [
-          {
-            matcher = "";
-            hooks = [
-              {
-                type = "command";
-                command = "bd prime";
-              }
-            ];
-          }
-        ];
+        PreCompact = [ ];
 
         # Run when Claude stops working
         Stop = [
@@ -277,10 +229,6 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/Stop/post-lint.sh";
-              }
-              {
-                type = "command";
-                command = "~/.claude/hooks/Stop/clickup-sync.sh";
               }
               {
                 type = "command";
@@ -464,10 +412,6 @@ in
       source = "${scriptsDir}/hooks/Stop/post-lint.sh";
       executable = true;
     };
-    ".claude/hooks/Stop/clickup-sync.sh" = {
-      source = "${scriptsDir}/hooks/Stop/clickup-sync.sh";
-      executable = true;
-    };
     ".claude/hooks/Stop/vanta-sync.sh" = {
       source = "${scriptsDir}/hooks/Stop/vanta-sync.sh";
       executable = true;
@@ -502,7 +446,7 @@ in
     ".claude/agents/architecture-reviewer.md".source = "${agentsDir}/architecture-reviewer.md";
     # Compliance and certification agents
     ".claude/agents/compliance-specialist.md".source = "${agentsDir}/compliance-specialist.md";
-    # Task automation agent (beads workflow)
+    # Task automation agent (task-master workflow)
     ".claude/agents/task-agent.md".source = "${agentsDir}/task-agent.md";
   }
   // lib.mapAttrs' (name: content: {

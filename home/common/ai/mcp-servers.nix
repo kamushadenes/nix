@@ -106,6 +106,20 @@ let
       ];
     };
 
+    # Task Master - AI-driven task management
+    task-master-ai = {
+      transport = "stdio";
+      command = "npx";
+      args = [
+        "-y"
+        "task-master-ai"
+      ];
+      env = {
+        TASK_MASTER_TOOLS = "standard";
+        OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
+      };
+    };
+
     # Note: clickup and vanta moved to private/home/common/ai/mcp-servers-private.nix
     # as iniciador-clickup and iniciador-vanta (workspace-scoped)
   };
@@ -119,6 +133,7 @@ let
     "github"
     "Ref"
     "orchestrator"
+    "task-master-ai"
   ];
 
   #############################################################################
@@ -129,6 +144,7 @@ let
     "@GITHUB_PAT@"
     "@REF_API_KEY@"
     "@TFE_TOKEN@"
+    "@OPENROUTER_API_KEY@"
   ];
 
   # Secret files (relative to private submodule)
@@ -136,6 +152,7 @@ let
     "@GITHUB_PAT@" = "home/common/ai/resources/claude/github-pat.age";
     "@REF_API_KEY@" = "home/common/ai/resources/claude/ref-api-key.age";
     "@TFE_TOKEN@" = "home/common/ai/resources/claude/tfe-token.age";
+    "@OPENROUTER_API_KEY@" = "home/common/ai/resources/claude/openrouter-api-key.age";
   };
 in
 rec {

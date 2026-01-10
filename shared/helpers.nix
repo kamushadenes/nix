@@ -99,9 +99,6 @@ let
       # Claude Code LSP tools
       ENABLE_LSP_TOOLS = "1";
 
-      # Beads sync branch (for protected branch workflows)
-      BEADS_SYNC_BRANCH = "beads-sync";
-
       # Happy Coder server URL (local network)
       HAPPY_SERVER_URL = "https://happy.hyades.io";
     };
