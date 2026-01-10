@@ -330,12 +330,14 @@ class ClickUpMCPClient:
 
     def delete_task(self, task_id: str) -> None:
         """
-        Delete a task.
+        Delete/archive a task by setting status to Closed.
+
+        Note: ClickUp MCP doesn't support true deletion, so we mark as closed.
 
         Args:
             task_id: ClickUp task ID
         """
-        self._call_tool("clickup_update_task", {"task_id": task_id, "archived": True})
+        self._call_tool("clickup_update_task", {"task_id": task_id, "status": "Closed"})
 
     def get_comments(self, task_id: str) -> list[dict]:
         """
