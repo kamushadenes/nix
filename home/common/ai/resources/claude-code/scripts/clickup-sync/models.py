@@ -55,6 +55,8 @@ class SyncConfig:
     account: str  # Account name for token lookup
     space_name: Optional[str] = None
     last_sync: Optional[datetime] = None
+    # Custom status mapping for this ClickUp list (beads status -> clickup status)
+    status_mapping: Optional[dict[str, str]] = None
 
 
 @dataclass

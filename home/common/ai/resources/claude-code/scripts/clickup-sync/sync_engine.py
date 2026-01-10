@@ -27,15 +27,13 @@ except ImportError:
         update_sync_state,
     )
 
-# Status mapping: Beads -> ClickUp
-# NOTE: These are common ClickUp status names. If your list uses different
-# status names (e.g., "backlog", "done"), update these mappings accordingly.
-# The sync will skip status updates for statuses that don't exist in the list.
-STATUS_BEAD_TO_CLICKUP = {
-    BeadStatus.OPEN: "to do",
-    BeadStatus.IN_PROGRESS: "in progress",
-    BeadStatus.BLOCKED: "on hold",
-    BeadStatus.CLOSED: "closed",
+# Default status mapping: Beads -> ClickUp
+# Can be overridden per-list in .beads/clickup.yaml with status_mapping
+DEFAULT_STATUS_BEAD_TO_CLICKUP = {
+    "open": "to do",
+    "in_progress": "in progress",
+    "blocked": "on hold",
+    "closed": "closed",
 }
 
 # Status mapping: ClickUp -> Beads (case-insensitive)
@@ -98,6 +96,11 @@ class SyncEngine:
         self.verbose = verbose
         self.beads_dir = beads_dir
         self.sync_state = load_sync_state(beads_dir)
+
+        # Build status mapping (config overrides defaults)
+        self.status_bead_to_clickup = DEFAULT_STATUS_BEAD_TO_CLICKUP.copy()
+        if config.status_mapping:
+            self.status_bead_to_clickup.update(config.status_mapping)
 
     def log(self, msg: str) -> None:
         """Log a message if verbose mode is enabled."""
@@ -328,7 +331,7 @@ class SyncEngine:
         )
 
         # Try to update status if not open (may fail if status doesn't exist)
-        status = STATUS_BEAD_TO_CLICKUP.get(bead.status)
+        status = self.status_bead_to_clickup.get(bead.status.value)
         if status and bead.status != BeadStatus.OPEN:
             try:
                 self.api.update_task(task_id, status=status)
@@ -350,7 +353,7 @@ class SyncEngine:
         )
 
         # Try to update status separately - may fail if status doesn't exist in list
-        status = STATUS_BEAD_TO_CLICKUP.get(bead.status)
+        status = self.status_bead_to_clickup.get(bead.status.value)
         if status:
             try:
                 self.api.update_task(task_id, status=status)

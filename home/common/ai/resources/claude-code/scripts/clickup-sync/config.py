@@ -63,6 +63,9 @@ def load_config(beads_dir: Path = Path(".beads")) -> SyncConfig:
         except (ValueError, AttributeError):
             pass  # Ignore invalid timestamps
 
+    # Load custom status mapping if provided
+    status_mapping = data.get("status_mapping")
+
     return SyncConfig(
         list_id=linked_list["list_id"],
         list_name=linked_list.get("list_name", ""),
@@ -70,6 +73,7 @@ def load_config(beads_dir: Path = Path(".beads")) -> SyncConfig:
         account=account,
         space_name=linked_list.get("space_name"),
         last_sync=last_sync,
+        status_mapping=status_mapping,
     )
 
 
@@ -95,6 +99,9 @@ def save_config(config: SyncConfig, beads_dir: Path = Path(".beads")) -> None:
 
     if config.space_name:
         data["linked_list"]["space_name"] = config.space_name
+
+    if config.status_mapping:
+        data["status_mapping"] = config.status_mapping
 
     with open(config_path, "w") as f:
         yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
