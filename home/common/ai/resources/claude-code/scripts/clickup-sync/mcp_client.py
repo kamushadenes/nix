@@ -191,7 +191,7 @@ class ClickUpMCPClient:
 
     def get_all_tasks(self, list_id: str, full_details: bool = True) -> list[ClickUpTask]:
         """
-        Get all tasks from a ClickUp list.
+        Get all tasks from a ClickUp list with pagination.
 
         Args:
             list_id: ClickUp list ID
@@ -200,17 +200,34 @@ class ClickUpMCPClient:
         Returns:
             List of all ClickUpTask objects
         """
-        # Get basic task list from search
-        result = self._call_tool("clickup_search", {"list_id": list_id})
-        search_tasks = result.get("results", []) if isinstance(result, dict) else []
+        # Get all tasks with pagination
+        all_search_tasks: list[dict] = []
+        cursor: Optional[str] = None
+
+        while True:
+            args = {"list_id": list_id}
+            if cursor:
+                args["cursor"] = cursor
+
+            result = self._call_tool("clickup_search", args)
+            if not isinstance(result, dict):
+                break
+
+            search_tasks = result.get("results", [])
+            all_search_tasks.extend(search_tasks)
+
+            # Check for next page
+            cursor = result.get("next_cursor")
+            if not cursor:
+                break
 
         if not full_details:
             # Return basic search results
-            return [self._parse_task(t) for t in search_tasks]
+            return [self._parse_task(t) for t in all_search_tasks]
 
         # Fetch full details for each task
         full_tasks: list[ClickUpTask] = []
-        for t in search_tasks:
+        for t in all_search_tasks:
             task_id = t.get("id")
             if task_id:
                 try:
