@@ -311,6 +311,15 @@ class ClickUpMCPClient:
         if len(args) > 1:  # More than just task_id
             self._call_tool("clickup_update_task", args)
 
+    def delete_task(self, task_id: str) -> None:
+        """
+        Delete a task.
+
+        Args:
+            task_id: ClickUp task ID
+        """
+        self._call_tool("clickup_update_task", {"task_id": task_id, "archived": True})
+
     def get_comments(self, task_id: str) -> list[dict]:
         """
         Get comments on a task.

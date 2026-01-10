@@ -6,6 +6,8 @@ Usage:
     clickup-sync           # Run sync
     clickup-sync --dry-run # Show what would be done
     clickup-sync --status  # Show sync status
+    clickup-sync list      # List ClickUp tasks
+    clickup-sync delete <task_id> [task_id ...]  # Delete/archive tasks
 """
 
 import argparse
@@ -33,6 +35,103 @@ except ImportError:
     from sync_engine import SyncEngine
 
 
+def cmd_list(api, config, args) -> int:
+    """List tasks from ClickUp."""
+    tasks = api.get_all_tasks(config.list_id, full_details=True)
+
+    if args.filter:
+        filter_lower = args.filter.lower()
+        tasks = [t for t in tasks if filter_lower in t.name.lower()]
+
+    if not tasks:
+        print("No tasks found.")
+        return 0
+
+    # Sort by name for easier reading
+    tasks.sort(key=lambda t: t.name.lower())
+
+    print(f"Tasks in {config.list_name} ({len(tasks)}):\n")
+    for task in tasks:
+        priority_str = f"P{task.priority}" if task.priority else "P-"
+        status_str = task.status[:12].ljust(12) if task.status else "unknown"
+        print(f"  {task.id}  [{priority_str}] [{status_str}] {task.name}")
+
+    return 0
+
+
+def cmd_delete(api, config, args) -> int:
+    """Delete/archive tasks from ClickUp."""
+    if not args.task_ids:
+        print("Error: No task IDs provided.", file=sys.stderr)
+        return 1
+
+    # First, show what we're about to delete
+    print("Tasks to delete:")
+    tasks_to_delete = []
+    for task_id in args.task_ids:
+        try:
+            task = api.get_task(task_id)
+            tasks_to_delete.append(task)
+            print(f"  {task.id}: {task.name}")
+        except Exception as e:
+            print(f"  {task_id}: ERROR - {e}", file=sys.stderr)
+
+    if not tasks_to_delete:
+        print("\nNo valid tasks to delete.")
+        return 1
+
+    # Confirm unless --force
+    if not args.force:
+        print(f"\nThis will archive {len(tasks_to_delete)} task(s). Continue? [y/N] ", end="")
+        response = input().strip().lower()
+        if response not in ("y", "yes"):
+            print("Aborted.")
+            return 0
+
+    # Delete tasks
+    print("\nDeleting tasks...")
+    deleted = 0
+    for task in tasks_to_delete:
+        try:
+            api.delete_task(task.id)
+            print(f"  Archived: {task.id} - {task.name}")
+            deleted += 1
+        except Exception as e:
+            print(f"  FAILED: {task.id} - {e}", file=sys.stderr)
+
+    print(f"\nArchived {deleted}/{len(tasks_to_delete)} task(s).")
+    return 0 if deleted == len(tasks_to_delete) else 1
+
+
+def cmd_sync(api, beads, config, args, beads_dir) -> int:
+    """Run sync."""
+    engine = SyncEngine(api, beads, config, verbose=args.verbose, beads_dir=beads_dir)
+
+    print(f"Syncing with ClickUp list: {config.list_name}...")
+
+    try:
+        result = engine.sync()
+    except Exception as e:
+        print(f"Sync failed: {e}", file=sys.stderr)
+        return 1
+
+    # Update last_sync timestamp
+    save_config(config, beads_dir)
+
+    # Report results
+    print()
+    print("Sync complete:")
+    print(f"  {result}")
+
+    if result.errors:
+        print(f"\nErrors ({len(result.errors)}):")
+        for error in result.errors:
+            print(f"  - {error}")
+        return 1
+
+    return 0
+
+
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -44,8 +143,45 @@ Examples:
   clickup-sync --status     # Check configuration
   clickup-sync --dry-run    # Preview changes (not implemented yet)
   clickup-sync -v           # Verbose output
+  clickup-sync list         # List all ClickUp tasks
+  clickup-sync list -f "keyword"  # Filter tasks by keyword
+  clickup-sync delete <id>  # Delete/archive a task
+  clickup-sync delete <id1> <id2> --force  # Delete multiple without confirm
         """,
     )
+
+    # Global options
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Verbose output",
+    )
+
+    # Subcommands
+    subparsers = parser.add_subparsers(dest="command", help="Commands")
+
+    # list command
+    list_parser = subparsers.add_parser("list", help="List ClickUp tasks")
+    list_parser.add_argument(
+        "--filter", "-f",
+        help="Filter tasks by keyword in name",
+    )
+
+    # delete command
+    delete_parser = subparsers.add_parser("delete", help="Delete/archive ClickUp tasks")
+    delete_parser.add_argument(
+        "task_ids",
+        nargs="*",
+        help="Task IDs to delete",
+    )
+    delete_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt",
+    )
+
+    # Legacy options (when no subcommand)
     parser.add_argument(
         "--dry-run",
         "-n",
@@ -57,12 +193,6 @@ Examples:
         "-s",
         action="store_true",
         help="Show sync configuration and status",
-    )
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Verbose output",
     )
 
     args = parser.parse_args()
@@ -103,35 +233,18 @@ Examples:
         print("Would sync with ClickUp list:", config.list_name)
         return 0
 
-    # Initialize clients
+    # Initialize API client
     api = ClickUpMCPClient(token)
-    beads = BeadsClient(cwd=".")
-    engine = SyncEngine(api, beads, config, verbose=args.verbose, beads_dir=beads_dir)
 
-    # Run sync
-    print(f"Syncing with ClickUp list: {config.list_name}...")
-
-    try:
-        result = engine.sync()
-    except Exception as e:
-        print(f"Sync failed: {e}", file=sys.stderr)
-        return 1
-
-    # Update last_sync timestamp
-    save_config(config, beads_dir)
-
-    # Report results
-    print()
-    print("Sync complete:")
-    print(f"  {result}")
-
-    if result.errors:
-        print(f"\nErrors ({len(result.errors)}):")
-        for error in result.errors:
-            print(f"  - {error}")
-        return 1
-
-    return 0
+    # Handle subcommands
+    if args.command == "list":
+        return cmd_list(api, config, args)
+    elif args.command == "delete":
+        return cmd_delete(api, config, args)
+    else:
+        # Default: run sync
+        beads = BeadsClient(cwd=".")
+        return cmd_sync(api, beads, config, args, beads_dir)
 
 
 if __name__ == "__main__":
