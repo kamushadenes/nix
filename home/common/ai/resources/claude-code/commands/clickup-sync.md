@@ -1,53 +1,79 @@
 ---
-allowed-tools: Bash(clickup-sync:*), Task
-description: Sync ClickUp tasks with beads bidirectionally
+allowed-tools: Task, MCPSearch, mcp__task-master-ai__*, mcp__iniciador-clickup__*
+description: Sync ClickUp tasks with task-master bidirectionally
 ---
 
 ## Context
 
-- Beads initialized: !`test -d .beads && echo "yes" || echo "no"`
-- ClickUp linked: !`test -f .beads/clickup.yaml && echo "yes" || echo "no"`
-- Link config: !`cat .beads/clickup.yaml 2>/dev/null || echo "Not linked"`
+- Task-master initialized: !`test -d .taskmaster && echo "yes" || echo "no"`
+- ClickUp config: !`cat .taskmaster/clickup.yaml 2>/dev/null || echo "Not linked"`
 
 ## Your Task
 
-### If beads is NOT initialized (.beads directory missing):
+Use the **Task tool** with `subagent_type='task-agent'` to run the sync.
 
-Tell the user to run `bd init` first to initialize beads in this repository.
+### If task-master is NOT initialized (.taskmaster directory missing):
 
-### If ClickUp is NOT linked (.beads/clickup.yaml missing):
+Tell the user to initialize task-master first:
+```bash
+# Use the initialize_project MCP tool or run:
+npx task-master-ai init
+```
 
-Ask the user which ClickUp account they want to use (e.g., `iniciador`), then create `.beads/clickup.yaml`:
+### If ClickUp is NOT linked (.taskmaster/clickup.yaml missing):
+
+Ask the user which ClickUp workspace to use, then:
+
+1. Use `mcp__iniciador-clickup__clickup_get_workspace_hierarchy` to browse spaces/lists
+2. Let user select the list to sync with
+3. Create `.taskmaster/clickup.yaml`:
 
 ```yaml
-account: <account_name>
-linked_list:
-  list_id: "<clickup_list_id>"
-  list_name: "<list_name>"
-  space_id: "<space_id>"
-  space_name: "<space_name>"
+workspace: <workspace_name>
+list_id: "<clickup_list_id>"
+list_name: "<list_name>"
+space_id: "<space_id>"
+space_name: "<space_name>"
+linked_at: "<ISO 8601 timestamp>"
+last_sync: null
 ```
 
-The user can find the list_id from the ClickUp URL: `https://app.clickup.com/<team_id>/v/li/<list_id>`
+### If ClickUp IS linked (.taskmaster/clickup.yaml exists):
 
-After setup, run `clickup-sync` to perform initial sync.
+Run bidirectional sync:
 
-### If ClickUp IS linked (.beads/clickup.yaml exists):
+**PULL (ClickUp → task-master):**
+1. Read config for `list_id`
+2. Use `mcp__iniciador-clickup__clickup_search` to get tasks from the list
+3. For each ClickUp task:
+   - Check if task-master task exists with matching title or ID in description
+   - If no match: use `mcp__task-master-ai__add_task` to create
+   - If match: compare dates, update if ClickUp is newer
 
-Run the sync (account is read from the config file):
+**PUSH (task-master → ClickUp):**
+1. Use `mcp__task-master-ai__get_tasks` to list local tasks
+2. For each task-master task:
+   - Check if ClickUp task exists (search by title)
+   - If no match: use `mcp__iniciador-clickup__clickup_create_task`
+   - If match: compare dates, update if task-master is newer
 
-```bash
-clickup-sync -v
-```
+**Status Mapping:**
 
-Report the results when complete.
+| Task-Master | ClickUp |
+|-------------|---------|
+| backlog | "to do", "open" |
+| in-progress | "in progress" |
+| done | "complete", "closed" |
+| blocked | "blocked" |
 
-## Options
+**Priority Mapping:**
 
-- `clickup-sync` - Run sync (account from config)
-- `clickup-sync --status` - Show configuration and last sync time
-- `clickup-sync --dry-run` - Preview changes (not fully implemented)
-- `clickup-sync -v` - Verbose output
-- `clickup-sync list` - List all ClickUp tasks
-- `clickup-sync list -f "keyword"` - Filter tasks
-- `clickup-sync delete <id>` - Delete/archive a task
+| Task-Master | ClickUp |
+|-------------|---------|
+| high | 1 (Urgent) or 2 (High) |
+| medium | 3 (Normal) |
+| low | 4 (Low) |
+
+4. Update `last_sync` in config
+
+Report sync results when complete.

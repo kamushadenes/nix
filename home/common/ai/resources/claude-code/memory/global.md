@@ -4,7 +4,7 @@ These rules apply to all projects.
 
 ## Task Tracking (IMPORTANT)
 
-Use 'bd' for task tracking
+Use task-master MCP for task tracking
 
 ## Git Commit Rules
 

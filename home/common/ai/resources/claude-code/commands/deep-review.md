@@ -1,9 +1,9 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test:*),Bash(cat .beads/*:*), Bash(bd:*), Task, AskUserQuestion, mcp__iniciador-clickup__clickup_create_task
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test:*), Task, AskUserQuestion, MCPSearch, mcp__task-master-ai__*, mcp__iniciador-clickup__clickup_create_task
 description: Comprehensive multi-agent code review using 9 specialized agents with 3-model consensus
 ---
 
-Run a comprehensive deep review using all specialized review agents in parallel. Each agent uses 3 AI models (claude, codex, gemini) for thorough analysis. If beads is initialized (`.beads/` directory exists), you MUST create issues for findings at the end.
+Run a comprehensive deep review using all specialized review agents in parallel. Each agent uses 3 AI models (claude, codex, gemini) for thorough analysis. Optionally create task-master tasks for findings at the end.
 
 ## Steps
 
@@ -100,14 +100,14 @@ Options:
    target_files = ["src/", "lib/", "app/", "."]  # Agent will explore
    ```
 
-5. **Check if beads is initialized:**
+5. **Check if task-master is initialized:**
 
    ```bash
-   # Check if beads is available for issue tracking
-   if test -d .beads; then
-       beads_available=true
+   # Check if task-master is available for issue tracking
+   if test -d .taskmaster; then
+       taskmaster_available=true
    else
-       beads_available=false
+       taskmaster_available=false
    fi
    ```
 
@@ -254,20 +254,20 @@ dependency_checker = Task(
 
 9. Offer to help address any issues found
 
-10. **If beads is available, create issues for findings:**
+10. **If task-master is available, create tasks for findings:**
 
-    a. If `beads_available` is true and there are Critical or High severity findings:
+    a. If `taskmaster_available` is true and there are Critical or High severity findings:
 
     b. Use AskUserQuestion to let user select which findings to track:
 
     ```
-    Question: "Which findings would you like to track in beads?"
-    Header: "Track in beads"
+    Question: "Which findings would you like to track as tasks?"
+    Header: "Track tasks"
     Options: [List each Critical/High finding with brief description as label]
     MultiSelect: true
     ```
 
-    c. For each selected finding, create a beads issue with:
+    c. For each selected finding, create a task-master task using MCP tools:
 
     | Flag | Content |
     | ---- | ------- |
@@ -313,67 +313,29 @@ dependency_checker = Task(
     ```
 
     **Example for a critical security finding:**
-    ```bash
-    bd create \
-      --title="[CRITICAL] security: SQL injection vulnerability" \
-      --type=bug \
-      --priority=0 \
-      --labels="agent:security-auditor,security,sql-injection" \
-      --notes="Confidence: All 3 models agree" \
-      --acceptance="All database queries use parameterized statements" \
-      --description="$(cat <<'EOF'
-    ## Issue
-    SQL injection vulnerability in user authentication flow.
+    Use `mcp__task-master-ai__add_task` with:
+    - title: "[CRITICAL] security: SQL injection vulnerability"
+    - description: Full details including location, problem, recommendation
+    - priority: "high"
+    - status: "backlog"
 
-    ## Location
-    - **File**: src/auth.py
-    - **Line**: 45
-    - **Function**: `lookup_user()`
-
-    ## Problem
-    The `lookup_user()` function concatenates user input directly into SQL query without parameterization:
-    \`\`\`python
-    query = f"SELECT * FROM users WHERE username = '{username}'"
-    \`\`\`
-
-    This allows attackers to inject arbitrary SQL, potentially bypassing authentication or exfiltrating data.
-
-    ## Related Files
-    - src/db/queries.py (similar pattern on line 78)
-    - src/admin/users.py (similar pattern on line 112)
-
-    ## References
-    - https://owasp.org/www-community/attacks/SQL_Injection
-    - https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html
-
-    ## Recommendation
-    Use parameterized queries:
-    \`\`\`python
-    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-    \`\`\`
-    EOF
-    )"
-    ```
-
-    d. If ClickUp is linked (`.beads/clickup.yaml` exists), offer to sync new issues:
+    d. Offer to also create in ClickUp:
 
     ```
-    Question: "Sync new issues to ClickUp?"
+    Question: "Also create tasks in ClickUp?"
     Header: "ClickUp Sync"
     Options:
-    - "Yes, create in ClickUp" - Creates tasks and links via external_ref
-    - "No, keep local only" - Issues stay in beads only
+    - "Yes, create in ClickUp" - Creates tasks in ClickUp as well
+    - "No, task-master only" - Tasks stay local only
     ```
 
-    If yes, for each created bead:
-
+    If yes, for each created task:
     - Call `mcp__iniciador-clickup__clickup_create_task` with the finding details
-    - Update bead with `bd update <id> --external-ref=clickup-{new_task_id}`
 
-    e. Report created issues:
+    e. Report created tasks:
 
-    > Created X beads issues for the selected findings. Use `bd list` to view them.
-    > [If synced] Also created X tasks in ClickUp (linked via external_ref).
+    > Created X task-master tasks for the selected findings. Use `next_task` to view them.
+    > [If synced] Also created X tasks in ClickUp.
 
 ## Handling Subagent User Input Requests
 
@@ -411,4 +373,5 @@ AskUserQuestion(
 - Expect longer execution time (~2-3 minutes for changes, ~5+ minutes for full codebase)
 - Results are deduplicated and aggregated by severity
 - For large codebases, agents will focus on main source directories
-- If beads is initialized (`.beads/` directory exists), you MUST create issues for findings
+- If task-master is initialized (`.taskmaster/` directory exists), offer to create tasks for findings
+- Optionally sync tasks to ClickUp for team collaboration

@@ -253,7 +253,7 @@ Rules are always-loaded instructions that shape Claude's behavior.
    ## Planning Mode
    - Shift+Tab enters plan mode
    - Exit before making changes
-   - Run `/plan-to-beads` after completing plan
+   - Run `/plan-to-tasks` after completing plan
    ```
 
 2. **Tool rules** - When/how to use tools:

@@ -119,9 +119,22 @@
     "Bash(gh run:*)"
     "Bash(gh release:*)"
 
-    # Beads issue tracking
-    "Bash(bd:*)"
-    "Bash(clickup-sync:*)"
+    # Task-master MCP tools
+    "mcp__task-master-ai__get_tasks"
+    "mcp__task-master-ai__next_task"
+    "mcp__task-master-ai__get_task"
+    "mcp__task-master-ai__set_task_status"
+    "mcp__task-master-ai__add_task"
+    "mcp__task-master-ai__add_subtask"
+    "mcp__task-master-ai__remove_task"
+    "mcp__task-master-ai__update_subtask"
+    "mcp__task-master-ai__parse_prd"
+    "mcp__task-master-ai__expand_task"
+    "mcp__task-master-ai__expand_all"
+    "mcp__task-master-ai__initialize_project"
+    "mcp__task-master-ai__analyze_project_complexity"
+    "mcp__task-master-ai__complexity_report"
+    "mcp__task-master-ai__generate"
 
     # Terraform / Terragrunt
     "Bash(terraform plan:*)"
@@ -324,7 +337,7 @@
     "Skill(hookify:writing-rules)"
     "Skill(deep-review)"
     "Skill(ralph-loop:*)"
-    "Skill(plan-to-beads)"
+    "Skill(plan-to-tasks)"
 
     # Plugin scripts - ralph-loop
     "Bash(~/.claude/plugins/cache/claude-plugins-official/ralph-loop:*)"
