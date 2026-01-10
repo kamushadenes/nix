@@ -3,11 +3,10 @@
 ClickUp Sync - Deterministic bidirectional sync between beads and ClickUp.
 
 Usage:
-    clickup-sync --account iniciador           # Run sync
-    clickup-sync --account iniciador --dry-run # Show what would be done
-    clickup-sync --account iniciador --status  # Show sync status
-    clickup-sync --account iniciador list      # List ClickUp tasks
-    clickup-sync --account iniciador delete <task_id> [task_id ...]  # Delete/archive tasks
+    clickup-sync                    # Run sync (uses account from config)
+    clickup-sync --status           # Show sync status
+    clickup-sync list               # List ClickUp tasks
+    clickup-sync delete <task_id>   # Delete/archive tasks
 """
 
 import argparse
@@ -166,24 +165,16 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  clickup-sync --account iniciador              # Run full sync
-  clickup-sync --account iniciador --status     # Check configuration
-  clickup-sync --account iniciador --dry-run    # Preview changes (not implemented yet)
-  clickup-sync --account iniciador -v           # Verbose output
-  clickup-sync --account iniciador list         # List all ClickUp tasks
-  clickup-sync --account iniciador list -f "keyword"  # Filter tasks by keyword
-  clickup-sync --account iniciador delete <id>  # Delete/archive a task
-  clickup-sync --account iniciador delete <id1> <id2> --force  # Delete multiple
+  clickup-sync                 # Run full sync (account from .beads/clickup.yaml)
+  clickup-sync --status        # Check configuration
+  clickup-sync -v              # Verbose output
+  clickup-sync list            # List all ClickUp tasks
+  clickup-sync list -f "bug"   # Filter tasks by keyword
+  clickup-sync delete <id>     # Delete/archive a task
         """,
     )
 
     # Global options
-    parser.add_argument(
-        "--account",
-        "-a",
-        required=True,
-        help="Account name (e.g., iniciador). Required.",
-    )
     parser.add_argument(
         "--verbose",
         "-v",
@@ -239,7 +230,7 @@ Examples:
         )
         return 1
 
-    # Load configuration
+    # Load configuration (includes account)
     try:
         config = load_config(beads_dir)
     except ConfigError as e:
@@ -250,13 +241,13 @@ Examples:
     if args.status:
         print(f"ClickUp List: {config.list_name} ({config.list_id})")
         print(f"Space: {config.space_name or config.space_id}")
+        print(f"Account: {config.account}")
         print(f"Last sync: {config.last_sync or 'Never'}")
-        print(f"Account: {args.account}")
         return 0
 
-    # Get API token from secrets file
+    # Get API token from secrets file using config's account
     try:
-        token = get_token(args.account)
+        token = get_token(config.account)
     except TokenError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1

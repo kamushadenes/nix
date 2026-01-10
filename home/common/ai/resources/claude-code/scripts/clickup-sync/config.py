@@ -47,6 +47,13 @@ def load_config(beads_dir: Path = Path(".beads")) -> SyncConfig:
     if not linked_list.get("list_id"):
         raise ConfigError("Invalid config: missing list_id")
 
+    account = data.get("account")
+    if not account:
+        raise ConfigError(
+            "Invalid config: missing account.\n"
+            "Add 'account: <name>' to .beads/clickup.yaml"
+        )
+
     last_sync: Optional[datetime] = None
     if data.get("last_sync"):
         try:
@@ -60,6 +67,7 @@ def load_config(beads_dir: Path = Path(".beads")) -> SyncConfig:
         list_id=linked_list["list_id"],
         list_name=linked_list.get("list_name", ""),
         space_id=linked_list.get("space_id", ""),
+        account=account,
         space_name=linked_list.get("space_name"),
         last_sync=last_sync,
     )
@@ -76,6 +84,7 @@ def save_config(config: SyncConfig, beads_dir: Path = Path(".beads")) -> None:
     config_path = beads_dir / "clickup.yaml"
 
     data = {
+        "account": config.account,
         "linked_list": {
             "list_id": config.list_id,
             "list_name": config.list_name,

@@ -52,6 +52,7 @@ class SyncConfig:
     list_id: str
     list_name: str
     space_id: str
+    account: str  # Account name for token lookup
     space_name: Optional[str] = None
     last_sync: Optional[datetime] = None
 
