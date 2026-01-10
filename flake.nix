@@ -45,13 +45,14 @@
       mkDarwinHost =
         {
           machine,
+          role ? "workstation",
           shared ? false,
           system ? "aarch64-darwin",
         }:
         darwin.lib.darwinSystem {
           inherit system;
           specialArgs = {
-            inherit inputs machine shared private;
+            inherit inputs machine shared private role;
             pkgs-unstable = import nixpkgs-unstable {
               inherit system;
               config.allowUnfree = true;
@@ -66,13 +67,14 @@
         {
           machine,
           hardware,
+          role ? "workstation",
           shared ? false,
           system ? "x86_64-linux",
         }:
         nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = {
-            inherit inputs machine shared private hardware;
+            inherit inputs machine shared private hardware role;
             pkgs-unstable = import nixpkgs-unstable {
               inherit system;
               config.allowUnfree = true;
@@ -87,12 +89,12 @@
         agenix.darwinModules.default
         home-manager.darwinModules.home-manager
         (
-          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, ... }:
+          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, role, ... }:
           {
             home-manager = pkgs.lib.mkMerge [
               {
                 extraSpecialArgs = {
-                  inherit inputs pkgs-unstable machine platform shared private;
+                  inherit inputs pkgs-unstable machine platform shared private role;
                 };
               }
               hmDefaults
@@ -107,12 +109,12 @@
         agenix.nixosModules.default
         home-manager.nixosModules.home-manager
         (
-          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, private, ... }:
+          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, private, role, ... }:
           {
             home-manager = pkgs.lib.mkMerge [
               {
                 extraSpecialArgs = {
-                  inherit inputs pkgs-unstable machine platform shared private;
+                  inherit inputs pkgs-unstable machine platform shared private role;
                 };
               }
               hmDefaults
@@ -140,15 +142,31 @@
     in
     {
       darwinConfigurations = {
-        studio = mkDarwinHost { machine = "studio.hyades.io"; };
-        macbook-m3-pro = mkDarwinHost { machine = "macbook-m3-pro.hyades.io"; shared = true; };
-        w-henrique = mkDarwinHost { machine = "w-henrique.hyades.io"; };
+        studio = mkDarwinHost {
+          machine = "studio.hyades.io";
+          role = "workstation";
+        };
+        macbook-m3-pro = mkDarwinHost {
+          machine = "macbook-m3-pro.hyades.io";
+          role = "workstation";
+          shared = true;
+        };
+        w-henrique = mkDarwinHost {
+          machine = "w-henrique.hyades.io";
+          role = "workstation";
+        };
       };
 
       nixosConfigurations = {
         nixos = mkNixosHost {
           machine = "nixos";
+          role = "workstation";
           hardware = ./nixos/hardware/nixos.nix;
+        };
+        aether = mkNixosHost {
+          machine = "aether.hyades.io";
+          role = "headless";
+          hardware = ./nixos/hardware/aether.nix;
         };
       };
     };
