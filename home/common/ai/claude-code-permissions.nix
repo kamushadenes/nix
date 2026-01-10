@@ -10,6 +10,9 @@
   ];
 
   allow = [
+    # Core tools
+    "AskUserQuestion"
+
     # Basic commands
     "Bash(curl:*)"
     "Bash(tree:*)"
