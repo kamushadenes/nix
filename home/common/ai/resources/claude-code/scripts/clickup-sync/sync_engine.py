@@ -4,7 +4,7 @@ from pathlib import Path
 
 try:
     from .beads_client import BeadsClient
-    from .mcp_client import ClickUpMCPClient
+    from .clickup_api import ClickUpAPI
     from .models import Bead, BeadStatus, ClickUpTask, SyncConfig, SyncResult
     from .sync_state import (
         compute_bead_hash,
@@ -16,7 +16,7 @@ try:
     )
 except ImportError:
     from beads_client import BeadsClient
-    from mcp_client import ClickUpMCPClient
+    from clickup_api import ClickUpAPI
     from models import Bead, BeadStatus, ClickUpTask, SyncConfig, SyncResult
     from sync_state import (
         compute_bead_hash,
@@ -73,7 +73,7 @@ class SyncEngine:
 
     def __init__(
         self,
-        api: ClickUpMCPClient,
+        api: ClickUpAPI,
         beads: BeadsClient,
         config: SyncConfig,
         verbose: bool = False,
@@ -83,7 +83,7 @@ class SyncEngine:
         Initialize sync engine.
 
         Args:
-            api: ClickUp MCP client
+            api: ClickUp REST API client
             beads: Beads CLI client
             config: Sync configuration
             verbose: Enable verbose output

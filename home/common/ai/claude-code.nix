@@ -139,6 +139,11 @@ in
         file = "${private}/home/common/ai/resources/claude/vanta-credentials.age";
         path = "${secretsDir}/iniciador-vanta-credentials";
       };
+      # Iniciador ClickUp API token - for REST API sync
+      "claude-iniciador-clickup-token" = {
+        file = "${private}/home/common/ai/resources/claude/iniciador-clickup-token.age";
+        path = "${secretsDir}/iniciador-clickup-token";
+      };
     };
 
   #############################################################################

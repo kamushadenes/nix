@@ -3,11 +3,11 @@
 ClickUp Sync - Deterministic bidirectional sync between beads and ClickUp.
 
 Usage:
-    clickup-sync           # Run sync
-    clickup-sync --dry-run # Show what would be done
-    clickup-sync --status  # Show sync status
-    clickup-sync list      # List ClickUp tasks
-    clickup-sync delete <task_id> [task_id ...]  # Delete/archive tasks
+    clickup-sync --account iniciador           # Run sync
+    clickup-sync --account iniciador --dry-run # Show what would be done
+    clickup-sync --account iniciador --status  # Show sync status
+    clickup-sync --account iniciador list      # List ClickUp tasks
+    clickup-sync --account iniciador delete <task_id> [task_id ...]  # Delete/archive tasks
 """
 
 import argparse
@@ -18,24 +18,51 @@ from pathlib import Path
 try:
     from . import (
         BeadsClient,
-        ClickUpMCPClient,
+        ClickUpAPI,
+        ClickUpAPIError,
         ConfigError,
-        KeychainError,
         SyncEngine,
-        get_clickup_token,
         load_config,
         save_config,
     )
 except ImportError:
     # Running as standalone script
     from beads_client import BeadsClient
-    from mcp_client import ClickUpMCPClient
+    from clickup_api import ClickUpAPI, ClickUpAPIError
     from config import ConfigError, load_config, save_config
-    from keychain import KeychainError, get_clickup_token
     from sync_engine import SyncEngine
 
 
-def cmd_list(api, config, args) -> int:
+class TokenError(Exception):
+    """Error loading API token."""
+
+
+def get_token(account: str) -> str:
+    """
+    Load ClickUp API token from secrets file.
+
+    Args:
+        account: Account name (e.g., "iniciador")
+
+    Returns:
+        API token string
+
+    Raises:
+        TokenError: If token file not found or empty
+    """
+    token_path = Path.home() / ".claude" / "secrets" / f"{account}-clickup-token"
+    if not token_path.exists():
+        raise TokenError(
+            f"Token file not found: {token_path}\n"
+            f"Ensure agenix secret is configured for account '{account}'."
+        )
+    token = token_path.read_text().strip()
+    if not token:
+        raise TokenError(f"Token file is empty: {token_path}")
+    return token
+
+
+def cmd_list(api: ClickUpAPI, config, args) -> int:
     """List tasks from ClickUp."""
     tasks = api.get_all_tasks(config.list_id, full_details=True)
 
@@ -59,7 +86,7 @@ def cmd_list(api, config, args) -> int:
     return 0
 
 
-def cmd_delete(api, config, args) -> int:
+def cmd_delete(api: ClickUpAPI, config, args) -> int:
     """Delete/archive tasks from ClickUp."""
     if not args.task_ids:
         print("Error: No task IDs provided.", file=sys.stderr)
@@ -103,7 +130,7 @@ def cmd_delete(api, config, args) -> int:
     return 0 if deleted == len(tasks_to_delete) else 1
 
 
-def cmd_sync(api, beads, config, args, beads_dir) -> int:
+def cmd_sync(api: ClickUpAPI, beads: BeadsClient, config, args, beads_dir: Path) -> int:
     """Run sync."""
     engine = SyncEngine(api, beads, config, verbose=args.verbose, beads_dir=beads_dir)
 
@@ -139,18 +166,24 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  clickup-sync              # Run full sync
-  clickup-sync --status     # Check configuration
-  clickup-sync --dry-run    # Preview changes (not implemented yet)
-  clickup-sync -v           # Verbose output
-  clickup-sync list         # List all ClickUp tasks
-  clickup-sync list -f "keyword"  # Filter tasks by keyword
-  clickup-sync delete <id>  # Delete/archive a task
-  clickup-sync delete <id1> <id2> --force  # Delete multiple without confirm
+  clickup-sync --account iniciador              # Run full sync
+  clickup-sync --account iniciador --status     # Check configuration
+  clickup-sync --account iniciador --dry-run    # Preview changes (not implemented yet)
+  clickup-sync --account iniciador -v           # Verbose output
+  clickup-sync --account iniciador list         # List all ClickUp tasks
+  clickup-sync --account iniciador list -f "keyword"  # Filter tasks by keyword
+  clickup-sync --account iniciador delete <id>  # Delete/archive a task
+  clickup-sync --account iniciador delete <id1> <id2> --force  # Delete multiple
         """,
     )
 
     # Global options
+    parser.add_argument(
+        "--account",
+        "-a",
+        required=True,
+        help="Account name (e.g., iniciador). Required.",
+    )
     parser.add_argument(
         "--verbose",
         "-v",
@@ -218,12 +251,13 @@ Examples:
         print(f"ClickUp List: {config.list_name} ({config.list_id})")
         print(f"Space: {config.space_name or config.space_id}")
         print(f"Last sync: {config.last_sync or 'Never'}")
+        print(f"Account: {args.account}")
         return 0
 
-    # Get OAuth token from keychain
+    # Get API token from secrets file
     try:
-        token = get_clickup_token()
-    except KeychainError as e:
+        token = get_token(args.account)
+    except TokenError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
@@ -234,7 +268,7 @@ Examples:
         return 0
 
     # Initialize API client
-    api = ClickUpMCPClient(token)
+    api = ClickUpAPI(token)
 
     # Handle subcommands
     if args.command == "list":

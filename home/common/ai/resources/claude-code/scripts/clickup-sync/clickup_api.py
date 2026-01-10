@@ -81,12 +81,15 @@ class ClickUpAPI:
         )
         return [self._parse_task(t) for t in data.get("tasks", [])]
 
-    def get_all_tasks(self, list_id: str) -> list[ClickUpTask]:
+    def get_all_tasks(
+        self, list_id: str, full_details: bool = False  # noqa: ARG002
+    ) -> list[ClickUpTask]:
         """
         Get all tasks from a list (handles pagination).
 
         Args:
             list_id: ClickUp list ID
+            full_details: Ignored (REST API always returns full details)
 
         Returns:
             List of all ClickUpTask objects
@@ -181,6 +184,17 @@ class ClickUpAPI:
 
         if payload:
             self._request("PUT", f"/task/{task_id}", json_data=payload)
+
+    def delete_task(self, task_id: str) -> None:
+        """
+        Delete/archive a task by setting status to Closed.
+
+        Note: We don't truly delete, just close the task.
+
+        Args:
+            task_id: ClickUp task ID
+        """
+        self._request("PUT", f"/task/{task_id}", json_data={"status": "Closed"})
 
     def get_comments(self, task_id: str) -> list[dict]:
         """
