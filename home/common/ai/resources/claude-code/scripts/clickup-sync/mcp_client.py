@@ -11,6 +11,15 @@ except ImportError:
     from models import ClickUpTask
 
 
+# Priority mapping: numeric (1-4) -> string for MCP tool
+PRIORITY_NUM_TO_STR = {
+    1: "urgent",
+    2: "high",
+    3: "normal",
+    4: "low",
+}
+
+
 class MCPError(Exception):
     """Error from MCP server."""
 
@@ -251,7 +260,10 @@ class ClickUpMCPClient:
         if description:
             args["description"] = description
         if priority is not None:
-            args["priority"] = priority
+            # Convert numeric priority to string for MCP tool
+            priority_str = PRIORITY_NUM_TO_STR.get(priority)
+            if priority_str:
+                args["priority"] = priority_str
         if tags:
             args["tags"] = tags
 
@@ -284,7 +296,10 @@ class ClickUpMCPClient:
         if status is not None:
             args["status"] = status
         if priority is not None:
-            args["priority"] = priority
+            # Convert numeric priority to string for MCP tool
+            priority_str = PRIORITY_NUM_TO_STR.get(priority)
+            if priority_str:
+                args["priority"] = priority_str
 
         if len(args) > 1:  # More than just task_id
             self._call_tool("clickup_update_task", args)
