@@ -17,8 +17,13 @@ Use task-master MCP for all task tracking.
 | `get_task` | Get specific task details |
 | `set_task_status` | Update task status |
 | `add_task` | Create new task |
+| `add_subtask` | Add subtask to existing task |
+| `update_task` | Modify task details |
+| `remove_task` | Delete a task |
 | `parse_prd` | Generate tasks from PRD document |
 | `expand_task` | Break task into subtasks |
+| `research` | Research a topic (uses OpenRouter) |
+| `add_dependency` | Link task dependencies |
 
 ## Task Statuses
 
@@ -44,6 +49,7 @@ Use task-master MCP for all task tracking.
 ## Project Setup
 
 For new projects:
-1. Create `.taskmaster/docs/prd.txt` with requirements
-2. Use `parse_prd` to generate initial tasks
-3. Or use `add_task` to create tasks manually
+1. Run `/task-init` to set up task-master with Claude Code provider
+2. Create `.taskmaster/docs/prd.txt` with requirements
+3. Use `parse_prd` to generate initial tasks
+4. Or use `add_task` to create tasks manually

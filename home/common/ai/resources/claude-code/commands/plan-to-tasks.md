@@ -1,14 +1,13 @@
+---
+allowed-tools: Task, Bash(ls:*), Read, MCPSearch, mcp__task-master-ai__*
+description: Convert a Claude Code plan file into task-master tasks for cross-session tracking
+---
+
 # Convert Plan to Task-Master Tasks
-
-## description:
-
-Convert a Claude Code plan file into task-master tasks for cross-session tracking.
 
 ## Arguments
 
 $ARGUMENTS (optional - path to plan file, defaults to most recent in ~/.claude/plans/)
-
----
 
 Use the **Task tool** with `subagent_type='general-purpose'` to convert the plan.
 

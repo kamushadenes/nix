@@ -1,7 +1,7 @@
 ---
 name: task-agent
 description: Autonomous agent that finds and completes ready tasks using task-master MCP
-tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch, mcp__task-master-ai__get_tasks, mcp__task-master-ai__next_task, mcp__task-master-ai__get_task, mcp__task-master-ai__set_task_status, mcp__task-master-ai__add_task, mcp__task-master-ai__expand_task, mcp__iniciador-clickup__clickup_search, mcp__iniciador-clickup__clickup_get_workspace_hierarchy, mcp__iniciador-clickup__clickup_get_task, mcp__iniciador-clickup__clickup_update_task, mcp__iniciador-clickup__clickup_create_task, mcp__iniciador-clickup__clickup_get_task_comments, mcp__iniciador-clickup__clickup_create_task_comment, mcp__iniciador-vanta__frameworks, mcp__iniciador-vanta__list_framework_controls, mcp__iniciador-vanta__controls, mcp__iniciador-vanta__tests, mcp__iniciador-vanta__list_test_entities, mcp__iniciador-vanta__list_control_tests, mcp__iniciador-vanta__list_control_documents, mcp__iniciador-vanta__documents, mcp__iniciador-vanta__document_resources, mcp__iniciador-vanta__vulnerabilities, mcp__iniciador-vanta__risks, mcp__iniciador-vanta__integrations, mcp__iniciador-vanta__integration_resources, mcp__iniciador-vanta__people
+tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch, mcp__task-master-ai__*, mcp__iniciador-clickup__*, mcp__iniciador-vanta__*
 model: sonnet
 ---
 
