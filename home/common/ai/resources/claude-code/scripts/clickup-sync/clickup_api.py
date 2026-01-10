@@ -191,16 +191,23 @@ class ClickUpAPI:
         if payload:
             self._request("PUT", f"/task/{task_id}", json_data=payload)
 
-    def delete_task(self, task_id: str) -> None:
+    def close_task(self, task_id: str) -> None:
         """
-        Delete/archive a task by setting status to Closed.
-
-        Note: We don't truly delete, just close the task.
+        Close a task by setting status to Closed.
 
         Args:
             task_id: ClickUp task ID
         """
         self._request("PUT", f"/task/{task_id}", json_data={"status": "Closed"})
+
+    def delete_task(self, task_id: str) -> None:
+        """
+        Permanently delete a task.
+
+        Args:
+            task_id: ClickUp task ID
+        """
+        self._request("DELETE", f"/task/{task_id}")
 
     def get_comments(self, task_id: str) -> list[dict]:
         """
