@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude Code wrapper with account detection
+# Claude Code wrapper with tmux session management and account detection
 # Delegates worktree management to worktrunk (wt)
 #
 # Usage: c [OPTIONS] [COMMAND] [ARGS...]
@@ -9,12 +9,17 @@
 #   -h                   - Use Happy wrapper instead of claude directly
 #
 # COMMANDS:
-#   c                    - Start claude in current directory
+#   c                    - Start tmux+claude in current directory
 #   c <args>             - Pass args to claude
 #   c work|w <branch>    - Create worktree via wt, start claude there
 #   c list               - List worktrees (delegates to wt list)
 #   c clean|x            - Remove worktrees (delegates to wt remove)
 #   c help               - Show help
+#
+# TMUX:
+#   If not already in a tmux session, spawns a new tmux session with a unique
+#   name based on the git repository (claude-<parent>-<repo>-<timestamp>).
+#   If already in tmux, runs claude directly.
 #
 # MULTI-ACCOUNT:
 #   Automatically detects account based on git remote URL or directory path.
@@ -105,6 +110,11 @@ _c_build_cmd() {
 # Commands
 #############################################################################
 
+# Helper: normalize string for directory/session name
+_c_normalize() {
+    echo "$1" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | sed 's/^-//' | sed 's/-$//'
+}
+
 # Default: run claude in current directory with account detection
 _c_default() {
     local git_root
@@ -126,10 +136,33 @@ _c_default() {
     fi
     printf '\033]0;%s\007' "$title"
 
-    # Run claude (or happy)
+    # Build command (claude or happy)
     local cmd
     cmd=$(_c_build_cmd)
-    exec $cmd "$@"
+
+    if test -n "${TMUX:-}"; then
+        # Already in tmux - run command directly (env var already exported)
+        exec $cmd "$@"
+    else
+        # Normalized versions for session name
+        local git_folder_norm parent_folder_norm timestamp session_name full_cmd
+        git_folder_norm=$(_c_normalize "$git_folder")
+        parent_folder_norm=$(_c_normalize "$parent_folder")
+
+        # Generate session name: claude-<parent>-<git_folder>-<timestamp>
+        timestamp=$(date +%s)
+        session_name="claude-$parent_folder_norm-$git_folder_norm-$timestamp"
+
+        # Build full command with CLAUDE_CONFIG_DIR if account-specific
+        if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+            full_cmd="CLAUDE_CONFIG_DIR='$CLAUDE_CONFIG_DIR' $cmd $*"
+        else
+            full_cmd="$cmd $*"
+        fi
+
+        # Start tmux and run command inside (exit tmux when command exits)
+        exec tmux new-session -s "$session_name" "$full_cmd"
+    fi
 }
 
 # Work: create worktree via wt and start claude
@@ -174,7 +207,7 @@ _c_clean() {
 # Help
 _c_help() {
     cat <<'EOF'
-c - Claude Code wrapper with account detection
+c - Claude Code wrapper with tmux and account detection
 
 USAGE:
   c [OPTIONS] [COMMAND] [ARGS...]
@@ -184,12 +217,16 @@ OPTIONS:
   -h                   Use Happy wrapper instead of claude directly
 
 COMMANDS:
-  c                    Start claude in current directory
+  c                    Start tmux+claude in current directory
   c <args>             Pass args to claude (e.g., c --help, c -p 'prompt')
   c work|w <branch>    Create worktree for branch, start claude there
   c list               List worktrees (via wt list)
   c clean|x            Remove worktrees (via wt remove)
   c help               Show this help
+
+TMUX:
+  If not already in a tmux session, spawns a new session with a unique name
+  (claude-<parent>-<repo>-<timestamp>). If already in tmux, runs claude directly.
 
 MULTI-ACCOUNT:
   Automatically detects account based on git remote URL or directory path.
