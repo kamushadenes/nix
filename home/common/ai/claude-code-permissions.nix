@@ -364,11 +364,11 @@
     "mcp__iniciador-vanta__people"
 
     # Skills
-    "Skill(codex-cli)"
     "Skill(hookify:writing-rules)"
     "Skill(deep-review)"
     "Skill(ralph-loop:*)"
     "Skill(plan-to-tasks)"
+    "Skill(commit)"
 
     # Plugin scripts - ralph-loop
     "Bash(~/.claude/plugins/cache/claude-plugins-official/ralph-loop:*)"
