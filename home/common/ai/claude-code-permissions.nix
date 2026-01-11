@@ -369,6 +369,7 @@
     "Skill(ralph-loop:*)"
     "Skill(plan-to-tasks)"
     "Skill(commit)"
+    "Skill(next-task)"
 
     # Plugin scripts - ralph-loop
     "Bash(~/.claude/plugins/cache/claude-plugins-official/ralph-loop:*)"
