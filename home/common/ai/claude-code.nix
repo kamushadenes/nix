@@ -222,6 +222,10 @@ in
             hooks = [
               {
                 type = "command";
+                command = "~/.claude/hooks/Stop/ralph-loop.sh";
+              }
+              {
+                type = "command";
                 command = "~/.claude/hooks/Stop/post-lint.sh";
               }
               {
@@ -415,6 +419,10 @@ in
     };
     ".claude/hooks/Stop/task-status-reminder.sh" = {
       source = "${scriptsDir}/hooks/Stop/task-status-reminder.sh";
+      executable = true;
+    };
+    ".claude/hooks/Stop/ralph-loop.sh" = {
+      source = "${scriptsDir}/hooks/Stop/ralph-loop.sh";
       executable = true;
     };
 
