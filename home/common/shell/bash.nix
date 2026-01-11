@@ -54,7 +54,9 @@
 
       # Worktrunk shell integration (enables wt switch to change directory)
       ''
-        eval "$(wt config shell bash 2>/dev/null || true)"
+        if command -v wt &>/dev/null; then
+          eval "$(wt config shell bash 2>/dev/null)"
+        fi
       ''
     ];
   };
