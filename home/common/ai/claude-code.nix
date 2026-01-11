@@ -355,6 +355,7 @@ in
         #"fullstack-dev-skills@fullstack-dev-skills" = true;
         #"superpowers@superpowers-marketplace" = true;
         "secrets-scanner@agent-security" = true;
+        "worktrunk@worktrunk" = true;
       };
     };
   };

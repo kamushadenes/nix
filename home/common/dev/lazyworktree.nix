@@ -9,7 +9,9 @@
   home.shellAliases.lwt = "lazyworktree";
 
   xdg.configFile."lazyworktree/config.yaml".text = ''
-    # Worktree storage - matches c work command
+    # Legacy worktree storage (from old 'c work' command)
+    # New worktrees are managed by worktrunk (wt) using relative paths
+    # This config is kept for browsing old workspaces
     worktree_dir: ${config.home.homeDirectory}/.local/share/git/workspaces
 
     # Theme

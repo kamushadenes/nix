@@ -54,6 +54,7 @@ let
     ../home/common/dev/lazyworktree.nix
     ../home/common/dev/node.nix
     ../home/common/dev/python.nix
+    ../home/common/dev/worktrunk.nix
   ];
 
   # All editors (nvim, emacs, vscode - all work headlessly)

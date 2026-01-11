@@ -57,6 +57,11 @@
       (lib.mkIf config.programs.navi.enable ''
         eval "$(${lib.getExe pkgs.navi} widget zsh)"
       '')
+
+      # Worktrunk shell integration (enables wt switch to change directory)
+      ''
+        eval "$(wt config shell zsh 2>/dev/null || true)"
+      ''
     ];
   };
 }

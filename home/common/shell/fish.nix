@@ -89,6 +89,11 @@
           ${shellCommon.fish.sshKeyLoading}
         ''
 
+        # Worktrunk shell integration (enables wt switch to change directory)
+        ''
+          wt config shell fish 2>/dev/null | source
+        ''
+
         # Cache navi init
         (lib.mkIf (
           config.programs.navi.enable && !config.programs.navi.enableFishIntegration

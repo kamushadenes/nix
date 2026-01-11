@@ -42,6 +42,31 @@ let
     };
   };
 
+  # Worktrunk - Git worktree management CLI for AI agent workflows
+  worktrunk = pkgs.rustPlatform.buildRustPackage rec {
+    pname = "worktrunk";
+    version = "0.11.0";
+
+    src = pkgs.fetchFromGitHub {
+      owner = "max-sixty";
+      repo = "worktrunk";
+      rev = "v${version}";
+      hash = "sha256-2u62yY7apD/9nsKv1AeohDe1JxqX+MG9dwhScqEX9sk=";
+    };
+
+    cargoHash = "sha256-G+dOTLhGO01WO4zMOMv6tU1R+Aopxo8fvG1S5qEXyig=";
+
+    # Tests require git repos
+    doCheck = false;
+
+    meta = {
+      description = "Git worktree management CLI";
+      homepage = "https://github.com/max-sixty/worktrunk";
+      license = lib.licenses.mit;
+      mainProgram = "wt";
+    };
+  };
+
   # Happy Coder CLI - Mobile and Web client wrapper for Claude Code and Codex
   # Built from the happy-cli repository (not the main happy repo)
   happy-coder = pkgs.mkYarnPackage rec {
@@ -186,5 +211,5 @@ let
   '';
 in
 {
-  inherit gitSquash colorScript lazyworktree happy-coder nix-remote-setup;
+  inherit gitSquash colorScript lazyworktree worktrunk happy-coder nix-remote-setup;
 }
