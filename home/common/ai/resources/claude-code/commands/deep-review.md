@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test:*), Task, AskUserQuestion, MCPSearch, mcp__task-master-ai__*, mcp__iniciador-clickup__clickup_create_task
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test:*), Task, AskUserQuestion, MCPSearch, mcp__task-master-ai__*
 description: Comprehensive multi-agent code review using 9 specialized agents with 3-model consensus
 ---
 
@@ -319,23 +319,9 @@ dependency_checker = Task(
     - priority: "high"
     - status: "backlog"
 
-    d. Offer to also create in ClickUp:
-
-    ```
-    Question: "Also create tasks in ClickUp?"
-    Header: "ClickUp Sync"
-    Options:
-    - "Yes, create in ClickUp" - Creates tasks in ClickUp as well
-    - "No, task-master only" - Tasks stay local only
-    ```
-
-    If yes, for each created task:
-    - Call `mcp__iniciador-clickup__clickup_create_task` with the finding details
-
-    e. Report created tasks:
+    d. Report created tasks:
 
     > Created X task-master tasks for the selected findings. Use `next_task` to view them.
-    > [If synced] Also created X tasks in ClickUp.
 
 ## Handling Subagent User Input Requests
 

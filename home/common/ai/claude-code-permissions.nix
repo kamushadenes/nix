@@ -311,7 +311,7 @@
     "mcp__claude-in-chrome__shortcuts_list"
     "mcp__claude-in-chrome__shortcuts_execute"
 
-    # MCP: ClickUp - Restricted to Iniciador projects via PreToolUse hook
+    # MCP: ClickUp - Task management
     "mcp__iniciador-clickup__clickup_search"
     "mcp__iniciador-clickup__clickup_get_workspace_hierarchy"
     "mcp__iniciador-clickup__clickup_create_task"

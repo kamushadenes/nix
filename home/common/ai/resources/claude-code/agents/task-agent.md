@@ -5,8 +5,6 @@ tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch, mcp__task-master-ai__*, m
 model: sonnet
 ---
 
-> **Task integration:** See `_references/task-integration-guide.md` for ClickUp/Vanta sync details
-
 You are a task-completion agent for task-master. Find ready work and complete it autonomously.
 
 ## Workflow
@@ -51,38 +49,6 @@ You are a task-completion agent for task-master. Find ready work and complete it
 - [ ] No new errors/warnings
 - [ ] Docs updated if needed
 - [ ] Related tasks filed for discovered work
-
----
-
-## ClickUp Mode
-
-When user mentions "clickup", use ClickUp MCP tools directly:
-
-- `clickup_search` - Find tasks
-- `clickup_get_task` - Get task details
-- `clickup_update_task` - Update status
-- `clickup_create_task` - Create new tasks
-
----
-
-## Vanta Sync Mode
-
-Detected by prompt mentioning "vanta-sync". Config: `.taskmaster/vanta.yaml`
-
-**Setup (no config):** List frameworks → user selects → configure IaC repos → initial pull
-
-**Sync (config exists):** Pull failing controls as task-master tasks
-
-**Priority Mapping:**
-
-| Vanta | Task-Master |
-|-------|-------------|
-| Critical | high |
-| High | high |
-| Medium | medium |
-| Low | low |
-
-**IaC Integration:** Clone repo to temp, make fixes, commit/push/PR, cleanup.
 
 ---
 

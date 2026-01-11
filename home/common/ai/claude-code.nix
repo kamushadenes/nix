@@ -113,11 +113,6 @@ in
         file = "${private}/home/common/ai/resources/claude/vanta-credentials.age";
         path = "${secretsDir}/iniciador-vanta-credentials";
       };
-      # Iniciador ClickUp API token - for REST API sync
-      "claude-iniciador-clickup-token" = {
-        file = "${private}/home/common/ai/resources/claude/iniciador-clickup-token.age";
-        path = "${secretsDir}/iniciador-clickup-token";
-      };
     };
 
   #############################################################################
@@ -144,7 +139,6 @@ in
       dependency-audit = builtins.readFile "${commandsDir}/dependency-audit.md";
       deep-review = builtins.readFile "${commandsDir}/deep-review.md";
       sync-ai-dev = builtins.readFile "${commandsDir}/sync-ai-dev.md";
-      vanta-sync = builtins.readFile "${commandsDir}/vanta-sync.md";
       plan-to-tasks = builtins.readFile "${commandsDir}/plan-to-tasks.md";
     };
 
@@ -180,17 +174,6 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PreToolUse/enforce-worktree.py";
-              }
-            ];
-          }
-          # Workspace-scoped ClickUp restrictions
-          # Each workspace MCP is restricted to its project directories
-          {
-            matcher = "mcp__iniciador-clickup__.*";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/PreToolUse/restrict-clickup.sh iniciador";
               }
             ];
           }
@@ -237,10 +220,6 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/Stop/post-lint.sh";
-              }
-              {
-                type = "command";
-                command = "~/.claude/hooks/Stop/vanta-sync.sh";
               }
               {
                 type = "command";
@@ -403,10 +382,6 @@ in
       source = "${scriptsDir}/hooks/PreToolUse/git-safety-guard.py";
       executable = true;
     };
-    ".claude/hooks/PreToolUse/restrict-clickup.sh" = {
-      source = "${scriptsDir}/hooks/PreToolUse/restrict-clickup.sh";
-      executable = true;
-    };
 
     # PostToolUse hooks
     ".claude/hooks/PostToolUse/format-python.sh" = {
@@ -433,10 +408,6 @@ in
     # Stop hooks
     ".claude/hooks/Stop/post-lint.sh" = {
       source = "${scriptsDir}/hooks/Stop/post-lint.sh";
-      executable = true;
-    };
-    ".claude/hooks/Stop/vanta-sync.sh" = {
-      source = "${scriptsDir}/hooks/Stop/vanta-sync.sh";
       executable = true;
     };
     ".claude/hooks/Stop/task-status-reminder.sh" = {
