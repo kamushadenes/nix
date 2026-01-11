@@ -32,19 +32,38 @@ Check if the task already has subtasks. If it does NOT have subtasks, call `mcp_
 
 If subtasks already exist, skip this step.
 
-### 4. Work Through Subtasks
+### 4. Display Summary
+
+Before starting work, display a summary to the user:
+
+```
+## Task: [task title]
+
+**ID:** [task id]
+**Priority:** [priority]
+**Description:** [task description]
+
+### Subtasks:
+1. [subtask 1 title]
+2. [subtask 2 title]
+3. ...
+
+Starting work...
+```
+
+### 5. Work Through Subtasks
 
 For each subtask:
 1. Use TodoWrite to track progress
 2. Complete the subtask work
 3. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
 
-### 5. Mark Task Complete
+### 6. Mark Task Complete
 
 Once all subtasks are done:
 1. Call `mcp__task-master-ai__set_task_status` with status `done`
 
-### 6. Commit and Push
+### 7. Commit and Push
 
 Use the `/commit` command to create a commit, then push:
 
