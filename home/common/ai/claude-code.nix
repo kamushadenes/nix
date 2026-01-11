@@ -140,6 +140,8 @@ in
       deep-review = builtins.readFile "${commandsDir}/deep-review.md";
       sync-ai-dev = builtins.readFile "${commandsDir}/sync-ai-dev.md";
       plan-to-tasks = builtins.readFile "${commandsDir}/plan-to-tasks.md";
+      task-init = builtins.readFile "${commandsDir}/task-init.md";
+      github-sync = builtins.readFile "${commandsDir}/github-sync.md";
     };
 
     # Note: rules option is not available in this home-manager version

@@ -25,6 +25,8 @@
     "Bash(fd:*)"
     "Bash(mkdir:*)"
     "Bash(test:*)"
+    # Let's hope Claude doesn't use find's exec to run dangerous commands
+    "Bash(find:*)"
     "Search"
 
     # Text processing
