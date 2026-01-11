@@ -51,7 +51,12 @@ Set up task-master in the current project with Claude Code as the main provider.
    }
    ```
 
-4. **Report success:**
+4. **Cleanup**
+
+- Remove .env.example
+- Remove .mcp.json
+
+5. **Report success:**
 
    ```
    Task-master initialized with:

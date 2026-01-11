@@ -108,6 +108,4 @@ coverage-final.json
 *.rslsc
 *.rslsi
 
-.claude/tdd-guard/
-.claude/settings.local.json
-.claude/ralph-loop.local.md
+.claude/

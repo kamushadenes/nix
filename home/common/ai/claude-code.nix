@@ -216,13 +216,14 @@ in
         PreCompact = [ ];
 
         # Run when Claude stops working
+        # Note: ralph-loop hook is provided by ralph-loop@claude-plugins-official plugin
         Stop = [
           {
             matcher = "";
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/Stop/ralph-loop.sh";
+                command = "~/.claude/hooks/Stop/debug-env.sh";
               }
               {
                 type = "command";
@@ -421,10 +422,11 @@ in
       source = "${scriptsDir}/hooks/Stop/task-status-reminder.sh";
       executable = true;
     };
-    ".claude/hooks/Stop/ralph-loop.sh" = {
-      source = "${scriptsDir}/hooks/Stop/ralph-loop.sh";
+    ".claude/hooks/Stop/debug-env.sh" = {
+      source = "${scriptsDir}/hooks/Stop/debug-env.sh";
       executable = true;
     };
+    # Note: ralph-loop.sh is provided by ralph-loop@claude-plugins-official plugin
 
     # SessionStart hooks
     ".claude/hooks/SessionStart/task-context.sh" = {

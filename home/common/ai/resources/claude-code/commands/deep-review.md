@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test:*), Task, AskUserQuestion, MCPSearch, mcp__task-master-ai__*
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test:*), Task, AskUserQuestion, MCPSearch, mcp__task-master-ai__*, Skill
 description: Comprehensive multi-agent code review using 9 specialized agents with 3-model consensus
 ---
 
@@ -322,6 +322,26 @@ dependency_checker = Task(
     d. Report created tasks:
 
     > Created X task-master tasks for the selected findings. Use `next_task` to view them.
+
+11. **Commit the changes** (if reviewing uncommitted changes):
+
+    If `review_scope == "uncommitted"` and there are staged/unstaged changes:
+
+    a. Use AskUserQuestion to confirm:
+
+    ```
+    Question: "Would you like to commit these changes now?"
+    Header: "Commit"
+    Options:
+    - "Yes, commit" - Run /commit to create a commit
+    - "No, skip" - Skip committing
+    ```
+
+    b. If user selects "Yes, commit", invoke the commit skill:
+
+    ```python
+    Skill(skill="commit")
+    ```
 
 ## Handling Subagent User Input Requests
 
