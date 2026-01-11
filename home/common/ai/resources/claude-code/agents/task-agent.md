@@ -1,7 +1,7 @@
 ---
 name: task-agent
 description: Autonomous agent that finds and completes ready tasks using task-master MCP
-tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch, mcp__task-master-ai__*, mcp__iniciador-clickup__*, mcp__iniciador-vanta__*
+tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch, mcp__task-master-ai__*, mcp__iniciador-clickup__*, mcp__iniciador-vanta__*, mcp__github__*
 model: sonnet
 ---
 
@@ -83,3 +83,35 @@ Detected by prompt mentioning "vanta-sync". Config: `.taskmaster/vanta.yaml`
 | Low | low |
 
 **IaC Integration:** Clone repo to temp, make fixes, commit/push/PR, cleanup.
+
+---
+
+## Worktree Workflow (for code changes)
+
+When a task requires code modifications:
+
+1. **Create worktree**: `wt switch -c feat/<task-id>-<short-desc>`
+2. **Work in worktree**: Make changes, run tests
+3. **Complete with PR**:
+   - Commit changes
+   - Push branch: `git push -u origin HEAD`
+   - Create PR: `gh pr create`
+4. **Update task**: Link PR in task, mark done when merged
+
+---
+
+## GitHub Mode
+
+When user mentions "github-sync" or working with GitHub issues:
+
+- `mcp__github__list_issues` - List open issues
+- `mcp__github__search_issues` - Search issues
+- `mcp__github__add_issue_comment` - Comment on issues
+- `mcp__github__create_pull_request` - Create PRs
+
+**Worktree workflow for issue resolution:**
+1. `wt switch -c feat/<issue>-<slug>` - Create worktree
+2. Make changes, test
+3. Commit and push
+4. `gh pr create` linking to issue
+5. Update task-master task with PR link

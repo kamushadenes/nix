@@ -42,3 +42,17 @@ Use `code-reviewer` directly for most reviews, not multi-model consensus.
 ## Subagent User Input
 
 Subagents cannot use AskUserQuestion. When subagent returns options (A/B/C lists, "Choose:", etc.), **you must** relay via AskUserQuestion, then pass selection back.
+
+## Issue Resolution Workflow
+
+When spawning subagents to resolve GitHub issues or tasks requiring code changes:
+
+1. **Create worktree**: `wt switch -c feat/<issue-number>-<short-desc>`
+2. **Work in isolation**: Subagent makes changes in dedicated worktree
+3. **Complete with PR**: Commit, push, create PR back to main
+4. **Cleanup optional**: Worktree can be removed after merge
+
+This ensures:
+- Main branch stays clean during work
+- Parallel issue resolution without conflicts
+- Clear PR history per issue
