@@ -56,6 +56,10 @@ let
 
     cargoHash = "sha256-G+dOTLhGO01WO4zMOMv6tU1R+Aopxo8fvG1S5qEXyig=";
 
+    # Build dependencies:
+    # - git: required by vergen-gitcl in build.rs for embedding git metadata
+    nativeBuildInputs = [ pkgs.git ];
+
     # Tests require git repos
     doCheck = false;
 
