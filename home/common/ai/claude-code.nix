@@ -169,13 +169,17 @@ in
               }
             ];
           }
-          # Block destructive git/filesystem commands
+          # Block destructive git/filesystem commands and enforce worktree workflow
           {
             matcher = "Bash";
             hooks = [
               {
                 type = "command";
                 command = "~/.claude/hooks/PreToolUse/git-safety-guard.py";
+              }
+              {
+                type = "command";
+                command = "~/.claude/hooks/PreToolUse/enforce-worktree.py";
               }
             ];
           }
@@ -214,6 +218,10 @@ in
                 type = "command";
                 command = "tdd-guard";
               }
+              {
+                type = "command";
+                command = "~/.claude/hooks/SessionStart/task-context.sh";
+              }
             ];
           }
         ];
@@ -233,6 +241,10 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/Stop/vanta-sync.sh";
+              }
+              {
+                type = "command";
+                command = "~/.claude/hooks/Stop/task-status-reminder.sh";
               }
               {
                 type = "command";
@@ -309,6 +321,16 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-go.sh";
+              }
+            ];
+          }
+          # Auto-link PRs to GitHub issues and task-master
+          {
+            matcher = "Bash";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PostToolUse/link-pr-to-task.sh";
               }
             ];
           }
@@ -415,6 +437,28 @@ in
     };
     ".claude/hooks/Stop/vanta-sync.sh" = {
       source = "${scriptsDir}/hooks/Stop/vanta-sync.sh";
+      executable = true;
+    };
+    ".claude/hooks/Stop/task-status-reminder.sh" = {
+      source = "${scriptsDir}/hooks/Stop/task-status-reminder.sh";
+      executable = true;
+    };
+
+    # SessionStart hooks
+    ".claude/hooks/SessionStart/task-context.sh" = {
+      source = "${scriptsDir}/hooks/SessionStart/task-context.sh";
+      executable = true;
+    };
+
+    # PreToolUse hooks (additional)
+    ".claude/hooks/PreToolUse/enforce-worktree.py" = {
+      source = "${scriptsDir}/hooks/PreToolUse/enforce-worktree.py";
+      executable = true;
+    };
+
+    # PostToolUse hooks (additional)
+    ".claude/hooks/PostToolUse/link-pr-to-task.sh" = {
+      source = "${scriptsDir}/hooks/PostToolUse/link-pr-to-task.sh";
       executable = true;
     };
 
