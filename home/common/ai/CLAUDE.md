@@ -291,6 +291,7 @@ Hooks are scripts that run at specific events.
 **Hook types:**
 - `PreToolUse/` - Before tool execution (can block)
 - `PostToolUse/` - After tool execution
+- `SessionStart/` - When a session begins
 - `Stop/` - When session ends
 
 **PreToolUse pattern (blocking):**
@@ -364,4 +365,4 @@ For detailed token optimization patterns, see `skills/skill-creator/references/c
 | Skill   | `skills/*/SKILL.md`             | Auto (via desc)      | On match     |
 | Agent   | `agents/`                       | Task tool            | On spawn     |
 | Rule    | `rules/`                        | Always               | Always       |
-| Hook    | `scripts/hooks/{Pre,Post,Stop}` | Tool/event lifecycle | N/A          |
+| Hook    | `scripts/hooks/{Pre,Post,SessionStart,Stop}` | Tool/event lifecycle | N/A          |

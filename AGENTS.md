@@ -9,7 +9,7 @@ This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS sys
 **Machines:**
 
 - Darwin: `studio`, `macbook-m3-pro`, `w-henrique` (all aarch64-darwin)
-- NixOS: x86_64-linux
+- NixOS: `nixos`, `aether` (x86_64-linux)
 
 ## Commands
 
@@ -41,6 +41,8 @@ flake.nix              # Entry point - defines inputs and machine configurations
 │   ├── build.nix      # Distributed build config (3 machines via ssh-ng)
 │   ├── cache.nix      # Nix substituters and cache config
 │   ├── packages.nix   # Custom package definitions
+│   ├── roles.nix      # Role-based configuration (workstation, headless)
+│   ├── shell-common.nix # Shared shell functions (fish, bash, zsh)
 │   └── themes.nix     # Theme definitions
 │
 ├── darwin/            # Darwin-specific modules (brew, dock, fonts, settings, etc.)
@@ -48,14 +50,14 @@ flake.nix              # Entry point - defines inputs and machine configurations
 │
 ├── home/
 │   ├── common/        # Cross-platform home-manager modules
-│   │   ├── ai/        # AI agents (claude-code, codex-cli, gemini-cli, orchestrator)
-│   │   ├── core/      # git, ssh, nix, agenix, fonts
-│   │   ├── dev/       # go, node, python, java, clang, clojure, android, embedded
+│   │   ├── ai/        # AI agents (claude-code, codex-cli, gemini-cli, orchestrator, mcp-servers)
+│   │   ├── core/      # git, nix, agenix, fonts
+│   │   ├── dev/       # go, node, python, java, clang, clojure, android, embedded, lazygit, worktrunk
 │   │   ├── editors/   # nvim, emacs, vscode
-│   │   ├── infra/     # cloud, docker, kubernetes, terraform
+│   │   ├── infra/     # cloud, docker, kubernetes, iac
 │   │   ├── media/     # media tools
 │   │   ├── security/  # gpg, security tools
-│   │   ├── shell/     # fish, bash, starship, kitty, ghostty
+│   │   ├── shell/     # fish, bash, zsh, starship, kitty, ghostty, tmux
 │   │   └── utils/     # aichat, miscellaneous utilities
 │   ├── macos/         # macOS-specific (aerospace, bettertouchtool, sketchybar)
 │   └── linux/         # Linux-specific (display, systemd)
