@@ -269,15 +269,15 @@ dependency_checker = Task(
 
     c. For each selected finding, create a task-master task using MCP tools:
 
-    | Flag | Content |
-    | ---- | ------- |
-    | `--title` | Brief identifier: `[SEVERITY] agent: issue summary` |
-    | `--type` | `bug` for defects, `task` for improvements |
-    | `--priority` | 0-3 based on severity (see table below) |
-    | `--labels` | Agent source + category: `agent:<name>,<category>[,<subcategory>]` |
-    | `--notes` | Confidence level: "All 3 models agree" / "2 of 3 agree" / "Divergent views" |
-    | `--acceptance` | Criteria for when the issue is considered fixed |
-    | `--description` | Detailed context (see template below) |
+    | Flag            | Content                                                                     |
+    | --------------- | --------------------------------------------------------------------------- |
+    | `--title`       | Brief identifier: `[SEVERITY] agent: issue summary`                         |
+    | `--type`        | `bug` for defects, `task` for improvements                                  |
+    | `--priority`    | 0-3 based on severity (see table below)                                     |
+    | `--labels`      | Agent source + category: `agent:<name>,<category>[,<subcategory>]`          |
+    | `--notes`       | Confidence level: "All 3 models agree" / "2 of 3 agree" / "Divergent views" |
+    | `--acceptance`  | Criteria for when the issue is considered fixed                             |
+    | `--description` | Detailed context (see template below)                                       |
 
     **Priority mapping:**
 
@@ -289,31 +289,39 @@ dependency_checker = Task(
     | Low      | 3 (P3)   |
 
     **Description template:**
+
     ```markdown
     ## Issue
+
     [Brief description of the problem]
 
     ## Location
+
     - **File**: [file path]
     - **Line**: [line number]
     - **Function**: `[function_name()]`
 
     ## Problem
+
     [Detailed explanation of why this is a problem, including impact/risk]
     [Code snippet showing the issue]
 
     ## Related Files
+
     - [Other files that may need similar fixes]
 
     ## References
+
     - [Links to OWASP, docs, best practices, etc.]
 
     ## Recommendation
+
     [Suggested fix with code example if applicable]
     ```
 
     **Example for a critical security finding:**
     Use `mcp__task-master-ai__add_task` with:
+
     - title: "[CRITICAL] security: SQL injection vulnerability"
     - description: Full details including location, problem, recommendation
     - priority: "high"

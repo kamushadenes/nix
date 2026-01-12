@@ -41,6 +41,7 @@ cd <worktree_dir> && direnv allow .
 ```
 
 Branch naming rules:
+
 - **Prefix**: Choose based on task nature:
   - `feat/` - New features or functionality
   - `fix/` - Bug fixes
@@ -69,6 +70,7 @@ Check if the task already has subtasks. If it does NOT have subtasks, call `mcp_
 - `id`: The task ID
 - `num`: 3-5 subtasks (use judgment based on complexity)
 - `research`: Set to `true` when any of these apply:
+
   - Task involves unfamiliar libraries, frameworks, or APIs
   - Task requires integration with external services
   - Task mentions technologies not already present in the codebase
@@ -76,6 +78,7 @@ Check if the task already has subtasks. If it does NOT have subtasks, call `mcp_
   - Task involves security, cryptography, or compliance considerations
 
   Set to `false` when:
+
   - Task is routine work within well-understood parts of the codebase
   - Task is a simple refactoring, bug fix, or code cleanup
   - All required knowledge is available in existing code or documentation
@@ -126,6 +129,7 @@ Skill(skill="review")
 ```
 
 This automatically reviews branch changes against main using 4 key agents:
+
 - Security vulnerabilities
 - Code quality issues
 - Missing tests
@@ -165,6 +169,7 @@ If `wt merge` fails due to conflicts, inform the user and stop.
 ### 11. Verify Completion
 
 Confirm:
+
 - Local main is up to date with remote
 - Worktree has been cleaned up
 - Task is marked done in task-master

@@ -16,6 +16,7 @@ Use the **Task tool** with `subagent_type='task-agent'` to run the sync.
 ### If task-master is NOT initialized (.taskmaster directory missing):
 
 Tell the user to initialize task-master first:
+
 ```bash
 # Use the initialize_project MCP tool or run:
 npx task-master-ai init
@@ -29,7 +30,7 @@ npx task-master-ai init
 ```yaml
 owner: "<owner>"
 repo: "<repo>"
-labels: []  # Optional: filter by labels
+labels: [] # Optional: filter by labels
 linked_at: "<ISO 8601 timestamp>"
 last_sync: null
 ```
@@ -39,6 +40,7 @@ last_sync: null
 Run bidirectional sync:
 
 **PULL (GitHub -> task-master):**
+
 1. Read config for `owner` and `repo`
 2. Use `mcp__github__list_issues` with state: OPEN
 3. For each GitHub issue:
@@ -47,6 +49,7 @@ Run bidirectional sync:
    - If match: compare updated_at, update if GitHub is newer
 
 **PUSH (task-master -> GitHub):**
+
 1. Use `mcp__task-master-ai__get_tasks` to list local tasks
 2. For tasks with `[GH:#<number>]` prefix:
    - Check GitHub issue status
@@ -55,20 +58,20 @@ Run bidirectional sync:
 
 **Status Mapping:**
 
-| Task-Master | GitHub |
-|-------------|--------|
-| backlog | open |
-| in-progress | open |
-| done | closed |
-| blocked | open (labeled "blocked") |
+| Task-Master | GitHub                   |
+| ----------- | ------------------------ |
+| backlog     | open                     |
+| in-progress | open                     |
+| done        | closed                   |
+| blocked     | open (labeled "blocked") |
 
 **Priority Mapping:**
 
-| Task-Master | GitHub Labels |
-|-------------|---------------|
-| high | priority:high, urgent, critical |
-| medium | priority:medium (or no priority label) |
-| low | priority:low |
+| Task-Master | GitHub Labels                          |
+| ----------- | -------------------------------------- |
+| high        | priority:high, urgent, critical        |
+| medium      | priority:medium (or no priority label) |
+| low         | priority:low                           |
 
 4. Update `last_sync` in config
 
