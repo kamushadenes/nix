@@ -88,7 +88,7 @@ For each selected task, create a separate Task tool call:
 for task in selected_tasks:
     Task(
         subagent_type="worker-orchestrator",
-        description=f"Orchestrate task {task.id}",
+        description=f"Task {task.id}: {task.title[:30]}",
         prompt=json.dumps({
             "tasks": [
                 {
@@ -184,6 +184,16 @@ Display aggregated results:
 
 - Count of remaining tasks in task-master queue
 - User must run `/delegate-task` again to select more tasks
+
+### Phase 7: Sync Main Branch
+
+After all workers complete, pull the latest changes to get merged PRs:
+
+```bash
+git pull --rebase
+```
+
+This ensures the local main branch has all the merged changes from the worker PRs.
 
 ## Begin Execution
 

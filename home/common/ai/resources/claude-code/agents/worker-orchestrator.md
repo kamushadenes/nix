@@ -1,7 +1,7 @@
 ---
 name: worker-orchestrator
 description: Orchestrate parallel Claude worker instances for task completion. Use when delegating multiple tasks to worker instances. Handles spawning, monitoring, stuck detection, subtask syncing, and cleanup.
-tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(sleep:*), mcp__orchestrator__task_worker_spawn, mcp__orchestrator__task_worker_status, mcp__orchestrator__task_worker_list, mcp__orchestrator__task_worker_kill, mcp__orchestrator__tmux_capture, mcp__task-master-ai__set_task_status, mcp__task-master-ai__update_subtask, mcp__task-master-ai__expand_task, mcp__task-master-ai__get_task
+tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(sleep:*), mcp__orchestrator__task_worker_spawn, mcp__orchestrator__task_worker_status, mcp__orchestrator__task_worker_list, mcp__orchestrator__task_worker_kill, mcp__orchestrator__tmux_capture, mcp__orchestrator__tmux_send, mcp__task-master-ai__set_task_status, mcp__task-master-ai__update_subtask, mcp__task-master-ai__expand_task, mcp__task-master-ai__get_task
 model: sonnet
 skills:
   - automating-tmux-windows
@@ -50,6 +50,7 @@ Load all required tools via MCPSearch:
 - `mcp__orchestrator__task_worker_status`
 - `mcp__orchestrator__task_worker_kill`
 - `mcp__orchestrator__tmux_capture`
+- `mcp__orchestrator__tmux_send`
 - `mcp__task-master-ai__set_task_status`
 - `mcp__task-master-ai__update_subtask`
 - `mcp__task-master-ai__expand_task`
@@ -127,6 +128,9 @@ For completed workers:
 def handle_completion(worker, result):
     set_task_status(worker.task_id, status="done")
 
+    # Gracefully exit the worker Claude instance
+    tmux_send(target=worker.window_id, text="/exit", enter=True)
+
     if result.status_data.merged:
         # Clean up worktree
         run("wt remove " + worker.worktree_path)
@@ -136,6 +140,16 @@ def handle_completion(worker, result):
         worker.final_status = "pr_open"
 
     worker.final_result = result.result_data
+
+def handle_failure(worker, result):
+    # Exit the worker before reporting failure
+    tmux_send(target=worker.window_id, text="/exit", enter=True)
+    # Preserve worktree for investigation
+
+def handle_stuck(worker):
+    # Exit the stuck worker
+    tmux_send(target=worker.window_id, text="/exit", enter=True)
+    # Preserve worktree for investigation
 ```
 
 ## Return Format
@@ -182,10 +196,10 @@ Return a structured summary:
 |-------|--------|
 | Worker spawned | `set_task_status(id, "in-progress")` |
 | Subtask completed | `update_subtask(id, status="done")` |
-| Task completed | `set_task_status(id, "done")` |
-| PR merged | Clean up worktree with `wt remove` |
-| Task failed | Retry up to max_retries, then report |
-| Worker stuck | Two-phase verify, then report |
+| Task completed | `set_task_status(id, "done")`, then `/exit` worker |
+| PR merged | `/exit` worker, then clean up worktree with `wt remove` |
+| Task failed | `/exit` worker, retry up to max_retries, then report |
+| Worker stuck | `/exit` worker, two-phase verify, then report |
 
 ## Important Notes
 

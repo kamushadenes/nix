@@ -194,6 +194,26 @@ in
               }
             ];
           }
+          # Deny workers from writing directly to task_status
+          {
+            matcher = "Write";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PreToolUse/deny-task-status-write.py";
+              }
+            ];
+          }
+          # Block workers from executing commands if task is already complete
+          {
+            matcher = "";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PreToolUse/block-completed-worker.py";
+              }
+            ];
+          }
           # Worker heartbeat - update timestamp on every tool use
           {
             matcher = "";
@@ -522,6 +542,14 @@ in
     };
     ".claude/hooks/PreToolUse/deny-taskmaster-worker.py" = {
       source = "${scriptsDir}/hooks/PreToolUse/deny-taskmaster-worker.py";
+      executable = true;
+    };
+    ".claude/hooks/PreToolUse/deny-task-status-write.py" = {
+      source = "${scriptsDir}/hooks/PreToolUse/deny-task-status-write.py";
+      executable = true;
+    };
+    ".claude/hooks/PreToolUse/block-completed-worker.py" = {
+      source = "${scriptsDir}/hooks/PreToolUse/block-completed-worker.py";
       executable = true;
     };
 

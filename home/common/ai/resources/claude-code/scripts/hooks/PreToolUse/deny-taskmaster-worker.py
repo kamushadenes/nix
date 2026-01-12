@@ -3,8 +3,8 @@
 PreToolUse hook to deny task-master MCP access to worker instances.
 
 Workers should NOT have access to task-master - they communicate via
-.orchestrator/task_status file only. The orchestrator handles all
-task-master operations based on worker status reports.
+.orchestrator/task_progress file only. A hook automatically merges
+task_progress into task_status and the orchestrator reads from there.
 
 Allowed contexts:
 - Main Claude instance (no .orchestrator/current_task.md)
@@ -60,8 +60,8 @@ def main():
                 "permissionDecision": "deny",
                 "permissionDecisionReason": (
                     "Worker instances cannot access task-master MCP. "
-                    "Report progress via .orchestrator/task_status file instead. "
-                    "The orchestrator handles all task-master operations."
+                    "Report progress via .orchestrator/task_progress file instead. "
+                    "A hook merges it into task_status automatically."
                 )
             }
         }

@@ -1289,7 +1289,9 @@ def task_worker_spawn(
 
     # Create tmux window with Claude
     # Use fish shell, cd to worktree, then run claude
-    window_name = f"worker-{worker_id}"
+    # Include task title in window name for better identification
+    task_title = str(task_data.get("title", ""))[:25].replace(" ", "-").replace("/", "-")
+    window_name = f"T{task_id}-{task_title}"
 
     # Create new window
     args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name, "fish"]
