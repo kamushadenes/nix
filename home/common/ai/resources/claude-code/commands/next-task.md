@@ -1,5 +1,5 @@
 ---
-allowed-tools: Skill(commit), Skill(review), Bash(wt switch:*), Bash(wt merge:*), Bash(git push:*), Bash(cd:*), Bash(direnv allow:*), MCPSearch, mcp__task-master-ai__*, TodoWrite, AskUserQuestion
+allowed-tools: Skill(commit), Skill(review), Bash(wt switch:*), Bash(wt merge:*), Bash(git push:*), Bash(git remote prune:*), Bash(cd:*), Bash(direnv allow:*), MCPSearch, mcp__task-master-ai__*, TodoWrite, AskUserQuestion
 description: Work on next task with branch and merge workflow
 ---
 
@@ -152,6 +152,9 @@ Merge the feature branch to main and push:
 ```bash
 # Merge to main (squashes, rebases, fast-forwards, removes worktree)
 wt merge --yes
+
+# Clean stale refs to prevent corruption issues
+git remote prune origin
 
 # Push main to remote
 git push
