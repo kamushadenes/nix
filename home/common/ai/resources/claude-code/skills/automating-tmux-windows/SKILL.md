@@ -10,6 +10,30 @@ Control tmux windows programmatically: create windows, send commands, capture ou
 
 > **Note**: These tools are provided by the **orchestrator** MCP server, which also includes AI CLI tools (see ai-orchestration skill).
 
+## Recommended: Use Subagent for Context Efficiency
+
+**To save context in the main conversation**, delegate tmux operations to the `tmux-runner` subagent:
+
+```python
+# Instead of calling tmux tools directly, use Task tool:
+Task(
+    subagent_type="tmux-runner",
+    description="Run npm build",
+    prompt="Run 'npm run build' in the project directory. Return success/failure and any errors.",
+    model="haiku"  # Fast and cheap for simple commands
+)
+```
+
+**When to use subagent:**
+- Simple build/test commands
+- Any command where you just need pass/fail + output
+- Commands that don't need real-time monitoring
+
+**When to use direct tmux tools:**
+- Long-running servers you need to monitor over time
+- Complex interactive debugging sessions
+- When you need the window to persist across multiple operations
+
 ## Quick Reference
 
 | Tool                                   | Purpose                               |

@@ -8,7 +8,25 @@ triggers: background tasks, parallel execution, concurrent work, multi-task, bat
 
 Use tmux for background tasks and parallel work.
 
-## Pattern: Background Task
+## Recommended: Use Subagents for Context Efficiency
+
+**For simple parallel commands**, launch multiple `tmux-runner` subagents in parallel:
+
+```python
+# Launch all three in parallel (single message with multiple Task calls)
+Task(subagent_type="tmux-runner", description="Run tests",
+     prompt="Run 'npm test' and return results", model="haiku")
+Task(subagent_type="tmux-runner", description="Run lint",
+     prompt="Run 'npm run lint' and return results", model="haiku")
+Task(subagent_type="tmux-runner", description="Run build",
+     prompt="Run 'npm run build' and return results", model="haiku")
+```
+
+This saves context in the main conversation - you only see the results, not all the intermediate tmux operations.
+
+## Pattern: Background Task (Direct)
+
+For long-running servers you need to monitor:
 
 ```python
 # Start background task
@@ -31,7 +49,9 @@ status = tmux_wait_idle(target=window_id, timeout=300)
 notify(title="Build Complete", message=f"Status: {status}")
 ```
 
-## Pattern: Multiple Parallel
+## Pattern: Multiple Parallel (Direct)
+
+When you need to manage windows yourself:
 
 ```python
 test_win = tmux_new_window(command="npm test", name="tests")
