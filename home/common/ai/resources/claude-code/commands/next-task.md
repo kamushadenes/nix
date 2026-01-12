@@ -177,14 +177,14 @@ For each subtask (skip already completed ones):
 1. Display a short summary
 2. Use TodoWrite to track progress
 3. Complete the subtask work
-4. **Commit the changes** (if `github_available=true` and `github_issue_number` is set):
-   ```
-   Skill(skill="commit", args="Include #${github_issue_number} in the commit message body to link to the GitHub issue")
-   ```
-   If no GitHub issue is linked, use:
-   ```
-   Skill(skill="commit")
-   ```
+4. **Commit the changes:**
+   Call the Skill tool with:
+   - `skill`: "commit"
+   - `args`: "Include #N in the commit message body" (replace N with the actual `github_issue_number`)
+
+   Example: If `github_issue_number` is 42, use `args="Include #42 in the commit message body"`
+
+   If no GitHub issue is linked, omit the `args` parameter.
 5. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
 6. **Update GitHub issue to tick the checkbox** (if `github_available=true`):
 
@@ -236,17 +236,13 @@ For comprehensive review with all 9 agents, use `/deep-review` instead.
 
 Use the `/commit` skill to commit all changes.
 
-If `github_available=true` and `github_issue_number` is set:
-```
-Skill(skill="commit", args="Include #${github_issue_number} in the commit message body to link to the GitHub issue")
-```
+Call the Skill tool with:
+- `skill`: "commit"
+- `args`: "Include #N in the commit message body" (replace N with the actual `github_issue_number`)
 
-Otherwise:
-```
-Skill(skill="commit")
-```
+Example: If `github_issue_number` is 42, use `args="Include #42 in the commit message body"`
 
-This will analyze changes and create an appropriate commit message with the issue reference.
+If no GitHub issue is linked, omit the `args` parameter.
 
 ### 11. Merge and Push
 

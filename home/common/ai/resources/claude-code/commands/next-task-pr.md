@@ -177,14 +177,14 @@ For each subtask (skip already completed ones):
 1. Display a short summary
 2. Use TodoWrite to track progress
 3. Complete the subtask work
-4. **Commit the changes** (if `github_available=true` and `github_issue_number` is set):
-   ```
-   Skill(skill="commit", args="Include #${github_issue_number} in the commit message body to link to the GitHub issue")
-   ```
-   If no GitHub issue is linked, use:
-   ```
-   Skill(skill="commit")
-   ```
+4. **Commit the changes:**
+   Call the Skill tool with:
+   - `skill`: "commit"
+   - `args`: "Include #N in the commit message body" (replace N with the actual `github_issue_number`)
+
+   Example: If `github_issue_number` is 42, use `args="Include #42 in the commit message body"`
+
+   If no GitHub issue is linked, omit the `args` parameter.
 5. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
 6. **Update GitHub issue to tick the checkbox** (if `github_available=true`):
 
@@ -230,15 +230,13 @@ For comprehensive review with all 9 agents, use `/deep-review` instead.
 
 Use the `/commit-push-pr` skill to commit changes, push the branch, and create a PR.
 
-If `github_available=true` and `github_issue_number` is set:
-```
-Skill(skill="commit-push-pr", args="Include #${github_issue_number} in commit message body. Include 'Closes #${github_issue_number}' in PR description to auto-close the issue on merge.")
-```
+Call the Skill tool with:
+- `skill`: "commit-push-pr"
+- `args`: "Include #N in commit message body. Include 'Closes #N' in PR description." (replace N with the actual `github_issue_number`)
 
-Otherwise:
-```
-Skill(skill="commit-push-pr")
-```
+Example: If `github_issue_number` is 42, use `args="Include #42 in commit message body. Include 'Closes #42' in PR description."`
+
+If no GitHub issue is linked, omit the `args` parameter.
 
 This will:
 
