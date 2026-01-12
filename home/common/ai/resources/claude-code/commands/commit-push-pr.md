@@ -3,6 +3,10 @@ allowed-tools: Task
 description: Commit, push, and open a PR
 ---
 
+## Arguments
+
+`$ARGUMENTS` - Optional extra instructions for the commit/PR (e.g., issue reference, specific message requirements).
+
 ## Your Task
 
 Use the **Task tool** with `subagent_type="git-committer"` for the full PR workflow.
@@ -12,6 +16,7 @@ In your prompt to the agent, include:
 1. **Task context**: Summarize what was being worked on in this session (from conversation history, todo list, or task-master task if applicable)
 2. **Mode**: "full PR workflow" (branch, commit, push, PR)
 3. **Any specific instructions** from the user
+4. **Extra instructions** (if `$ARGUMENTS` is provided): Include these verbatim in your prompt to the agent
 
 The agent will:
 

@@ -177,13 +177,14 @@ For each subtask (skip already completed ones):
 1. Display a short summary
 2. Use TodoWrite to track progress
 3. Complete the subtask work
-4. **Commit the changes:**
+4. **Commit the changes** (if `github_available=true` and `github_issue_number` is set):
+   ```
+   Skill(skill="commit", args="Include #${github_issue_number} in the commit message body to link to the GitHub issue")
+   ```
+   If no GitHub issue is linked, use:
    ```
    Skill(skill="commit")
    ```
-   When the commit skill asks for commit message details, ensure the extended description
-   includes a reference to the GitHub issue: `#${github_issue_number}` (e.g., `#42`).
-   This links the commit to the issue in GitHub's UI.
 5. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
 6. **Update GitHub issue to tick the checkbox** (if `github_available=true`):
 
@@ -229,28 +230,21 @@ For comprehensive review with all 9 agents, use `/deep-review` instead.
 
 Use the `/commit-push-pr` skill to commit changes, push the branch, and create a PR.
 
-**Before calling the skill**, note the GitHub issue number:
+If `github_available=true` and `github_issue_number` is set:
+```
+Skill(skill="commit-push-pr", args="Include #${github_issue_number} in commit message body. Include 'Closes #${github_issue_number}' in PR description to auto-close the issue on merge.")
+```
 
-- Extract issue number from task title `[GH:#N]`
-- The commit message extended description should include `#<issue_number>` to link commits to the issue
-- The PR description should include `Closes #<issue_number>` to auto-close on merge
-
+Otherwise:
 ```
 Skill(skill="commit-push-pr")
 ```
 
 This will:
 
-- Create a commit with all changes (ensure `#<issue_number>` is in the commit body)
+- Create a commit with all changes (with issue reference in commit body)
 - Push the branch to origin
-- Create a pull request
-
-When prompted for commit/PR details:
-
-1. **Commit message** - Include `#<issue_number>` in the extended description (e.g., "feat: add feature\n\n#42")
-2. **PR description** - Include `Closes #<issue_number>` to auto-close the issue on merge
-
-This links all commits to the issue and automatically closes it when the PR is merged.
+- Create a pull request (with `Closes #N` to auto-close issue on merge)
 
 Display the PR URL to the user.
 
