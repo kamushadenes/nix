@@ -186,18 +186,24 @@ For each subtask (skip already completed ones):
 
    If no GitHub issue is linked, omit the `args` parameter.
 5. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
-6. **Update GitHub issue to tick the checkbox** (if `github_available=true`):
+6. **Update GitHub issue to tick the checkbox with commit link** (if `github_available=true`):
 
-   Get current issue body and update the checkbox:
-
+   First, get the commit SHA from the recent commit:
    ```bash
-   # Get current body, replace unchecked with checked for this subtask
+   commit_sha=$(git rev-parse --short HEAD)
+   ```
+
+   Then update the checkbox with a link to the commit:
+   ```bash
    gh issue edit ${github_issue_number} \
      --repo "${github_owner}/${github_repo}" \
      --body "${updated_body_with_checkbox_ticked}"
    ```
 
-   Replace `- [ ] ${subtask_title}` with `- [x] ${subtask_title}` in the body.
+   Replace `- [ ] ${subtask_title}` with:
+   `- [x] ${subtask_title} ([${commit_sha}](https://github.com/${github_owner}/${github_repo}/commit/${commit_sha}))`
+
+   This links each completed subtask to its implementing commit.
 
 ### 8. Mark Task Complete
 
