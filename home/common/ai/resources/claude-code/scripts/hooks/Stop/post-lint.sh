@@ -7,11 +7,16 @@ if ! command -v just &>/dev/null; then
 	exit 0
 fi
 
-if ! just --list 2>/dev/null | grep -q 'lint'; then
+# Prefer lint-fix if available, otherwise use lint
+if just --list 2>/dev/null | grep -q 'lint-fix'; then
+	lint_cmd="lint-fix"
+elif just --list 2>/dev/null | grep -q 'lint'; then
+	lint_cmd="lint"
+else
 	exit 0
 fi
 
-output=$(just lint 2>&1)
+output=$(just $lint_cmd 2>&1)
 exit_code=$?
 
 if [ $exit_code -ne 0 ]; then
