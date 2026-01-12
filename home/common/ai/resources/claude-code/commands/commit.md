@@ -1,11 +1,8 @@
 ---
 allowed-tools: Task
 description: Create a git commit
+argument-hint: [extra-instructions]
 ---
-
-## Arguments
-
-`$ARGUMENTS` - Optional extra instructions for the commit (e.g., issue reference, specific message requirements).
 
 ## Your Task
 
@@ -16,7 +13,7 @@ In your prompt to the agent, include:
 1. **Task context**: Summarize what was being worked on in this session (from conversation history, todo list, or task-master task if applicable)
 2. **Mode**: "commit only" (not full PR workflow)
 3. **Any specific instructions** from the user (e.g., specific files to include, message preferences)
-4. **Extra instructions** (if `$ARGUMENTS` is provided): Include these verbatim in your prompt to the agent
+4. **Extra instructions**: $ARGUMENTS
 
 The agent will gather its own git context (status, diff, etc.) and create the commit.
 
