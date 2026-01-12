@@ -272,6 +272,7 @@
 
     # MCP: GitHub
     "mcp__github__list_issues"
+    "mcp__github__issue_write"
 
     # MCP: IDE
     "mcp__ide__getDiagnostics"

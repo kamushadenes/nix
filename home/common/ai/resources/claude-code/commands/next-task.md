@@ -1,5 +1,5 @@
 ---
-allowed-tools: Skill(commit), Skill(review), Bash(wt switch:*), Bash(wt merge:*), Bash(git push:*), Bash(git remote prune:*), Bash(cd:*), Bash(direnv allow:*), MCPSearch, mcp__task-master-ai__*, TodoWrite, AskUserQuestion
+allowed-tools: Skill(commit), Skill(review), Bash(wt switch:*), Bash(wt merge:*), Bash(git push:*), Bash(git remote:*), Bash(git remote prune:*), Bash(cd:*), Bash(direnv allow:*), MCPSearch, mcp__task-master-ai__*, mcp__github__issue_write, TodoWrite, AskUserQuestion
 description: Work on next task with branch and merge workflow
 ---
 
@@ -63,6 +63,33 @@ Call `mcp__task-master-ai__set_task_status` with:
 - `id`: The task ID
 - `status`: `in-progress`
 
+### 3.5. Ensure GitHub Issue Exists
+
+Check if this is a GitHub repository and if the task has a linked issue:
+
+1. **Detect GitHub repo:**
+
+   ```bash
+   remote_url=$(git remote get-url origin 2>/dev/null || echo "")
+   ```
+
+   Extract owner/repo if URL matches `github.com[:/]<owner>/<repo>`.
+   If not a GitHub repo, skip all GitHub steps in this workflow.
+
+2. **Check task title for `[GH:#N]` pattern:**
+
+   - If found: GitHub issue already linked, note the issue number for later
+   - If NOT found: Create GitHub issue (continue to step 3)
+
+3. **Create GitHub issue:**
+   - Load: `MCPSearch` for `mcp__github__issue_write`
+   - Call `mcp__github__issue_write` with:
+     - `owner`, `repo`: from git remote
+     - `title`: Task title
+     - `body`: Task description (subtasks added later after expand)
+     - `labels`: `task-master`
+   - Update task title with `[GH:#<issue_number>]` prefix via `mcp__task-master-ai__update_task`
+
 ### 4. Expand the Task (if needed)
 
 Check if the task already has subtasks. If it does NOT have subtasks, call `mcp__task-master-ai__expand_task` with:
@@ -82,6 +109,29 @@ Check if the task already has subtasks. If it does NOT have subtasks, call `mcp_
   - Task is routine work within well-understood parts of the codebase
   - Task is a simple refactoring, bug fix, or code cleanup
   - All required knowledge is available in existing code or documentation
+
+**After expanding, update GitHub issue with subtasks:**
+
+If GitHub issue exists (from step 3.5), update the issue body:
+
+- Get the expanded subtasks from the task
+- Call `mcp__github__issue_write` to update the issue body with:
+
+  ```markdown
+  ## Task
+
+  {task_description}
+
+  ## Subtasks
+
+  - [ ] {subtask_1_title}
+  - [ ] {subtask_2_title}
+  - [ ] {subtask_3_title}
+
+  ---
+
+  _Tracked in task-master. ID: {task_id}_
+  ```
 
 If subtasks already exist, skip this step.
 
@@ -112,13 +162,28 @@ For each subtask:
 1. Display a short summary
 2. Use TodoWrite to track progress
 3. Complete the subtask work
-4. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
+4. **Commit the changes:**
+   ```
+   Skill(skill="commit")
+   ```
+5. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
+6. **Update GitHub issue to tick the checkbox** (if GitHub issue exists):
+   - Get current issue body
+   - Replace `- [ ] {subtask_title}` with `- [x] {subtask_title}`
+   - Call `mcp__github__issue_write` to update the body
 
 ### 7. Mark Task Complete
 
 Once all subtasks are done:
 
 1. Call `mcp__task-master-ai__set_task_status` with status `done`
+
+2. **Close linked GitHub issue** (if exists):
+   - Extract issue number from task title `[GH:#N]`
+   - If issue number found, call `mcp__github__issue_write` with:
+     - `owner`, `repo`: from git remote
+     - `issue_number`: extracted number
+     - `state`: `closed`
 
 ### 8. Code Review
 
