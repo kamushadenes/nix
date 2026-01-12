@@ -3,6 +3,9 @@ name: code-reviewer
 description: Expert code reviewer. Use PROACTIVELY after any code changes.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
+permissionMode: dontAsk
+skills:
+  - feedback-loop
 hooks:
   PreToolUse:
     - matcher: Bash

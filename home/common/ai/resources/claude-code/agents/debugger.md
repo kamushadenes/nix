@@ -3,6 +3,9 @@ name: debugger
 description: Root cause investigation agent. Use when debugging complex issues that need multi-model analysis.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
+permissionMode: dontAsk
+skills:
+  - verification-loops
 hooks:
   PreToolUse:
     - matcher: Bash

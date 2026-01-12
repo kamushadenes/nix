@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Grep, Glob, Bash, Task
+allowed-tools: Task
 description: Perform comprehensive architecture review of the codebase
 ---
 
@@ -10,19 +10,35 @@ description: Perform comprehensive architecture review of the codebase
 
 ## Your Task
 
-Perform a comprehensive architecture review using the architecture-reviewer agent.
+Delegate the comprehensive architecture review to the `architecture-reviewer` subagent.
 
-1. **Scope the review** - Identify main architectural components
-2. **Analyze each dimension** - Work through all 15 review dimensions
-3. **Synthesize findings** - Prioritize issues by impact
-4. **Provide actionable recommendations**
+Use the **Task tool** with:
 
-Focus on:
+- `subagent_type`: "architecture-reviewer"
+- `prompt`: Include the project context above and request a review across all 15 dimensions:
+  1. Structure and system design
+  2. Design patterns
+  3. Dependencies and coupling
+  4. Data management
+  5. Component design
+  6. Error handling
+  7. Scalability
+  8. Security architecture
+  9. Testability
+  10. Operations
+  11. Documentation
+  12. Extensibility
+  13. Technology stack
+  14. Performance
+  15. Team alignment
 
-- Structural patterns and their correctness
-- Dependency health and coupling
-- Scalability and performance readiness
-- Security architecture
-- Operational concerns
+Request findings prioritized by impact with actionable recommendations.
 
-Deliver a prioritized list of architectural improvements.
+## Display Results
+
+After the subagent returns, display:
+
+- Executive summary (2-3 sentences)
+- Top concerns by severity
+- Prioritized recommendations
+- Technical debt identified

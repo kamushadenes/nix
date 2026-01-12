@@ -3,6 +3,9 @@ name: task-agent
 description: Autonomous agent that finds and completes ready tasks using task-master MCP
 tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch, mcp__task-master-ai__*, mcp__iniciador-clickup__*, mcp__iniciador-vanta__*, mcp__github__*
 model: sonnet
+skills:
+  - verification-loops
+  - feedback-loop
 hooks:
   PreToolUse:
     - matcher: Write|Edit|MultiEdit|TodoWrite|Update

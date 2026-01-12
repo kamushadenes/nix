@@ -3,6 +3,7 @@ name: silent-failure-hunter
 description: Detects silent failures, swallowed exceptions, and missing error handling. Use PROACTIVELY during code review or QA.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
+permissionMode: dontAsk
 hooks:
   PreToolUse:
     - matcher: Bash

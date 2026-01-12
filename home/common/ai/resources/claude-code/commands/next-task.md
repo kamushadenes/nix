@@ -10,6 +10,7 @@ Fetch the next available task from task-master, create a feature branch, complet
 ## Arguments
 
 Parse arguments from $ARGUMENTS:
+
 - `--auto-merge` or `-a`: Automatically merge the PR after creation (uses admin bypass if needed)
 
 ## Workflow
@@ -117,6 +118,7 @@ For each subtask (skip already completed ones):
 3. Complete the subtask work
 4. **Commit the changes:**
    Call the Skill tool with:
+
    - `skill`: "commit"
 
 5. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
@@ -153,6 +155,7 @@ Skill(skill="commit-push-pr")
 ```
 
 This will:
+
 - Stage and commit any remaining changes
 - Push the branch to remote
 - Create a PR with a proper description
@@ -164,11 +167,13 @@ This will:
 If `--auto-merge` or `-a` was passed:
 
 1. Try standard merge:
+
    ```bash
    gh pr merge <pr_number> --squash
    ```
 
 2. If blocked by branch protection, try admin bypass:
+
    ```bash
    gh pr merge <pr_number> --admin --squash
    ```
@@ -176,6 +181,7 @@ If `--auto-merge` or `-a` was passed:
 3. Wait for merge to complete
 
 4. Delete the worktree:
+
    ```bash
    wt remove <worktree_path>
    ```
@@ -186,6 +192,7 @@ If `--auto-merge` or `-a` was passed:
    ```
 
 If auto-merge NOT requested:
+
 - Log the PR URL
 - Inform user they can review and merge manually
 - Worktree is preserved until manual merge

@@ -2,7 +2,8 @@
 name: type-checker
 description: Type safety analyst. Use PROACTIVELY for type-related changes or when reviewing type design.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
-model: opus
+model: haiku
+permissionMode: dontAsk
 hooks:
   PreToolUse:
     - matcher: Bash

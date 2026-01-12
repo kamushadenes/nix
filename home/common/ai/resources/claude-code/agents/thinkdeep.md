@@ -3,6 +3,7 @@ name: thinkdeep
 description: Extended thinking and analysis agent. Use for complex problems requiring thorough exploration.
 tools: Read, Grep, Glob, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
+permissionMode: dontAsk
 ---
 
 > **Multi-model:** See `_references/multi-model-orchestration.md` for spawn/fetch patterns

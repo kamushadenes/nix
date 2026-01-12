@@ -568,6 +568,8 @@ in
     ".claude/agents/tmux-runner.md".source = "${agentsDir}/tmux-runner.md";
     # Worker orchestrator agent (manages parallel Claude worker instances)
     ".claude/agents/worker-orchestrator.md".source = "${agentsDir}/worker-orchestrator.md";
+    # Task worker agent (autonomous task completion with TDD and PR workflow)
+    ".claude/agents/next-task-worker.md".source = "${agentsDir}/next-task-worker.md";
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)

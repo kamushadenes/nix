@@ -2,7 +2,8 @@
 name: comment-analyzer
 description: Analyzes code comment quality. Use for reviewing documentation and comment practices.
 tools: Read, Grep, Glob, Bash
-model: opus
+model: haiku
+permissionMode: dontAsk
 hooks:
   PreToolUse:
     - matcher: Bash

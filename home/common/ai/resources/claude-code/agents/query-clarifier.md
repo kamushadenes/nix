@@ -3,6 +3,7 @@ name: query-clarifier
 description: Validates research questions before investigation. Use when requests are ambiguous or vague.
 tools: Read, Grep, Glob
 model: haiku
+permissionMode: dontAsk
 ---
 
 You analyze queries to identify ambiguity, vagueness, or missing context before research begins.

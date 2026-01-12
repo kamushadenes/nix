@@ -2,7 +2,8 @@
 name: performance-analyzer
 description: Performance issue detector. Use PROACTIVELY for performance-sensitive code or when optimizing.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
-model: opus
+model: haiku
+permissionMode: dontAsk
 hooks:
   PreToolUse:
     - matcher: Bash

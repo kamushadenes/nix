@@ -2,7 +2,8 @@
 name: dependency-checker
 description: Analyzes project dependencies. Use for security audits, update planning, and dependency health checks.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
-model: opus
+model: haiku
+permissionMode: dontAsk
 hooks:
   PreToolUse:
     - matcher: Bash

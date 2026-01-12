@@ -3,6 +3,7 @@ name: planner
 description: Project planning agent. Use for breaking down complex features or projects into implementation steps.
 tools: Read, Grep, Glob, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
+permissionMode: dontAsk
 ---
 
 You are a project planning specialist that creates detailed implementation plans with input from multiple AI models.

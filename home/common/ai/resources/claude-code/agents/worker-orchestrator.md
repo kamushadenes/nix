@@ -3,6 +3,9 @@ name: worker-orchestrator
 description: Orchestrate parallel Claude worker instances for task completion. Use when delegating multiple tasks to worker instances. Handles spawning, monitoring, stuck detection, subtask syncing, and cleanup.
 tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(sleep:*), mcp__orchestrator__task_worker_spawn, mcp__orchestrator__task_worker_status, mcp__orchestrator__task_worker_list, mcp__orchestrator__task_worker_kill, mcp__orchestrator__tmux_capture, mcp__task-master-ai__set_task_status, mcp__task-master-ai__update_subtask, mcp__task-master-ai__expand_task, mcp__task-master-ai__get_task
 model: sonnet
+skills:
+  - automating-tmux-windows
+  - parallel-processing
 hooks:
   PreToolUse:
     - matcher: Bash

@@ -3,6 +3,10 @@ name: security-auditor
 description: Security vulnerability analyst. Use PROACTIVELY for security-sensitive code changes.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
+permissionMode: dontAsk
+skills:
+  - sql-pro
+  - terraform-engineer
 hooks:
   PreToolUse:
     - matcher: Bash
