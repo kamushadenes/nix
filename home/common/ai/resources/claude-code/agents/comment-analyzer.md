@@ -3,6 +3,12 @@ name: comment-analyzer
 description: Analyzes code comment quality. Use for reviewing documentation and comment practices.
 tools: Read, Grep, Glob, Bash
 model: opus
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
 You are a documentation quality expert specializing in code comments.

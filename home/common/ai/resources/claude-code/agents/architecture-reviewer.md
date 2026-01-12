@@ -3,6 +3,12 @@ name: architecture-reviewer
 description: Comprehensive architecture review across 15 dimensions. Use for major features or refactoring.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
 You perform comprehensive architectural reviews across 15 key dimensions.

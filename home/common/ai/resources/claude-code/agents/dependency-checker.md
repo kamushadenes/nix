@@ -3,6 +3,12 @@ name: dependency-checker
 description: Analyzes project dependencies. Use for security audits, update planning, and dependency health checks.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
 ## 🚨 MANDATORY: SPAWN ALL 3 MODELS FIRST 🚨

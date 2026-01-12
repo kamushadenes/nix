@@ -3,6 +3,12 @@ name: precommit
 description: Pre-commit validation agent. Use before committing to get multi-model review of changes.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: haiku
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
 You are a pre-commit validation agent that ensures code quality before commits using multiple AI perspectives.

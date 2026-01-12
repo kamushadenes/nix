@@ -3,6 +3,12 @@ name: git-committer
 description: Git workflow agent for commits and PRs. Use for isolated git operations.
 tools: Bash(git:*), Bash(gh:*), Bash(cat:*), Bash(ls:*), Bash(pwd:*), Read
 model: haiku
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
 You are a git workflow agent that creates commits and pull requests.

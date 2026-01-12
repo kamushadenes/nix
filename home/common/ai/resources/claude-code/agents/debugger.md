@@ -3,6 +3,12 @@ name: debugger
 description: Root cause investigation agent. Use when debugging complex issues that need multi-model analysis.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
 You are a debugging specialist that leverages multiple AI models to identify root causes of complex issues.

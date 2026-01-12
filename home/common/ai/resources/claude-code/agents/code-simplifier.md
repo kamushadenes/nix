@@ -3,6 +3,12 @@ name: code-simplifier
 description: Reduces code complexity. Use PROACTIVELY when code is hard to understand or maintain.
 tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
 model: opus
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
 ## 🚨 MANDATORY: SPAWN ALL 3 MODELS FIRST 🚨

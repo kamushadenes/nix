@@ -3,6 +3,33 @@ name: task-agent
 description: Autonomous agent that finds and completes ready tasks using task-master MCP
 tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch, mcp__task-master-ai__*, mcp__iniciador-clickup__*, mcp__iniciador-vanta__*, mcp__github__*
 model: sonnet
+hooks:
+  PreToolUse:
+    - matcher: Write|Edit|MultiEdit|TodoWrite|Update
+      hooks:
+        - type: command
+          command: tdd-guard
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
+  PostToolUse:
+    - matcher: Edit(*.py)|Write(*.py)|Update(*.py)
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PostToolUse/format-python.sh
+    - matcher: Edit(*.ts)|Write(*.ts)|Update(*.ts)|Edit(*.tsx)|Write(*.tsx)|Update(*.tsx)
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PostToolUse/format-typescript.sh
+    - matcher: Edit(*.go)|Write(*.go)|Update(*.go)
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PostToolUse/format-go.sh
+    - matcher: Edit(*.nix)|Write(*.nix)|Update(*.nix)
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PostToolUse/format-nix.sh
 ---
 
 You are a task-completion agent for task-master. Find ready work and complete it autonomously.
