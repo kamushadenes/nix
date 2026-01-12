@@ -566,6 +566,8 @@ in
     ".claude/agents/git-committer.md".source = "${agentsDir}/git-committer.md";
     # Tmux runner agent (context-efficient terminal commands)
     ".claude/agents/tmux-runner.md".source = "${agentsDir}/tmux-runner.md";
+    # Worker orchestrator agent (manages parallel Claude worker instances)
+    ".claude/agents/worker-orchestrator.md".source = "${agentsDir}/worker-orchestrator.md";
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
