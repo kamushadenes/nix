@@ -190,7 +190,7 @@ For each subtask (skip already completed ones):
 
    First, get the commit SHA from the recent commit:
    ```bash
-   commit_sha=$(git rev-parse --short HEAD)
+   commit_sha=$(git rev-parse HEAD)
    ```
 
    Then update the checkbox with a link to the commit:
