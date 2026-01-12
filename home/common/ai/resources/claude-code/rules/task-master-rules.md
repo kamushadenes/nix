@@ -53,3 +53,17 @@ For new projects:
 2. Create `.taskmaster/docs/prd.txt` with requirements
 3. Use `parse_prd` to generate initial tasks
 4. Or use `add_task` to create tasks manually
+
+## GitHub Issue Linking
+
+All task-master tasks in GitHub repos must have `[GH:#N]` prefix linking to an issue.
+
+- Auto-created on `add_task` via hook
+- Blocked at `set_task_status(in-progress)` if missing
+- `/next-task` and `/next-task-pr` handle this automatically
+
+If blocked, create issue manually:
+```bash
+gh issue create --title "<task title>" --label task-master
+npx task-master-ai update-task --id=<id> --title="[GH:#<issue>] <title>"
+```

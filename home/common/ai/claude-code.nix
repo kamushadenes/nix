@@ -182,6 +182,16 @@ in
               }
             ];
           }
+          # Require GitHub issue before claiming task-master tasks
+          {
+            matcher = "mcp__task-master-ai__set_task_status";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PreToolUse/require-github-issue.py";
+              }
+            ];
+          }
         ];
 
         # Run on every user prompt submission
@@ -323,6 +333,16 @@ in
               }
             ];
           }
+          # Auto-create GitHub issue when adding task-master tasks
+          {
+            matcher = "mcp__task-master-ai__add_task";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PostToolUse/auto-create-github-issue.sh";
+              }
+            ];
+          }
         ];
       };
 
@@ -441,10 +461,18 @@ in
       source = "${scriptsDir}/hooks/PreToolUse/enforce-worktree.py";
       executable = true;
     };
+    ".claude/hooks/PreToolUse/require-github-issue.py" = {
+      source = "${scriptsDir}/hooks/PreToolUse/require-github-issue.py";
+      executable = true;
+    };
 
     # PostToolUse hooks (additional)
     ".claude/hooks/PostToolUse/link-pr-to-task.sh" = {
       source = "${scriptsDir}/hooks/PostToolUse/link-pr-to-task.sh";
+      executable = true;
+    };
+    ".claude/hooks/PostToolUse/auto-create-github-issue.sh" = {
+      source = "${scriptsDir}/hooks/PostToolUse/auto-create-github-issue.sh";
       executable = true;
     };
 
