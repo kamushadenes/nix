@@ -1246,16 +1246,17 @@ def task_worker_spawn(
 
     # Send cd and claude command (with --dangerously-skip-permissions for unattended execution)
     run_tmux("send-keys", "-t", window_id, f"cd {worktree_path}", "Enter")
-    time.sleep(0.2)
+    time.sleep(0.3)
     run_tmux("send-keys", "-t", window_id, "claude --dangerously-skip-permissions", "Enter")
 
-    # Wait for Claude to start (look for prompt indicators)
+    # Wait for Claude to be fully ready (look for the ❯ prompt character)
+    # Claude shows "❯" when ready for input
     claude_ready = False
-    for _ in range(100):  # 10 seconds
+    for _ in range(150):  # 15 seconds - Claude can take a while to start
         time.sleep(0.1)
         content, _ = run_tmux("capture-pane", "-t", window_id, "-p")
-        # Claude shows a prompt like "> " or has certain UI elements
-        if ">" in content or "Claude" in content or "?" in content:
+        # Look for Claude's prompt indicator (❯) after startup banner
+        if "❯" in content and "Claude Code" in content:
             claude_ready = True
             break
 
@@ -1266,9 +1267,44 @@ def task_worker_spawn(
             error="Claude did not start in time"
         )
 
-    # Send /work command
-    time.sleep(0.5)  # Brief pause for Claude to fully initialize
-    run_tmux("send-keys", "-t", window_id, "/work", "Enter")
+    # Wait a bit more for Claude to fully initialize UI
+    time.sleep(1.0)
+
+    # Send /work command - send the text first, then Enter separately
+    # This ensures the slash command picker has time to show
+    run_tmux("send-keys", "-t", window_id, "/work")
+    time.sleep(0.3)  # Let the slash command picker appear
+    run_tmux("send-keys", "-t", window_id, "Enter")
+
+    # Wait for /work command to be accepted (look for skill loading or tool activity)
+    work_started = False
+    for _ in range(100):  # 10 seconds
+        time.sleep(0.1)
+        content, _ = run_tmux("capture-pane", "-t", window_id, "-p")
+        # Check if /work was accepted - look for:
+        # - Tool calls starting (Read, Write, etc.)
+        # - "Starting work" or similar
+        # - The prompt moving past /work
+        if any(indicator in content for indicator in [
+            "Read(",
+            "Write(",
+            "Edit(",
+            "Bash(",
+            "Starting work",
+            "task",
+            "subtask",
+            "⏺",  # Claude's activity indicator
+        ]):
+            work_started = True
+            break
+
+    if not work_started:
+        # Check if we're still at the slash command picker
+        content, _ = run_tmux("capture-pane", "-t", window_id, "-p")
+        if "/work" in content and "Autonomous task" in content:
+            # Slash command picker is showing, send Enter again
+            run_tmux("send-keys", "-t", window_id, "Enter")
+            time.sleep(0.5)
 
     # Track the worker
     with TASK_WORKERS_LOCK:
