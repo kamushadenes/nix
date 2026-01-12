@@ -1,5 +1,5 @@
 ---
-allowed-tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(gh:*), AskUserQuestion, Task
+allowed-tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(gh:*), AskUserQuestion, Task, TaskOutput
 description: Delegate tasks to parallel worker Claude instances
 ---
 
@@ -77,47 +77,69 @@ For each selected task:
    - The worktree path will be in `~/.worktrees/<branch-name>`
 3. Build task object with worktree_path
 
-### Phase 5: Spawn Worker Orchestrator
+### Phase 5: Spawn Worker Orchestrators
 
-**Delegate the heavy monitoring work to the worker-orchestrator subagent:**
+**Spawn one worker-orchestrator per task for true parallelism.**
+
+For each selected task, create a separate Task tool call:
 
 ```python
-Task(
-    subagent_type="worker-orchestrator",
-    description="Orchestrate worker instances",
-    prompt=json.dumps({
-        "tasks": [
-            {
-                "id": task.id,
-                "title": task.title,
-                "description": task.description,
-                "subtasks": task.subtasks,
-                "worktree_path": worktree_path
+# Spawn all orchestrators in parallel (single message with multiple Task calls)
+for task in selected_tasks:
+    Task(
+        subagent_type="worker-orchestrator",
+        description=f"Orchestrate task {task.id}",
+        prompt=json.dumps({
+            "tasks": [
+                {
+                    "id": task.id,
+                    "title": task.title,
+                    "description": task.description,
+                    "subtasks": task.subtasks,
+                    "worktree_path": task.worktree_path
+                }
+            ],
+            "repo": "<owner/repo from context>",
+            "auto_merge": AUTO_MERGE,
+            "config": {
+                "poll_interval": 30,
+                "heartbeat_timeout": 300,
+                "max_retries": 2
             }
-            for task in selected_tasks
-        ],
-        "repo": "<owner/repo from context>",
-        "auto_merge": AUTO_MERGE,
-        "config": {
-            "poll_interval": 30,
-            "heartbeat_timeout": 300,
-            "max_retries": 2
-        }
-    })
-)
+        }),
+        run_in_background=True  # Run all orchestrators concurrently
+    )
 ```
 
-The subagent handles:
-- Expanding tasks into subtasks if needed
-- Spawning worker instances
+**Important:** All Task tool calls must be in a single message to enable parallel execution. Each orchestrator runs independently and handles:
+- Expanding its task into subtasks if needed
+- Spawning the worker instance
 - Monitoring progress and syncing subtasks
 - Stuck detection with two-phase tmux capture
 - Retry logic for failed workers
-- Cleanup of merged worktrees
+- Cleanup of merged worktree
 
-### Phase 6: Display Results
+### Phase 6: Collect and Display Results
 
-When the subagent returns, parse its JSON result and display:
+Each background orchestrator returns results independently. Collect all results using TaskOutput:
+
+```python
+results = {
+    "completed": [],
+    "failed": [],
+    "stuck": []
+}
+
+for task_id in spawned_task_ids:
+    result = TaskOutput(task_id=task_id, block=True, timeout=600000)
+    # Parse orchestrator's JSON result and merge into results
+    orchestrator_result = json.loads(result)
+    results["completed"].extend(orchestrator_result.get("completed", []))
+    results["failed"].extend(orchestrator_result.get("failed", []))
+    results["stuck"].extend(orchestrator_result.get("stuck", []))
+```
+
+Display aggregated results:
 
 **Completed (merged):**
 
