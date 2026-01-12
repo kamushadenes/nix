@@ -1,20 +1,23 @@
 ---
-allowed-tools: Bash(git checkout --branch:*), Bash(git add:*), Bash(git status:*), Bash(git push:*), Bash(git commit:*), Bash(gh pr create:*)
+allowed-tools: Task
 description: Commit, push, and open a PR
 ---
 
-## Context
+## Your Task
 
-- Current git status: !`git status`
-- Current git diff (staged and unstaged changes): !`git diff HEAD`
-- Current branch: !`git branch --show-current`
+Use the **Task tool** with `subagent_type="git-committer"` for the full PR workflow.
 
-## Your task
+In your prompt to the agent, include:
 
-Based on the above changes:
+1. **Task context**: Summarize what was being worked on in this session (from conversation history, todo list, or task-master task if applicable)
+2. **Mode**: "full PR workflow" (branch, commit, push, PR)
+3. **Any specific instructions** from the user
 
-1. Create a new branch if on main
-2. Create a single commit with an appropriate message
-3. Push the branch to origin
-4. Create a pull request using `gh pr create`
-5. You have the capability to call multiple tools in a single response. You MUST do all of the above in a single message. Do not use any other tools or do anything else. Do not send any other text or messages besides these tool calls.
+The agent will:
+
+- Gather its own git context
+- Create a branch if on main
+- Stage and commit changes
+- Push and create a PR
+
+Do not use any other tools. Return the agent's summary (including PR URL) to the user.

@@ -1,17 +1,18 @@
 ---
-allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*)
+allowed-tools: Task
 description: Create a git commit
 ---
 
-## Context
+## Your Task
 
-- Current git status: !`git status`
-- Current git diff (staged and unstaged changes): !`git diff HEAD`
-- Current branch: !`git branch --show-current`
-- Recent commits: !`git log --oneline -10`
+Use the **Task tool** with `subagent_type="git-committer"` to create a commit.
 
-## Your task
+In your prompt to the agent, include:
 
-Based on the above changes, create a single git commit.
+1. **Task context**: Summarize what was being worked on in this session (from conversation history, todo list, or task-master task if applicable)
+2. **Mode**: "commit only" (not full PR workflow)
+3. **Any specific instructions** from the user (e.g., specific files to include, message preferences)
 
-You have the capability to call multiple tools in a single response. Stage and create the commit using a single message. Do not use any other tools or do anything else. Do not send any other text or messages besides these tool calls.
+The agent will gather its own git context (status, diff, etc.) and create the commit.
+
+Do not use any other tools. Return the agent's summary to the user.

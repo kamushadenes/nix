@@ -479,6 +479,8 @@ in
     ".claude/agents/compliance-specialist.md".source = "${agentsDir}/compliance-specialist.md";
     # Task automation agent (task-master workflow)
     ".claude/agents/task-agent.md".source = "${agentsDir}/task-agent.md";
+    # Git workflow agent (commits and PRs)
+    ".claude/agents/git-committer.md".source = "${agentsDir}/git-committer.md";
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
