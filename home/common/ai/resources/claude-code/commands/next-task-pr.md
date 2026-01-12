@@ -1,5 +1,5 @@
 ---
-allowed-tools: Skill(commit), Skill(commit-push-pr), Skill(review), Bash(wt switch:*), Bash(git remote:*), Bash(cd:*), Bash(direnv allow:*), MCPSearch, mcp__task-master-ai__*, mcp__github__issue_write, TodoWrite, AskUserQuestion
+allowed-tools: Skill(commit), Skill(commit-push-pr), Skill(review), Bash(wt switch:*), Bash(git remote:*), Bash(gh issue:*), Bash(cd:*), Bash(direnv allow:*), MCPSearch, mcp__task-master-ai__*, TodoWrite, AskUserQuestion
 description: Work on next task with branch and PR workflow (for external review)
 ---
 
@@ -9,7 +9,19 @@ Fetch the next available task from task-master, create a feature branch, complet
 
 ## Workflow
 
-### 1. Get Next Task
+### 1. Detect GitHub Repository
+
+Before anything else, check if this is a GitHub repository:
+
+```bash
+remote_url=$(git remote get-url origin 2>/dev/null || echo "")
+```
+
+Extract owner/repo if URL matches `github.com[:/]<owner>/<repo>`.
+Store `github_owner` and `github_repo` for use throughout the workflow.
+If not a GitHub repo, set `github_available=false` and skip all GitHub steps.
+
+### 2. Get Next Task
 
 First, load the MCP tools:
 
@@ -18,13 +30,47 @@ MCPSearch with query: "select:mcp__task-master-ai__next_task"
 MCPSearch with query: "select:mcp__task-master-ai__expand_task"
 MCPSearch with query: "select:mcp__task-master-ai__set_task_status"
 MCPSearch with query: "select:mcp__task-master-ai__get_task"
+MCPSearch with query: "select:mcp__task-master-ai__update_task"
 ```
 
 Then call `mcp__task-master-ai__next_task` to get the highest priority unblocked task.
 
 If no task is available, inform the user and stop.
 
-### 2. Create Feature Branch
+### 3. Establish GitHub Context
+
+**This step runs every time, even when resuming work on an existing task.**
+
+1. **Check task title for `[GH:#N]` pattern:**
+
+   - If found: Extract issue number and store as `github_issue_number`
+   - If NOT found and `github_available=true`: Create GitHub issue (see below)
+
+2. **If creating a new GitHub issue:**
+
+   ```bash
+   gh issue create \
+     --repo "${github_owner}/${github_repo}" \
+     --title "${task_title}" \
+     --body "## Task
+
+   ${task_description}
+
+   ---
+   _Tracked in task-master. ID: ${task_id}_" \
+     --label "task-master"
+   ```
+
+   - Extract the issue number from the output
+   - Update task title with `[GH:#<issue_number>]` prefix via `mcp__task-master-ai__update_task`
+
+3. **If resuming (task already has subtasks), sync GitHub issue state:**
+
+   - Get current subtasks from task-master
+   - For each subtask marked as `done`, ensure the GitHub issue checkbox is ticked
+   - Update GitHub issue body to reflect current state (see step 5 for format)
+
+### 4. Create Feature Branch
 
 **For top-level tasks only** (not subtasks), create a feature branch:
 
@@ -56,86 +102,54 @@ Branch naming rules:
 
 If already on a feature branch for this task, skip this step.
 
-### 3. Claim the Task
+### 5. Expand the Task (if needed)
 
-Call `mcp__task-master-ai__set_task_status` with:
+Check if the task already has subtasks. If it does NOT have subtasks:
 
-- `id`: The task ID
-- `status`: `in-progress`
+1. Call `mcp__task-master-ai__set_task_status` with status `in-progress`
 
-### 3.5. Ensure GitHub Issue Exists
+2. Call `mcp__task-master-ai__expand_task` with:
 
-Check if this is a GitHub repository and if the task has a linked issue:
+   - `id`: The task ID
+   - `num`: 3-5 subtasks (use judgment based on complexity)
+   - `research`: Set to `true` when any of these apply:
 
-1. **Detect GitHub repo:**
+     - Task involves unfamiliar libraries, frameworks, or APIs
+     - Task requires integration with external services
+     - Task mentions technologies not already present in the codebase
+     - Task description is vague and would benefit from research to clarify approach
+     - Task involves security, cryptography, or compliance considerations
+
+     Set to `false` when:
+
+     - Task is routine work within well-understood parts of the codebase
+     - Task is a simple refactoring, bug fix, or code cleanup
+     - All required knowledge is available in existing code or documentation
+
+3. **Update GitHub issue with subtasks** (if `github_available=true`):
+
+   Build the issue body with checkboxes for each subtask:
 
    ```bash
-   remote_url=$(git remote get-url origin 2>/dev/null || echo "")
+   gh issue edit ${github_issue_number} \
+     --repo "${github_owner}/${github_repo}" \
+     --body "## Task
+
+   ${task_description}
+
+   ## Subtasks
+
+   - [ ] ${subtask_1_title}
+   - [ ] ${subtask_2_title}
+   - [ ] ${subtask_3_title}
+
+   ---
+   _Tracked in task-master. ID: ${task_id}_"
    ```
 
-   Extract owner/repo if URL matches `github.com[:/]<owner>/<repo>`.
-   If not a GitHub repo, skip all GitHub steps in this workflow.
+If subtasks already exist, ensure task status is `in-progress` and skip expansion.
 
-2. **Check task title for `[GH:#N]` pattern:**
-
-   - If found: GitHub issue already linked, note the issue number for later
-   - If NOT found: Create GitHub issue (continue to step 3)
-
-3. **Create GitHub issue:**
-   - Load: `MCPSearch` for `mcp__github__issue_write`
-   - Call `mcp__github__issue_write` with:
-     - `owner`, `repo`: from git remote
-     - `title`: Task title
-     - `body`: Task description (subtasks added later after expand)
-     - `labels`: `task-master`
-   - Update task title with `[GH:#<issue_number>]` prefix via `mcp__task-master-ai__update_task`
-
-### 4. Expand the Task (if needed)
-
-Check if the task already has subtasks. If it does NOT have subtasks, call `mcp__task-master-ai__expand_task` with:
-
-- `id`: The task ID
-- `num`: 3-5 subtasks (use judgment based on complexity)
-- `research`: Set to `true` when any of these apply:
-
-  - Task involves unfamiliar libraries, frameworks, or APIs
-  - Task requires integration with external services
-  - Task mentions technologies not already present in the codebase
-  - Task description is vague and would benefit from research to clarify approach
-  - Task involves security, cryptography, or compliance considerations
-
-  Set to `false` when:
-
-  - Task is routine work within well-understood parts of the codebase
-  - Task is a simple refactoring, bug fix, or code cleanup
-  - All required knowledge is available in existing code or documentation
-
-**After expanding, update GitHub issue with subtasks:**
-
-If GitHub issue exists (from step 3.5), update the issue body:
-
-- Get the expanded subtasks from the task
-- Call `mcp__github__issue_write` to update the issue body with:
-
-  ```markdown
-  ## Task
-
-  {task_description}
-
-  ## Subtasks
-
-  - [ ] {subtask_1_title}
-  - [ ] {subtask_2_title}
-  - [ ] {subtask_3_title}
-
-  ---
-
-  _Tracked in task-master. ID: {task_id}_
-  ```
-
-If subtasks already exist, skip this step.
-
-### 5. Display Summary
+### 6. Display Summary
 
 Before starting work, display a summary to the user:
 
@@ -143,21 +157,22 @@ Before starting work, display a summary to the user:
 ## Task: [task title]
 
 **ID:** [task id]
+**GitHub Issue:** #[issue number] (if available)
 **Priority:** [priority]
 **Branch:** [branch name]
 **Description:** [task description]
 
 ### Subtasks:
-1. [subtask 1 title]
-2. [subtask 2 title]
+1. [ ] [subtask 1 title]
+2. [ ] [subtask 2 title]
 3. ...
 
 Starting work...
 ```
 
-### 6. Work Through Subtasks
+### 7. Work Through Subtasks
 
-For each subtask:
+For each subtask (skip already completed ones):
 
 1. Display a short summary
 2. Use TodoWrite to track progress
@@ -167,12 +182,20 @@ For each subtask:
    Skill(skill="commit")
    ```
 5. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
-6. **Update GitHub issue to tick the checkbox** (if GitHub issue exists):
-   - Get current issue body
-   - Replace `- [ ] {subtask_title}` with `- [x] {subtask_title}`
-   - Call `mcp__github__issue_write` to update the body
+6. **Update GitHub issue to tick the checkbox** (if `github_available=true`):
 
-### 7. Mark Task Complete
+   Get current issue body and update the checkbox:
+
+   ```bash
+   # Get current body, replace unchecked with checked for this subtask
+   gh issue edit ${github_issue_number} \
+     --repo "${github_owner}/${github_repo}" \
+     --body "${updated_body_with_checkbox_ticked}"
+   ```
+
+   Replace `- [ ] ${subtask_title}` with `- [x] ${subtask_title}` in the body.
+
+### 8. Mark Task Complete
 
 Once all subtasks are done:
 
@@ -180,7 +203,7 @@ Once all subtasks are done:
 
 **Note:** The GitHub issue will be closed automatically when the PR is merged (via "Closes #N" in PR description).
 
-### 8. Code Review
+### 9. Code Review
 
 Run a focused review of all branch changes before creating the PR:
 
@@ -199,7 +222,7 @@ This automatically reviews branch changes against main using 4 key agents:
 
 For comprehensive review with all 9 agents, use `/deep-review` instead.
 
-### 9. Commit, Push, and Open PR
+### 10. Commit, Push, and Open PR
 
 Use the `/commit-push-pr` skill to commit changes, push the branch, and create a PR.
 
@@ -228,7 +251,7 @@ This will automatically close the GitHub issue when the PR is merged.
 
 Display the PR URL to the user.
 
-### 10. Verify Completion
+### 11. Verify Completion
 
 Confirm:
 
@@ -240,6 +263,7 @@ Confirm:
 ## Important
 
 - **Branch per task**: Create branches for top-level tasks only, not subtasks
+- **GitHub context persists**: Always check for `[GH:#N]` in task title to recover issue number
 - If the task is blocked or requires user input, ask via AskUserQuestion
 - If tests fail, fix them before marking complete
 - If the build fails, fix it before marking complete

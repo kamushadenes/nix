@@ -120,6 +120,7 @@
     "Bash(gh pr:*)"
     "Bash(gh run:*)"
     "Bash(gh release:*)"
+    "Bash(gh issue:*)"
 
     # Task-master MCP tools (all 44 tools)
     "mcp__task-master-ai__initialize_project"
@@ -272,7 +273,6 @@
 
     # MCP: GitHub
     "mcp__github__list_issues"
-    "mcp__github__issue_write"
 
     # MCP: IDE
     "mcp__ide__getDiagnostics"
