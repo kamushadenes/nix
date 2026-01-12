@@ -5,6 +5,14 @@ PreToolUse hook to deny task-master MCP access to worker instances.
 Workers should NOT have access to task-master - they communicate via
 .orchestrator/task_status file only. The orchestrator handles all
 task-master operations based on worker status reports.
+
+Allowed contexts:
+- Main Claude instance (no .orchestrator/current_task.md)
+- Orchestrator subagents (CLAUDE_ORCHESTRATOR=1 env var)
+- Any context without the worker marker file
+
+Denied contexts:
+- Worker instances (have .orchestrator/current_task.md AND no CLAUDE_ORCHESTRATOR)
 """
 import json
 import os
@@ -16,7 +24,15 @@ CURRENT_TASK_FILE = f"{ORCHESTRATOR_DIR}/current_task.md"
 
 def is_worker_instance() -> bool:
     """Check if current instance is a worker (has .orchestrator/current_task.md)."""
-    return os.path.exists(CURRENT_TASK_FILE)
+    # Workers have the current_task.md file in their worktree
+    if not os.path.exists(CURRENT_TASK_FILE):
+        return False
+
+    # Orchestrator subagents set CLAUDE_ORCHESTRATOR=1 and should be allowed
+    if os.environ.get("CLAUDE_ORCHESTRATOR") == "1":
+        return False
+
+    return True
 
 
 def is_taskmaster_tool(tool_name: str) -> bool:

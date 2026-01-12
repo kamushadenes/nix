@@ -3,6 +3,12 @@ name: worker-orchestrator
 description: Orchestrate parallel Claude worker instances for task completion. Use when delegating multiple tasks to worker instances. Handles spawning, monitoring, stuck detection, subtask syncing, and cleanup.
 tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(sleep:*), mcp__orchestrator__task_worker_spawn, mcp__orchestrator__task_worker_status, mcp__orchestrator__task_worker_list, mcp__orchestrator__task_worker_kill, mcp__orchestrator__tmux_capture, mcp__task-master-ai__set_task_status, mcp__task-master-ai__update_subtask, mcp__task-master-ai__expand_task, mcp__task-master-ai__get_task
 model: sonnet
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
 You orchestrate parallel Claude worker instances. You receive prepared task data and manage the full lifecycle: spawn workers, monitor progress, sync subtasks, handle failures, and return results.

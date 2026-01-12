@@ -3,6 +3,7 @@ name: tmux-runner
 description: Execute commands in tmux windows and return results. Use when running builds, tests, servers, or any command that needs terminal output. Handles the full tmux workflow (create window, wait for completion, capture output, cleanup).
 tools: MCPSearch, mcp__orchestrator__tmux_new_window, mcp__orchestrator__tmux_send, mcp__orchestrator__tmux_capture, mcp__orchestrator__tmux_wait_idle, mcp__orchestrator__tmux_kill, mcp__orchestrator__tmux_interrupt, mcp__orchestrator__tmux_run_and_read
 model: haiku
+hooks: {}
 ---
 
 You execute terminal commands via tmux and return results. Your job is to:
