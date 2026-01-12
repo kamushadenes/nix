@@ -109,3 +109,4 @@ coverage-final.json
 *.rslsi
 
 .claude/
+.taskmaster/
