@@ -4,6 +4,7 @@ description: Delegate tasks to parallel worker Claude instances
 ---
 
 ## Context
+
 - Repository: !`git remote get-url origin 2>/dev/null | sed 's/.*github.com[:/]\(.*\)\.git/\1/' | sed 's/.*github.com[:/]\(.*\)/\1/'`
 - Current branch: !`git branch --show-current`
 - Working directory: !`pwd`
@@ -11,9 +12,11 @@ description: Delegate tasks to parallel worker Claude instances
 ## Arguments
 
 Parse arguments from $ARGUMENTS:
+
 - `--auto-merge` or `-a`: Automatically merge PRs after creation (uses admin bypass if needed)
 
 ## Configuration
+
 - **MAX_TASKS_TO_SHOW**: 5
 - **POLL_INTERVAL**: 30 seconds
 - **HEARTBEAT_TIMEOUT**: 5 minutes
@@ -24,30 +27,34 @@ Parse arguments from $ARGUMENTS:
 ### Phase 1: Load MCP Tools
 
 Load required MCP tools:
+
 1. `mcp__task-master-ai__get_tasks` - List all tasks
 2. `mcp__task-master-ai__next_task` - Get next available task
 3. `mcp__task-master-ai__set_task_status` - Update task status
 4. `mcp__task-master-ai__update_subtask` - Update subtask status
 5. `mcp__task-master-ai__expand_task` - Expand task into subtasks
 6. `mcp__orchestrator__task_worker_spawn` - Spawn worker
-7. `mcp__orchestrator__task_worker_status` - Check worker status
+7. `mcp__orchestrator__task_worker_status` - Check worker status (includes status_data and result_data)
 8. `mcp__orchestrator__task_worker_list` - List all workers
 9. `mcp__orchestrator__task_worker_kill` - Kill a worker
-10. `mcp__orchestrator__tmux_capture` - Capture tmux window output
+10. `mcp__orchestrator__tmux_capture` - Capture tmux window output (fallback for stuck detection)
 
 ### Phase 2: Parse Arguments
 
 Check if `--auto-merge` or `-a` was passed:
+
 - If yes: set AUTO_MERGE = true
 - If no: set AUTO_MERGE = false (default)
 
 ### Phase 3: Task Selection
 
 1. Get up to MAX_TASKS_TO_SHOW available tasks using `next_task` repeatedly
+
    - Store each task temporarily
    - Skip tasks that are already `in-progress`
 
 2. Present tasks to user via AskUserQuestion:
+
    ```
    AskUserQuestion with:
      questions: [{
@@ -104,6 +111,7 @@ while len(active_workers) > 0:
 
         if result.status == "completed":
             status_data = result.status_data
+            result_data = result.result_data  # Detailed summary from worker
 
             # Mark task as done
             set_task_status(task_id, status="done")
@@ -117,6 +125,8 @@ while len(active_workers) > 0:
                 log_success(f"Task {task_id} PR created: {status_data.pr_url}")
                 log_info(f"Worktree preserved at: {worker.worktree_path}")
 
+            # Store result_data for summary phase
+            worker.final_result = result_data
             remove_from_active(worker)
             # NOTE: Do NOT auto-spawn replacement workers
 
@@ -161,39 +171,66 @@ Only notify user as stuck if both captures are identical.
 
 ### Phase 7: Summary
 
-When all workers complete, provide summary:
+When all workers complete, provide summary using `result_data` from each worker:
 
 **Completed (merged):**
-- List tasks where PR was auto-merged
+
+For each task with PR auto-merged:
+
+```
+✓ Task <id>: <title>
+  Summary: <result_data.summary>
+  Actions: <result_data.actions (bullet list)>
+  Files: <result_data.files_changed>
+  PR: <result_data.pr.url> (merged)
+```
 
 **Completed (PR open):**
-- List tasks with PR URLs awaiting review
-- Note: These worktrees are preserved until PRs are merged
+
+For each task with PR awaiting review:
+
+```
+✓ Task <id>: <title>
+  Summary: <result_data.summary>
+  Actions: <result_data.actions (bullet list)>
+  Files: <result_data.files_changed>
+  PR: <result_data.pr.url>
+  Worktree: <path> (preserved until merged)
+```
 
 **Failed:**
-- List tasks that failed with error reasons
-- Worktrees preserved for investigation
+
+For each failed task:
+
+```
+✗ Task <id>: <title>
+  Error: <result_data.error or status_data.error>
+  Completed: <result_data.actions if any>
+  Worktree: <path> (preserved for investigation)
+```
 
 **Pending:**
-- Remaining tasks in task-master queue
+
+- Count of remaining tasks in task-master queue
 - User must run `/delegate-task` again to select more tasks
 
 ## Orchestrator Responsibilities
 
 You handle ALL task-master operations - workers only report via `.orchestrator/task_status`:
 
-| Event | Action |
-|-------|--------|
-| Worker spawned | Mark task `in-progress` in task-master |
-| Subtask completed | `update_subtask(id, status="done")` |
-| Task completed | `set_task_status(id, status="done")` |
-| PR merged | Clean up worktree with `wt remove` |
-| Task failed | Log error, attempt retry (max 2), or notify user |
-| Worker stuck | Verify with two-phase capture, then notify user |
+| Event             | Action                                           |
+| ----------------- | ------------------------------------------------ |
+| Worker spawned    | Mark task `in-progress` in task-master           |
+| Subtask completed | `update_subtask(id, status="done")`              |
+| Task completed    | `set_task_status(id, status="done")`             |
+| PR merged         | Clean up worktree with `wt remove`               |
+| Task failed       | Log error, attempt retry (max 2), or notify user |
+| Worker stuck      | Verify with two-phase capture, then notify user  |
 
 ## Error Recovery
 
 When a worker fails:
+
 1. Check retry count (max 2 retries)
 2. If retriable:
    - Kill the stuck window with `task_worker_kill`

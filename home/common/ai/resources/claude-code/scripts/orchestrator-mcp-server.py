@@ -139,6 +139,33 @@ class TaskWorkerStatus(BaseModel):
     notes: str | None = Field(default=None, description="Final summary notes")
 
 
+class ResultCommit(BaseModel):
+    """A commit in the task result."""
+    sha: str = Field(description="Commit SHA")
+    message: str = Field(description="Commit message")
+
+
+class ResultPR(BaseModel):
+    """PR info in the task result."""
+    url: str = Field(description="PR URL")
+    number: int = Field(description="PR number")
+    merged: bool = Field(default=False, description="Whether PR was merged")
+
+
+class TaskWorkerResult(BaseModel):
+    """Final result data from a worker's .orchestrator/task_result file."""
+    task_id: str = Field(description="Task ID that was worked on")
+    title: str = Field(description="Task title")
+    status: Literal["completed", "failed", "stuck"] = Field(description="Final status")
+    summary: str = Field(description="Brief summary of what was accomplished")
+    actions: list[str] = Field(default_factory=list, description="List of actions taken")
+    files_changed: list[str] = Field(default_factory=list, description="Files that were modified")
+    commits: list[ResultCommit] = Field(default_factory=list, description="Commits made")
+    pr: ResultPR | None = Field(default=None, description="PR info if created")
+    error: str | None = Field(default=None, description="Error message if failed")
+    duration_estimate: str | None = Field(default=None, description="Estimated duration")
+
+
 class TaskWorker(BaseModel):
     """Information about a task worker Claude instance."""
     worker_id: str = Field(description="Unique worker identifier")
@@ -172,6 +199,7 @@ class TaskWorkerStatusResult(BaseModel):
     task_id: str | None = Field(default=None, description="Task ID being worked on")
     worktree_path: str | None = Field(default=None, description="Path to worktree")
     status_data: TaskWorkerStatus | None = Field(default=None, description="Parsed .task_status file")
+    result_data: TaskWorkerResult | None = Field(default=None, description="Parsed .task_result file (on completion)")
     error: str | None = Field(default=None, description="Error message")
 
 
@@ -253,6 +281,7 @@ AI_JOBS_LOCK = threading.Lock()
 MAX_TASK_WORKERS = 5
 ORCHESTRATOR_DIR = ".orchestrator"
 TASK_STATUS_FILE = f"{ORCHESTRATOR_DIR}/task_status"
+TASK_RESULT_FILE = f"{ORCHESTRATOR_DIR}/task_result"
 CURRENT_TASK_FILE = f"{ORCHESTRATOR_DIR}/current_task.md"
 WORKER_CLEANUP_HOURS = 24
 
@@ -1118,6 +1147,54 @@ def _read_task_status(worktree_path: str) -> TaskWorkerStatus | None:
         return None
 
 
+def _read_task_result(worktree_path: str) -> TaskWorkerResult | None:
+    """Read and parse the .task_result file from a worktree."""
+    result_file = Path(worktree_path) / TASK_RESULT_FILE
+    if not result_file.exists():
+        return None
+
+    try:
+        content = result_file.read_text(encoding="utf-8")
+        if not content.strip():
+            return None
+
+        data = json.loads(content)
+
+        # Parse commits
+        commits = []
+        for c in data.get("commits", []):
+            if isinstance(c, dict):
+                commits.append(ResultCommit(
+                    sha=c.get("sha", ""),
+                    message=c.get("message", "")
+                ))
+
+        # Parse PR info
+        pr_data = data.get("pr")
+        pr = None
+        if pr_data and isinstance(pr_data, dict):
+            pr = ResultPR(
+                url=pr_data.get("url", ""),
+                number=pr_data.get("number", 0),
+                merged=pr_data.get("merged", False)
+            )
+
+        return TaskWorkerResult(
+            task_id=data.get("task_id", ""),
+            title=data.get("title", ""),
+            status=data.get("status", "completed"),
+            summary=data.get("summary", ""),
+            actions=data.get("actions", []),
+            files_changed=data.get("files_changed", []),
+            commits=commits,
+            pr=pr,
+            error=data.get("error"),
+            duration_estimate=data.get("duration_estimate")
+        )
+    except (json.JSONDecodeError, Exception):
+        return None
+
+
 # =============================================================================
 # Task Worker Tools
 # =============================================================================
@@ -1360,8 +1437,9 @@ def task_worker_status(worker_id: str) -> TaskWorkerStatusResult:
             error=error
         )
 
-    # Read status file
+    # Read status and result files
     status_data = _read_task_status(worker.worktree_path)
+    result_data = _read_task_result(worker.worktree_path)
 
     # Determine status
     if not exists:
@@ -1390,7 +1468,8 @@ def task_worker_status(worker_id: str) -> TaskWorkerStatusResult:
                 worker_id=worker_id,
                 task_id=worker.task_id,
                 worktree_path=worker.worktree_path,
-                status_data=status_data
+                status_data=status_data,
+                result_data=result_data
             )
         else:
             # No status file and window closed
@@ -1404,6 +1483,7 @@ def task_worker_status(worker_id: str) -> TaskWorkerStatusResult:
                 worker_id=worker_id,
                 task_id=worker.task_id,
                 worktree_path=worker.worktree_path,
+                result_data=result_data,
                 error="Window closed without status file"
             )
 
@@ -1426,7 +1506,8 @@ def task_worker_status(worker_id: str) -> TaskWorkerStatusResult:
             worker_id=worker_id,
             task_id=worker.task_id,
             worktree_path=worker.worktree_path,
-            status_data=status_data
+            status_data=status_data,
+            result_data=result_data
         )
 
     # Window running but no status yet - still starting
@@ -1434,7 +1515,8 @@ def task_worker_status(worker_id: str) -> TaskWorkerStatusResult:
         status="starting",
         worker_id=worker_id,
         task_id=worker.task_id,
-        worktree_path=worker.worktree_path
+        worktree_path=worker.worktree_path,
+        result_data=result_data
     )
 
 
