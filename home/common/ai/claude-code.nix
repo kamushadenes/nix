@@ -143,8 +143,10 @@ in
       task-init = builtins.readFile "${commandsDir}/task-init.md";
       github-sync = builtins.readFile "${commandsDir}/github-sync.md";
       next-task = builtins.readFile "${commandsDir}/next-task.md";
-      next-task-pr = builtins.readFile "${commandsDir}/next-task-pr.md";
       review = builtins.readFile "${commandsDir}/review.md";
+      # Parallel task delegation commands
+      work = builtins.readFile "${commandsDir}/work.md";
+      delegate-task = builtins.readFile "${commandsDir}/delegate-task.md";
     };
 
     # Note: rules option is not available in this home-manager version
@@ -182,13 +184,23 @@ in
               }
             ];
           }
-          # Require GitHub issue for task-master operations
+          # Deny task-master MCP access to worker instances
           {
-            matcher = "mcp__task-master-ai__add_task|mcp__task-master-ai__set_task_status";
+            matcher = "mcp__task-master-ai__*|mcp__task_master_ai__*";
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/PreToolUse/require-github-issue.py";
+                command = "~/.claude/hooks/PreToolUse/deny-taskmaster-worker.py";
+              }
+            ];
+          }
+          # Worker heartbeat - update timestamp on every tool use
+          {
+            matcher = "";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/worker-heartbeat.sh";
               }
             ];
           }
@@ -220,12 +232,27 @@ in
                 type = "command";
                 command = "~/.claude/hooks/SessionStart/task-context.sh";
               }
+              {
+                type = "command";
+                command = "~/.claude/hooks/SessionStart/worker-task-inject.sh";
+              }
             ];
           }
         ];
 
         # Run before context compaction
-        PreCompact = [ ];
+        PreCompact = [
+          # Worker heartbeat - update timestamp before compaction
+          {
+            matcher = "";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/worker-heartbeat.sh";
+              }
+            ];
+          }
+        ];
 
         # Run when Claude stops working
         # Note: ralph-loop hook is provided by ralph-loop@claude-plugins-official plugin
@@ -244,6 +271,10 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/Stop/task-status-reminder.sh";
+              }
+              {
+                type = "command";
+                command = "~/.claude/hooks/Stop/worker-completion.sh";
               }
               {
                 type = "command";
@@ -333,13 +364,27 @@ in
               }
             ];
           }
-          # Auto-create GitHub issue when adding task-master tasks
+          # Worker heartbeat - update timestamp after tool use
           {
-            matcher = "mcp__task-master-ai__add_task";
+            matcher = "";
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/PostToolUse/auto-create-github-issue.sh";
+                command = "~/.claude/hooks/worker-heartbeat.sh";
+              }
+            ];
+          }
+        ];
+
+        # Run when subagent finishes
+        SubagentStop = [
+          # Worker heartbeat - update timestamp when subagent stops
+          {
+            matcher = "";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/worker-heartbeat.sh";
               }
             ];
           }
@@ -448,11 +493,25 @@ in
       source = "${scriptsDir}/hooks/Stop/debug-env.sh";
       executable = true;
     };
+    ".claude/hooks/Stop/worker-completion.sh" = {
+      source = "${scriptsDir}/hooks/Stop/worker-completion.sh";
+      executable = true;
+    };
     # Note: ralph-loop.sh is provided by ralph-loop@claude-plugins-official plugin
 
     # SessionStart hooks
     ".claude/hooks/SessionStart/task-context.sh" = {
       source = "${scriptsDir}/hooks/SessionStart/task-context.sh";
+      executable = true;
+    };
+    ".claude/hooks/SessionStart/worker-task-inject.sh" = {
+      source = "${scriptsDir}/hooks/SessionStart/worker-task-inject.sh";
+      executable = true;
+    };
+
+    # Shared hooks (used by multiple hook types)
+    ".claude/hooks/worker-heartbeat.sh" = {
+      source = "${scriptsDir}/hooks/worker-heartbeat.sh";
       executable = true;
     };
 
@@ -461,18 +520,14 @@ in
       source = "${scriptsDir}/hooks/PreToolUse/enforce-worktree.py";
       executable = true;
     };
-    ".claude/hooks/PreToolUse/require-github-issue.py" = {
-      source = "${scriptsDir}/hooks/PreToolUse/require-github-issue.py";
+    ".claude/hooks/PreToolUse/deny-taskmaster-worker.py" = {
+      source = "${scriptsDir}/hooks/PreToolUse/deny-taskmaster-worker.py";
       executable = true;
     };
 
     # PostToolUse hooks (additional)
     ".claude/hooks/PostToolUse/link-pr-to-task.sh" = {
       source = "${scriptsDir}/hooks/PostToolUse/link-pr-to-task.sh";
-      executable = true;
-    };
-    ".claude/hooks/PostToolUse/auto-create-github-issue.sh" = {
-      source = "${scriptsDir}/hooks/PostToolUse/auto-create-github-issue.sh";
       executable = true;
     };
 

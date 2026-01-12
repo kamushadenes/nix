@@ -108,6 +108,81 @@ class TmuxListResult(BaseModel):
 
 
 # =============================================================================
+# Task Worker Response Models
+# =============================================================================
+
+
+class CompletedSubtask(BaseModel):
+    """A subtask that has been completed by a worker."""
+    id: str = Field(description="Subtask ID (e.g., '5.1')")
+    commit: str = Field(description="Commit SHA for this subtask")
+    notes: str = Field(description="Notes about what was done")
+
+
+class TaskWorkerStatus(BaseModel):
+    """Status data from a worker's .orchestrator/task_status file."""
+    status: Literal["working", "completed", "failed", "stuck"] = Field(
+        description="Current worker status"
+    )
+    heartbeat: str | None = Field(default=None, description="ISO timestamp of last heartbeat")
+    current_subtask: str | None = Field(default=None, description="Current subtask ID being worked on")
+    progress: str | None = Field(default=None, description="Human-readable progress description")
+    completed_subtasks: list[CompletedSubtask] = Field(
+        default_factory=list, description="List of completed subtasks with commits"
+    )
+    commits: list[str] = Field(default_factory=list, description="All commit SHAs made")
+    final_commit: str | None = Field(default=None, description="Final commit SHA")
+    pr_url: str | None = Field(default=None, description="PR URL")
+    pr_number: int | None = Field(default=None, description="PR number")
+    merged: bool | None = Field(default=None, description="Whether PR was auto-merged")
+    error: str | None = Field(default=None, description="Error message if failed/stuck")
+    notes: str | None = Field(default=None, description="Final summary notes")
+
+
+class TaskWorker(BaseModel):
+    """Information about a task worker Claude instance."""
+    worker_id: str = Field(description="Unique worker identifier")
+    task_id: str = Field(description="Task ID being worked on")
+    worktree_path: str = Field(description="Path to the git worktree")
+    window_id: str = Field(description="Tmux window ID")
+    auto_merge: bool = Field(default=False, description="Whether to auto-merge PR")
+    status: Literal["starting", "working", "completed", "failed", "stuck"] = Field(
+        description="Current worker status"
+    )
+    created_at: str = Field(description="ISO timestamp when worker was created")
+    completed_at: str | None = Field(default=None, description="ISO timestamp when worker completed")
+    error: str | None = Field(default=None, description="Error message if failed")
+    retry_count: int = Field(default=0, description="Number of retry attempts")
+
+
+class TaskWorkerSpawnResult(BaseModel):
+    """Response from task_worker_spawn."""
+    status: Literal["spawned", "error"] = Field(description="Operation status")
+    worker_id: str | None = Field(default=None, description="Worker ID for tracking")
+    window_id: str | None = Field(default=None, description="Tmux window ID")
+    error: str | None = Field(default=None, description="Error message if failed")
+
+
+class TaskWorkerStatusResult(BaseModel):
+    """Response from task_worker_status."""
+    status: Literal["starting", "working", "completed", "failed", "stuck", "not_found", "window_closed"] = Field(
+        description="Worker status"
+    )
+    worker_id: str = Field(description="Worker ID that was queried")
+    task_id: str | None = Field(default=None, description="Task ID being worked on")
+    worktree_path: str | None = Field(default=None, description="Path to worktree")
+    status_data: TaskWorkerStatus | None = Field(default=None, description="Parsed .task_status file")
+    error: str | None = Field(default=None, description="Error message")
+
+
+class TaskWorkerListResult(BaseModel):
+    """Response from task_worker_list."""
+    workers: list[TaskWorker] = Field(default_factory=list, description="List of all tracked workers")
+    total: int = Field(description="Total number of workers")
+    active: int = Field(description="Number of active workers")
+
+
+# =============================================================================
 # Configuration
 # =============================================================================
 
@@ -169,6 +244,37 @@ class AIJob:
 
 AI_JOBS: dict[str, AIJob] = {}
 AI_JOBS_LOCK = threading.Lock()
+
+
+# =============================================================================
+# Task Worker Configuration
+# =============================================================================
+
+MAX_TASK_WORKERS = 5
+ORCHESTRATOR_DIR = ".orchestrator"
+TASK_STATUS_FILE = f"{ORCHESTRATOR_DIR}/task_status"
+CURRENT_TASK_FILE = f"{ORCHESTRATOR_DIR}/current_task.md"
+WORKER_CLEANUP_HOURS = 24
+
+
+@dataclass
+class TaskWorkerData:
+    """Internal tracking data for a task worker."""
+    worker_id: str
+    task_id: str
+    worktree_path: str
+    window_id: str
+    auto_merge: bool
+    status: str  # "starting", "working", "completed", "failed", "stuck"
+    created_at: datetime
+    completed_at: datetime | None = None
+    error: str | None = None
+    retry_count: int = 0
+    task_data: dict[str, Any] = field(default_factory=dict)  # Full task JSON
+
+
+TASK_WORKERS: dict[str, TaskWorkerData] = {}
+TASK_WORKERS_LOCK = threading.Lock()
 
 
 # =============================================================================
@@ -895,6 +1001,475 @@ def tmux_run_and_read(
         return content
     except Exception as e:
         return f"Error reading output file: {e}"
+
+
+# =============================================================================
+# Task Worker Helpers
+# =============================================================================
+
+
+def _cleanup_old_workers():
+    """Remove workers older than WORKER_CLEANUP_HOURS (must hold lock)."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=WORKER_CLEANUP_HOURS)
+    to_remove = [
+        wid for wid, worker in TASK_WORKERS.items()
+        if worker.created_at < cutoff and worker.status not in ("starting", "working")
+    ]
+    for wid in to_remove:
+        del TASK_WORKERS[wid]
+
+
+def _generate_task_file_content(
+    task_data: dict[str, Any],
+    auto_merge: bool,
+    worktree_path: str,
+    repo: str
+) -> str:
+    """Generate the .orchestrator/current_task.md content from task data."""
+    task_id = task_data.get("id", "unknown")
+    title = task_data.get("title", "Untitled Task")
+    description = task_data.get("description", "")
+    test_strategy = task_data.get("testStrategy", "")
+    subtasks = task_data.get("subtasks", [])
+
+    # Build subtasks table
+    subtask_rows = []
+    for st in subtasks:
+        st_id = st.get("id", "")
+        st_title = st.get("title", "")
+        st_desc = st.get("description", "")
+        subtask_rows.append(f"| {st_id} | {st_title} | {st_desc} |")
+
+    subtask_table = "\n".join(subtask_rows) if subtask_rows else "| - | No subtasks | - |"
+
+    # Determine branch name from worktree path
+    branch = Path(worktree_path).name
+
+    content = f"""# Task: {title}
+
+## Metadata
+- **Task ID**: {task_id}
+- **Auto Merge**: {str(auto_merge).lower()}
+- **Branch**: {branch}
+- **Worktree**: {worktree_path}
+- **Repository**: {repo}
+
+## Description
+{description}
+
+## Subtasks
+| ID | Title | Description |
+|----|-------|-------------|
+{subtask_table}
+
+## Test Strategy
+{test_strategy if test_strategy else "No specific test strategy defined."}
+
+## Instructions
+1. Work through all subtasks in order
+2. Commit after each subtask
+3. Update `.orchestrator/task_status` after each subtask completion
+4. When all subtasks done: run `/commit-push-pr`{' then auto-merge' if auto_merge else ''}
+5. Write final status to `.orchestrator/task_status`
+
+**You do NOT have access to task-master. Report progress via `.orchestrator/task_status` only.**
+"""
+    return content
+
+
+def _read_task_status(worktree_path: str) -> TaskWorkerStatus | None:
+    """Read and parse the .task_status file from a worktree."""
+    status_file = Path(worktree_path) / TASK_STATUS_FILE
+    if not status_file.exists():
+        return None
+
+    try:
+        content = status_file.read_text(encoding="utf-8")
+        if not content.strip():
+            return None
+
+        data = json.loads(content)
+
+        # Parse completed_subtasks
+        completed = []
+        for st in data.get("completed_subtasks", []):
+            completed.append(CompletedSubtask(
+                id=st.get("id", ""),
+                commit=st.get("commit", ""),
+                notes=st.get("notes", "")
+            ))
+
+        return TaskWorkerStatus(
+            status=data.get("status", "working"),
+            heartbeat=data.get("heartbeat"),
+            current_subtask=data.get("current_subtask"),
+            progress=data.get("progress"),
+            completed_subtasks=completed,
+            commits=data.get("commits", []),
+            final_commit=data.get("final_commit"),
+            pr_url=data.get("pr_url"),
+            pr_number=data.get("pr_number"),
+            merged=data.get("merged"),
+            error=data.get("error"),
+            notes=data.get("notes")
+        )
+    except (json.JSONDecodeError, Exception):
+        return None
+
+
+# =============================================================================
+# Task Worker Tools
+# =============================================================================
+
+
+@mcp.tool()
+def task_worker_spawn(
+    task_data: dict[str, Any],
+    worktree_path: str,
+    auto_merge: bool = False,
+    repo: str = ""
+) -> TaskWorkerSpawnResult:
+    """
+    Spawn a Claude worker instance to work on a task in a worktree.
+
+    This creates the .orchestrator/current_task.md file, starts Claude in a new tmux window,
+    and sends the /work command to begin autonomous task execution.
+
+    Workers always use PR workflow (no direct merge mode).
+
+    Args:
+        task_data: Full task JSON from task-master (must include id, title, description, subtasks)
+        worktree_path: Absolute path to the git worktree
+        auto_merge: Whether to auto-merge the PR after creation
+        repo: Repository in owner/repo format (for GitHub links)
+
+    Returns:
+        TaskWorkerSpawnResult with worker_id and window_id
+    """
+    require_tmux()
+
+    # Validate worktree path
+    if not Path(worktree_path).is_dir():
+        return TaskWorkerSpawnResult(
+            status="error",
+            error=f"Worktree path does not exist: {worktree_path}"
+        )
+
+    # Check worker limit
+    with TASK_WORKERS_LOCK:
+        active = sum(1 for w in TASK_WORKERS.values() if w.status in ("starting", "working"))
+        if active >= MAX_TASK_WORKERS:
+            return TaskWorkerSpawnResult(
+                status="error",
+                error=f"Max concurrent workers ({MAX_TASK_WORKERS}) reached. "
+                      f"Wait for some workers to complete."
+            )
+
+        _cleanup_old_workers()
+
+    # Generate worker ID
+    worker_id = str(uuid.uuid4())[:8]
+    task_id = str(task_data.get("id", "unknown"))
+
+    # Create .orchestrator/ directory
+    orchestrator_dir = Path(worktree_path) / ORCHESTRATOR_DIR
+    try:
+        orchestrator_dir.mkdir(exist_ok=True)
+    except Exception as e:
+        return TaskWorkerSpawnResult(
+            status="error",
+            error=f"Failed to create orchestrator directory: {e}"
+        )
+
+    # Write .orchestrator/current_task.md
+    task_file_content = _generate_task_file_content(
+        task_data=task_data,
+        auto_merge=auto_merge,
+        worktree_path=worktree_path,
+        repo=repo
+    )
+
+    task_file_path = Path(worktree_path) / CURRENT_TASK_FILE
+    try:
+        task_file_path.write_text(task_file_content, encoding="utf-8")
+    except Exception as e:
+        return TaskWorkerSpawnResult(
+            status="error",
+            error=f"Failed to write task file: {e}"
+        )
+
+    # Initialize empty .orchestrator/task_status
+    status_file_path = Path(worktree_path) / TASK_STATUS_FILE
+    try:
+        status_file_path.write_text("{}", encoding="utf-8")
+    except Exception as e:
+        return TaskWorkerSpawnResult(
+            status="error",
+            error=f"Failed to write status file: {e}"
+        )
+
+    # Create tmux window with Claude
+    # Use fish shell, cd to worktree, then run claude
+    window_name = f"worker-{worker_id}"
+
+    # Create new window
+    args = ["new-window", "-d", "-P", "-F", "#{window_id}", "-n", window_name, "fish"]
+    output, code = run_tmux(*args)
+
+    if code != 0:
+        return TaskWorkerSpawnResult(
+            status="error",
+            error=f"Failed to create tmux window: {output}"
+        )
+
+    window_id = output.strip()
+
+    # Wait for shell to be ready using marker
+    marker = f"READY_{uuid.uuid4().hex}"
+    run_tmux("send-keys", "-t", window_id, f"echo {marker}", "Enter")
+
+    shell_ready = False
+    for _ in range(50):  # 5 seconds
+        time.sleep(0.1)
+        content, _ = run_tmux("capture-pane", "-t", window_id, "-p")
+        if marker in content:
+            shell_ready = True
+            break
+
+    if not shell_ready:
+        run_tmux("kill-window", "-t", window_id)
+        return TaskWorkerSpawnResult(
+            status="error",
+            error="Shell did not become ready in time"
+        )
+
+    # Send cd and claude command (with --dangerously-skip-permissions for unattended execution)
+    run_tmux("send-keys", "-t", window_id, f"cd {worktree_path}", "Enter")
+    time.sleep(0.2)
+    run_tmux("send-keys", "-t", window_id, "claude --dangerously-skip-permissions", "Enter")
+
+    # Wait for Claude to start (look for prompt indicators)
+    claude_ready = False
+    for _ in range(100):  # 10 seconds
+        time.sleep(0.1)
+        content, _ = run_tmux("capture-pane", "-t", window_id, "-p")
+        # Claude shows a prompt like "> " or has certain UI elements
+        if ">" in content or "Claude" in content or "?" in content:
+            claude_ready = True
+            break
+
+    if not claude_ready:
+        run_tmux("kill-window", "-t", window_id)
+        return TaskWorkerSpawnResult(
+            status="error",
+            error="Claude did not start in time"
+        )
+
+    # Send /work command
+    time.sleep(0.5)  # Brief pause for Claude to fully initialize
+    run_tmux("send-keys", "-t", window_id, "/work", "Enter")
+
+    # Track the worker
+    with TASK_WORKERS_LOCK:
+        TASK_WORKERS[worker_id] = TaskWorkerData(
+            worker_id=worker_id,
+            task_id=task_id,
+            worktree_path=worktree_path,
+            window_id=window_id,
+            auto_merge=auto_merge,
+            status="starting",
+            created_at=datetime.now(timezone.utc),
+            task_data=task_data
+        )
+
+    return TaskWorkerSpawnResult(
+        status="spawned",
+        worker_id=worker_id,
+        window_id=window_id
+    )
+
+
+@mcp.tool()
+def task_worker_status(worker_id: str) -> TaskWorkerStatusResult:
+    """
+    Get the status of a task worker.
+
+    Reads the .task_status file from the worker's worktree and checks
+    if the tmux window is still running.
+
+    Args:
+        worker_id: Worker ID from task_worker_spawn
+
+    Returns:
+        TaskWorkerStatusResult with current status and parsed status data
+    """
+    with TASK_WORKERS_LOCK:
+        worker = TASK_WORKERS.get(worker_id)
+
+    if not worker:
+        return TaskWorkerStatusResult(
+            status="not_found",
+            worker_id=worker_id,
+            error="Worker not found"
+        )
+
+    # Check if window still exists
+    exists, error = window_exists(worker.window_id)
+    if error:
+        return TaskWorkerStatusResult(
+            status="not_found",
+            worker_id=worker_id,
+            task_id=worker.task_id,
+            error=error
+        )
+
+    # Read status file
+    status_data = _read_task_status(worker.worktree_path)
+
+    # Determine status
+    if not exists:
+        # Window closed
+        if status_data:
+            final_status = status_data.status
+            # Map status file status to worker status
+            if final_status == "completed":
+                with TASK_WORKERS_LOCK:
+                    worker.status = "completed"
+                    worker.completed_at = datetime.now(timezone.utc)
+            elif final_status in ("failed", "stuck"):
+                with TASK_WORKERS_LOCK:
+                    worker.status = final_status
+                    worker.error = status_data.error
+                    worker.completed_at = datetime.now(timezone.utc)
+            else:
+                # Window closed without proper status - mark as stuck
+                with TASK_WORKERS_LOCK:
+                    worker.status = "stuck"
+                    worker.error = "Window closed without completion status"
+                    worker.completed_at = datetime.now(timezone.utc)
+
+            return TaskWorkerStatusResult(
+                status=worker.status,  # type: ignore
+                worker_id=worker_id,
+                task_id=worker.task_id,
+                worktree_path=worker.worktree_path,
+                status_data=status_data
+            )
+        else:
+            # No status file and window closed
+            with TASK_WORKERS_LOCK:
+                worker.status = "stuck"
+                worker.error = "Window closed without status file"
+                worker.completed_at = datetime.now(timezone.utc)
+
+            return TaskWorkerStatusResult(
+                status="stuck",
+                worker_id=worker_id,
+                task_id=worker.task_id,
+                worktree_path=worker.worktree_path,
+                error="Window closed without status file"
+            )
+
+    # Window still running
+    if status_data:
+        current_status = status_data.status
+        with TASK_WORKERS_LOCK:
+            if current_status == "working":
+                worker.status = "working"
+            elif current_status == "completed":
+                worker.status = "completed"
+                worker.completed_at = datetime.now(timezone.utc)
+            elif current_status in ("failed", "stuck"):
+                worker.status = current_status
+                worker.error = status_data.error
+                worker.completed_at = datetime.now(timezone.utc)
+
+        return TaskWorkerStatusResult(
+            status=worker.status,  # type: ignore
+            worker_id=worker_id,
+            task_id=worker.task_id,
+            worktree_path=worker.worktree_path,
+            status_data=status_data
+        )
+
+    # Window running but no status yet - still starting
+    return TaskWorkerStatusResult(
+        status="starting",
+        worker_id=worker_id,
+        task_id=worker.task_id,
+        worktree_path=worker.worktree_path
+    )
+
+
+@mcp.tool()
+def task_worker_list() -> TaskWorkerListResult:
+    """
+    List all tracked task workers.
+
+    Returns:
+        TaskWorkerListResult with list of workers and counts
+    """
+    with TASK_WORKERS_LOCK:
+        workers = []
+        active_count = 0
+
+        for worker in TASK_WORKERS.values():
+            if worker.status in ("starting", "working"):
+                active_count += 1
+
+            workers.append(TaskWorker(
+                worker_id=worker.worker_id,
+                task_id=worker.task_id,
+                worktree_path=worker.worktree_path,
+                window_id=worker.window_id,
+                auto_merge=worker.auto_merge,
+                status=worker.status,  # type: ignore
+                created_at=worker.created_at.isoformat(),
+                completed_at=worker.completed_at.isoformat() if worker.completed_at else None,
+                error=worker.error,
+                retry_count=worker.retry_count
+            ))
+
+        return TaskWorkerListResult(
+            workers=workers,
+            total=len(workers),
+            active=active_count
+        )
+
+
+@mcp.tool()
+def task_worker_kill(worker_id: str) -> str:
+    """
+    Kill a task worker's tmux window.
+
+    This does NOT clean up the worktree - that must be done manually
+    so the user can investigate failures.
+
+    Args:
+        worker_id: Worker ID to kill
+
+    Returns:
+        Success message or error
+    """
+    with TASK_WORKERS_LOCK:
+        worker = TASK_WORKERS.get(worker_id)
+
+    if not worker:
+        return f"Worker not found: {worker_id}"
+
+    # Kill the window
+    output, code = run_tmux("kill-window", "-t", worker.window_id)
+
+    if code != 0:
+        return f"Error killing window: {output}"
+
+    with TASK_WORKERS_LOCK:
+        worker.status = "failed"
+        worker.error = "Killed by orchestrator"
+        worker.completed_at = datetime.now(timezone.utc)
+
+    return f"Worker {worker_id} killed. Worktree preserved at: {worker.worktree_path}"
 
 
 # =============================================================================

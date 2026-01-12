@@ -1,27 +1,20 @@
 ---
-allowed-tools: Skill(commit), Skill(review), Bash(wt switch:*), Bash(wt merge:*), Bash(git push:*), Bash(git remote:*), Bash(git remote prune:*), Bash(gh issue:*), Bash(cd:*), Bash(direnv allow:*), MCPSearch, mcp__task-master-ai__*, TodoWrite, AskUserQuestion
-description: Work on next task with branch and merge workflow
+allowed-tools: Skill(commit-push-pr), Skill(review), Bash(wt switch:*), Bash(wt remove:*), Bash(git push:*), Bash(git remote:*), Bash(git remote prune:*), Bash(gh pr:*), Bash(cd:*), Bash(direnv allow:*), MCPSearch, mcp__task-master-ai__*, TodoWrite, AskUserQuestion
+description: Work on next task with branch and PR workflow
 ---
 
 # Work on Next Task
 
-Fetch the next available task from task-master, create a feature branch, complete the work, then merge to main.
+Fetch the next available task from task-master, create a feature branch, complete the work, then create a PR.
+
+## Arguments
+
+Parse arguments from $ARGUMENTS:
+- `--auto-merge` or `-a`: Automatically merge the PR after creation (uses admin bypass if needed)
 
 ## Workflow
 
-### 1. Detect GitHub Repository
-
-Before anything else, check if this is a GitHub repository:
-
-```bash
-remote_url=$(git remote get-url origin 2>/dev/null || echo "")
-```
-
-Extract owner/repo if URL matches `github.com[:/]<owner>/<repo>`.
-Store `github_owner` and `github_repo` for use throughout the workflow.
-If not a GitHub repo, set `github_available=false` and skip all GitHub steps.
-
-### 2. Get Next Task
+### 1. Get Next Task
 
 First, load the MCP tools:
 
@@ -30,47 +23,14 @@ MCPSearch with query: "select:mcp__task-master-ai__next_task"
 MCPSearch with query: "select:mcp__task-master-ai__expand_task"
 MCPSearch with query: "select:mcp__task-master-ai__set_task_status"
 MCPSearch with query: "select:mcp__task-master-ai__get_task"
-MCPSearch with query: "select:mcp__task-master-ai__update_task"
+MCPSearch with query: "select:mcp__task-master-ai__update_subtask"
 ```
 
 Then call `mcp__task-master-ai__next_task` to get the highest priority unblocked task.
 
 If no task is available, inform the user and stop.
 
-### 3. Establish GitHub Context
-
-**This step runs every time, even when resuming work on an existing task.**
-
-1. **Check task title for `[GH:#N]` pattern:**
-
-   - If found: Extract issue number and store as `github_issue_number`
-   - If NOT found and `github_available=true`: Create GitHub issue (see below)
-
-2. **If creating a new GitHub issue:**
-
-   ```bash
-   gh issue create \
-     --repo "${github_owner}/${github_repo}" \
-     --title "${task_title}" \
-     --body "## Task
-
-   ${task_description}
-
-   ---
-   _Tracked in task-master. ID: ${task_id}_" \
-     --label "task-master"
-   ```
-
-   - Extract the issue number from the output
-   - Update task title with `[GH:#<issue_number>]` prefix via `mcp__task-master-ai__update_task`
-
-3. **If resuming (task already has subtasks), sync GitHub issue state:**
-
-   - Get current subtasks from task-master
-   - For each subtask marked as `done`, ensure the GitHub issue checkbox is ticked
-   - Update GitHub issue body to reflect current state (see step 5 for format)
-
-### 4. Create Feature Branch
+### 2. Create Feature Branch
 
 **For top-level tasks only** (not subtasks), create a feature branch:
 
@@ -102,7 +62,7 @@ Branch naming rules:
 
 If already on a feature branch for this task, skip this step.
 
-### 5. Expand the Task (if needed)
+### 3. Expand the Task (if needed)
 
 Check if the task already has subtasks. If it does NOT have subtasks:
 
@@ -126,30 +86,9 @@ Check if the task already has subtasks. If it does NOT have subtasks:
      - Task is a simple refactoring, bug fix, or code cleanup
      - All required knowledge is available in existing code or documentation
 
-3. **Update GitHub issue with subtasks** (if `github_available=true`):
-
-   Build the issue body with checkboxes for each subtask:
-
-   ```bash
-   gh issue edit ${github_issue_number} \
-     --repo "${github_owner}/${github_repo}" \
-     --body "## Task
-
-   ${task_description}
-
-   ## Subtasks
-
-   - [ ] ${subtask_1_title}
-   - [ ] ${subtask_2_title}
-   - [ ] ${subtask_3_title}
-
-   ---
-   _Tracked in task-master. ID: ${task_id}_"
-   ```
-
 If subtasks already exist, ensure task status is `in-progress` and skip expansion.
 
-### 6. Display Summary
+### 4. Display Summary
 
 Before starting work, display a summary to the user:
 
@@ -157,7 +96,6 @@ Before starting work, display a summary to the user:
 ## Task: [task title]
 
 **ID:** [task id]
-**GitHub Issue:** #[issue number] (if available)
 **Priority:** [priority]
 **Branch:** [branch name]
 **Description:** [task description]
@@ -170,7 +108,7 @@ Before starting work, display a summary to the user:
 Starting work...
 ```
 
-### 7. Work Through Subtasks
+### 5. Work Through Subtasks
 
 For each subtask (skip already completed ones):
 
@@ -180,48 +118,18 @@ For each subtask (skip already completed ones):
 4. **Commit the changes:**
    Call the Skill tool with:
    - `skill`: "commit"
-   - `args`: "Include #N in the commit message body" (replace N with the actual `github_issue_number`)
 
-   Example: If `github_issue_number` is 42, use `args="Include #42 in the commit message body"`
-
-   If no GitHub issue is linked, omit the `args` parameter.
 5. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
-6. **Update GitHub issue to tick the checkbox with commit link** (if `github_available=true`):
 
-   First, get the commit SHA from the recent commit:
-   ```bash
-   commit_sha=$(git rev-parse HEAD)
-   ```
-
-   Then update the checkbox with a link to the commit:
-   ```bash
-   gh issue edit ${github_issue_number} \
-     --repo "${github_owner}/${github_repo}" \
-     --body "${updated_body_with_checkbox_ticked}"
-   ```
-
-   Replace `- [ ] ${subtask_title}` with:
-   `- [x] ${subtask_title} ([${commit_sha}](https://github.com/${github_owner}/${github_repo}/commit/${commit_sha}))`
-
-   This links each completed subtask to its implementing commit.
-
-### 8. Mark Task Complete
+### 6. Mark Task Complete
 
 Once all subtasks are done:
 
 1. Call `mcp__task-master-ai__set_task_status` with status `done`
 
-2. **Close linked GitHub issue** (if `github_available=true`):
+### 7. Code Review
 
-   ```bash
-   gh issue close ${github_issue_number} \
-     --repo "${github_owner}/${github_repo}" \
-     --comment "Completed via task-master"
-   ```
-
-### 9. Code Review
-
-Run a focused review of all branch changes before committing:
+Run a focused review of all branch changes before creating PR:
 
 ```
 Skill(skill="review")
@@ -236,52 +144,64 @@ This automatically reviews branch changes against main using 4 key agents:
 
 **Important:** Address any Critical or High severity issues found before proceeding. If issues are found, fix them and return to this step until the review passes.
 
-For comprehensive review with all 9 agents, use `/deep-review` instead.
+### 8. Create Pull Request
 
-### 10. Commit Changes
+Use the `/commit-push-pr` skill to commit, push, and create the PR:
 
-Use the `/commit` skill to commit all changes.
-
-Call the Skill tool with:
-- `skill`: "commit"
-- `args`: "Include #N in the commit message body" (replace N with the actual `github_issue_number`)
-
-Example: If `github_issue_number` is 42, use `args="Include #42 in the commit message body"`
-
-If no GitHub issue is linked, omit the `args` parameter.
-
-### 11. Merge and Push
-
-Merge the feature branch to main and push:
-
-```bash
-# Merge to main (squashes, rebases, fast-forwards, removes worktree)
-wt merge --yes
-
-# Clean stale refs to prevent corruption issues
-git remote prune origin
-
-# Push main to remote
-git push
+```
+Skill(skill="commit-push-pr")
 ```
 
-If `wt merge` fails due to conflicts, inform the user and stop.
+This will:
+- Stage and commit any remaining changes
+- Push the branch to remote
+- Create a PR with a proper description
 
-### 12. Verify Completion
+**Capture the PR number from the output** for the next step.
+
+### 9. Handle Auto-Merge (if requested)
+
+If `--auto-merge` or `-a` was passed:
+
+1. Try standard merge:
+   ```bash
+   gh pr merge <pr_number> --squash
+   ```
+
+2. If blocked by branch protection, try admin bypass:
+   ```bash
+   gh pr merge <pr_number> --admin --squash
+   ```
+
+3. Wait for merge to complete
+
+4. Delete the worktree:
+   ```bash
+   wt remove <worktree_path>
+   ```
+
+5. Clean stale refs:
+   ```bash
+   git remote prune origin
+   ```
+
+If auto-merge NOT requested:
+- Log the PR URL
+- Inform user they can review and merge manually
+- Worktree is preserved until manual merge
+
+### 10. Verify Completion
 
 Confirm:
 
-- Local main is up to date with remote
-- Worktree has been cleaned up
 - Task is marked done in task-master
-- GitHub issue is closed (if applicable)
+- PR was created (and merged if --auto-merge)
+- Branch was pushed to remote
 
 ## Important
 
 - **Branch per task**: Create branches for top-level tasks only, not subtasks
-- **GitHub context persists**: Always check for `[GH:#N]` in task title to recover issue number
 - If the task is blocked or requires user input, ask via AskUserQuestion
 - If tests fail, fix them before marking complete
 - If the build fails, fix it before marking complete
 - Always verify `git push` succeeds before ending
-- If `wt merge` fails, the user may need to resolve conflicts manually

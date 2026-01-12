@@ -110,3 +110,6 @@ coverage-final.json
 
 .claude/
 .taskmaster/
+
+# Claude worker orchestration files (parallel task execution)
+.orchestrator/
