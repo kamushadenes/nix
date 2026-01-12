@@ -1,5 +1,5 @@
 ---
-allowed-tools: Skill(commit), Skill(review), Bash(wt switch:*), Bash(wt merge:*), Bash(git push:*), MCPSearch, mcp__task-master-ai__*, TodoWrite, AskUserQuestion
+allowed-tools: Skill(commit), Skill(review), Bash(wt switch:*), Bash(wt merge:*), Bash(git push:*), Bash(cd:*), Bash(direnv allow:*), MCPSearch, mcp__task-master-ai__*, TodoWrite, AskUserQuestion
 description: Work on next task with branch and merge workflow
 ---
 
@@ -35,6 +35,9 @@ If no task is available, inform the user and stop.
 #   fix/15-resolve-login-bug
 #   chore/8-update-dependencies
 wt switch --create "<prefix>/<id>-<slugified-title>" --yes
+
+# Allow direnv in the new worktree to ensure environment works
+cd <worktree_dir> && direnv allow .
 ```
 
 Branch naming rules:
