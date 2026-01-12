@@ -15,6 +15,7 @@ import re
 import uuid
 import asyncio
 import threading
+import shlex
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -1322,9 +1323,12 @@ def task_worker_spawn(
         )
 
     # Send cd and claude command (with --dangerously-skip-permissions for unattended execution)
-    run_tmux("send-keys", "-t", window_id, f"cd {worktree_path}", "Enter")
+    # --add-dir prevents permission prompts for the worktree directory
+    # Quote paths to handle spaces
+    quoted_path = shlex.quote(worktree_path)
+    run_tmux("send-keys", "-t", window_id, f"cd {quoted_path}", "Enter")
     time.sleep(0.3)
-    run_tmux("send-keys", "-t", window_id, "claude --dangerously-skip-permissions", "Enter")
+    run_tmux("send-keys", "-t", window_id, f"claude --dangerously-skip-permissions --add-dir {quoted_path}", "Enter")
 
     # Wait for Claude to be fully ready (look for the ❯ prompt character)
     # Claude shows "❯" when ready for input
