@@ -1305,6 +1305,10 @@ def task_worker_spawn(
 
     window_id = output.strip()
 
+    # Prevent shell/programs from overwriting the window title
+    run_tmux("set-window-option", "-t", window_id, "allow-rename", "off")
+    run_tmux("set-window-option", "-t", window_id, "automatic-rename", "off")
+
     # Wait for shell to be ready using marker
     marker = f"READY_{uuid.uuid4().hex}"
     run_tmux("send-keys", "-t", window_id, f"echo {marker}", "Enter")
