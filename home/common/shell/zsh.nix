@@ -61,7 +61,7 @@
       # Worktrunk shell integration (enables wt switch to change directory)
       ''
         if command -v wt &>/dev/null; then
-          eval "$(wt config shell zsh 2>/dev/null)"
+          eval "$(wt config shell init zsh 2>/dev/null)"
         fi
       ''
     ];

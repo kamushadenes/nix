@@ -92,7 +92,7 @@
         # Worktrunk shell integration (enables wt switch to change directory)
         ''
           if command -q wt
-            wt config shell fish 2>/dev/null | source
+            wt config shell init fish 2>/dev/null | source
           end
         ''
 
