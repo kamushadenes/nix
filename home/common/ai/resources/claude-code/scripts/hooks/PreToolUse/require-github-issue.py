@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 """
-PreToolUse hook: Block set_task_status(in-progress) without [GH:#N]
+PreToolUse hook: Enforce GitHub issue linking for task-master tasks
 
-This hook ensures that tasks in GitHub repositories have a linked GitHub issue
-before they can be claimed (set to in-progress status).
+This hook ensures that tasks in GitHub repositories have linked GitHub issues:
 
-Only blocks when:
-- Tool is mcp__task-master-ai__set_task_status
-- Status is being set to "in-progress"
-- Repository has a GitHub remote
-- Task title does NOT have [GH:#N] prefix
+1. add_task: Blocks task creation, requiring a GitHub issue to be created first
+2. set_task_status(in-progress): Blocks claiming tasks without [GH:#N] prefix
+
+Only enforces in repositories with GitHub remotes.
 """
 
 import json
@@ -85,20 +83,37 @@ def allow() -> NoReturn:
     sys.exit(0)
 
 
-def main() -> None:
-    # Parse stdin
-    try:
-        data = json.load(sys.stdin)
-    except (json.JSONDecodeError, ValueError):
-        allow()  # Can't parse, allow
+def handle_add_task(tool_input: dict) -> None:
+    """Block add_task, requiring GitHub issue first."""
+    # Check if GitHub repo
+    remote_url = get_git_remote()
+    if not is_github_repo(remote_url):
+        allow()  # Not a GitHub repo, no issue required
 
-    tool_name = data.get("tool_name", "")
-    tool_input = data.get("tool_input") or {}
+    title = tool_input.get("title", "")
+    prompt = tool_input.get("prompt", "")
 
-    # Only check set_task_status
-    if tool_name != "mcp__task-master-ai__set_task_status":
+    # If title already has [GH:#N], allow
+    if title and has_github_issue_prefix(title):
         allow()
 
+    # Block with helpful message
+    task_desc = title if title else (f"(from prompt: {prompt[:50]}...)" if prompt else "(no title)")
+    deny(
+        f"""Cannot add task "{task_desc}" without a linked GitHub issue.
+
+Create a GitHub issue first:
+  gh issue create --title "<task title>" --label task-master
+
+Then add the task with the issue reference in the title:
+  Use add_task with title="[GH:#<number>] <task title>"
+
+Or use /next-task which handles this automatically."""
+    )
+
+
+def handle_set_task_status(tool_input: dict) -> None:
+    """Block set_task_status(in-progress) without [GH:#N]."""
     # Only check when setting to in-progress
     status = tool_input.get("status", "")
     if status != "in-progress":
@@ -136,6 +151,24 @@ Then update the task:
 
 Or use /next-task which handles this automatically."""
     )
+
+
+def main() -> None:
+    # Parse stdin
+    try:
+        data = json.load(sys.stdin)
+    except (json.JSONDecodeError, ValueError):
+        allow()  # Can't parse, allow
+
+    tool_name = data.get("tool_name", "")
+    tool_input = data.get("tool_input") or {}
+
+    if tool_name == "mcp__task-master-ai__add_task":
+        handle_add_task(tool_input)
+    elif tool_name == "mcp__task-master-ai__set_task_status":
+        handle_set_task_status(tool_input)
+    else:
+        allow()
 
 
 if __name__ == "__main__":

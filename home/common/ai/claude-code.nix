@@ -182,9 +182,9 @@ in
               }
             ];
           }
-          # Require GitHub issue before claiming task-master tasks
+          # Require GitHub issue for task-master operations
           {
-            matcher = "mcp__task-master-ai__set_task_status";
+            matcher = "mcp__task-master-ai__add_task|mcp__task-master-ai__set_task_status";
             hooks = [
               {
                 type = "command";
