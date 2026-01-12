@@ -143,6 +143,8 @@ in
       task-init = builtins.readFile "${commandsDir}/task-init.md";
       github-sync = builtins.readFile "${commandsDir}/github-sync.md";
       next-task = builtins.readFile "${commandsDir}/next-task.md";
+      next-task-pr = builtins.readFile "${commandsDir}/next-task-pr.md";
+      review = builtins.readFile "${commandsDir}/review.md";
     };
 
     # Note: rules option is not available in this home-manager version

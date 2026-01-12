@@ -1,11 +1,11 @@
 ---
-allowed-tools: Skill(commit), Skill(review), Bash(wt switch:*), Bash(wt merge:*), Bash(git push:*), MCPSearch, mcp__task-master-ai__*, TodoWrite, AskUserQuestion
-description: Work on next task with branch and merge workflow
+allowed-tools: Skill(commit-push-pr), Skill(review), Bash(wt switch:*), MCPSearch, mcp__task-master-ai__*, TodoWrite, AskUserQuestion
+description: Work on next task with branch and PR workflow (for external review)
 ---
 
-# Work on Next Task
+# Work on Next Task (PR Workflow)
 
-Fetch the next available task from task-master, create a feature branch, complete the work, then merge to main.
+Fetch the next available task from task-master, create a feature branch, complete the work, then open a PR for review.
 
 ## Workflow
 
@@ -116,7 +116,7 @@ Once all subtasks are done:
 
 ### 8. Code Review
 
-Run a focused review of all branch changes before committing:
+Run a focused review of all branch changes before creating the PR:
 
 ```
 Skill(skill="review")
@@ -132,36 +132,28 @@ This automatically reviews branch changes against main using 4 key agents:
 
 For comprehensive review with all 9 agents, use `/deep-review` instead.
 
-### 9. Commit Changes
+### 9. Commit, Push, and Open PR
 
-Use the `/commit` skill to commit all changes:
+Use the `/commit-push-pr` skill to commit changes, push the branch, and create a PR:
 
 ```
-Skill(skill="commit")
+Skill(skill="commit-push-pr")
 ```
 
-This will analyze changes and create an appropriate commit message.
+This will:
+- Create a commit with all changes
+- Push the branch to origin
+- Create a pull request
 
-### 10. Merge and Push
+Display the PR URL to the user.
 
-Merge the feature branch to main and push:
-
-```bash
-# Merge to main (squashes, rebases, fast-forwards, removes worktree)
-wt merge --yes
-
-# Push main to remote
-git push
-```
-
-If `wt merge` fails due to conflicts, inform the user and stop.
-
-### 11. Verify Completion
+### 10. Verify Completion
 
 Confirm:
-- Local main is up to date with remote
-- Worktree has been cleaned up
+- PR has been created on GitHub
 - Task is marked done in task-master
+
+**Note:** The PR requires review/approval. The worktree remains until the PR is merged. Use `wt merge --yes` manually after PR approval to clean up.
 
 ## Important
 
@@ -169,5 +161,5 @@ Confirm:
 - If the task is blocked or requires user input, ask via AskUserQuestion
 - If tests fail, fix them before marking complete
 - If the build fails, fix it before marking complete
-- Always verify `git push` succeeds before ending
-- If `wt merge` fails, the user may need to resolve conflicts manually
+- This workflow does NOT merge to main - the PR must be reviewed and merged externally
+- After PR is merged, clean up with: `wt merge --yes` (or `wt remove`)
