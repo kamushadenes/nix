@@ -181,6 +181,9 @@ For each subtask (skip already completed ones):
    ```
    Skill(skill="commit")
    ```
+   When the commit skill asks for commit message details, ensure the extended description
+   includes a reference to the GitHub issue: `#${github_issue_number}` (e.g., `#42`).
+   This links the commit to the issue in GitHub's UI.
 5. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
 6. **Update GitHub issue to tick the checkbox** (if `github_available=true`):
 
@@ -237,6 +240,9 @@ Skill(skill="commit")
 ```
 
 This will analyze changes and create an appropriate commit message.
+
+**Important:** Ensure the commit message extended description includes `#${github_issue_number}`
+to link the commit to the GitHub issue (e.g., "Implements feature X\n\n#42").
 
 ### 11. Merge and Push
 

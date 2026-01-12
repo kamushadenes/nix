@@ -181,6 +181,9 @@ For each subtask (skip already completed ones):
    ```
    Skill(skill="commit")
    ```
+   When the commit skill asks for commit message details, ensure the extended description
+   includes a reference to the GitHub issue: `#${github_issue_number}` (e.g., `#42`).
+   This links the commit to the issue in GitHub's UI.
 5. Update subtask status to `done` via `mcp__task-master-ai__update_subtask`
 6. **Update GitHub issue to tick the checkbox** (if `github_available=true`):
 
@@ -229,6 +232,7 @@ Use the `/commit-push-pr` skill to commit changes, push the branch, and create a
 **Before calling the skill**, note the GitHub issue number:
 
 - Extract issue number from task title `[GH:#N]`
+- The commit message extended description should include `#<issue_number>` to link commits to the issue
 - The PR description should include `Closes #<issue_number>` to auto-close on merge
 
 ```
@@ -237,17 +241,16 @@ Skill(skill="commit-push-pr")
 
 This will:
 
-- Create a commit with all changes
+- Create a commit with all changes (ensure `#<issue_number>` is in the commit body)
 - Push the branch to origin
 - Create a pull request
 
-When prompted for PR details, ensure the description includes:
+When prompted for commit/PR details:
 
-```
-Closes #<issue_number>
-```
+1. **Commit message** - Include `#<issue_number>` in the extended description (e.g., "feat: add feature\n\n#42")
+2. **PR description** - Include `Closes #<issue_number>` to auto-close the issue on merge
 
-This will automatically close the GitHub issue when the PR is merged.
+This links all commits to the issue and automatically closes it when the PR is merged.
 
 Display the PR URL to the user.
 
