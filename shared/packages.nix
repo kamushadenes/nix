@@ -171,9 +171,11 @@ let
 
     # Copy SSH key
     log_info "Copying SSH key..."
-    scp "$HOME/.ssh/keys/id_ed25519" "$REMOTE_HOST:~/.ssh/keys/id_ed25519"
-    ssh "$REMOTE_HOST" "chmod 600 ~/.ssh/keys/id_ed25519"
+    scp "$HOME/.ssh/keys/id_ed25519" "$REMOTE_HOST:~/.ssh/id_ed25519"
+    ssh "$REMOTE_HOST" "chmod 600 ~/.ssh/id_ed25519"
     log_success "SSH key copied"
+
+    ssh "$REMOTE_HOST" "ssh-keyscan github.com >> ~/.ssh/known_hosts"
 
     # Create nix.conf with dynamic path
     log_info "Creating nix.conf..."
@@ -191,9 +193,9 @@ let
     log_success "Repository cloned"
 
     # Decrypt cache signing key
-    log_info "Decrypting cache signing key..."
-    ssh "$REMOTE_HOST" "${lib.getExe pkgs.age} -d -i ~/.age/age.pem ~/.config/nix/config/private/cache-priv-key.pem.age > ~/.config/nix/config/private/cache-priv-key.pem && chmod 600 ~/.config/nix/config/private/cache-priv-key.pem"
-    log_success "Cache key decrypted"
+    #log_info "Decrypting cache signing key..."
+    #ssh "$REMOTE_HOST" "${lib.getExe pkgs.age} -d -i ~/.age/age.pem ~/.config/nix/config/private/cache-priv-key.pem.age > ~/.config/nix/config/private/cache-priv-key.pem && chmod 600 ~/.config/nix/config/private/cache-priv-key.pem"
+    #log_success "Cache key decrypted"
 
     echo ""
     log_success "Remote setup complete!"
@@ -215,5 +217,12 @@ let
   '';
 in
 {
-  inherit gitSquash colorScript lazyworktree worktrunk happy-coder nix-remote-setup;
+  inherit
+    gitSquash
+    colorScript
+    lazyworktree
+    worktrunk
+    happy-coder
+    nix-remote-setup
+    ;
 }

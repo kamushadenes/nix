@@ -62,6 +62,23 @@ in
   # Necessary for using flakes on this system.
   nix.settings.experimental-features = "nix-command flakes";
 
+  # Linux builder VM for cross-platform builds (e.g., rebuild aether from macOS)
+  nix.linux-builder = {
+    enable = true;
+    systems = [ "x86_64-linux" "aarch64-linux" ];
+    maxJobs = 4;
+    config = {
+      # Enable binfmt emulation for x86_64-linux on the aarch64-linux VM
+      boot.binfmt.emulatedSystems = [ "x86_64-linux" ];
+      # Give the VM more resources for building
+      virtualisation = {
+        cores = 4;
+        memorySize = 8192; # 8GB RAM
+        diskSize = 40960; # 40GB disk
+      };
+    };
+  };
+
   # Used for backwards compatibility, please read the changelog before changing.
   # $ darwin-rebuild changelog
   system.stateVersion = 5;
