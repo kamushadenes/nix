@@ -29,21 +29,11 @@ let
 in
 {
   nix = {
+    # Disable nix.gc in favor of programs.nh.clean
     gc = {
-      automatic = true;
+      automatic = false;
       options = "--delete-older-than 30d";
-    } // (if pkgs.stdenv.isDarwin then {
-      # Darwin uses interval (list of time records)
-      interval = [
-        {
-          Hour = 0;
-          Minute = 0;
-        }
-      ];
-    } else {
-      # NixOS uses dates (systemd calendar event)
-      dates = "daily";
-    });
+    };
 
     buildMachines = map (m: mkBuildMachine m.hostName) activeBuildMachines;
     # Use mkDefault so linux-builder can override this to true
