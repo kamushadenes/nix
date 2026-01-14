@@ -47,7 +47,7 @@ in
       # Common
       {
         evalcacheClear = lib.hm.dag.entryAfter [ "installPackages" ] ''
-          ${fish} "_evalcache_clear"
+          ${fish} "_evalcache_clear" || true
         '';
 
         doom = lib.hm.dag.entryAfter [ "doomEnv" ] (
