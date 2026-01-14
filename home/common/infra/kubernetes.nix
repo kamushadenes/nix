@@ -1,5 +1,6 @@
 {
   pkgs,
+  lib,
   helpers,
   themes,
   ...
@@ -47,7 +48,9 @@
       };
     };
 
-    skins = {
+    # Skins use IFD (Import From Derivation) which doesn't work with remote builds
+    # Only enable on Darwin where IFD works without issues
+    skins = lib.mkIf pkgs.stdenv.isDarwin {
       catppuccin_macchiato = helpers.readYAML (themes.k9sCatppuccin + "/dist/catppuccin-macchiato.yaml");
     };
 
