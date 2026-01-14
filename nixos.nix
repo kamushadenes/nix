@@ -34,7 +34,6 @@ in
       ./nixos/security.nix
       ./nixos/shells.nix
       ./nixos/users.nix
-      ./nixos/utils.nix
     ]
     # GUI/desktop modules (skip for headless servers)
     ++ lib.optionals (!isHeadless) [
@@ -46,6 +45,7 @@ in
       ./nixos/ipfs.nix
       ./nixos/media.nix
       ./nixos/meeting.nix
+      ./nixos/utils.nix
     ];
 
   # Allow unfree packages to be installed.

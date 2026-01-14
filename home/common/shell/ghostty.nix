@@ -8,7 +8,7 @@
 
   programs = {
     ghostty = {
-      enable = false; # Broken
+      enable = pkgs.stdenv.isLinux; # Enable on Linux only (Darwin uses Homebrew cask)
       package = pkgs.ghostty;
 
       installBatSyntax = config.programs.bat.enable;
