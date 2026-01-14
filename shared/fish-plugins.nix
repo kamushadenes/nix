@@ -41,12 +41,19 @@ in
   };
   safe-rm = {
     name = "safe-rm";
-    src = fetchFromGitHub {
-      owner = "fishingline";
-      repo = "safe-rm";
-      rev = "4c65dc566dd0fd6a9c59e959f1b40ce66cc6bfd3";
-      hash = "sha256-BqLfvm4oADP9oPNkOCatyNfZ3RGqAtldiqeeORIo3Bc=";
-    };
+    # Patch shebangs for NixOS compatibility (#!/bin/bash -> /nix/store/.../bash)
+    src = pkgs.runCommand "safe-rm-patched" {
+      src = fetchFromGitHub {
+        owner = "fishingline";
+        repo = "safe-rm";
+        rev = "4c65dc566dd0fd6a9c59e959f1b40ce66cc6bfd3";
+        hash = "sha256-BqLfvm4oADP9oPNkOCatyNfZ3RGqAtldiqeeORIo3Bc=";
+      };
+    } ''
+      cp -r $src $out
+      chmod -R +w $out
+      patchShebangs $out
+    '';
   };
   spark = {
     name = "spark.fish";
