@@ -17,10 +17,9 @@ end
 if test (count $argv) -gt 0 && test $argv[1] = "aether"
   # Remote deploy to aether (build on aether since localhost is macOS)
   echo "Deploying to aether (remote build)..."
-  nixos-rebuild switch --flake @flakePath@#aether \
+  nh os switch --impure -H aether \
     --target-host aether \
-    --build-host aether \
-    --use-remote-sudo
+    --build-host aether
 else
   # Local rebuild
   @nhCommand@

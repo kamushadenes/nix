@@ -17,10 +17,9 @@ fi
 if test "$1" = "aether"; then
   # Remote deploy to aether (build on aether since localhost is macOS)
   echo "Deploying to aether (remote build)..."
-  nixos-rebuild switch --flake @flakePath@#aether \
+  nh os switch --impure -H aether \
     --target-host aether \
-    --build-host aether \
-    --use-remote-sudo
+    --build-host aether
   return $?
 else
   # Local rebuild and propagate exit code
