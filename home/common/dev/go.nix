@@ -14,6 +14,8 @@ let
     vendorHash = null;
     preBuild = ''
       export GOPROXY=""
+      export CGO_ENABLED=1
+      export GODEBUG=netdns=cgo
       go mod vendor
     '';
 
