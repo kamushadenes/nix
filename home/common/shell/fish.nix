@@ -11,20 +11,22 @@
 {
   home.sessionVariables = helpers.globalVariables.base;
 
-  home.packages = with pkgs; [
-    terminal-notifier
-    (writeScriptBin "sbrew" ''
-      #!/usr/bin/env bash
-      cd "${osConfig.homebrew.brewPrefix}"
-      sudo -Hu "${osConfig.homebrew.user}" "${osConfig.homebrew.brewPrefix}/brew" "$@"
-    '')
+  home.packages = with pkgs;
+    [
+      # Claude Code workspace manager - standalone bash script with multi-account support
+      (writeScriptBin "c" shellCommon.standaloneScripts.c)
 
-    # Claude Code workspace manager - standalone bash script with multi-account support
-    (writeScriptBin "c" shellCommon.standaloneScripts.c)
-
-    # Rebuild script - unified bash script for local and remote deployments
-    (writeScriptBin "rebuild" shellCommon.standaloneScripts.rebuild)
-  ];
+      # Rebuild script - unified bash script for local and remote deployments
+      (writeScriptBin "rebuild" shellCommon.standaloneScripts.rebuild)
+    ]
+    ++ lib.optionals stdenv.isDarwin [
+      terminal-notifier
+      (writeScriptBin "sbrew" ''
+        #!/usr/bin/env bash
+        cd "${osConfig.homebrew.brewPrefix}"
+        sudo -Hu "${osConfig.homebrew.user}" "${osConfig.homebrew.brewPrefix}/brew" "$@"
+      '')
+    ];
 
   programs = {
     fish = {
