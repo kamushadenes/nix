@@ -15,9 +15,14 @@ end
 
 # Check for remote deployment target
 if test (count $argv) -gt 0 && test $argv[1] = "aether"
-  # Remote deploy to aether - SSH in and build there (can't cross-compile from macOS)
-  echo "Deploying to aether (SSH + remote build)..."
-  ssh aether "cd ~/.config/nix/config && git pull && sudo nixos-rebuild switch --flake .#aether --impure"
+  # Remote deploy from macOS using --fast flag (skips rebuilding nixos-rebuild for target platform)
+  echo "Deploying to aether (remote build)..."
+  nix shell nixpkgs#nixos-rebuild -c nixos-rebuild switch \
+    --fast \
+    --flake ~/.config/nix/config#aether \
+    --target-host aether \
+    --build-host aether \
+    --use-remote-sudo
 else
   # Local rebuild
   @nhCommand@
