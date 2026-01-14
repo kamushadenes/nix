@@ -220,7 +220,10 @@ let
     let
       dquote = str: "\"" + str + "\"";
 
-      makeBinPathList = map (path: path + "/bin");
+      # Convert bash-style ${VAR} to fish-style $VAR
+      bashToFish = str: builtins.replaceStrings [ "\${" "}" ] [ "$" "" ] str;
+
+      makeBinPathList = map (path: bashToFish (path + "/bin"));
     in
     ''
       fish_add_path --move --prepend --path ${
