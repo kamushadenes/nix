@@ -161,7 +161,12 @@ in
       })
     ];
 
-    sshKeyLoading = lib.concatMapStringsSep "\n" (key: "test -f ${key} && ssh-add -q ${key}") sshKeys;
+    # Convert bash-style ${VAR} to fish-style $VAR for agenix paths
+    sshKeyLoading =
+      let
+        bashToFish = str: builtins.replaceStrings [ "\${" "}" ] [ "$" "" ] str;
+      in
+      lib.concatMapStringsSep "\n" (key: "test -f ${bashToFish key} && ssh-add -q ${bashToFish key}") sshKeys;
 
     pathSetup = mkPathSetup pathFormatters.fish;
 
