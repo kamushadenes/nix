@@ -15,11 +15,9 @@ fi
 
 # Check for remote deployment target
 if test "$1" = "aether"; then
-  # Remote deploy to aether (build on aether since localhost is macOS)
-  echo "Deploying to aether (remote build)..."
-  nh os switch --impure -H aether \
-    --target-host aether \
-    --build-host aether
+  # Remote deploy to aether - SSH in and build there (can't cross-compile from macOS)
+  echo "Deploying to aether (SSH + remote build)..."
+  ssh aether "cd ~/.config/nix/config && git pull && sudo nixos-rebuild switch --flake .#aether --impure"
   return $?
 else
   # Local rebuild and propagate exit code

@@ -15,11 +15,9 @@ end
 
 # Check for remote deployment target
 if test (count $argv) -gt 0 && test $argv[1] = "aether"
-  # Remote deploy to aether (build on aether since localhost is macOS)
-  echo "Deploying to aether (remote build)..."
-  nh os switch --impure -H aether \
-    --target-host aether \
-    --build-host aether
+  # Remote deploy to aether - SSH in and build there (can't cross-compile from macOS)
+  echo "Deploying to aether (SSH + remote build)..."
+  ssh aether "cd ~/.config/nix/config && git pull && sudo nixos-rebuild switch --flake .#aether --impure"
 else
   # Local rebuild
   @nhCommand@
