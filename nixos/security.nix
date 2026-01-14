@@ -9,6 +9,18 @@ let
   isHeadless = role == "headless";
 in
 {
+  # Passwordless sudo for kamushadenes
+  security.sudo.extraRules = [
+    {
+      users = [ "kamushadenes" ];
+      commands = [
+        {
+          command = "ALL";
+          options = [ "NOPASSWD" ];
+        }
+      ];
+    }
+  ];
   # GUI security tools (only for desktop systems)
   environment.systemPackages = lib.optionals (!isHeadless) (
     with pkgs; [
