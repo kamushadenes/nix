@@ -46,7 +46,8 @@ in
     });
 
     buildMachines = map (m: mkBuildMachine m.hostName) activeBuildMachines;
-    distributedBuilds = false;
+    # Use mkDefault so linux-builder can override this to true
+    distributedBuilds = lib.mkDefault false;
     extraOptions = ''
       builders-use-substitutes = true
     '';

@@ -63,18 +63,18 @@ in
   nix.settings.experimental-features = "nix-command flakes";
 
   # Linux builder VM for cross-platform builds (e.g., rebuild aether from macOS)
+  # Note: Only aarch64-linux for now. x86_64-linux via binfmt requires bootstrapping
+  # the builder first, then adding boot.binfmt.emulatedSystems = [ "x86_64-linux" ]
   nix.linux-builder = {
     enable = true;
-    systems = [ "x86_64-linux" "aarch64-linux" ];
+    systems = [ "aarch64-linux" ];
     maxJobs = 4;
-    config = {
-      # Enable binfmt emulation for x86_64-linux on the aarch64-linux VM
-      boot.binfmt.emulatedSystems = [ "x86_64-linux" ];
+    config = { lib, ... }: {
       # Give the VM more resources for building
       virtualisation = {
-        cores = 4;
-        memorySize = 8192; # 8GB RAM
-        diskSize = 40960; # 40GB disk
+        cores = lib.mkForce 4;
+        memorySize = lib.mkForce 8192; # 8GB RAM
+        diskSize = lib.mkForce 40960; # 40GB disk
       };
     };
   };
