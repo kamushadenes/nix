@@ -9,6 +9,7 @@
       isNormalUser = true;
       group = "kamushadenes";
       shell = pkgs.fish;
+      linger = true; # Enable persistent user session for systemd user services
       extraGroups = [
         "audio"
         "networkmanager"
