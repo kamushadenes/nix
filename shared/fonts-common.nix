@@ -18,8 +18,7 @@
   ];
 
   nixos = with pkgs; [
-    source-han-sans
-    source-han-sans-japanese
-    source-han-serif-japanese
+    source-han-sans # includes all language variants now
+    source-han-serif
   ];
 }
