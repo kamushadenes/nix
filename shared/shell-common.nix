@@ -170,7 +170,7 @@ in
 
     pathSetup = mkPathSetup pathFormatters.fish;
 
-    ghosttyIntegration = ''
+    ghosttyIntegration = lib.optionalString pkgs.stdenv.isDarwin ''
       # Set GHOSTTY_RESOURCES_DIR if not set
       if test -z "$GHOSTTY_RESOURCES_DIR"
           set -x GHOSTTY_RESOURCES_DIR "${ghosttyResourcesDir}"
