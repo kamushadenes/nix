@@ -1,4 +1,4 @@
-{ pkgs, pkgs-unstable, ... }:
+{ pkgs, pkgs-unstable, lib, ... }:
 let
   godoc-mcp = pkgs.buildGoModule rec {
     pname = "godoc-mcp";
@@ -56,16 +56,20 @@ in
     enable = true;
   };
 
-  home.packages = with pkgs; [
-    cobra-cli
-    pkgs-unstable.gopls
-    pkgs-unstable.golangci-lint
-    pkgs-unstable.govulncheck
-    pkgs-unstable.gotestsum
-    pkgs-unstable.go-outline
-    pkgs-unstable.wails
+  home.packages = with pkgs;
+    [
+      cobra-cli
+      pkgs-unstable.gopls
+      pkgs-unstable.golangci-lint
+      pkgs-unstable.govulncheck
+      pkgs-unstable.gotestsum
+      pkgs-unstable.go-outline
+      pkgs-unstable.wails
 
-    godoc-mcp
-    tdd-guard-go
-  ];
+      tdd-guard-go
+    ]
+    # godoc-mcp requires network during build which fails in nix sandbox on some systems
+    ++ lib.optionals stdenv.isDarwin [
+      godoc-mcp
+    ];
 }
