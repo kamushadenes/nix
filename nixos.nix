@@ -1,42 +1,52 @@
 {
   pkgs,
+  lib,
   platform,
   hardware,
   private,
+  role,
   ...
 }:
 let
   packages = import ./shared/packages.nix { inherit pkgs; lib = pkgs.lib; };
   overlays = import ./shared/overlays.nix;
+
+  # Check if this is a headless server (no GUI)
+  isHeadless = role == "headless";
 in
 {
   _module.args = {
     inherit packages;
   };
 
-  imports = [
-    hardware
+  imports =
+    [
+      hardware
 
-    ./shared/build.nix
-    ./shared/cache.nix
+      ./shared/build.nix
+      ./shared/cache.nix
 
-    ./nixos/audio.nix
-    ./nixos/browser.nix
-    ./nixos/display_gnome.nix
-    ./nixos/display_sway.nix
-    ./nixos/dev.nix
-    ./nixos/finance.nix
-    ./nixos/fonts.nix
-    ./nixos/ipfs.nix
-    ./nixos/media.nix
-    ./nixos/meeting.nix
-    "${private}/nixos/network.nix"
-    ./nixos/nix.nix
-    ./nixos/security.nix
-    ./nixos/shells.nix
-    ./nixos/users.nix
-    ./nixos/utils.nix
-  ];
+      # Core modules (always imported)
+      ./nixos/dev.nix
+      ./nixos/fonts.nix
+      "${private}/nixos/network.nix"
+      ./nixos/nix.nix
+      ./nixos/security.nix
+      ./nixos/shells.nix
+      ./nixos/users.nix
+      ./nixos/utils.nix
+    ]
+    # GUI/desktop modules (skip for headless servers)
+    ++ lib.optionals (!isHeadless) [
+      ./nixos/audio.nix
+      ./nixos/browser.nix
+      ./nixos/display_gnome.nix
+      ./nixos/display_sway.nix
+      ./nixos/finance.nix
+      ./nixos/ipfs.nix
+      ./nixos/media.nix
+      ./nixos/meeting.nix
+    ];
 
   # Allow unfree packages to be installed.
   nixpkgs.config.allowUnfree = true;

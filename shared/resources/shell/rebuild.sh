@@ -13,6 +13,17 @@ if test -f "@cacheKeyAgePath@" && test ! -f "@cacheKeyPath@"; then
   fi
 fi
 
-# Run the rebuild and propagate exit code
-@nhCommand@
-return $?
+# Check for remote deployment target
+if test "$1" = "aether"; then
+  # Remote deploy to aether (build on aether since localhost is macOS)
+  echo "Deploying to aether (remote build)..."
+  nixos-rebuild switch --flake @flakePath@#aether \
+    --target-host aether \
+    --build-host aether \
+    --use-remote-sudo
+  return $?
+else
+  # Local rebuild and propagate exit code
+  @nhCommand@
+  return $?
+fi

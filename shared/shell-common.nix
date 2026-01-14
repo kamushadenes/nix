@@ -28,6 +28,9 @@ let
     else
       ''nh os switch --impure -H $(hostname -s | sed 's/.local//g')'';
 
+  # Flake path for remote rebuilds
+  flakePath = "$HOME/.config/nix/config";
+
   # Substitutions for rebuild script template
   rebuildSubst = {
     "@cacheKeyPath@" = cacheKeyPath;
@@ -35,6 +38,7 @@ let
     "@ageIdentity@" = ageIdentity;
     "@ageBin@" = "${pkgs.age}/bin/age";
     "@nhCommand@" = nhCommand;
+    "@flakePath@" = flakePath;
   };
 
   # Helper to apply substitutions to a string
@@ -110,6 +114,8 @@ in
     {
       unlock-gpg = "rm -f ~/.gnupg/public-keys.d/pubring.db.lock";
       renice-baldur = "sudo renice -n -20 -p $(pgrep -f Baldur)";
+      # Unlock aether's LUKS encryption via initrd SSH
+      aether-unlock = "ssh aether-initrd cryptsetup-askpass";
     }
     (lib.mkIf config.programs.bat.enable {
       cat = "bat -p";
