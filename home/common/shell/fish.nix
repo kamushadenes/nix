@@ -20,8 +20,10 @@
     '')
 
     # Claude Code workspace manager - standalone bash script with multi-account support
-    # standaloneScripts.c now returns processed content with account patterns
     (writeScriptBin "c" shellCommon.standaloneScripts.c)
+
+    # Rebuild script - unified bash script for local and remote deployments
+    (writeScriptBin "rebuild" shellCommon.standaloneScripts.rebuild)
   ];
 
   programs = {

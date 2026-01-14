@@ -49,7 +49,6 @@ let
   # Read script files - bash/zsh versions (use POSIX syntax where possible)
   bashScripts = {
     mkcd = builtins.readFile "${resourcesDir}/mkcd.sh";
-    rebuild = applySubst rebuildSubst (builtins.readFile "${resourcesDir}/rebuild.sh");
     claudeAttach = builtins.readFile "${resourcesDir}/ca.sh";
     rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.sh";
     flushdns = builtins.readFile "${resourcesDir}/flushdns.sh";
@@ -59,7 +58,6 @@ let
   # Read script files - fish versions (use fish syntax: set, $argv, end)
   fishScripts = {
     mkcd = builtins.readFile "${resourcesDir}/mkcd.fish";
-    rebuild = applySubst rebuildSubst (builtins.readFile "${resourcesDir}/rebuild.fish");
     claudeAttach = builtins.readFile "${resourcesDir}/ca.fish";
     rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.fish";
     flushdns = builtins.readFile "${resourcesDir}/flushdns.sh"; # Simple command, works in fish
@@ -72,8 +70,9 @@ let
   # These are processed with substitutions and return content (not paths)
   standaloneScripts = {
     # Claude Code workspace manager - bash script with multi-account support
-    # Returns processed content with account patterns substituted
     c = applySubst cScriptSubst (builtins.readFile "${resourcesDir}/claude-tmux.sh");
+    # Rebuild script - unified bash script for local and remote deployments
+    rebuild = applySubst rebuildSubst (builtins.readFile "${resourcesDir}/rebuild.sh");
   };
 
   # Common PATH additions
@@ -138,12 +137,7 @@ in
         mkcd.body = fishScripts.mkcd;
         fish_greeting.body = "";
 
-        rebuild = {
-          description = "Rebuild nix configuration (decrypts cache key if needed)";
-          body = fishScripts.rebuild;
-        };
-
-        # Note: 'c' is now a standalone script in PATH (see standaloneScripts)
+        # Note: 'c' and 'rebuild' are now standalone scripts in PATH (see standaloneScripts)
 
         ca = {
           description = "Attach to existing tmux session via fzf selection";
@@ -185,10 +179,9 @@ in
 
   # Bash/Zsh shared definitions
   bashZsh = {
-    # Note: 'c' is now a standalone script in PATH (see standaloneScripts)
+    # Note: 'c' and 'rebuild' are now standalone scripts in PATH (see standaloneScripts)
     functions = ''
       mkcd() { ${bashScripts.mkcd} }
-      rebuild() { ${bashScripts.rebuild} }
       ca() { ${bashScripts.claudeAttach} }
       rga-fzf() { ${bashScripts.rgaFzf} }
     '';
