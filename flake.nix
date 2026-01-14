@@ -164,7 +164,7 @@
           hardware = ./nixos/hardware/nixos.nix;
         };
         aether = mkNixosHost {
-          machine = "aether.hyades.io";
+          machine = "aether";
           role = "headless";
           hardware = ./nixos/hardware/aether.nix;
         };
