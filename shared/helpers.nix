@@ -25,8 +25,7 @@ let
         pkgs.runCommand "from-yaml"
           {
             inherit yaml;
-            allowSubstitutes = false;
-            preferLocalBuild = true;
+            # Allow remote builds for cross-platform deployments
           }
           # Use pipe instead of process substitution for POSIX compatibility
           ''
@@ -51,8 +50,7 @@ let
       pkgs.runCommand "to-toml"
         {
           inherit json;
-          allowSubstitutes = false;
-          preferLocalBuild = true;
+          # Allow remote builds for cross-platform deployments
         }
         # Use pipe instead of process substitution for POSIX compatibility
         ''
