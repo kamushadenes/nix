@@ -224,11 +224,15 @@ let
       bashToFish = str: builtins.replaceStrings [ "\${" "}" ] [ "$" "" ] str;
 
       makeBinPathList = map (path: bashToFish (path + "/bin"));
+
+      # On NixOS, /run/wrappers/bin must come first for setuid binaries (sudo, etc.)
+      wrappersPath = lib.optionalString (!pkgs.stdenv.isDarwin) "/run/wrappers/bin";
     in
     ''
       fish_add_path --move --prepend --path ${
         lib.concatMapStringsSep " " dquote (makeBinPathList osConfig.environment.profiles)
       }
+      ${lib.optionalString (!pkgs.stdenv.isDarwin) ''fish_add_path --move --prepend --path "${wrappersPath}"''}
       set fish_user_paths $fish_user_paths
     '';
 

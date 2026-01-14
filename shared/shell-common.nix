@@ -228,9 +228,14 @@ in
     '';
   };
 
+  # On NixOS, /run/wrappers/bin must come first for setuid binaries (sudo, etc.)
+  wrappersPath = lib.optionalString (!pkgs.stdenv.isDarwin) ''
+    export PATH="/run/wrappers/bin:$PATH"
+  '';
+
   # Path setup for bash (export PATH)
-  bash.pathSetup = mkPathSetup pathFormatters.bash;
+  bash.pathSetup = wrappersPath + mkPathSetup pathFormatters.bash;
 
   # Path setup for zsh (path+=)
-  zsh.pathSetup = mkPathSetup pathFormatters.zsh;
+  zsh.pathSetup = wrappersPath + mkPathSetup pathFormatters.zsh;
 }
