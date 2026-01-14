@@ -19,6 +19,7 @@ if test (count $argv) -gt 0 && test $argv[1] = "aether"
   echo "Deploying to aether (remote build)..."
   nix shell nixpkgs#nixos-rebuild -c nixos-rebuild switch \
     --fast \
+    --impure \
     --flake ~/.config/nix/config#aether \
     --target-host aether \
     --build-host aether \
