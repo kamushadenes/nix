@@ -100,6 +100,11 @@ let
   # Check if package is in home.packages
   hasPackage = pkg: builtins.elem pkg config.home.packages;
 
+  # On NixOS, /run/wrappers/bin must come first for setuid binaries (sudo, etc.)
+  wrappersPath = lib.optionalString (!pkgs.stdenv.isDarwin) ''
+    export PATH="/run/wrappers/bin:$PATH"
+  '';
+
 in
 {
   inherit sshKeys pathAdditions ghosttyResourcesDir hasPackage standaloneScripts;
@@ -227,11 +232,6 @@ in
       eval "$(${osConfig.homebrew.brewPrefix}/brew shellenv)"
     '';
   };
-
-  # On NixOS, /run/wrappers/bin must come first for setuid binaries (sudo, etc.)
-  wrappersPath = lib.optionalString (!pkgs.stdenv.isDarwin) ''
-    export PATH="/run/wrappers/bin:$PATH"
-  '';
 
   # Path setup for bash (export PATH)
   bash.pathSetup = wrappersPath + mkPathSetup pathFormatters.bash;
