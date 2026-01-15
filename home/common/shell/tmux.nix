@@ -132,9 +132,14 @@ in
       # Quick reload
       bind r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded!"
 
+      # OSC 52 clipboard support (works over SSH)
+      set -g set-clipboard on
+      set -g @yank_action 'copy-pipe-and-cancel'
+      set -g allow-passthrough on
+
       # Vi copy mode enhancements
       bind -T copy-mode-vi v send-keys -X begin-selection
-      bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel
+      bind -T copy-mode-vi y send-keys -X copy-selection-and-cancel
       bind -T copy-mode-vi C-v send-keys -X rectangle-toggle
 
       # Window naming - keep explicit names, don't auto-rename to command
