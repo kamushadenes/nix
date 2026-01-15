@@ -6,7 +6,7 @@
     enableWebUI = true;
     httpListenAddr = "127.0.0.1";
     httpListenPort = 8888;
-    # Storage path for sync data
+    deviceName = config.networking.hostName;
     storagePath = "/home/kamushadenes/.config/resilio-sync";
     directoryRoot = "/home/kamushadenes";
   };
