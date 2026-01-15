@@ -23,11 +23,12 @@ let
   pbpastePort = 2225;
 
   # pbcopy wrapper script - works on local and remote
+  # Note: Using -N flag (shutdown after EOF) which works with both BSD and GNU netcat
   pbcopyScript = pkgs.writeShellScriptBin "pbcopy" ''
     # If we're in an SSH session, try the forwarded port first
     if [ -n "$SSH_TTY" ] || [ -n "$SSH_CONNECTION" ]; then
       if ${pkgs.netcat}/bin/nc -z localhost ${toString pbcopyPort} 2>/dev/null; then
-        exec ${pkgs.netcat}/bin/nc -q1 localhost ${toString pbcopyPort}
+        exec ${pkgs.netcat}/bin/nc -N localhost ${toString pbcopyPort}
       fi
       # Port not available - fall through to local tools
     fi
