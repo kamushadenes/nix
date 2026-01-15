@@ -1,7 +1,9 @@
-{ config, lib, ... }:
+{ config, lib, machine, ... }:
 let
   # Use /var/lib for storage - NixOS service creates this automatically
   storagePath = "/var/lib/resilio-sync";
+  # aether uses ephemeral root and needs persistence
+  isEphemeral = machine == "aether";
 in
 {
   # Resilio Sync service
@@ -15,8 +17,8 @@ in
     directoryRoot = "/home/kamushadenes";
   };
 
-  # Persist resilio data on ephemeral systems
-  fileSystems."/var/lib/resilio-sync" = lib.mkIf (config.fileSystems."/".fsType == "tmpfs") {
+  # Persist resilio data on ephemeral systems (aether)
+  fileSystems."/var/lib/resilio-sync" = lib.mkIf isEphemeral {
     device = "/nix/persist/var/lib/resilio-sync";
     fsType = "none";
     options = [ "bind" ];
