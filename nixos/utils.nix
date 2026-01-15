@@ -7,7 +7,6 @@
     mqtt-explorer
     obsidian
     qbittorrent
-    remmina # NoMachine alternative
     uhk-agent
     uhk-udev-rules
     xpipe

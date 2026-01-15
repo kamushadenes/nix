@@ -48,6 +48,9 @@ in
     trustedInterfaces = [ "tailscale0" ];
   };
 
+  # Mosh server (mobile shell)
+  programs.mosh.enable = true;
+
   # SSH server with hardening
   services.openssh = {
     enable = true;
