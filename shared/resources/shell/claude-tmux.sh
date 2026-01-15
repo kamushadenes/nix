@@ -119,12 +119,15 @@ _c_set_account_env() {
     fi
 }
 
-# Build command (claude or happy) with args
+# Build command (claudebox or happy) with args
 _c_build_cmd() {
     if [ "$_C_USE_HAPPY" = "true" ]; then
         echo "happy"
     else
-        echo "claude"
+        # Use claudebox for sandboxed execution
+        # --no-monitor: Skip tmux command monitoring (we use our own tmux)
+        # --allow-ssh-agent: Enable SSH agent pass-through for git operations
+        echo "claudebox --no-monitor --allow-ssh-agent"
     fi
 }
 

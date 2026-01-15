@@ -20,6 +20,13 @@
       url = "github:kamushadenes/ragenix";
       inputs.nixpkgs.follows = "nixpkgs_2505";
     };
+
+    claudebox = {
+      # Using fork with macOS ~/.claude write permission fix
+      # PR: https://github.com/numtide/claudebox/pull/1
+      url = "github:kamushadenes/claudebox";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -29,6 +36,7 @@
       home-manager,
       darwin,
       agenix,
+      claudebox,
       ...
     }:
     let
@@ -53,6 +61,7 @@
           inherit system;
           specialArgs = {
             inherit inputs machine shared private role;
+            claudebox = claudebox.packages.${system}.default;
             pkgs-unstable = import nixpkgs-unstable {
               inherit system;
               config.allowUnfree = true;
@@ -75,6 +84,7 @@
           inherit system;
           specialArgs = {
             inherit inputs machine shared private hardware role;
+            claudebox = claudebox.packages.${system}.default;
             pkgs-unstable = import nixpkgs-unstable {
               inherit system;
               config.allowUnfree = true;
@@ -89,12 +99,12 @@
         agenix.darwinModules.default
         home-manager.darwinModules.home-manager
         (
-          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, role, ... }:
+          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, role, claudebox, ... }:
           {
             home-manager = pkgs.lib.mkMerge [
               {
                 extraSpecialArgs = {
-                  inherit inputs pkgs-unstable machine platform shared private role;
+                  inherit inputs pkgs-unstable machine platform shared private role claudebox;
                 };
               }
               hmDefaults
@@ -109,12 +119,12 @@
         agenix.nixosModules.default
         home-manager.nixosModules.home-manager
         (
-          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, private, role, ... }:
+          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, private, role, claudebox, ... }:
           {
             home-manager = pkgs.lib.mkMerge [
               {
                 extraSpecialArgs = {
-                  inherit inputs pkgs-unstable machine platform shared private role;
+                  inherit inputs pkgs-unstable machine platform shared private role claudebox;
                 };
               }
               hmDefaults

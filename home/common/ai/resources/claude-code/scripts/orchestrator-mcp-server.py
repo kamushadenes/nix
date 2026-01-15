@@ -1351,10 +1351,14 @@ def task_worker_spawn(
     # Send cd and claude command (with --dangerously-skip-permissions for unattended execution)
     # --add-dir prevents permission prompts for the worktree directory
     # Quote paths to handle spaces
+    # Use claudebox for sandboxed execution
+    # --no-monitor: Skip tmux command monitoring (we manage our own tmux)
+    # --allow-ssh-agent: Enable SSH agent pass-through for git operations
+    # -- separates claudebox flags from claude flags
     quoted_path = shlex.quote(worktree_path)
     run_tmux("send-keys", "-t", window_id, f"cd {quoted_path}", "Enter")
     time.sleep(0.3)
-    run_tmux("send-keys", "-t", window_id, f"claude --dangerously-skip-permissions --add-dir {quoted_path}", "Enter")
+    run_tmux("send-keys", "-t", window_id, f"claudebox --no-monitor --allow-ssh-agent -- --dangerously-skip-permissions --add-dir {quoted_path}", "Enter")
 
     # Wait for Claude to be fully ready (look for the ❯ prompt character)
     # Claude shows "❯" when ready for input

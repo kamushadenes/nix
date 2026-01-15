@@ -13,6 +13,7 @@
   pkgs-unstable,
   private,
   packages,
+  claudebox,
   ...
 }:
 let
@@ -93,7 +94,7 @@ in
     ruff # Python formatting
     github-mcp-server # GitHub MCP server binary
     packages.happy-coder # Mobile/web client wrapper for Claude Code and Codex (custom build)
-
+    claudebox # Sandboxed Claude Code execution
   ];
 
   #############################################################################
