@@ -75,6 +75,7 @@ let
   # Utilities
   utils = [
     ../home/common/utils/aichat.nix
+    ../home/common/utils/clipboard.nix
     ../home/common/utils/utils.nix
   ];
 
