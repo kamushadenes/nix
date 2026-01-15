@@ -19,7 +19,6 @@ in
     ./shared/build.nix
     ./shared/cache.nix
 
-    ./darwin/backup.nix
     ./darwin/brew.nix
     ./darwin/browser.nix
     ./darwin/db.nix

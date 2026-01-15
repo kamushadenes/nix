@@ -78,6 +78,11 @@ let
     ../home/common/utils/utils.nix
   ];
 
+  # File sync (Mutagen)
+  sync = [
+    ../home/common/sync/mutagen.nix
+  ];
+
   # Media tools (workstation only)
   media = [
     ../home/common/media/media.nix
@@ -117,7 +122,7 @@ let
 in
 {
   # Export module groups for documentation/debugging
-  inherit base ai dev editors infra utils media guiShell altinity macos linuxDesktop linuxCli;
+  inherit base ai dev editors infra utils sync media guiShell altinity macos linuxDesktop linuxCli;
 
   # Compose modules based on role and platform
   # platform should be "darwin" or "linux"
@@ -136,6 +141,7 @@ in
           ++ editors
           ++ infra
           ++ utils
+          ++ sync
           ++ media
           ++ guiShell
           ++ altinity
@@ -150,6 +156,7 @@ in
           ++ editors
           ++ infra
           ++ utils
+          ++ sync
           ++ altinity
           ++ lib.optionals isLinux linuxCli;
 
