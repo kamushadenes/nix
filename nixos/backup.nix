@@ -24,8 +24,11 @@ in
     options = [ "bind" ];
   };
 
-  # Resilio runs as rslsync user, add kamushadenes to rslsync group for shared access
-  users.users.kamushadenes.extraGroups = [ "rslsync" ];
+  # Run resilio as kamushadenes user
+  systemd.services.resilio.serviceConfig = {
+    User = lib.mkForce "kamushadenes";
+    Group = lib.mkForce "users";
+  };
 
   # Open firewall ports for Resilio Sync
   networking.firewall = {
