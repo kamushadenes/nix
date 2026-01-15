@@ -24,51 +24,67 @@ let
 
   # pbcopy wrapper script - works on local and remote
   pbcopyScript = pkgs.writeShellScriptBin "pbcopy" ''
-    # If we're in an SSH session and the port is available, use it
+    # If we're in an SSH session, try the forwarded port first
     if [ -n "$SSH_TTY" ] || [ -n "$SSH_CONNECTION" ]; then
-      # Check if the forwarded port is available
       if ${pkgs.netcat}/bin/nc -z localhost ${toString pbcopyPort} 2>/dev/null; then
         exec ${pkgs.netcat}/bin/nc -q1 localhost ${toString pbcopyPort}
       fi
+      # Port not available - fall through to local tools
     fi
 
     # Fall back to native clipboard
     if command -v /usr/bin/pbcopy >/dev/null 2>&1; then
       exec /usr/bin/pbcopy "$@"
-    elif command -v xclip >/dev/null 2>&1; then
-      exec xclip -selection clipboard "$@"
-    elif command -v xsel >/dev/null 2>&1; then
-      exec xsel --clipboard --input "$@"
-    elif command -v wl-copy >/dev/null 2>&1; then
+    elif [ -n "$WAYLAND_DISPLAY" ] && command -v wl-copy >/dev/null 2>&1; then
       exec wl-copy "$@"
-    else
-      echo "No clipboard tool available" >&2
-      cat > /dev/null
+    elif [ -n "$DISPLAY" ]; then
+      if command -v xclip >/dev/null 2>&1; then
+        exec xclip -selection clipboard "$@"
+      elif command -v xsel >/dev/null 2>&1; then
+        exec xsel --clipboard --input "$@"
+      fi
     fi
+
+    # No clipboard available
+    if [ -n "$SSH_CONNECTION" ]; then
+      echo "pbcopy: SSH port forwarding not available (reconnect to enable)" >&2
+    else
+      echo "pbcopy: No clipboard tool available (no DISPLAY or WAYLAND_DISPLAY)" >&2
+    fi
+    cat > /dev/null
+    exit 1
   '';
 
   # pbpaste wrapper script - works on local and remote
   pbpasteScript = pkgs.writeShellScriptBin "pbpaste" ''
-    # If we're in an SSH session and the port is available, use it
+    # If we're in an SSH session, try the forwarded port first
     if [ -n "$SSH_TTY" ] || [ -n "$SSH_CONNECTION" ]; then
-      # Check if the forwarded port is available
       if ${pkgs.netcat}/bin/nc -z localhost ${toString pbpastePort} 2>/dev/null; then
         exec ${pkgs.netcat}/bin/nc -d localhost ${toString pbpastePort}
       fi
+      # Port not available - fall through to local tools
     fi
 
     # Fall back to native clipboard
     if command -v /usr/bin/pbpaste >/dev/null 2>&1; then
       exec /usr/bin/pbpaste "$@"
-    elif command -v xclip >/dev/null 2>&1; then
-      exec xclip -selection clipboard -o "$@"
-    elif command -v xsel >/dev/null 2>&1; then
-      exec xsel --clipboard --output "$@"
-    elif command -v wl-paste >/dev/null 2>&1; then
+    elif [ -n "$WAYLAND_DISPLAY" ] && command -v wl-paste >/dev/null 2>&1; then
       exec wl-paste "$@"
-    else
-      echo "No clipboard tool available" >&2
+    elif [ -n "$DISPLAY" ]; then
+      if command -v xclip >/dev/null 2>&1; then
+        exec xclip -selection clipboard -o "$@"
+      elif command -v xsel >/dev/null 2>&1; then
+        exec xsel --clipboard --output "$@"
+      fi
     fi
+
+    # No clipboard available
+    if [ -n "$SSH_CONNECTION" ]; then
+      echo "pbpaste: SSH port forwarding not available (reconnect to enable)" >&2
+    else
+      echo "pbpaste: No clipboard tool available (no DISPLAY or WAYLAND_DISPLAY)" >&2
+    fi
+    exit 1
   '';
 in
 {
