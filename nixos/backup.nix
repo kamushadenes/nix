@@ -14,10 +14,15 @@ in
     directoryRoot = "/home/kamushadenes";
   };
 
-  # Ensure storage directory exists
+  # Ensure storage directory and parents exist
   systemd.tmpfiles.rules = [
+    "d /home/kamushadenes/.config 0755 kamushadenes users -"
     "d ${storagePath} 0755 rslsync rslsync -"
   ];
+
+  # Ensure resilio starts after tmpfiles
+  systemd.services.resilio.after = [ "systemd-tmpfiles-setup.service" ];
+  systemd.services.resilio.requires = [ "systemd-tmpfiles-setup.service" ];
 
   # Resilio runs as rslsync user, add kamushadenes to rslsync group for shared access
   users.users.kamushadenes.extraGroups = [ "rslsync" ];
