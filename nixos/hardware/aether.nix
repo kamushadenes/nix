@@ -76,6 +76,13 @@
     options = [ "bind" ];
   };
 
+  fileSystems."/home" = {
+    device = "/nix/persist/home";
+    fsType = "none";
+    options = [ "bind" ];
+    neededForBoot = true;
+  };
+
   swapDevices = [ ];
 
   # Platform
