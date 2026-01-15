@@ -32,6 +32,12 @@ sudo nixos-rebuild switch --flake ~/.config/nix/config/ --impure
 darwin-rebuild switch --flake ~/.config/nix/config/ --impure
 ```
 
+**IMPORTANT: Cache timeout errors require rebuild retry.** If `rebuild` fails with:
+```
+error: unable to download 'http://ncps.hyades.io:8501/...': Connection timed out
+```
+This is NOT benign - the build was interrupted and packages may not be installed. Run `rebuild` again until it completes without cache errors.
+
 ## Architecture
 
 ```
