@@ -7,7 +7,7 @@
 # OPTIONS:
 #   -a <account>         - Override automatic account detection
 #   -h                   - Use Happy wrapper instead of claude directly
-#   -r                   - Run on remote (aether) via mosh
+#   -r                   - Run on remote (aether) via SSH
 #
 # COMMANDS:
 #   c                    - Start tmux+claude in current directory
@@ -71,8 +71,8 @@ if [ "$_C_REMOTE" = "true" ]; then
     [ "$_C_USE_HAPPY" = "true" ] && remote_cmd="$remote_cmd -h"
     [ $# -gt 0 ] && remote_cmd="$remote_cmd $*"
 
-    # Execute on remote via mosh
-    exec mosh aether -- fish -lc "$remote_cmd"
+    # Execute on remote via SSH (not mosh - OSC 52 clipboard requires direct terminal)
+    exec ssh -t aether "fish -lc \"$remote_cmd\""
 fi
 
 #############################################################################
@@ -237,7 +237,7 @@ USAGE:
 OPTIONS:
   -a <account>         Override automatic account detection
   -h                   Use Happy wrapper instead of claude directly
-  -r                   Run on remote (aether) via mosh
+  -r                   Run on remote (aether) via SSH
 
 COMMANDS:
   c                    Start tmux+claude in current directory
@@ -261,7 +261,7 @@ HAPPY WRAPPER:
   Use -h to run via Happy wrapper for mobile/web access.
 
 REMOTE EXECUTION:
-  Use -r to run on aether via mosh. The current directory path is converted
+  Use -r to run on aether via SSH. The current directory path is converted
   from /Users/* to /home/* automatically. Useful for running on a more
   powerful remote machine.
 

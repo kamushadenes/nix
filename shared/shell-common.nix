@@ -53,7 +53,6 @@ let
     rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.sh";
     flushdns = builtins.readFile "${resourcesDir}/flushdns.sh";
     help = builtins.readFile "${resourcesDir}/help.sh";
-    ssh = builtins.readFile "${resourcesDir}/ssh.sh";
   };
 
   # Read script files - fish versions (use fish syntax: set, $argv, end)
@@ -63,7 +62,6 @@ let
     rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.fish";
     flushdns = builtins.readFile "${resourcesDir}/flushdns.sh"; # Simple command, works in fish
     help = builtins.readFile "${resourcesDir}/help.fish";
-    ssh = builtins.readFile "${resourcesDir}/ssh.fish";
     # Fish-only (uses fish-specific array slicing syntax)
     addGoBuildTags = builtins.readFile "${resourcesDir}/add-go-build-tags.fish";
   };
@@ -146,11 +144,6 @@ in
 
         # Note: 'c' and 'rebuild' are now standalone scripts in PATH (see standaloneScripts)
 
-        ssh = {
-          description = "SSH wrapper that tries mosh first";
-          body = fishScripts.ssh;
-        };
-
         ca = {
           description = "Attach to existing tmux session via fzf selection";
           body = fishScripts.claudeAttach;
@@ -201,7 +194,6 @@ in
       mkcd() { ${bashScripts.mkcd} }
       ca() { ${bashScripts.claudeAttach} }
       rga-fzf() { ${bashScripts.rgaFzf} }
-      ssh() { ${bashScripts.ssh} }
     '';
 
     flushdns = lib.optionalString pkgs.stdenv.isDarwin ''
