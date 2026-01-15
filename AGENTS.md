@@ -58,6 +58,7 @@ flake.nix              # Entry point - defines inputs and machine configurations
 │   │   ├── media/     # media tools
 │   │   ├── security/  # gpg, security tools
 │   │   ├── shell/     # fish, bash, zsh, starship, kitty, ghostty, tmux
+│   │   ├── sync/      # mutagen file synchronization (hub-and-spoke with aether)
 │   │   └── utils/     # aichat, miscellaneous utilities
 │   ├── macos/         # macOS-specific (aerospace, bettertouchtool, sketchybar)
 │   └── linux/         # Linux-specific (display, systemd)
@@ -79,6 +80,8 @@ flake.nix              # Entry point - defines inputs and machine configurations
 **Secrets:** Age-encrypted files in `private/` submodule, identity at `~/.age/age.pem`. Secrets mount to temp directories (DARWIN_USER_TEMP_DIR or XDG_RUNTIME_DIR).
 
 **Distributed builds:** Three machines share builds via ssh-ng protocol with custom cache at `ncps.hyades.io:8501`.
+
+**File synchronization:** Uses Mutagen with hub-and-spoke topology. `aether` serves as the central hub, and spoke machines (Darwin and other NixOS) sync project folders bidirectionally. Managed via `home/common/sync/mutagen.nix`. Run `mutagen-setup` on spoke machines to create sync sessions.
 
 ## Important: Git and Nix Flakes
 
