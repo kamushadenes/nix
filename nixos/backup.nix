@@ -6,10 +6,13 @@
     enableWebUI = true;
     httpListenAddr = "127.0.0.1";
     httpListenPort = 8888;
-    # Run as the main user to access their files
-    user = config.users.users.kamushadenes.name;
-    group = config.users.users.kamushadenes.group;
+    # Storage path for sync data
+    storagePath = "/home/kamushadenes/.config/resilio-sync";
+    directoryRoot = "/home/kamushadenes";
   };
+
+  # Resilio runs as rslsync user, add kamushadenes to rslsync group for shared access
+  users.users.kamushadenes.extraGroups = [ "rslsync" ];
 
   # Open firewall ports for Resilio Sync
   networking.firewall = {
