@@ -7,6 +7,7 @@
 # OPTIONS:
 #   -a <account>         - Override automatic account detection
 #   -h                   - Use Happy wrapper instead of claude directly
+#   -r                   - Run on remote (aether) via mosh
 #
 # COMMANDS:
 #   c                    - Start tmux+claude in current directory
@@ -31,6 +32,7 @@ set -u
 # Global options
 _C_ACCOUNT_OVERRIDE=""
 _C_USE_HAPPY="false"
+_C_REMOTE="false"
 
 # Parse global options
 while [ $# -gt 0 ]; do
@@ -47,11 +49,31 @@ while [ $# -gt 0 ]; do
             _C_USE_HAPPY="true"
             shift
             ;;
+        -r)
+            _C_REMOTE="true"
+            shift
+            ;;
         *)
             break
             ;;
     esac
 done
+
+# Handle remote execution
+if [ "$_C_REMOTE" = "true" ]; then
+    # Get current directory and convert path for remote
+    local_dir=$(pwd)
+    remote_dir=$(echo "$local_dir" | sed 's|^/Users/|/home/|')
+
+    # Rebuild command without -r flag
+    remote_cmd="cd '$remote_dir' && c"
+    [ -n "$_C_ACCOUNT_OVERRIDE" ] && remote_cmd="$remote_cmd -a '$_C_ACCOUNT_OVERRIDE'"
+    [ "$_C_USE_HAPPY" = "true" ] && remote_cmd="$remote_cmd -h"
+    [ $# -gt 0 ] && remote_cmd="$remote_cmd $*"
+
+    # Execute on remote via mosh
+    exec mosh aether -- bash -lc "$remote_cmd"
+fi
 
 #############################################################################
 # Account Pattern Definitions (generated from Nix)
@@ -215,6 +237,7 @@ USAGE:
 OPTIONS:
   -a <account>         Override automatic account detection
   -h                   Use Happy wrapper instead of claude directly
+  -r                   Run on remote (aether) via mosh
 
 COMMANDS:
   c                    Start tmux+claude in current directory
@@ -237,10 +260,16 @@ HAPPY WRAPPER:
   By default, 'c' runs claude directly.
   Use -h to run via Happy wrapper for mobile/web access.
 
+REMOTE EXECUTION:
+  Use -r to run on aether via mosh. The current directory path is converted
+  from /Users/* to /home/* automatically. Useful for running on a more
+  powerful remote machine.
+
 EXAMPLES:
   c                      Start claude
   c -h                   Start claude via Happy wrapper
   c -a iniciador         Start with iniciador account
+  c -r                   Start claude on aether (same folder)
   c w feature-x          Create worktree for feature-x, start claude
   c list                 Show all worktrees
   c clean                Interactive worktree cleanup

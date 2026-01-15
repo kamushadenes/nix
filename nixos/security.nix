@@ -46,6 +46,9 @@ in
     allowPing = true;
     logRefusedConnections = true;
     trustedInterfaces = [ "tailscale0" ];
+    allowedUDPPortRanges = [
+      { from = 60001; to = 60999; } # mosh
+    ];
   };
 
   # Mosh server (mobile shell)
