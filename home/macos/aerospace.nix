@@ -112,17 +112,9 @@
           };
         })
         ''
-          # Fix Ghostty
           [[on-window-detected]]
           if.app-id="com.mitchellh.ghostty"
-          run = [
-            # FIX: this is a workaround for https://github.com/nikitabobko/AeroSpace/issues/68
-            # this was also observed in:
-            # - https://github.com/ghostty-org/ghostty/issues/1840
-            # - https://github.com/ghostty-org/ghostty/issues/2006
-            "layout floating",
-            "move-node-to-workspace 1",
-          ]
+          run = ["layout tiling"]
         ''
         ''
           # Mail keeps freezing
