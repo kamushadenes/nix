@@ -121,7 +121,8 @@ in
 
   programs.claude-code = {
     enable = true;
-    package = null;
+    # Darwin uses homebrew, Linux uses pkgs-unstable
+    package = if pkgs.stdenv.isDarwin then null else pkgs-unstable.claude-code;
 
     # Note: mcpServers are NOT set here because home-manager doesn't support
     # secret substitution. They're managed separately below via ~/.claude.json

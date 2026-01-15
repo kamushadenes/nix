@@ -10,6 +10,7 @@
 
   # Formulas
   homebrew.brews = [
+    "claude-code"
     "gettext"
     "fish"
   ];
