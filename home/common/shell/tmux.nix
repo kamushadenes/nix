@@ -45,6 +45,7 @@ in
     plugins = with pkgs.tmuxPlugins; [
       sensible
       yank
+      open # URL opening with prefix + o (opens URL) or prefix + Ctrl-o (opens in editor)
       pain-control
       resurrect
       continuum
@@ -79,6 +80,9 @@ in
       # True color and Unicode support for Ghostty
       set -g default-terminal "tmux-256color"
       set -sa terminal-overrides ",xterm*:Tc"
+      # Enable hyperlinks (clickable URLs)
+      set -sa terminal-features ",xterm*:hyperlinks"
+      set -sa terminal-features ",ghostty:hyperlinks"
 
       # Pane border styling (Catppuccin Macchiato colors)
       set -g pane-border-style "fg=#494d64"
