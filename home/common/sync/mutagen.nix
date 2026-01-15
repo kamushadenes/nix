@@ -8,6 +8,7 @@
 }:
 let
   mutagen = pkgs-unstable.mutagen;
+  mutagenBin = "${mutagen}/bin/mutagen";
 
   # Projects to sync
   projects = [
@@ -107,7 +108,7 @@ in
     };
     Service = {
       Type = "simple";
-      ExecStart = "${lib.getExe mutagen} daemon run";
+      ExecStart = "${mutagenBin} daemon run";
       Restart = "on-failure";
       RestartSec = 5;
     };
@@ -122,7 +123,7 @@ in
     config = {
       Label = "io.mutagen.daemon";
       ProgramArguments = [
-        "${lib.getExe mutagen}"
+        "${mutagenBin}"
         "daemon"
         "run"
       ];
