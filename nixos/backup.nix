@@ -29,6 +29,10 @@ in
   systemd.services.resilio.serviceConfig = {
     User = lib.mkForce "kamushadenes";
     Group = lib.mkForce "users";
+    # Fix ownership before start (module creates dir as rslsync)
+    ExecStartPre = lib.mkAfter [
+      "+/run/current-system/sw/bin/chown -R kamushadenes:users ${storagePath}"
+    ];
   };
 
   # Open firewall ports for Resilio Sync
