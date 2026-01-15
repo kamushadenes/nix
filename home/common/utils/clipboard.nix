@@ -1,16 +1,16 @@
-# Remote clipboard support via SSH port forwarding
+# Remote clipboard and URL opening support via SSH port forwarding
 #
 # On Darwin (client machine):
-#   - Launchd agents listen on ports 2224 (pbcopy) and 2225 (pbpaste)
+#   - Launchd agents listen on ports 2224 (pbcopy), 2225 (pbpaste), 2226 (open)
 #   - SSH config forwards these ports to remote hosts
 #
 # On Linux/remote:
-#   - pbcopy/pbpaste scripts detect SSH session and use netcat
-#   - Falls back to native clipboard tools when local
+#   - pbcopy/pbpaste/open scripts detect SSH session and use netcat
+#   - Falls back to native tools when local
 #
 # Usage:
 #   - SSH to remote with port forwarding (automatic via SSH config)
-#   - Use pbcopy/pbpaste normally - they route through SSH tunnel
+#   - Use pbcopy/pbpaste/open normally - they route through SSH tunnel
 {
   config,
   lib,
@@ -18,9 +18,10 @@
   ...
 }:
 let
-  # Ports for clipboard forwarding
+  # Ports for clipboard and open forwarding
   pbcopyPort = 2224;
   pbpastePort = 2225;
+  openPort = 2226;
 
   # pbcopy wrapper script - works on local and remote
   # Note: Using -N flag (shutdown after EOF) which works with both BSD and GNU netcat
@@ -87,6 +88,34 @@ let
     fi
     exit 1
   '';
+
+  # open wrapper script - works on local and remote
+  # Opens URLs/files on macOS even from remote SSH sessions
+  openScript = pkgs.writeShellScriptBin "open" ''
+    # If we're in an SSH session, try the forwarded port first
+    if [ -n "$SSH_TTY" ] || [ -n "$SSH_CONNECTION" ]; then
+      if ${pkgs.netcat}/bin/nc -z localhost ${toString openPort} 2>/dev/null; then
+        echo "$@" | ${pkgs.netcat}/bin/nc -N localhost ${toString openPort}
+        exit 0
+      fi
+      # Port not available - fall through to local tools
+    fi
+
+    # Fall back to native open command
+    if command -v /usr/bin/open >/dev/null 2>&1; then
+      exec /usr/bin/open "$@"
+    elif command -v xdg-open >/dev/null 2>&1; then
+      exec xdg-open "$@"
+    fi
+
+    # No open available
+    if [ -n "$SSH_CONNECTION" ]; then
+      echo "open: SSH port forwarding not available (reconnect to enable)" >&2
+    else
+      echo "open: No open command available" >&2
+    fi
+    exit 1
+  '';
 in
 {
   # Install wrapper scripts on all platforms
@@ -94,6 +123,7 @@ in
   home.packages = [
     pbcopyScript
     pbpasteScript
+    openScript
   ];
 
   # Darwin-only: Launchd agents to expose clipboard via sockets
@@ -133,6 +163,20 @@ in
           Crashed = true;
           SuccessfulExit = false;
         };
+      };
+    };
+
+    # xdg-open-svc for remote URL/file opening
+    # Requires: brew install caarlos0/tap/xdg-open-svc
+    xdg-open = {
+      enable = true;
+      config = {
+        Label = "localhost.xdg-open";
+        ProgramArguments = [ "/opt/homebrew/bin/xdg-open-svc" ];
+        RunAtLoad = true;
+        KeepAlive = true;
+        StandardOutPath = "${config.home.homeDirectory}/.cache/xdg-open-svc.log";
+        StandardErrorPath = "${config.home.homeDirectory}/.cache/xdg-open-svc.log";
       };
     };
   };
