@@ -18,6 +18,12 @@ This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS sys
 # WARNING: MUST be run using the tmux MCP (start a fish shell, then inside that shell run rebuild)
 rebuild
 
+# Rebuild aether remotely (can run in parallel with local rebuild)
+rebuild aether
+
+# Rebuild both in parallel (faster than sequential)
+rebuild & rebuild aether
+
 # Darwin rebuild via nh (--impure required for private submodule)
 nh darwin switch --impure
 
