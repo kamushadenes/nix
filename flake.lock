@@ -79,11 +79,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1768504224,
-        "narHash": "sha256-KjwNXg4Kbxyv+ZkPwo0EBVq+KtAUQjGGuO4yPkqx0Zg=",
+        "lastModified": 1768511452,
+        "narHash": "sha256-fwm5SLhcv2r8jgt7bA72KnVcMTowLVW/EjahSe6xEcg=",
         "owner": "kamushadenes",
         "repo": "claudebox",
-        "rev": "f566ea48eb604ed8b839e0d6aea3200223fe6be3",
+        "rev": "56617a24d003be16aa1e71f6557df152f2fc32bc",
         "type": "github"
       },
       "original": {
