@@ -72,7 +72,7 @@ if [ "$_C_REMOTE" = "true" ]; then
     [ $# -gt 0 ] && remote_cmd="$remote_cmd $*"
 
     # Execute on remote via mosh
-    exec mosh aether -- bash -lc "$remote_cmd"
+    exec mosh aether -- fish -lc "$remote_cmd"
 fi
 
 #############################################################################
