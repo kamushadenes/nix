@@ -14,8 +14,8 @@ let
 
     npmDepsHash = "sha256-jSxvYFlhZv/2TfKFt749PxOffhvcwDikCuqwCm5Xkiw=";
 
-    # The main package is at the root
-    dontNpmBuild = true;
+    # Build the TypeScript code
+    npmBuildScript = "build";
 
     # Remove broken symlinks from monorepo workspace structure
     postInstall = ''
