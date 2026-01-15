@@ -76,23 +76,20 @@ ${lib.concatMapStrings (p: "            - \"${p}\"\n") ignorePatterns}
           defaultDirectoryMode: 0755
   '';
 
-  # Session creation script
-  createSessionScript = pkgs.writeShellScript "mutagen-create-sessions" ''
-    set -e
-    export PATH="${pkgs.openssh}/bin:$PATH"
-
+  # Shell function to create sync sessions
+  createSessionsFunction = ''
     # Ensure daemon is running
-    ${lib.getExe mutagen} daemon start 2>/dev/null || true
+    mutagen daemon start 2>/dev/null; or true
 
     # Create sessions for each project (if they don't exist)
     ${lib.concatMapStrings (project: ''
-      if ! ${lib.getExe mutagen} sync list 2>/dev/null | grep -q "Name: ${project}"; then
-        echo "Creating session for ${project}..."
-        ${lib.getExe mutagen} sync create \
-          "${projectsPath}/${project}" \
-          "${hubHost}:${hubPath}/${project}" \
-          --name="${project}" || echo "Failed to create session for ${project}"
-      fi
+    if not mutagen sync list 2>/dev/null | grep -q "Name: ${project}"
+      echo "Creating session for ${project}..."
+      mutagen sync create \
+        "${projectsPath}/${project}" \
+        "${hubHost}:${hubPath}/${project}" \
+        --name="${project}"
+    end
     '') projects}
   '';
 in
@@ -136,10 +133,9 @@ in
     };
   };
 
-  # Activation script to create sync sessions (spoke machines only)
-  home.activation.mutagenSessions = lib.mkIf (!isHub) (
-    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      run ${createSessionScript}
-    ''
-  );
+  # Fish function to create sync sessions (spoke machines only)
+  programs.fish.functions.mutagen-setup = lib.mkIf (!isHub) {
+    description = "Create Mutagen sync sessions to hub";
+    body = createSessionsFunction;
+  };
 }
