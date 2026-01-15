@@ -17,6 +17,11 @@ let
     # The main package is at the root
     dontNpmBuild = true;
 
+    # Remove broken symlinks from monorepo workspace structure
+    postInstall = ''
+      find $out -xtype l -delete
+    '';
+
     meta = with lib; {
       description = "Automated TDD enforcement tool for Claude Code";
       homepage = "https://github.com/nizos/tdd-guard";
