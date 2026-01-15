@@ -259,6 +259,16 @@ in
               }
             ];
           }
+          # Web-only: Install devbox and initialize direnv when devbox.json exists
+          {
+            matcher = "startup";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/SessionStart/devbox-setup.sh";
+              }
+            ];
+          }
         ];
 
         # Run before context compaction
@@ -527,6 +537,10 @@ in
     };
     ".claude/hooks/SessionStart/worker-task-inject.sh" = {
       source = "${scriptsDir}/hooks/SessionStart/worker-task-inject.sh";
+      executable = true;
+    };
+    ".claude/hooks/SessionStart/devbox-setup.sh" = {
+      source = "${scriptsDir}/hooks/SessionStart/devbox-setup.sh";
       executable = true;
     };
 

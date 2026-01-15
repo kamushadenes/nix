@@ -25,6 +25,26 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("orchestrator")
 
+# =============================================================================
+# Conditional Tool Registration
+# =============================================================================
+
+# Check if running inside tmux at module load time
+IN_TMUX = bool(os.environ.get("TMUX"))
+
+
+def tmux_tool():
+    """Decorator that only registers tool if running inside tmux.
+
+    When not in tmux, the function is still defined but not exposed as an MCP tool.
+    This prevents cluttering the tool list with unavailable tools.
+    """
+    if IN_TMUX:
+        return mcp.tool()
+    else:
+        # Return identity decorator - function exists but isn't registered as MCP tool
+        return lambda f: f
+
 
 # =============================================================================
 # Response Models (Pydantic for MCP structured output)
@@ -662,7 +682,7 @@ def validate_target(target: str) -> None:
 # =============================================================================
 
 
-@mcp.tool()
+@tmux_tool()
 def tmux_new_window(
     command: str = "zsh",
     name: str = ""
@@ -726,7 +746,7 @@ def tmux_new_window(
     return window_id
 
 
-@mcp.tool()
+@tmux_tool()
 def tmux_send(target: str, text: str, enter: bool = True) -> str:
     """
     Send text/keystrokes to a tmux window.
@@ -751,7 +771,7 @@ def tmux_send(target: str, text: str, enter: bool = True) -> str:
     return "Text sent successfully"
 
 
-@mcp.tool()
+@tmux_tool()
 def tmux_capture(target: str, lines: int = 100) -> str:
     """
     Capture output from a tmux window.
@@ -775,7 +795,7 @@ def tmux_capture(target: str, lines: int = 100) -> str:
     return output
 
 
-@mcp.tool()
+@tmux_tool()
 def tmux_list() -> TmuxListResult:
     """
     List all windows in the current session.
@@ -807,7 +827,7 @@ def tmux_list() -> TmuxListResult:
     return TmuxListResult(windows=windows, current_window=current)
 
 
-@mcp.tool()
+@tmux_tool()
 def tmux_kill(target: str) -> str:
     """
     Kill a tmux window.
@@ -831,7 +851,7 @@ def tmux_kill(target: str) -> str:
     return "Window killed successfully"
 
 
-@mcp.tool()
+@tmux_tool()
 def tmux_interrupt(target: str) -> str:
     """
     Send Ctrl+C interrupt to a window.
@@ -848,7 +868,7 @@ def tmux_interrupt(target: str) -> str:
     return "Interrupt sent"
 
 
-@mcp.tool()
+@tmux_tool()
 def tmux_wait_idle(target: str, idle_seconds: float = 2.0, timeout: int = 60) -> str:
     """
     Wait for a window to become idle (no output changes).
@@ -910,7 +930,7 @@ def notify(title: str, message: str, sound: bool = True) -> str:
     return "Notification sent"
 
 
-@mcp.tool()
+@tmux_tool()
 def tmux_select(target: str) -> str:
     """
     Switch to a tmux window (bring it to foreground).
@@ -946,7 +966,7 @@ def window_exists(window_id: str) -> tuple[bool, str | None]:
 OUTPUT_FILE_PLACEHOLDER = "__OUTPUT_FILE__"
 
 
-@mcp.tool()
+@tmux_tool()
 def tmux_run_and_read(
     command: str,
     name: str = "",
@@ -1201,7 +1221,7 @@ def _read_task_result(worktree_path: str) -> TaskWorkerResult | None:
 # =============================================================================
 
 
-@mcp.tool()
+@tmux_tool()
 def task_worker_spawn(
     task_data: dict[str, Any],
     worktree_path: str,
@@ -1413,7 +1433,7 @@ def task_worker_spawn(
     )
 
 
-@mcp.tool()
+@tmux_tool()
 def task_worker_status(worker_id: str) -> TaskWorkerStatusResult:
     """
     Get the status of a task worker.
@@ -1530,7 +1550,7 @@ def task_worker_status(worker_id: str) -> TaskWorkerStatusResult:
     )
 
 
-@mcp.tool()
+@tmux_tool()
 def task_worker_list() -> TaskWorkerListResult:
     """
     List all tracked task workers.
@@ -1566,7 +1586,7 @@ def task_worker_list() -> TaskWorkerListResult:
         )
 
 
-@mcp.tool()
+@tmux_tool()
 def task_worker_kill(worker_id: str) -> str:
     """
     Kill a task worker's tmux window.
