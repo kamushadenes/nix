@@ -130,6 +130,9 @@ in
       KeepAlive = true;
       StandardOutPath = "/tmp/mutagen.out.log";
       StandardErrorPath = "/tmp/mutagen.err.log";
+      EnvironmentVariables = {
+        PATH = "${pkgs.openssh}/bin:/usr/bin:/bin:/usr/sbin:/sbin";
+      };
     };
   };
 
