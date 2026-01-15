@@ -1,4 +1,7 @@
 { config, ... }:
+let
+  storagePath = "/home/kamushadenes/.config/resilio-sync";
+in
 {
   # Resilio Sync service
   services.resilio = {
@@ -7,9 +10,14 @@
     httpListenAddr = "127.0.0.1";
     httpListenPort = 8888;
     deviceName = config.networking.hostName;
-    storagePath = "/home/kamushadenes/.config/resilio-sync";
+    inherit storagePath;
     directoryRoot = "/home/kamushadenes";
   };
+
+  # Ensure storage directory exists
+  systemd.tmpfiles.rules = [
+    "d ${storagePath} 0755 rslsync rslsync -"
+  ];
 
   # Resilio runs as rslsync user, add kamushadenes to rslsync group for shared access
   users.users.kamushadenes.extraGroups = [ "rslsync" ];
