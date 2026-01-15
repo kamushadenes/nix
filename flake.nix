@@ -28,10 +28,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nixos-generators = {
-      url = "github:nix-community/nixos-generators";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -42,7 +38,6 @@
       darwin,
       agenix,
       claudebox,
-      nixos-generators,
       ...
     }:
     let
@@ -156,60 +151,23 @@
         users.yjrodrigues = import ./home_other.nix;
       };
 
-      # Container modules for Docker image
-      containerModules = [
-        ./nixos-container.nix
-        agenix.nixosModules.default
-        home-manager.nixosModules.home-manager
-      ];
-
-      # Helper to create Docker container images using nixos-generators
-      mkContainerImage =
-        { system ? "x86_64-linux" }:
-        nixos-generators.nixosGenerate {
-          inherit system;
-          format = "docker";
-          specialArgs = {
-            inherit inputs private;
-            machine = "container";
-            role = "container";
-            hardware = ./nixos/hardware/container.nix;
-            claudebox = claudebox.packages.${system}.default;
-            pkgs-unstable = import nixpkgs-unstable {
-              inherit system;
-              config.allowUnfree = true;
-            };
-            platform = system;
-            shared = false;
+      # Helper to create Docker container images using dockerTools
+      mkDockerImage =
+        { system }:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
           };
-          modules =
-            containerModules
-            ++ [
-              (
-                { pkgs, ... }:
-                {
-                  home-manager = {
-                    extraSpecialArgs = {
-                      inherit inputs private;
-                      machine = "container";
-                      role = "container";
-                      claudebox = claudebox.packages.${system}.default;
-                      pkgs-unstable = import nixpkgs-unstable {
-                        inherit system;
-                        config.allowUnfree = true;
-                      };
-                      platform = system;
-                      shared = false;
-                    };
-                    useGlobalPkgs = true;
-                    useUserPackages = true;
-                    users.kamushadenes = import ./home.nix;
-                    sharedModules = hmModules;
-                    backupFileExtension = "hm.bkp";
-                  };
-                }
-              )
-            ];
+          pkgs-unstable = import nixpkgs-unstable {
+            inherit system;
+            config.allowUnfree = true;
+          };
+        in
+        import ./docker/image.nix {
+          inherit pkgs pkgs-unstable system;
+          lib = pkgs.lib;
+          claudebox = claudebox.packages.${system}.default or null;
         };
     in
     {
@@ -244,8 +202,8 @@
 
       # Docker images for container-based development
       packages = {
-        x86_64-linux.docker = mkContainerImage { system = "x86_64-linux"; };
-        aarch64-linux.docker = mkContainerImage { system = "aarch64-linux"; };
+        x86_64-linux.docker = mkDockerImage { system = "x86_64-linux"; };
+        aarch64-linux.docker = mkDockerImage { system = "aarch64-linux"; };
       };
     };
 }
