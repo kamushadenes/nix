@@ -1,6 +1,7 @@
-{ config, ... }:
+{ config, lib, ... }:
 let
-  storagePath = "/home/kamushadenes/.config/resilio-sync";
+  # Use /var/lib for storage - NixOS service creates this automatically
+  storagePath = "/var/lib/resilio-sync";
 in
 {
   # Resilio Sync service
@@ -14,15 +15,12 @@ in
     directoryRoot = "/home/kamushadenes";
   };
 
-  # Ensure storage directory and parents exist
-  systemd.tmpfiles.rules = [
-    "d /home/kamushadenes/.config 0755 kamushadenes users -"
-    "d ${storagePath} 0755 rslsync rslsync -"
-  ];
-
-  # Ensure resilio starts after tmpfiles
-  systemd.services.resilio.after = [ "systemd-tmpfiles-setup.service" ];
-  systemd.services.resilio.requires = [ "systemd-tmpfiles-setup.service" ];
+  # Persist resilio data on ephemeral systems
+  fileSystems."/var/lib/resilio-sync" = lib.mkIf (config.fileSystems."/".fsType == "tmpfs") {
+    device = "/nix/persist/var/lib/resilio-sync";
+    fsType = "none";
+    options = [ "bind" ];
+  };
 
   # Resilio runs as rslsync user, add kamushadenes to rslsync group for shared access
   users.users.kamushadenes.extraGroups = [ "rslsync" ];
