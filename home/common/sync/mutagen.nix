@@ -79,6 +79,7 @@ ${lib.concatMapStrings (p: "            - \"${p}\"\n") ignorePatterns}
   # Session creation script
   createSessionScript = pkgs.writeShellScript "mutagen-create-sessions" ''
     set -e
+    export PATH="${pkgs.openssh}/bin:$PATH"
 
     # Ensure daemon is running
     ${lib.getExe mutagen} daemon start 2>/dev/null || true
