@@ -54,6 +54,8 @@
       shell-integration-features = sudo
       shell-integration-features = title
       shell-integration-features = cursor
+      shell-integration-features = ssh-terminfo
+      shell-integration-features = ssh-env
 
       desktop-notifications = true
 
