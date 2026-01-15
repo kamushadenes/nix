@@ -1,4 +1,4 @@
-{ config, lib, machine, ... }:
+{ config, lib, machine, pkgs-unstable, ... }:
 let
   # Use /var/lib for storage - NixOS service creates this automatically
   storagePath = "/var/lib/resilio-sync";
@@ -9,6 +9,7 @@ in
   # Resilio Sync service
   services.resilio = {
     enable = true;
+    package = pkgs-unstable.resilio-sync;
     enableWebUI = true;
     httpListenAddr = "127.0.0.1";
     httpListenPort = 8888;
