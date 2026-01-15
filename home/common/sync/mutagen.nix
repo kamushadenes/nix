@@ -67,7 +67,7 @@ let
   mutagenYaml = pkgs.writeText "mutagen.yml" ''
     sync:
       defaults:
-        mode: two-way-safe
+        mode: two-way-resolved
         ignore:
           vcs: true
           paths:
