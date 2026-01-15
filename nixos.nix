@@ -27,6 +27,7 @@ in
       ./shared/cache.nix
 
       # Core modules (always imported)
+      ./nixos/backup.nix
       ./nixos/dev.nix
       ./nixos/fonts.nix
       "${private}/nixos/network.nix"
