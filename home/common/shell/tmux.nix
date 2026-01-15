@@ -80,9 +80,10 @@ in
       # True color and Unicode support for Ghostty
       set -g default-terminal "tmux-256color"
       set -sa terminal-overrides ",xterm*:Tc"
-      # Enable hyperlinks (clickable URLs)
-      set -sa terminal-features ",xterm*:hyperlinks"
-      set -sa terminal-features ",ghostty:hyperlinks"
+      set -sa terminal-overrides ",ghostty:Tc"
+      # Enable hyperlinks (clickable URLs) and clipboard (OSC 52)
+      set -sa terminal-features ",xterm*:hyperlinks:clipboard"
+      set -sa terminal-features ",ghostty:hyperlinks:clipboard"
 
       # Pane border styling (Catppuccin Macchiato colors)
       set -g pane-border-style "fg=#494d64"
@@ -137,14 +138,17 @@ in
       bind r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded!"
 
       # OSC 52 clipboard support (works over SSH)
+      # set-clipboard on: tmux emits OSC 52 escape sequences for copy operations
+      # allow-passthrough on: allows nested tmux/SSH to pass through OSC 52
       set -g set-clipboard on
-      set -g @yank_action 'copy-pipe-and-cancel'
       set -g allow-passthrough on
 
       # Vi copy mode enhancements
       bind -T copy-mode-vi v send-keys -X begin-selection
       bind -T copy-mode-vi y send-keys -X copy-selection-and-cancel
       bind -T copy-mode-vi C-v send-keys -X rectangle-toggle
+      # Mouse drag copies to clipboard (OSC 52 via set-clipboard)
+      bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-and-cancel
 
       # Window naming - keep explicit names, don't auto-rename to command
       set -g automatic-rename off
