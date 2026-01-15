@@ -159,6 +159,9 @@ in
       # Global permissions - auto-approved tools (imported from claude-code-permissions.nix)
       permissions = permissions;
 
+      # Always enable extended thinking for better reasoning
+      enableExtendedThinking = true;
+
       # Hooks - commands that run at various points in Claude Code's lifecycle
       hooks = {
         # Run before file modifications - TDD guard ensures tests exist
