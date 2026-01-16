@@ -7,6 +7,7 @@
 # OPTIONS:
 #   -a <account>         - Override automatic account detection
 #   -h                   - Use Happy wrapper instead of claude directly
+#   -s                   - Use claudebox sandbox mode
 #   -r                   - Run on remote (aether) via SSH
 #
 # COMMANDS:
@@ -32,6 +33,7 @@ set -u
 # Global options
 _C_ACCOUNT_OVERRIDE=""
 _C_USE_HAPPY="false"
+_C_USE_SANDBOX="false"
 _C_REMOTE="false"
 
 # Parse global options
@@ -47,6 +49,10 @@ while [ $# -gt 0 ]; do
             ;;
         -h)
             _C_USE_HAPPY="true"
+            shift
+            ;;
+        -s)
+            _C_USE_SANDBOX="true"
             shift
             ;;
         -r)
@@ -69,6 +75,7 @@ if [ "$_C_REMOTE" = "true" ]; then
     remote_cmd="cd '$remote_dir' && c"
     [ -n "$_C_ACCOUNT_OVERRIDE" ] && remote_cmd="$remote_cmd -a '$_C_ACCOUNT_OVERRIDE'"
     [ "$_C_USE_HAPPY" = "true" ] && remote_cmd="$remote_cmd -h"
+    [ "$_C_USE_SANDBOX" = "true" ] && remote_cmd="$remote_cmd -s"
     [ $# -gt 0 ] && remote_cmd="$remote_cmd $*"
 
     # Execute on remote via SSH (not mosh - OSC 52 clipboard requires direct terminal)
@@ -119,15 +126,18 @@ _c_set_account_env() {
     fi
 }
 
-# Build command (claudebox or happy) with args
+# Build command (claude, claudebox, or happy) with args
 _c_build_cmd() {
     if [ "$_C_USE_HAPPY" = "true" ]; then
         echo "happy"
-    else
+    elif [ "$_C_USE_SANDBOX" = "true" ]; then
         # Use claudebox for sandboxed execution
         # --no-monitor: Skip tmux command monitoring (we use our own tmux)
         # --allow-ssh-agent: Enable SSH agent pass-through for git operations
         echo "claudebox --no-monitor --allow-ssh-agent"
+    else
+        # Use claude directly (default)
+        echo "claude"
     fi
 }
 
@@ -240,6 +250,7 @@ USAGE:
 OPTIONS:
   -a <account>         Override automatic account detection
   -h                   Use Happy wrapper instead of claude directly
+  -s                   Use claudebox sandbox mode (restricted filesystem access)
   -r                   Run on remote (aether) via SSH
 
 COMMANDS:
@@ -259,8 +270,12 @@ MULTI-ACCOUNT:
   Sets CLAUDE_CONFIG_DIR to use account-specific MCP servers.
   Use -a to override: c -a iniciador
 
+SANDBOX MODE:
+  By default, 'c' runs claude directly with full filesystem access.
+  Use -s to run via claudebox for sandboxed execution with restricted
+  filesystem access (only current directory and common dev paths).
+
 HAPPY WRAPPER:
-  By default, 'c' runs claude directly.
   Use -h to run via Happy wrapper for mobile/web access.
 
 REMOTE EXECUTION:
@@ -269,7 +284,8 @@ REMOTE EXECUTION:
   powerful remote machine.
 
 EXAMPLES:
-  c                      Start claude
+  c                      Start claude (default, full access)
+  c -s                   Start claude in sandbox mode
   c -h                   Start claude via Happy wrapper
   c -a iniciador         Start with iniciador account
   c -r                   Start claude on aether (same folder)
