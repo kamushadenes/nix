@@ -150,25 +150,6 @@
       hmShared = {
         users.yjrodrigues = import ./home_other.nix;
       };
-
-      # Helper to create Docker container images using dockerTools
-      mkDockerImage =
-        { system }:
-        let
-          pkgs = import nixpkgs {
-            inherit system;
-            config.allowUnfree = true;
-          };
-          pkgs-unstable = import nixpkgs-unstable {
-            inherit system;
-            config.allowUnfree = true;
-          };
-        in
-        import ./docker/image.nix {
-          inherit pkgs pkgs-unstable system;
-          lib = pkgs.lib;
-          claudebox = claudebox.packages.${system}.default or null;
-        };
     in
     {
       darwinConfigurations = {
@@ -198,12 +179,6 @@
           role = "headless";
           hardware = ./nixos/hardware/aether.nix;
         };
-      };
-
-      # Docker images for container-based development
-      packages = {
-        x86_64-linux.docker = mkDockerImage { system = "x86_64-linux"; };
-        aarch64-linux.docker = mkDockerImage { system = "aarch64-linux"; };
       };
     };
 }

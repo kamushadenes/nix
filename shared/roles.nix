@@ -163,19 +163,7 @@ in
 
         # Minimal - just shell and git
         minimal = base;
-
-        # Container - headless without sync/altinity (secrets not available in containers)
-        container =
-          base
-          ++ ai
-          ++ dev
-          ++ editors
-          ++ infra
-          ++ utils
-          # No sync (mutagen) - workspaces are volume-mounted
-          # No altinity - requires private secrets
-          ++ lib.optionals isLinux linuxCli;
       };
     in
-    groups.${role} or (throw "Unknown role: ${role}. Valid roles: workstation, headless, minimal, container");
+    groups.${role} or (throw "Unknown role: ${role}. Valid roles: workstation, headless, minimal");
 }
