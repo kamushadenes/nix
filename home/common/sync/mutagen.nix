@@ -69,7 +69,7 @@ let
       defaults:
         mode: two-way-safe
         ignore:
-          vcs: true
+          vcs: false
           paths:
 ${lib.concatMapStrings (p: "            - \"${p}\"\n") ignorePatterns}
         permissions:
