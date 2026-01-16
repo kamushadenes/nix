@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Debug hook to log environment variables
 exec >> /tmp/claude-stop-hook-debug.log 2>&1
 echo "=== Stop hook called at $(date) ==="

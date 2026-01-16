@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Auto-format TypeScript files after Claude edits them
 cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
 file_path=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.file_path // empty')

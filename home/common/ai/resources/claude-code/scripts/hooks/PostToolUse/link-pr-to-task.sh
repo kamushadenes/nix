@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Link PR to Task Hook - Auto-links PRs to GitHub issues and task-master
 #
 # After `gh pr create` runs, this hook:

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Auto-format and lint Python files after Claude edits them
 # Outputs JSON block only if there are unfixable lint issues
 

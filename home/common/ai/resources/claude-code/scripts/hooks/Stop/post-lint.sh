@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Run linter after Claude stops - blocks if lint fails
 
 cd "${CLAUDE_PROJECT_DIR:-.}"

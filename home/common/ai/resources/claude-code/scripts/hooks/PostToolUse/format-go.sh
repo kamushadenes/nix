@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Auto-format Go files after Claude edits them
 # Uses goimports for import organization + formatting
 

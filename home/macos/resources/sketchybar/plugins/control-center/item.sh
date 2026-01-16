@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 source "$PLUGIN_DIR/github/item.sh"
 source "$PLUGIN_DIR/volume/item.sh"
