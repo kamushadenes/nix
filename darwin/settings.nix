@@ -148,6 +148,20 @@
           AutoUpdate = true;
         };
 
+        # Spotlight privacy settings
+        "com.apple.Spotlight" = {
+          # Disable clipboard history in Spotlight
+          PasteboardHistoryEnabled = false;
+          # Disable related content (Apple & partner content) and iPhone apps
+          # Empty array disables: "Custom.relatedContents", "System.iphoneApps"
+          EnabledPreferenceRules = [ ];
+        };
+
+        "com.apple.assistant.support" = {
+          # Disable "Help Apple Improve Search" data collection
+          "Search Queries Data Sharing Status" = 0;
+        };
+
         "com.apple.widgets" = {
           # Set the widget appearance to full color
           widgetAppearance = 1;
