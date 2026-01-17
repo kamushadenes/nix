@@ -109,12 +109,14 @@ gh workflow run deploy.yml \
   -f environment=staging \
   -f version=1.2.3
 
-# Watch the triggered run
-sleep 5 && gh run watch
+# Watch the triggered run (waits for it to appear)
+gh run watch
 ```
 
 ## MUST DO
 
+- Use `gh run watch` to monitor runs - it waits for completion and shows live status
+- Prefer `gh run watch` over `sleep && gh run list` loops
 - Check run status before re-running (avoid duplicate runs)
 - Use `--log-failed` to focus on failures
 - Include branch context when listing runs
@@ -122,6 +124,7 @@ sleep 5 && gh run watch
 
 ## MUST NOT
 
+- Use `sleep` loops with `gh run list` to poll status - use `gh run watch` instead
 - Cancel runs without understanding impact on dependent jobs
 - Delete runs with important artifacts without downloading first
 - Re-run runs repeatedly without fixing the underlying issue
@@ -136,12 +139,12 @@ gh run list --json \
   databaseId,status,conclusion,headBranch,event,startedAt,url,name
 ```
 
-| Field | Description |
-|-------|-------------|
-| databaseId | Unique run ID (use with other commands) |
-| status | queued, in_progress, completed |
-| conclusion | success, failure, cancelled, skipped, null |
-| headBranch | Branch that triggered the run |
-| event | push, pull_request, workflow_dispatch, schedule |
-| startedAt | ISO timestamp |
-| url | Web UI link |
+| Field      | Description                                     |
+| ---------- | ----------------------------------------------- |
+| databaseId | Unique run ID (use with other commands)         |
+| status     | queued, in_progress, completed                  |
+| conclusion | success, failure, cancelled, skipped, null      |
+| headBranch | Branch that triggered the run                   |
+| event      | push, pull_request, workflow_dispatch, schedule |
+| startedAt  | ISO timestamp                                   |
+| url        | Web UI link                                     |
