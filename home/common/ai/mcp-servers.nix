@@ -107,13 +107,11 @@ let
     };
 
     # Task Master - AI-driven task management
+    # Uses locally installed version from ~/.npm-global/bin (installed via node.nix activation hook)
     task-master-ai = {
       transport = "stdio";
-      command = "npx";
-      args = [
-        "-y"
-        "task-master-ai"
-      ];
+      command = "${homeDir}/.npm-global/bin/task-master-mcp";
+      args = [ ];
       env = {
         TASK_MASTER_TOOLS = "standard";
         OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
