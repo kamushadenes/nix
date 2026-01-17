@@ -1074,7 +1074,8 @@ def _generate_task_file_content(
     task_data: dict[str, Any],
     auto_merge: bool,
     worktree_path: str,
-    repo: str
+    repo: str,
+    target_branch: str = ""
 ) -> str:
     """Generate the .orchestrator/current_task.md content from task data."""
     task_id = task_data.get("id", "unknown")
@@ -1104,6 +1105,7 @@ def _generate_task_file_content(
 - **Branch**: {branch}
 - **Worktree**: {worktree_path}
 - **Repository**: {repo}
+- **Target Branch**: {target_branch or 'main'}
 
 ## Description
 {description}
@@ -1226,7 +1228,9 @@ def task_worker_spawn(
     task_data: dict[str, Any],
     worktree_path: str,
     auto_merge: bool = False,
-    repo: str = ""
+    repo: str = "",
+    target_branch: str = "",
+    use_claudebox: bool = False
 ) -> TaskWorkerSpawnResult:
     """
     Spawn a Claude worker instance to work on a task in a worktree.
@@ -1241,6 +1245,8 @@ def task_worker_spawn(
         worktree_path: Absolute path to the git worktree
         auto_merge: Whether to auto-merge the PR after creation
         repo: Repository in owner/repo format (for GitHub links)
+        target_branch: Target branch for the PR (defaults to main if empty)
+        use_claudebox: If True, use claudebox wrapper instead of bare claude command
 
     Returns:
         TaskWorkerSpawnResult with worker_id and window_id
@@ -1285,7 +1291,8 @@ def task_worker_spawn(
         task_data=task_data,
         auto_merge=auto_merge,
         worktree_path=worktree_path,
-        repo=repo
+        repo=repo,
+        target_branch=target_branch
     )
 
     task_file_path = Path(worktree_path) / CURRENT_TASK_FILE
@@ -1348,14 +1355,19 @@ def task_worker_spawn(
             error="Shell did not become ready in time"
         )
 
-    # Send cd and claudebox command
-    # Claudebox runs claude in a sandbox with --dangerously-skip-permissions already set
-    # --no-monitor: Skip tmux command monitoring (we manage our own tmux)
-    # --allow-ssh-agent: Enable SSH agent pass-through for git operations
+    # Send cd and claude command
     quoted_path = shlex.quote(worktree_path)
     run_tmux("send-keys", "-t", window_id, f"cd {quoted_path}", "Enter")
     time.sleep(0.3)
-    run_tmux("send-keys", "-t", window_id, "claudebox --no-monitor --allow-ssh-agent", "Enter")
+
+    if use_claudebox:
+        # Claudebox runs claude in a sandbox with --dangerously-skip-permissions already set
+        # --no-monitor: Skip tmux command monitoring (we manage our own tmux)
+        # --allow-ssh-agent: Enable SSH agent pass-through for git operations
+        run_tmux("send-keys", "-t", window_id, "claudebox --no-monitor --allow-ssh-agent", "Enter")
+    else:
+        # --dangerously-skip-permissions: Skip all permission prompts for autonomous operation
+        run_tmux("send-keys", "-t", window_id, "claude --dangerously-skip-permissions", "Enter")
 
     # Wait for Claude to be fully ready (look for the ❯ prompt character)
     # Claude shows "❯" when ready for input

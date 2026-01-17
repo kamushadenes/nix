@@ -33,6 +33,7 @@ You receive a JSON prompt with:
   ],
   "repo": "owner/repo",
   "auto_merge": false,
+  "target_branch": "",
   "config": {
     "poll_interval": 30,
     "heartbeat_timeout": 300,
@@ -40,6 +41,8 @@ You receive a JSON prompt with:
   }
 }
 ```
+
+- `target_branch`: Optional. If set, PRs will target this branch instead of main. Used for consolidated PR workflows where sub-PRs merge into a parent branch.
 
 ## Workflow
 
@@ -66,6 +69,7 @@ For each task:
    - `worktree_path`: From input
    - `auto_merge`: From input
    - `repo`: From input
+   - `target_branch`: From input (pass empty string if not set)
 4. Mark task as `in-progress` via `set_task_status`
 5. Track: worker_id, task_id, worktree_path, retry_count, synced_subtasks
 

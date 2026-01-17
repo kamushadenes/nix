@@ -40,7 +40,10 @@ You are a **worker Claude instance** executing an assigned task autonomously.
    - If still failing: write `FAILED` status with error details and STOP
    - If blocked by unclear requirements: write `STUCK` status with reason and STOP
 5. **Create Pull Request**:
-   - Use `/commit-push-pr` skill to create PR
+   - Parse `target_branch` from the Metadata section above
+   - If `target_branch` is set and NOT "main":
+     - Use `/commit-push-pr --base <target_branch>` to create PR targeting the parent branch
+   - Otherwise: Use `/commit-push-pr` to create PR targeting main
    - Capture the PR URL and number from output
 6. **Handle Auto-Merge** (if `auto_merge: true` in metadata):
    - Run `gh pr merge <number> --squash`

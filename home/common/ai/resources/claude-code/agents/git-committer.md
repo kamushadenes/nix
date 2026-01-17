@@ -44,6 +44,7 @@ Before any operation, gather context yourself in parallel:
 3. Stage and commit (as above)
 4. Push with upstream: `git push -u origin HEAD`
 5. Create PR: `gh pr create --title "..." --body "..."`
+   - If `--base <branch>` is in extra instructions: add `--base <branch>` to target that branch
    - PR body should include summary of changes and task context
 
 ## Output

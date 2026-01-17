@@ -149,7 +149,8 @@ in
       review = builtins.readFile "${commandsDir}/review.md";
       # Parallel task delegation commands
       work = builtins.readFile "${commandsDir}/work.md";
-      delegate-task = builtins.readFile "${commandsDir}/delegate-task.md";
+      delegate-tasks = builtins.readFile "${commandsDir}/delegate-tasks.md";
+      delegate-tasks-to-pr = builtins.readFile "${commandsDir}/delegate-tasks-to-pr.md";
     };
 
     # Note: rules option is not available in this home-manager version
