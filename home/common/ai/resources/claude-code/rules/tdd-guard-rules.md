@@ -73,3 +73,47 @@ Configuration notes:
 - Specify the project root path when tests run from a subdirectory or in a monorepo setup
 - Alternative configuration methods: `pytest.ini` or `setup.cfg`
 - The reporter integrates automatically with pytest once installed
+
+## Using tdd-guard-vitest (TypeScript Projects)
+
+For TypeScript projects using Vitest, use the `tdd-guard-vitest` reporter to validate TDD compliance:
+
+```bash
+# Install in your project
+npm install --save-dev tdd-guard-vitest
+```
+
+Configure in `vitest.config.ts`:
+
+```typescript
+import { defineConfig } from 'vitest/config'
+import { VitestReporter } from 'tdd-guard-vitest'
+
+export default defineConfig({
+  test: {
+    reporters: ['default', new VitestReporter()],
+  },
+})
+```
+
+For monorepo/workspace projects, specify the project root:
+
+```typescript
+import { defineConfig } from 'vitest/config'
+import { VitestReporter } from 'tdd-guard-vitest'
+import path from 'path'
+
+export default defineConfig({
+  test: {
+    reporters: ['default', new VitestReporter(path.resolve(__dirname))],
+  },
+})
+```
+
+Configuration notes:
+
+- Requires Vitest 3.2.0 or newer
+- The `tdd-guard-vitest` package is installed via Nix on Linux (see `home/common/dev/node.nix`)
+- On macOS, install via `npm install -g tdd-guard-vitest` or per-project
+- Test results are saved to `.claude/tdd-guard/data/test.json` for TDD Guard validation
+- Pass an absolute path to the constructor when tests run from a subdirectory
