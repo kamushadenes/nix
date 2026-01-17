@@ -42,7 +42,11 @@ You receive a JSON prompt with:
 }
 ```
 
-- `target_branch`: Optional. If set, PRs will target this branch instead of main. Used for consolidated PR workflows where sub-PRs merge into a parent branch.
+- `target_branch`: Optional. If set, workers use `/work-consolidated` (merges to parent via `wt merge`) instead of `/work` (creates PR to main). Used for consolidated PR workflows where sub-branches merge into a parent branch.
+
+**Work command selection** (handled automatically by `task_worker_spawn`):
+- `target_branch` empty or "main"/"master" → `/work` → creates PR to main
+- `target_branch` set to feature branch → `/work-consolidated` → merges to parent branch
 
 ## Workflow
 
@@ -167,7 +171,8 @@ Return a structured summary:
       "task_id": "1",
       "title": "Task title",
       "status": "merged",  // or "pr_open"
-      "pr_url": "https://github.com/...",
+      "pr_url": "https://github.com/...",  // for /work (PR workflow)
+      "parent_branch": "feat/feature-name",  // for /work-consolidated (merge workflow)
       "summary": "What was done",
       "actions": ["action 1", "action 2"],
       "files_changed": 5
