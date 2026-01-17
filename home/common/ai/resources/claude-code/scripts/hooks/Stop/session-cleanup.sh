@@ -25,12 +25,13 @@ cleanup_orphaned_mcp() {
 
     # Find processes matching pattern with PPID=1 (orphaned)
     # On macOS, PPID 1 means the process was re-parented to launchd
+    # Use || true to prevent pgrep's exit code 1 (no matches) from triggering set -e
     pgrep -P 1 -f "$mcp_pattern" 2>/dev/null | while read -r pid; do
         # Verify it's actually an MCP-related process before killing
         if ps -p "$pid" -o args= 2>/dev/null | grep -qE "(mcp|task-master|orchestrator)"; then
             kill "$pid" 2>/dev/null || true
         fi
-    done
+    done || true
 }
 
 # Clean up known MCP server patterns
@@ -55,6 +56,7 @@ cleanup_orphaned_mcp "pyright.*langserver"
 # Find claude processes older than 24h by checking /proc or ps elapsed time
 # This is conservative - only kills truly stale processes
 if command -v pgrep &>/dev/null; then
+    # Use || true to prevent pgrep's exit code 1 (no matches) from triggering set -e
     pgrep -f "claude --" 2>/dev/null | while read -r pid; do
         # Get elapsed time in seconds (macOS and Linux compatible)
         if [[ "$(uname)" == "Darwin" ]]; then
@@ -76,7 +78,7 @@ if command -v pgrep &>/dev/null; then
                     >> /tmp/claude-stale-processes.log 2>/dev/null || true
             fi
         fi
-    done
+    done || true
 fi
 
 exit 0

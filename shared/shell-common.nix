@@ -77,6 +77,7 @@ let
 
   # Common PATH additions
   pathAdditions = [
+    "${config.home.homeDirectory}/.npm-global/bin"
     "${config.home.homeDirectory}/.cargo/bin"
     "${config.home.homeDirectory}/.config/emacs/bin"
     "${config.home.homeDirectory}/.krew/bin"
