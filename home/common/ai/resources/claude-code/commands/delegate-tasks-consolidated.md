@@ -30,6 +30,8 @@ Parse from $ARGUMENTS:
 
 1. Check for `--base` / `-b` flag → set target_base (default: "main")
 2. Check for `--auto-merge` / `-a` flag → set AUTO_MERGE_SUBS = true (default: false)
+   - **Note**: This controls auto-merge of **sub-branches to parent** (not the final PR)
+   - The final PR to main/master is NEVER auto-merged (requires manual review)
 3. Check for `--name` / `-n` flag → set FEATURE_NAME override (optional)
 
 ### Phase 2: Load MCP Tools
@@ -73,20 +75,29 @@ Store as `FEATURE_SLUG` (sanitized for branch names: lowercase, no spaces, no sp
 
 ### Phase 5: Create Parent Branch
 
-1. Ensure we're on target_base branch:
+1. Check if branch already exists:
    ```bash
-   git checkout <target_base> && git pull
+   git ls-remote --heads origin | grep -q "refs/heads/feat/<FEATURE_SLUG>"
    ```
 
-2. Create parent branch worktree from target_base:
-   ```bash
-   wt switch --create "feat/<FEATURE_SLUG>" --yes
-   ```
+2. If branch exists, **reuse it**:
+   - Switch to existing branch worktree: `wt switch "feat/<FEATURE_SLUG>" --yes`
+   - Pull latest: `cd <parent_worktree> && git pull`
+   - Skip branch creation, proceed to Phase 6
 
-3. Push parent branch to remote:
-   ```bash
-   cd <parent_worktree> && git push -u origin HEAD
-   ```
+3. If branch does NOT exist, create it:
+   - Ensure we're on target_base branch:
+     ```bash
+     git checkout <target_base> && git pull
+     ```
+   - Create parent branch worktree from target_base:
+     ```bash
+     wt switch --create "feat/<FEATURE_SLUG>" --yes
+     ```
+   - Push parent branch to remote:
+     ```bash
+     cd <parent_worktree> && git push -u origin HEAD
+     ```
 
 4. Store `parent_branch = "feat/<FEATURE_SLUG>"`
 
@@ -195,9 +206,14 @@ After all tasks processed:
    cd <parent_worktree>
    ```
 
-2. Pull latest (has all merged sub-branches):
+2. Ensure parent branch has all merged changes and is pushed:
    ```bash
-   git pull
+   # Sync any remote changes (workers may have pushed)
+   git fetch origin <parent_branch>
+   git merge --ff-only origin/<parent_branch> || true
+
+   # Push all merged work to remote (CRITICAL: without this, PR will be empty/stale)
+   git push origin <parent_branch>
    ```
 
 3. Create final PR to target_base:
@@ -238,9 +254,16 @@ Failed Tasks:
   ✗ Task <id>: <title>
     Error: <error>
     Worktree: <path>
+    Cleanup: Run `wt remove <path>` after investigation
+    Branch: Run `git push origin --delete <sub_branch>` to remove remote
 
 Parent Worktree: <parent_worktree_path>
 (Preserved until final PR merged)
+
+=== Post-Merge Cleanup ===
+After the final PR is merged, run these commands to clean up:
+  wt remove <parent_worktree_path>
+  git push origin --delete feat/<FEATURE_SLUG>
 ```
 
 ### Phase 12: Cleanup (Optional)

@@ -45,15 +45,41 @@ You are a **worker Claude instance** executing an assigned task autonomously as 
    - If blocked by unclear requirements: write `STUCK` status with reason and STOP
 5. **Merge to Parent Branch**:
    - Parse `target_branch` from the Metadata section in `.orchestrator/current_task.md`
-   - Push your branch: `git push -u origin HEAD`
-   - Merge to parent branch using worktrunk: `wt merge <target_branch>`
-   - This automatically handles the merge and cleanup
+   - Update status before merge:
+     ```json
+     {"status": "merging", "progress": "merging to parent branch"}
+     ```
+   - Merge to parent branch using worktrunk: `wt merge --yes --no-remove <target_branch>`
+   - **If merge fails with non-fast-forward error** (another worker merged first):
+     - Pull latest parent: `git fetch origin <target_branch> && git rebase origin/<target_branch>`
+     - Push rebased branch: `git push --force-with-lease origin HEAD`
+     - Retry merge: `wt merge --yes --no-remove <target_branch>`
+     - If still failing after 3 retries, write FAILED status with `"phase": "merge"`
+   - After successful merge, push parent branch to remote:
+     ```bash
+     # Get the parent worktree path and push
+     parent_worktree=$(git worktree list | grep "<target_branch>" | cut -d' ' -f1)
+     cd "$parent_worktree" && git push origin <target_branch>
+     ```
+   - **IMPORTANT**: The worktree is NOT automatically removed (--no-remove flag)
+     - Write final status files BEFORE the orchestrator cleans up
+
+5b. **Handle Merge Conflicts**:
+   - If `wt merge` fails due to conflicts:
+     ```json
+     {"status": "failed", "error": "Merge conflict with parent branch", "phase": "merge", "conflicting_files": ["list", "of", "files"]}
+     ```
+   - List conflicting files: `git diff --name-only --diff-filter=U`
+   - Do NOT attempt to resolve - orchestrator will handle escalation
+   - Worktree preserved for investigation
 6. **Handle Auto-Merge** (if `auto_merge: true` in metadata):
    - The `wt merge` command handles the merge automatically
    - Write final status with `merged: true` and `parent_branch: <target_branch>`
 7. **Complete**:
-   - Write final progress to `.orchestrator/task_progress`
+   - Write final progress to `.orchestrator/task_progress` with `status: completed`
    - Write final summary to `.orchestrator/task_result` (detailed report for orchestrator)
+   - **IMPORTANT**: Write these files BEFORE the orchestrator cleans up the worktree
+   - The orchestrator will read these files and then clean up the worktree
 
 ### Progress File Schema
 
@@ -61,7 +87,7 @@ Always write valid JSON to `.orchestrator/task_progress`:
 
 ```json
 {
-  "status": "working|completed|failed|stuck",
+  "status": "working|merging|completed|failed|stuck",
   "current_subtask": "5.1",
   "progress": "human-readable description of current work",
   "completed_subtasks": [
@@ -72,9 +98,24 @@ Always write valid JSON to `.orchestrator/task_progress`:
   "parent_branch": "feat/feature-name",
   "merged": true,
   "error": "error description if failed/stuck",
+  "phase": "work|merge|push",
   "notes": "final summary"
 }
 ```
+
+**Status Values:**
+
+- `working`: Actively implementing subtasks
+- `merging`: Merge operation in progress (don't mark as stuck)
+- `completed`: All work done and merged
+- `failed`: Unrecoverable error (check `phase` for where)
+- `stuck`: Needs human intervention
+
+**Phase Values (for failures):**
+
+- `work`: Failed during implementation/testing
+- `merge`: Failed during merge to parent branch
+- `push`: Failed pushing to remote
 
 **Note**: The hook automatically:
 - Merges your progress into `.orchestrator/task_status`
@@ -121,8 +162,9 @@ On completion (success or failure), write a detailed summary to `.orchestrator/t
 5. **Stop on repeated failures** - 3 retries max, then FAILED status
 6. **Include commit SHAs** - orchestrator needs these for tracking
 7. **No task-master access** - only use `.orchestrator/` files for communication
-8. **Use `wt merge`** - NOT `/commit-push-pr` - this is a consolidated workflow
-9. **Never write to task_status directly** - write to task_progress, hook merges it
+8. **Use `wt merge --yes --no-remove`** - NOT `/commit-push-pr` - this is a consolidated workflow
+9. **Update status to `merging`** before starting merge operation
+10. **Never write to task_status directly** - write to task_progress, hook merges it
 
 ### Example Progress Updates
 
@@ -158,23 +200,43 @@ Write these to `.orchestrator/task_progress` (hook merges to task_status):
 }
 ```
 
+**Before merging:**
+
+```json
+{"status": "merging", "progress": "merging to parent branch", "completed_subtasks": [...], "commits": ["abc123d"]}
+```
+
 **On completion (merged to parent):**
 
 ```json
 {"status": "completed", "completed_subtasks": [...], "commits": ["abc123d"], "parent_branch": "feat/feature-name", "merged": true, "notes": "Merged to parent branch"}
 ```
 
-**On failure:**
+**On failure (work phase):**
 
 ```json
 {
   "status": "failed",
   "current_subtask": "5.2",
+  "phase": "work",
   "completed_subtasks": [
     { "id": "5.1", "commit": "abc123d", "notes": "JWT middleware" }
   ],
   "commits": ["abc123d"],
   "error": "Tests failing after 3 retries - cannot authenticate users"
+}
+```
+
+**On failure (merge phase):**
+
+```json
+{
+  "status": "failed",
+  "phase": "merge",
+  "completed_subtasks": [...],
+  "commits": ["abc123d", "def456e"],
+  "error": "Merge conflict with parent branch",
+  "conflicting_files": ["src/auth.ts", "src/middleware.ts"]
 }
 ```
 

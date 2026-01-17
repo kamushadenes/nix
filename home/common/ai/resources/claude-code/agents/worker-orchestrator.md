@@ -99,9 +99,12 @@ while len(active_workers) > 0:
             remove_from_active(worker)
 
         elif result.status == "failed":
+            failure_phase = result.status_data.get("phase", "work")
+
+            # Both work and merge failures are retriable (merge failures are often race conditions)
             if worker.retry_count < max_retries:
                 task_worker_kill(worker.worker_id)
-                respawn_worker(worker)
+                respawn_worker(worker, preserve_completed=True)  # Pass completed subtask IDs
                 worker.retry_count += 1
             else:
                 handle_failure(worker, result)
@@ -120,6 +123,19 @@ while len(active_workers) > 0:
 When heartbeat is stale (older than heartbeat_timeout) and status is "working":
 
 ```python
+def is_stuck(worker, result):
+    """Check if worker appears stuck based on heartbeat and status."""
+    # Don't mark as stuck if actively merging (merge operations can take time)
+    if result.status == "merging":
+        return False
+
+    # Only check stuck for "working" status
+    if result.status != "working":
+        return False
+
+    heartbeat_age = time.time() - result.heartbeat
+    return heartbeat_age > heartbeat_timeout
+
 def verify_truly_stuck(worker):
     """Two-phase capture to confirm stuck state."""
     capture1 = tmux_capture(worker.window_id)
@@ -133,6 +149,9 @@ def verify_truly_stuck(worker):
 For completed workers:
 
 ```python
+import shlex
+import os
+
 def handle_completion(worker, result):
     set_task_status(worker.task_id, status="done")
 
@@ -140,8 +159,10 @@ def handle_completion(worker, result):
     tmux_send(target=worker.window_id, text="/exit", enter=True)
 
     if result.status_data.merged:
-        # Clean up worktree
-        run("wt remove " + worker.worktree_path)
+        # Clean up worktree (workers use --no-remove, so worktree should still exist)
+        # Always check existence before removal to handle edge cases
+        if os.path.exists(worker.worktree_path):
+            run("wt remove " + shlex.quote(worker.worktree_path))
         worker.final_status = "merged"
     else:
         # Preserve worktree for review
@@ -149,10 +170,33 @@ def handle_completion(worker, result):
 
     worker.final_result = result.result_data
 
+def respawn_worker(worker, preserve_completed=False):
+    """Respawn a failed worker, optionally preserving completed work."""
+    # Preserve completed subtask IDs so worker doesn't repeat work
+    completed_ids = []
+    if preserve_completed and worker.status_data:
+        completed_ids = [s["id"] for s in worker.status_data.get("completed_subtasks", [])]
+
+    new_task_data = {
+        **worker.original_task_data,
+        "skip_subtasks": completed_ids  # Worker should skip these subtasks
+    }
+
+    new_worker_id = task_worker_spawn(
+        task_data=new_task_data,
+        worktree_path=worker.worktree_path,
+        auto_merge=worker.auto_merge,
+        repo=worker.repo,
+        target_branch=worker.target_branch
+    )
+    worker.worker_id = new_worker_id
+
 def handle_failure(worker, result):
     # Exit the worker before reporting failure
     tmux_send(target=worker.window_id, text="/exit", enter=True)
     # Preserve worktree for investigation
+    worker.failure_phase = result.status_data.get("phase", "work")
+    worker.error = result.status_data.get("error", "Unknown error")
 
 def handle_stuck(worker):
     # Exit the stuck worker
@@ -183,8 +227,10 @@ Return a structured summary:
       "task_id": "2",
       "title": "Task title",
       "error": "Error message",
+      "phase": "work|merge|push",
       "worktree_path": "/path/to/worktree",
-      "partial_actions": ["action 1"]
+      "partial_actions": ["action 1"],
+      "completed_subtasks": ["2.1", "2.2"]
     }
   ],
   "stuck": [
@@ -205,14 +251,22 @@ Return a structured summary:
 |-------|--------|
 | Worker spawned | `set_task_status(id, "in-progress")` |
 | Subtask completed | `update_subtask(id, status="done")` |
+| Worker merging | Don't mark as stuck (status = "merging") |
 | Task completed | `set_task_status(id, "done")`, then `/exit` worker |
-| PR merged | `/exit` worker, then clean up worktree with `wt remove` |
-| Task failed | `/exit` worker, retry up to max_retries, then report |
+| Work merged | `/exit` worker, check worktree exists, then clean up with `wt remove` |
+| Task failed (work) | `/exit` worker, retry with preserved subtasks, then report |
+| Task failed (merge) | `/exit` worker, retry (race condition likely), then report |
 | Worker stuck | `/exit` worker, two-phase verify, then report |
 
 ## Important Notes
 
 - Workers report status via `.orchestrator/task_status.json` file
+- Workers use `wt merge --no-remove` to preserve worktree for orchestrator to read results
+- Always check if worktree exists before attempting removal (use `os.path.exists`)
+- Always quote worktree paths with `shlex.quote()` to prevent injection
 - Never spawn replacement workers for completed tasks
 - Preserve worktrees for failed/stuck workers for investigation
+- Retry both work and merge failures (merge failures are often race conditions)
+- Pass completed subtask IDs when respawning to avoid repeating work
 - Poll interval should balance responsiveness with API costs
+- Don't mark workers with `status: "merging"` as stuck (merge operations take time)

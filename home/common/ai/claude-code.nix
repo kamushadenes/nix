@@ -223,6 +223,16 @@ in
               }
             ];
           }
+          # Block /commit-push-pr in consolidated workflow mode
+          {
+            matcher = "Skill";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PreToolUse/block-pr-consolidated.py";
+              }
+            ];
+          }
           # Worker heartbeat - update timestamp on every tool use
           {
             matcher = "";
@@ -581,6 +591,10 @@ in
     };
     ".claude/hooks/PreToolUse/block-completed-worker.py" = {
       source = "${scriptsDir}/hooks/PreToolUse/block-completed-worker.py";
+      executable = true;
+    };
+    ".claude/hooks/PreToolUse/block-pr-consolidated.py" = {
+      source = "${scriptsDir}/hooks/PreToolUse/block-pr-consolidated.py";
       executable = true;
     };
 
