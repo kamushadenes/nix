@@ -33,6 +33,7 @@
       # Development utilities
       hyperfine # Command benchmarking
       tokei # Code statistics
+      difftastic # Semantic AST-aware diffs
 
       # Quick reference (tealdeer configured via programs.tealdeer)
 
