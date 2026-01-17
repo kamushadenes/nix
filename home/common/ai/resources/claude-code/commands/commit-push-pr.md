@@ -1,5 +1,5 @@
 ---
-allowed-tools: Task
+allowed-tools: Task, Bash(gh pr:*)
 description: Commit, push, and open a PR
 argument-hint: [extra-instructions]
 ---
@@ -22,4 +22,13 @@ The agent will:
 - Stage and commit changes
 - Push and create a PR
 
-Do not use any other tools. Return the agent's summary (including PR URL) to the user.
+## After PR Creation
+
+Once the PR is created, follow the **pr-completion** skill workflow:
+
+1. Run `gh pr checks --watch` to wait for CI checks to complete
+2. If checks fail, fix issues, push, and re-run checks
+3. Run `gh pr view --json mergeable` to verify no conflicts
+4. If conflicts exist, resolve them with `gh pr update-branch` or rebase
+
+Return the agent's summary (including PR URL) and the final check/mergeable status to the user.
