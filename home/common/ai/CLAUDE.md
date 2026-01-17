@@ -366,3 +366,20 @@ For detailed token optimization patterns, see `skills/skill-creator/references/c
 | Agent   | `agents/`                       | Task tool            | On spawn     |
 | Rule    | `rules/`                        | Always               | Always       |
 | Hook    | `scripts/hooks/{Pre,Post,SessionStart,Stop}` | Tool/event lifecycle | N/A          |
+
+---
+
+## Nix Registration (Required)
+
+**All new resources must be registered in Nix** to be deployed. After creating any command, skill, agent, rule, or hook:
+
+1. **Commands, Agents, Rules**: Register in `claude-code.nix`
+2. **Skills**: Register in `orchestrator.nix`
+3. **Hooks**: Register in `claude-code.nix` under the appropriate hook type
+
+Example skill registration in `orchestrator.nix`:
+```nix
+".claude/skills/my-skill/SKILL.md".source = "${skillsDir}/my-skill/SKILL.md";
+```
+
+Without Nix registration, resources won't be symlinked to `~/.claude/` and won't be available.

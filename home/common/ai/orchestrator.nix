@@ -49,6 +49,9 @@ in
     # GitHub Actions skills
     ".claude/skills/github-actions-pro/SKILL.md".source = "${skillsDir}/github-actions-pro/SKILL.md";
 
+    # PR workflow skills
+    ".claude/skills/pr-completion/SKILL.md".source = "${skillsDir}/pr-completion/SKILL.md";
+
     # Spec mining and infrastructure skills
     ".claude/skills/spec-miner/SKILL.md".source = "${skillsDir}/spec-miner/SKILL.md";
     ".claude/skills/terraform-engineer/SKILL.md".source = "${skillsDir}/terraform-engineer/SKILL.md";
