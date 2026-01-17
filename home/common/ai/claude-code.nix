@@ -151,7 +151,8 @@ in
       work = builtins.readFile "${commandsDir}/work.md";
       work-consolidated = builtins.readFile "${commandsDir}/work-consolidated.md";
       delegate-tasks = builtins.readFile "${commandsDir}/delegate-tasks.md";
-      delegate-tasks-to-pr = builtins.readFile "${commandsDir}/delegate-tasks-to-pr.md";
+      delegate-tasks-consolidated = builtins.readFile "${commandsDir}/delegate-tasks-consolidated.md";
+      resolve-conversations = builtins.readFile "${commandsDir}/resolve-conversations.md";
     };
 
     # Note: rules option is not available in this home-manager version
