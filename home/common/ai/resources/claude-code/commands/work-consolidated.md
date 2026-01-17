@@ -1,6 +1,6 @@
 ---
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, TodoWrite, Skill
-description: Autonomous task execution for worker instances
+description: Autonomous task execution for consolidated PR workers (merges to parent branch)
 ---
 
 ## Context
@@ -10,13 +10,17 @@ description: Autonomous task execution for worker instances
 
 ## Your Task
 
-You are a **worker Claude instance** executing an assigned task autonomously.
+You are a **worker Claude instance** executing an assigned task autonomously as part of a **consolidated PR workflow**.
 
-**IMPORTANT**: You do NOT have access to task-master MCP. Report all progress via `.orchestrator/task_progress` file. A hook automatically merges your progress into `.orchestrator/task_status` and updates the heartbeat.
+**IMPORTANT**:
+- You do NOT have access to task-master MCP. Report all progress via `.orchestrator/task_progress` file.
+- This is a **consolidated workflow**: You merge your work back to the parent branch using `wt merge`, NOT create a PR.
+- The orchestrator will create a single final PR from the parent branch to main.
 
 ### Workflow
 
 1. **Parse task file**: Read `.orchestrator/current_task.md` for task details, subtasks, and metadata (already shown above)
+   - Note the **Target Branch** in metadata - this is the parent branch to merge into
 2. **Initialize progress**: Write initial progress to `.orchestrator/task_progress`:
    ```json
    {
@@ -39,13 +43,14 @@ You are a **worker Claude instance** executing an assigned task autonomously.
    - If tests fail: retry up to 3 times with different approaches
    - If still failing: write `FAILED` status with error details and STOP
    - If blocked by unclear requirements: write `STUCK` status with reason and STOP
-5. **Create Pull Request**:
-   - Use `/commit-push-pr` to create PR targeting main
-   - Capture the PR URL and number from output
+5. **Merge to Parent Branch**:
+   - Parse `target_branch` from the Metadata section in `.orchestrator/current_task.md`
+   - Push your branch: `git push -u origin HEAD`
+   - Merge to parent branch using worktrunk: `wt merge <target_branch>`
+   - This automatically handles the merge and cleanup
 6. **Handle Auto-Merge** (if `auto_merge: true` in metadata):
-   - Run `gh pr merge <number> --squash`
-   - If blocked by branch protection: `gh pr merge <number> --admin --squash`
-   - Write final status with `merged: true`
+   - The `wt merge` command handles the merge automatically
+   - Write final status with `merged: true` and `parent_branch: <target_branch>`
 7. **Complete**:
    - Write final progress to `.orchestrator/task_progress`
    - Write final summary to `.orchestrator/task_result` (detailed report for orchestrator)
@@ -64,8 +69,7 @@ Always write valid JSON to `.orchestrator/task_progress`:
   ],
   "commits": ["abc123d", "def456e"],
   "final_commit": "ghi789f",
-  "pr_url": "https://github.com/owner/repo/pull/123",
-  "pr_number": 123,
+  "parent_branch": "feat/feature-name",
   "merged": true,
   "error": "error description if failed/stuck",
   "notes": "final summary"
@@ -99,9 +103,8 @@ On completion (success or failure), write a detailed summary to `.orchestrator/t
     {"sha": "abc123d", "message": "feat: add JWT validation middleware"},
     {"sha": "def456e", "message": "fix: correct token expiry handling"}
   ],
-  "pr": {
-    "url": "https://github.com/owner/repo/pull/123",
-    "number": 123,
+  "merge": {
+    "parent_branch": "feat/feature-name",
     "merged": true
   },
   "error": null,
@@ -118,7 +121,7 @@ On completion (success or failure), write a detailed summary to `.orchestrator/t
 5. **Stop on repeated failures** - 3 retries max, then FAILED status
 6. **Include commit SHAs** - orchestrator needs these for tracking
 7. **No task-master access** - only use `.orchestrator/` files for communication
-8. **Always create PR** - use `/commit-push-pr` skill
+8. **Use `wt merge`** - NOT `/commit-push-pr` - this is a consolidated workflow
 9. **Never write to task_status directly** - write to task_progress, hook merges it
 
 ### Example Progress Updates
@@ -155,16 +158,10 @@ Write these to `.orchestrator/task_progress` (hook merges to task_status):
 }
 ```
 
-**On completion (PR created, no auto-merge):**
+**On completion (merged to parent):**
 
 ```json
-{"status": "completed", "completed_subtasks": [...], "commits": ["abc123d"], "pr_url": "https://github.com/owner/repo/pull/123", "pr_number": 123, "merged": false, "notes": "PR created for review"}
-```
-
-**On completion (PR created and auto-merged):**
-
-```json
-{"status": "completed", "completed_subtasks": [...], "commits": ["abc123d"], "pr_url": "https://github.com/owner/repo/pull/123", "pr_number": 123, "merged": true, "notes": "PR created and merged"}
+{"status": "completed", "completed_subtasks": [...], "commits": ["abc123d"], "parent_branch": "feat/feature-name", "merged": true, "notes": "Merged to parent branch"}
 ```
 
 **On failure:**

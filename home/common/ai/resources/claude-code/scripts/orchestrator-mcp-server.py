@@ -1236,16 +1236,20 @@ def task_worker_spawn(
     Spawn a Claude worker instance to work on a task in a worktree.
 
     This creates the .orchestrator/current_task.md file, starts Claude in a new tmux window,
-    and sends the /work command to begin autonomous task execution.
+    and sends the appropriate work command to begin autonomous task execution.
 
-    Workers always use PR workflow (no direct merge mode).
+    Work command selection:
+    - /work: Standard PR workflow (creates PR to main/master)
+    - /work-consolidated: Consolidated workflow (merges to parent branch via wt merge)
+      Used when target_branch is set to something other than main/master.
 
     Args:
         task_data: Full task JSON from task-master (must include id, title, description, subtasks)
         worktree_path: Absolute path to the git worktree
         auto_merge: Whether to auto-merge the PR after creation
         repo: Repository in owner/repo format (for GitHub links)
-        target_branch: Target branch for the PR (defaults to main if empty)
+        target_branch: Target branch for the PR (defaults to main if empty).
+                       If set to a feature branch, uses /work-consolidated instead of /work.
         use_claudebox: If True, use claudebox wrapper instead of bare claude command
 
     Returns:
@@ -1390,9 +1394,17 @@ def task_worker_spawn(
     # Wait a bit more for Claude to fully initialize UI
     time.sleep(1.0)
 
-    # Send /work command - send the text first, then Enter separately
+    # Determine which work command to use:
+    # - /work: Standard PR workflow (creates PR to main)
+    # - /work-consolidated: Consolidated workflow (merges to parent branch)
+    if target_branch and target_branch not in ("main", "master"):
+        work_command = "/work-consolidated"
+    else:
+        work_command = "/work"
+
+    # Send work command - send the text first, then Enter separately
     # This ensures the slash command picker has time to show
-    run_tmux("send-keys", "-t", window_id, "/work")
+    run_tmux("send-keys", "-t", window_id, work_command)
     time.sleep(0.3)  # Let the slash command picker appear
     run_tmux("send-keys", "-t", window_id, "Enter")
 
@@ -1421,7 +1433,7 @@ def task_worker_spawn(
     if not work_started:
         # Check if we're still at the slash command picker
         content, _ = run_tmux("capture-pane", "-t", window_id, "-p")
-        if "/work" in content and "Autonomous task" in content:
+        if work_command in content and "Autonomous task" in content:
             # Slash command picker is showing, send Enter again
             run_tmux("send-keys", "-t", window_id, "Enter")
             time.sleep(0.5)

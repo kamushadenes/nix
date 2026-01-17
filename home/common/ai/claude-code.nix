@@ -149,6 +149,7 @@ in
       review = builtins.readFile "${commandsDir}/review.md";
       # Parallel task delegation commands
       work = builtins.readFile "${commandsDir}/work.md";
+      work-consolidated = builtins.readFile "${commandsDir}/work-consolidated.md";
       delegate-tasks = builtins.readFile "${commandsDir}/delegate-tasks.md";
       delegate-tasks-to-pr = builtins.readFile "${commandsDir}/delegate-tasks-to-pr.md";
     };
