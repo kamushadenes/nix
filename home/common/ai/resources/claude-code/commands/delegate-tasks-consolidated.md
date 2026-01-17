@@ -14,7 +14,7 @@ description: Delegate tasks to parallel workers with single consolidated PR
 Parse from $ARGUMENTS:
 
 - `--base <branch>` or `-b <branch>`: Target branch for final PR (default: main)
-- `--auto-merge` or `-a`: Auto-merge sub-PRs to parent branch (final PR requires manual merge)
+- `--auto-merge` or `-a`: Auto-merge the final PR (feature branch → target branch)
 - `--name <feature>` or `-n <feature>`: Override auto-detected feature name
 
 ## Configuration
@@ -195,7 +195,7 @@ After all tasks processed:
    cd <parent_worktree>
    ```
 
-2. Pull latest (has all merged sub-PRs):
+2. Pull latest (has all merged sub-branches):
    ```bash
    git pull
    ```
@@ -207,14 +207,14 @@ After all tasks processed:
    Consolidated PR for: <FEATURE_SLUG>
 
    ### Completed Tasks
-   - Task X: <title> (PR #N)
-   - Task Y: <title> (PR #M)
+   - Task X: <title> (merged to parent)
+   - Task Y: <title> (merged to parent)
 
    ### Failed Tasks
    - Task Z: <error> (worktree preserved)
 
    ---
-   Generated with /delegate-tasks-to-pr
+   Generated with /delegate-tasks-consolidated
    EOF
    )"
    ```
@@ -231,8 +231,8 @@ PR: <final_pr_url>
 Branch: feat/<FEATURE_SLUG> -> <target_base>
 
 Completed Tasks (merged to parent):
-  ✓ Task <id>: <title> - PR #N (merged)
-  ✓ Task <id>: <title> - PR #M (merged)
+  ✓ Task <id>: <title> (merged)
+  ✓ Task <id>: <title> (merged)
 
 Failed Tasks:
   ✗ Task <id>: <title>
@@ -247,8 +247,8 @@ Parent Worktree: <parent_worktree_path>
 
 If `--auto-merge` was passed, do NOT auto-merge the final PR. The final PR should always require manual review.
 
-Worktree cleanup:
-- Completed tasks with merged sub-PRs: worktrees auto-removed by worker-orchestrator
+Worktree cleanup (handled by worker-orchestrator):
+- Completed tasks merged to parent: worktrees auto-removed
 - Failed tasks: worktrees preserved for investigation
 - Parent worktree: preserved until final PR merged
 

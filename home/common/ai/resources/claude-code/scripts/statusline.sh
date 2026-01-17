@@ -4,6 +4,9 @@
 # Displays: [user@host] directory on branch± | 💰 cost | 🔥 burn_rate | 🧠 context%
 # Uses ccusage for cost/context tracking, custom git integration
 #
+# Performance: Uses ccusage's built-in file cache with 30-second refresh interval.
+# This avoids expensive recomputation (cold start: ~42s, cached: ~0.2s).
+#
 
 set -euo pipefail
 
@@ -12,6 +15,9 @@ readonly LAVENDER='\033[38;2;183;189;248m'
 readonly MAUVE='\033[38;2;198;160;246m'
 readonly YELLOW='\033[38;2;238;212;159m'
 readonly RESET='\033[0m'
+
+# ccusage cache refresh interval (seconds)
+readonly CCUSAGE_REFRESH_INTERVAL=30
 
 # Git options to disable slow fsmonitor
 readonly GIT_OPTS=(-c core.useBuiltinFSMonitor=false -c core.fsmonitor=)
@@ -86,10 +92,16 @@ get_git_branch() {
 }
 
 # Parse ccusage output into components
+# Uses ccusage's built-in file cache with configurable refresh interval
 parse_ccusage() {
     local ccusage_output
-    # Use globally installed ccusage (via Nix) instead of npx to avoid CPU-intensive downloads
-    ccusage_output=$(echo "$input" | ccusage statusline --visual-burn-rate=emoji-text 2>/dev/null) || return
+
+    # Use globally installed ccusage with built-in caching
+    # --refresh-interval controls how long before cache expires (default 1s, we use 30s)
+    ccusage_output=$(echo "$input" | ccusage statusline \
+        --visual-burn-rate=emoji-text \
+        --refresh-interval "$CCUSAGE_REFRESH_INTERVAL" \
+        2>/dev/null) || return
 
     # Extract model (🤖 Model)
     model_info=$(echo "$ccusage_output" | grep -oE '🤖 [^|]+' | sed 's/ *$//')

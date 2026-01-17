@@ -317,6 +317,10 @@ in
               }
               {
                 type = "command";
+                command = "~/.claude/hooks/Stop/session-cleanup.sh";
+              }
+              {
+                type = "command";
                 command = "echo \"Make sure to update AGENTS.md and README.md\"";
               }
             ];
@@ -534,6 +538,10 @@ in
     };
     ".claude/hooks/Stop/worker-completion.sh" = {
       source = "${scriptsDir}/hooks/Stop/worker-completion.sh";
+      executable = true;
+    };
+    ".claude/hooks/Stop/session-cleanup.sh" = {
+      source = "${scriptsDir}/hooks/Stop/session-cleanup.sh";
       executable = true;
     };
     # Note: ralph-loop.sh is provided by ralph-loop@claude-plugins-official plugin
