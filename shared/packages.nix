@@ -104,6 +104,41 @@ let
     };
   };
 
+  # ccusage - Usage analysis tool for Claude Code
+  # Installed globally to avoid CPU-intensive npx calls on every statusline refresh
+  ccusage = pkgs.stdenv.mkDerivation rec {
+    pname = "ccusage";
+    version = "18.0.5";
+
+    src = pkgs.fetchurl {
+      url = "https://registry.npmjs.org/ccusage/-/ccusage-${version}.tgz";
+      hash = "sha256-Co9+jFDk4WmefrDnJvladjjYk+XHhYYEKNKb9MbrkU8=";
+    };
+
+    nativeBuildInputs = [ pkgs.nodejs ];
+
+    unpackPhase = ''
+      tar -xzf $src
+    '';
+
+    installPhase = ''
+      mkdir -p $out/lib/node_modules/ccusage $out/bin
+      cp -r package/* $out/lib/node_modules/ccusage/
+      cat > $out/bin/ccusage <<EOF
+      #!/usr/bin/env bash
+      exec ${pkgs.nodejs}/bin/node $out/lib/node_modules/ccusage/dist/index.js "\$@"
+      EOF
+      chmod +x $out/bin/ccusage
+    '';
+
+    meta = {
+      description = "Usage analysis tool for Claude Code";
+      homepage = "https://github.com/ryoppippi/ccusage";
+      license = lib.licenses.mit;
+      mainProgram = "ccusage";
+    };
+  };
+
   # Script to prepare a remote machine for this nix configuration
   # Copies age key, SSH key, creates nix.conf, clones repos, and provides activation instructions
   nix-remote-setup = pkgs.writeScriptBin "nix-remote-setup" ''
@@ -223,6 +258,7 @@ in
     lazyworktree
     worktrunk
     happy-coder
+    ccusage
     nix-remote-setup
     ;
 }

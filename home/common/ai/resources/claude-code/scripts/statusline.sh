@@ -88,7 +88,8 @@ get_git_branch() {
 # Parse ccusage output into components
 parse_ccusage() {
     local ccusage_output
-    ccusage_output=$(echo "$input" | npx ccusage@latest statusline --visual-burn-rate=emoji-text 2>/dev/null) || return
+    # Use globally installed ccusage (via Nix) instead of npx to avoid CPU-intensive downloads
+    ccusage_output=$(echo "$input" | ccusage statusline --visual-burn-rate=emoji-text 2>/dev/null) || return
 
     # Extract model (🤖 Model)
     model_info=$(echo "$ccusage_output" | grep -oE '🤖 [^|]+' | sed 's/ *$//')
