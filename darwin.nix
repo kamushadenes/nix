@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  pkgs-unstable,
   platform,
   private,
   ...
@@ -65,6 +66,8 @@ in
   # The VM runs aarch64-linux natively and emulates x86_64-linux via binfmt/qemu
   nix.linux-builder = {
     enable = true;
+    # Use nixpkgs-unstable for linux-builder to work around nixpkgs-25.11-darwin stdenv bug
+    package = pkgs-unstable.darwin.linux-builder;
     systems = [ "x86_64-linux" "aarch64-linux" ];
     maxJobs = 4;
     config = { lib, ... }: {

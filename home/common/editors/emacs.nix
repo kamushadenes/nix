@@ -45,7 +45,7 @@
       pandoc
 
       # Nix
-      nixfmt-rfc-style
+      nixfmt
 
       # PHP
       php83
