@@ -9,9 +9,11 @@ argument-hint: [PR-URL-or-number]
 - Repo: !`gh repo view --json owner,name --jq '.owner.login + "/" + .name' 2>/dev/null || echo "unknown"`
 - Current branch PR: !`gh pr view --json number,url,headRefName 2>/dev/null || echo "no-pr"`
 
-## Unresolved Threads
+## Unresolved Threads Preview
 
-!`gh pr view --json reviewThreads --jq '.reviewThreads[] | select(.isResolved == false) | "- **\(.path):\(.line // .startLine // "general")** - \(.comments[0].body | split("\n")[0] | if length > 80 then .[:80] + "..." else . end) (@\(.comments[0].author.login))"' 2>/dev/null || echo "No unresolved threads found"`
+!`gh pr view --json reviewThreads --jq '.reviewThreads[] | select(.isResolved == false) | "- **\(.path):\(.line // .startLine // "general")** - \(.comments[0].body | split("\n")[0] | if length > 80 then .[:80] + "..." else . end) (@\(.comments[0].author.login))"' 2>/dev/null | head -20 || echo "No unresolved threads found"`
+
+**Note**: This preview shows the first 20 unresolved threads. Use the paginated GraphQL query in Step 2 to fetch all threads.
 
 ## Your Task
 
@@ -30,14 +32,22 @@ Parse `$ARGUMENTS` to get the PR:
 - If number: use current repo
 - If empty: use current branch's PR (from context above)
 
-### Step 2: Fetch Unresolved Threads
+### Step 2: Fetch Unresolved Threads (with Pagination)
+
+**IMPORTANT**: PRs can have more than 100 review threads. You MUST handle pagination.
 
 ```bash
+# Initial query - note the pageInfo for pagination
 gh api graphql -f query='
-query($owner: String!, $repo: String!, $pr: Int!) {
+query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $pr) {
-      reviewThreads(first: 100) {
+      reviewThreads(first: 100, after: $cursor) {
+        totalCount
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         nodes {
           id
           isResolved
@@ -57,6 +67,13 @@ query($owner: String!, $repo: String!, $pr: Int!) {
     }
   }
 }' -f owner=OWNER -f repo=REPO -F pr=NUMBER
+```
+
+**Pagination loop**: If `pageInfo.hasNextPage` is true, fetch the next page by adding `-f cursor=ENDCURSOR` to the query. Repeat until `hasNextPage` is false. Collect all nodes across all pages before proceeding.
+
+Example for fetching the next page:
+```bash
+gh api graphql -f query='...' -f owner=OWNER -f repo=REPO -F pr=NUMBER -f cursor="Y3Vyc29yOnYyOpHOaeFg7A=="
 ```
 
 Filter for `isResolved == false` threads that have a `path` (file-level comments).
