@@ -191,6 +191,10 @@ in
                 type = "command";
                 command = "~/.claude/hooks/PreToolUse/enforce-worktree.py";
               }
+              {
+                type = "command";
+                command = "~/.claude/hooks/PreToolUse/suggest-modern-tools.py";
+              }
             ];
           }
           # Deny task-master MCP access to worker instances
@@ -595,6 +599,10 @@ in
     };
     ".claude/hooks/PreToolUse/block-pr-consolidated.py" = {
       source = "${scriptsDir}/hooks/PreToolUse/block-pr-consolidated.py";
+      executable = true;
+    };
+    ".claude/hooks/PreToolUse/suggest-modern-tools.py" = {
+      source = "${scriptsDir}/hooks/PreToolUse/suggest-modern-tools.py";
       executable = true;
     };
 
