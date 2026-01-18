@@ -37,12 +37,11 @@ Parse `$ARGUMENTS` to get the PR:
 **IMPORTANT**: PRs can have more than 100 review threads. You MUST handle pagination.
 
 ```bash
-# Initial query - note the pageInfo for pagination
 gh api graphql -f query='
 query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $pr) {
-      reviewThreads(first: 100, after: $cursor) {
+      reviewThreads(first: 100, after: $cursor, filterBy: {resolved: false}) {
         totalCount
         pageInfo {
           hasNextPage
@@ -50,7 +49,6 @@ query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
         }
         nodes {
           id
-          isResolved
           path
           line
           startLine
@@ -69,14 +67,9 @@ query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
 }' -f owner=OWNER -f repo=REPO -F pr=NUMBER
 ```
 
-**Pagination loop**: If `pageInfo.hasNextPage` is true, fetch the next page by adding `-f cursor=ENDCURSOR` to the query. Repeat until `hasNextPage` is false. Collect all nodes across all pages before proceeding.
+**Pagination**: If `pageInfo.hasNextPage` is true, fetch the next page by adding `-f cursor=ENDCURSOR`. Repeat until all pages collected.
 
-Example for fetching the next page:
-```bash
-gh api graphql -f query='...' -f owner=OWNER -f repo=REPO -F pr=NUMBER -f cursor="Y3Vyc29yOnYyOpHOaeFg7A=="
-```
-
-Filter for `isResolved == false` threads that have a `path` (file-level comments).
+Filter results for threads that have a `path` (file-level comments only).
 
 ### Step 2.5: Validate Feedback with Critic
 
