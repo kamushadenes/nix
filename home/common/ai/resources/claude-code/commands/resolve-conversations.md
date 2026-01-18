@@ -9,6 +9,10 @@ argument-hint: [PR-URL-or-number]
 - Repo: !`gh repo view --json owner,name --jq '.owner.login + "/" + .name' 2>/dev/null || echo "unknown"`
 - Current branch PR: !`gh pr view --json number,url,headRefName 2>/dev/null || echo "no-pr"`
 
+## Unresolved Threads
+
+!`gh pr view --json reviewThreads --jq '.reviewThreads[] | select(.isResolved == false) | "- **\(.path):\(.line // .startLine // "general")** - \(.comments[0].body | split("\n")[0] | if length > 80 then .[:80] + "..." else . end) (@\(.comments[0].author.login))"' 2>/dev/null || echo "No unresolved threads found"`
+
 ## Your Task
 
 Resolve unresolved PR review conversations by fixing the code issues and marking them as resolved.
