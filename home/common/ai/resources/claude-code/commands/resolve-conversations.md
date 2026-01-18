@@ -55,9 +55,40 @@ Filter for `isResolved == false` threads that have a `path` (file-level comments
 
 1. **Show the feedback**: Display the file, line, and reviewer comment(s)
 2. **Read the file**: Use Read tool to understand the context around the mentioned line
-3. **Analyze the issue**: Determine what change the reviewer is requesting
-4. **Fix the code**: Use Edit tool to address the feedback
-5. **Track the thread ID**: Save for resolution in Step 5
+3. **Critically evaluate the comment**: Before making any changes, assess whether the feedback is actually valid:
+   - Is the reviewer's understanding of the code correct?
+   - Does the suggested change actually improve the code?
+   - Is the feedback based on outdated context or a misreading?
+   - Would implementing it introduce bugs or regressions?
+
+4. **If the comment is OUTDATED** (code already changed, line no longer exists, or issue already addressed):
+   - Reply to the thread noting it's outdated:
+     ```bash
+     gh api graphql -f query='
+     mutation($threadId: ID!, $body: String!) {
+       addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
+         comment { id }
+       }
+     }' -f threadId=THREAD_ID -f body="This feedback appears to be outdated - [explain why: code changed, line removed, etc.]"
+     ```
+   - Then resolve the thread (Step 5)
+
+5. **If the comment is INVALID** (incorrect understanding, would introduce bugs, or doesn't apply):
+   - Reply to the thread explaining why the feedback doesn't apply:
+     ```bash
+     gh api graphql -f query='
+     mutation($threadId: ID!, $body: String!) {
+       addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
+         comment { id }
+       }
+     }' -f threadId=THREAD_ID -f body="EXPLANATION"
+     ```
+   - Then resolve the thread (Step 5)
+   - **Do NOT make code changes for invalid feedback**
+
+7. **If the comment is VALID**:
+   - Fix the code using Edit tool to address the feedback
+   - Track the thread ID for resolution in Step 5
 
 ### Step 4: Commit and Push
 
@@ -91,8 +122,11 @@ mutation($threadId: ID!) {
 ### Step 6: Report
 
 Summarize:
-- Number of threads resolved
-- Files modified
-- Brief description of changes made
+- **Fixed**: Threads where code was changed to address valid feedback
+- **Dismissed**: Threads where feedback was invalid/incorrect (with brief reason)
+- **Outdated**: Threads where the code had already changed or feedback no longer applies
+- **Skipped**: Threads that require discussion or clarification (explain why)
 
-If any threads could not be resolved (e.g., unclear feedback, requires discussion), list them and explain why.
+For each category, list:
+- File and line reference
+- Brief description of action taken or reason for dismissal
