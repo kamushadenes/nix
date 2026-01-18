@@ -15,7 +15,13 @@ argument-hint: [PR-URL-or-number]
 
 ## Your Task
 
-Resolve unresolved PR review conversations by fixing the code issues and marking them as resolved.
+**First, present a summary to the user** showing:
+- PR number and title
+- Number of unresolved threads
+- Files affected
+- Brief overview of the feedback themes (e.g., "3 style issues, 2 logic concerns, 1 documentation request")
+
+Then proceed to resolve the conversations.
 
 ### Step 1: Determine the PR
 
