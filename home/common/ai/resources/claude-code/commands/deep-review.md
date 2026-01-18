@@ -184,7 +184,41 @@ dependency_checker = Task(
 
 7. Collect and aggregate results from all agents
 
-8. Present unified findings organized by severity:
+7.5. **Validate findings with suggestion-critic:**
+
+Before presenting findings, run them through the critic agent to filter false positives and validate suggestions:
+
+```python
+critic = Task(
+    subagent_type="suggestion-critic",
+    prompt=f"""Validate these aggregated findings from 9 review agents:
+
+Review scope: {review_scope}
+Changed files: {changed_files}
+
+## Aggregated Findings
+
+{aggregated_findings_from_all_agents}
+
+Evaluate each finding for:
+1. **Existence** - Does the issue actually exist at the reported location?
+2. **Scope** - Is it within the review scope (changed files)?
+3. **Actionability** - Can it be fixed without major refactoring?
+4. **Necessity** - Is it a real problem, not theoretical?
+5. **False Positive** - Is there explicit justification in code?
+6. **Duplication** - Same issue from multiple agents?
+
+Return:
+- Validated findings organized by severity
+- Filtered findings with rejection reasons
+- Task creation recommendations (P0/P1/P2/P3)""",
+    description="Validating findings"
+)
+```
+
+Use the critic's filtered output for the remaining steps. Only validated findings should be presented to the user and considered for task creation.
+
+8. Present validated findings organized by severity:
 
 ```markdown
 ## Deep Review Summary
@@ -250,15 +284,25 @@ dependency_checker = Task(
 - **All agents agree**: [High confidence issues]
 - **Most agents agree**: [Good confidence issues]
 - **Divergent views**: [Issues needing human judgment]
+
+### Filtered by Critic
+
+- **Total findings received**: X
+- **Validated (shown above)**: Y
+- **Filtered out**: Z
+  - False positives: A
+  - Out of scope: B
+  - Duplicates: C
+  - Not actionable: D
 ```
 
 9. Offer to help address any issues found
 
-10. **If task-master is available, create tasks for findings:**
+10. **If task-master is available, create tasks for validated findings:**
 
-    a. If `taskmaster_available` is true and there are Critical or High severity findings:
+    a. If `taskmaster_available` is true and there are validated Critical or High severity findings:
 
-    b. Use AskUserQuestion to let user select which findings to track:
+    b. Use AskUserQuestion to let user select which validated findings to track:
 
     ```
     Question: "Which findings would you like to track as tasks?"

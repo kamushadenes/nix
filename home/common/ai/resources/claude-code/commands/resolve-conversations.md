@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(gh:*), Bash(git:*), Read, Edit, Write, Skill
+allowed-tools: Bash(gh:*), Bash(git:*), Read, Edit, Write, Skill, Task
 description: Resolve PR review conversations by fixing issues and marking resolved
 argument-hint: [PR-URL-or-number]
 ---
@@ -60,6 +60,45 @@ query($owner: String!, $repo: String!, $pr: Int!) {
 ```
 
 Filter for `isResolved == false` threads that have a `path` (file-level comments).
+
+### Step 2.5: Validate Feedback with Critic
+
+Before processing threads individually, batch-evaluate all feedback using the suggestion-critic agent:
+
+```python
+# Get PR changed files for scope checking
+changed_files = git diff --name-only origin/main...HEAD
+
+critic = Task(
+    subagent_type="suggestion-critic",
+    prompt=f"""Evaluate these PR review feedback threads:
+
+PR: {pr_number} on {repo}
+Changed files in PR:
+{changed_files}
+
+Threads to evaluate:
+{unresolved_threads_json}
+
+For each thread, determine:
+1. **VALID** - Feedback is correct and should be addressed with code changes
+2. **INVALID** - Feedback is incorrect, doesn't apply, or would introduce bugs
+3. **OUTDATED** - Code already changed, line removed, or issue already addressed
+
+Return categorized threads with:
+- Thread ID
+- Category (VALID/INVALID/OUTDATED)
+- Reasoning for the evaluation
+- For VALID: suggested fix approach
+- For INVALID/OUTDATED: explanation to reply with""",
+    description="Evaluating PR feedback"
+)
+```
+
+Use the critic's categorization to guide Step 3 processing:
+- **VALID threads**: Proceed with code fixes
+- **INVALID threads**: Reply with critic's explanation, then resolve
+- **OUTDATED threads**: Reply noting outdated context, then resolve
 
 ### Step 3: For Each Unresolved Thread
 

@@ -653,6 +653,8 @@ in
     ".claude/agents/next-task-worker.md".source = "${agentsDir}/next-task-worker.md";
     # GitHub Actions workflow specialist
     ".claude/agents/gh-run-specialist.md".source = "${agentsDir}/gh-run-specialist.md";
+    # Suggestion critic agent (validates findings before task creation)
+    ".claude/agents/suggestion-critic.md".source = "${agentsDir}/suggestion-critic.md";
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
