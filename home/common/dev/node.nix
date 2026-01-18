@@ -31,23 +31,24 @@ let
   };
 
   # TDD Guard Vitest reporter for TypeScript projects
-  tdd-guard-vitest = pkgs.buildNpmPackage rec {
+  # Pre-built package from npm registry (no build step needed)
+  tdd-guard-vitest = pkgs.stdenv.mkDerivation rec {
     pname = "tdd-guard-vitest";
     version = "0.1.6";
 
-    src = pkgs.fetchFromGitHub {
-      owner = "nizos";
-      repo = "tdd-guard";
-      rev = "0f01104ebd2c87956467d89a63cdf7749e7d099f";
-      hash = "sha256-YHyScDD7UcodT/tXJD+bHZQke7eJIHFeER/gyDisPo8=";
+    src = pkgs.fetchurl {
+      url = "https://registry.npmjs.org/tdd-guard-vitest/-/tdd-guard-vitest-${version}.tgz";
+      hash = "sha256-zUdGXgqowvZpo6mcf9iNUvgTqtwK9pqkWSwLoZ6BPOg=";
     };
 
-    sourceRoot = "${src.name}/reporters/vitest";
+    dontBuild = true;
 
-    npmDepsHash = "sha256-MxRnFcpzFz2VCmA8F4NmL+k6ctwNdOL3B/XHV7QTejQ=";
-
-    # Build the TypeScript code
-    npmBuildScript = "build";
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/lib/node_modules/tdd-guard-vitest
+      cp -r . $out/lib/node_modules/tdd-guard-vitest/
+      runHook postInstall
+    '';
 
     meta = with lib; {
       description = "TDD Guard reporter for Vitest - enforces TDD principles in TypeScript projects";
