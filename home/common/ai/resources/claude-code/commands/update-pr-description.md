@@ -1,90 +1,49 @@
 ---
-allowed-tools: Bash(git:*), Bash(gh:*), Read, Grep, Glob, Task
+allowed-tools: Bash(git:*), Bash(gh:*), Task
 description: Update PR description based on branch changes against base
 ---
-
-Update the PR description using the `pr-describer` agent to analyze the FINAL changes this branch introduces.
 
 ## Context
 
 - Current branch: !`git branch --show-current`
-- PR base (if exists): !`gh pr view --json baseRefName -q '.baseRefName' 2>/dev/null || echo "no PR"`
-- Repo default: !`gh repo view --json defaultBranchRef -q '.defaultBranchRef.name' 2>/dev/null || echo "unknown"`
+- PR base: !`gh pr view --json baseRefName -q '.baseRefName' 2>/dev/null || echo "no PR"`
 
 ## Steps
 
-1. **Gather branch context:**
-
+1. **Determine base branch:**
    ```bash
-   current_branch=$(git branch --show-current)
-
-   # Determine base branch (priority order):
-   # 1. From existing PR - most accurate, PR may target non-default branch
-   # 2. From repo's default branch
-   # 3. Fallback to main/master detection
    base_branch=$(gh pr view --json baseRefName -q '.baseRefName' 2>/dev/null)
-   if [ -z "$base_branch" ]; then
-     base_branch=$(gh repo view --json defaultBranchRef -q '.defaultBranchRef.name' 2>/dev/null)
-   fi
-   if [ -z "$base_branch" ]; then
-     base_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
-   fi
-   if [ -z "$base_branch" ]; then
-     git rev-parse --verify origin/main &>/dev/null && base_branch="main" || base_branch="master"
-   fi
+   [ -z "$base_branch" ] && base_branch=$(gh repo view --json defaultBranchRef -q '.defaultBranchRef.name' 2>/dev/null)
+   [ -z "$base_branch" ] && base_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+   [ -z "$base_branch" ] && base_branch=$(git rev-parse --verify origin/main &>/dev/null && echo main || echo master)
    ```
 
-2. **Check if PR exists:**
-
+2. **Check PR exists:**
    ```bash
-   gh pr view --json number,title,body,url 2>/dev/null
+   gh pr view --json number,title,url 2>/dev/null
    ```
+   If no PR: inform user to create one first.
 
-   If no PR exists, inform the user:
-   > No PR found for this branch. Create one first with `gh pr create` or `/commit-push-pr`.
-
-3. **Gather diff data:**
-
+3. **Gather diff data and delegate to `pr-describer` agent:**
    ```bash
-   # Changed files
    git diff --name-only ${base_branch}...HEAD
-
-   # Full diff
    git diff ${base_branch}...HEAD
-
-   # Commit messages (for context only)
    git log ${base_branch}..HEAD --oneline
    ```
 
-4. **Delegate to pr-describer agent:**
+   Use **Task tool** with `subagent_type='pr-describer'`:
+   > Generate PR description for changes against [base_branch].
+   > Title: [current title]
+   > Files: [changed files]
+   > Diff: [diff]
+   > Commits: [commits]
 
-   Use the **Task tool** with `subagent_type='pr-describer'` to generate the description:
-
-   ```
-   Generate a PR description for the following changes:
-
-   Base branch: [base_branch]
-   Current title: [existing PR title]
-
-   Changed files:
-   [list of changed files]
-
-   Diff:
-   [full diff content]
-
-   Commits (for context only, NOT for description):
-   [commit list]
-   ```
-
-5. **Update the PR with the generated description:**
-
+4. **Update PR:**
    ```bash
    gh pr edit --body "$(cat <<'EOF'
-   [description from pr-describer agent]
+   [agent output]
    EOF
    )"
    ```
 
-6. **Confirm to user:**
-
-   > Updated PR description for #[number]. View at: [PR URL]
+5. **Confirm:** `Updated PR #[number]. View at: [url]`
