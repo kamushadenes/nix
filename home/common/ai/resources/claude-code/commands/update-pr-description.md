@@ -1,9 +1,9 @@
 ---
-allowed-tools: Bash(git:*), Bash(gh:*), Read, Grep, Glob
+allowed-tools: Bash(git:*), Bash(gh:*), Read, Grep, Glob, Task
 description: Update PR description based on branch changes against base
 ---
 
-Update the PR description to accurately reflect the FINAL changes this branch introduces against the base branch.
+Update the PR description using the `pr-describer` agent to analyze the FINAL changes this branch introduces.
 
 ## Context
 
@@ -13,7 +13,7 @@ Update the PR description to accurately reflect the FINAL changes this branch in
 
 ## Steps
 
-1. **Get branch context:**
+1. **Gather branch context:**
 
    ```bash
    current_branch=$(git branch --show-current)
@@ -32,62 +32,55 @@ Update the PR description to accurately reflect the FINAL changes this branch in
    if [ -z "$base_branch" ]; then
      git rev-parse --verify origin/main &>/dev/null && base_branch="main" || base_branch="master"
    fi
-
-   # Get changed files
-   changed_files=$(git diff --name-only ${base_branch}...HEAD)
-
-   # Get full diff
-   diff=$(git diff ${base_branch}...HEAD)
-
-   # Get commit messages for context (but NOT for the description)
-   commits=$(git log ${base_branch}..HEAD --oneline)
    ```
 
 2. **Check if PR exists:**
 
    ```bash
-   gh pr view --json number,title,body 2>/dev/null
+   gh pr view --json number,title,body,url 2>/dev/null
    ```
 
    If no PR exists, inform the user:
    > No PR found for this branch. Create one first with `gh pr create` or `/commit-push-pr`.
 
-3. **Analyze the FINAL state of changes:**
+3. **Gather diff data:**
 
-   Review the diff to understand:
-   - What files were added/modified/deleted
-   - What functionality was added or changed
-   - What bugs were fixed
-   - What refactoring was done
+   ```bash
+   # Changed files
+   git diff --name-only ${base_branch}...HEAD
 
-   **IMPORTANT**: Focus ONLY on what the final diff shows. Ignore:
-   - Development iterations visible in commit history
-   - Approaches that were tried and reverted
-   - Intermediate states that no longer exist
+   # Full diff
+   git diff ${base_branch}...HEAD
 
-4. **Generate PR description following this format:**
-
-   ```markdown
-   ## Summary
-
-   [1-3 sentences describing what this PR does]
-
-   ## Changes
-
-   - [Bullet point for each logical change]
-   - [Group related file changes together]
-   - [Focus on WHAT changed, not HOW you developed it]
-
-   ## Testing
-
-   [How to verify these changes work - manual steps or test commands]
+   # Commit messages (for context only)
+   git log ${base_branch}..HEAD --oneline
    ```
 
-5. **Update the PR:**
+4. **Delegate to pr-describer agent:**
+
+   Use the **Task tool** with `subagent_type='pr-describer'` to generate the description:
+
+   ```
+   Generate a PR description for the following changes:
+
+   Base branch: [base_branch]
+   Current title: [existing PR title]
+
+   Changed files:
+   [list of changed files]
+
+   Diff:
+   [full diff content]
+
+   Commits (for context only, NOT for description):
+   [commit list]
+   ```
+
+5. **Update the PR with the generated description:**
 
    ```bash
    gh pr edit --body "$(cat <<'EOF'
-   [generated description]
+   [description from pr-describer agent]
    EOF
    )"
    ```
@@ -95,11 +88,3 @@ Update the PR description to accurately reflect the FINAL changes this branch in
 6. **Confirm to user:**
 
    > Updated PR description for #[number]. View at: [PR URL]
-
-## Rules (from pr-rules.md)
-
-- Describe the FINAL changes against the base branch only
-- Do NOT include development history (approaches tried and abandoned)
-- Do NOT mention iterations or pivots during implementation
-- Reviewers care about WHAT changed, not HOW you got there
-- The git history captures the journey; the description captures the destination
