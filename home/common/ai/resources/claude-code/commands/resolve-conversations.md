@@ -34,7 +34,7 @@ Parse `$ARGUMENTS` to get the PR:
 
 **IMPORTANT**: PRs can have more than 100 review threads. You MUST handle pagination.
 
-**IMPORTANT**: Use heredoc syntax to avoid shell escaping issues with `!` in GraphQL types:
+**IMPORTANT**: Use heredoc syntax to avoid shell escaping issues with exclamation marks in GraphQL types (String!, Int!, ID!):
 
 ```bash
 query=$(cat <<'EOF'
