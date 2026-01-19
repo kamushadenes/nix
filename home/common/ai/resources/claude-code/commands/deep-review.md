@@ -207,6 +207,10 @@ Evaluate each finding for:
 4. **Necessity** - Is it a real problem, not theoretical?
 5. **False Positive** - Is there explicit justification in code?
 6. **Duplication** - Same issue from multiple agents?
+7. **Scope Creep** - Would fixing this expand beyond the PR's original intent?
+   - Reject "while you're here" improvements to unrelated code
+   - Reject cleanup suggestions for files with minimal changes
+   - Reject refactoring of code not directly affected by the changes
 
 Return:
 - Validated findings organized by severity
@@ -294,6 +298,7 @@ Use the critic's filtered output for the remaining steps. Only validated finding
   - Out of scope: B
   - Duplicates: C
   - Not actionable: D
+  - Scope creep: E
 ```
 
 9. Offer to help address any issues found
