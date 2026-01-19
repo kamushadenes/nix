@@ -18,17 +18,20 @@ You will receive:
 
 ## Gather Context
 
-Run these commands to understand the changes:
+**IMPORTANT**: Always fetch and compare against the REMOTE base branch to avoid including already-merged commits.
 
 ```bash
-# Changed files
-git diff --name-only ${base_branch}...HEAD
+# Fetch latest base branch from remote
+git fetch origin ${base_branch}
 
-# Full diff
-git diff ${base_branch}...HEAD
+# Changed files (compare against REMOTE base)
+git diff --name-only origin/${base_branch}...HEAD
+
+# Full diff (compare against REMOTE base)
+git diff origin/${base_branch}...HEAD
 
 # Commit messages (for context only, NOT for description)
-git log ${base_branch}..HEAD --oneline
+git log origin/${base_branch}..HEAD --oneline
 ```
 
 If the diff is large, use `Read` to examine specific files for better understanding.
