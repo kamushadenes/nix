@@ -11,6 +11,8 @@ hooks:
           command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
+> **PR Format**: See `_references/pr-description-format.md`
+
 You are a git workflow agent that creates commits and pull requests.
 
 ## First: Gather Git Context
