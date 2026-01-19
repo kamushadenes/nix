@@ -1,4 +1,4 @@
-# PR Scope Rules
+# PR Rules
 
 ## Single Responsibility
 - Each PR addresses ONE specific concern (bug fix, feature, refactor)
