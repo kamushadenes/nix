@@ -43,6 +43,43 @@ let
     }) ruleFiles
   );
 
+  # Read agent files from the agents directory (including subdirectories)
+  agentEntries = builtins.readDir agentsDir;
+  # Top-level .md files
+  agentFiles = lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".md" name) agentEntries;
+  # Subdirectories (like _templates, _references)
+  agentSubdirs = lib.filterAttrs (name: type: type == "directory") agentEntries;
+  # Recursively collect files from subdirectories
+  agentSubdirFiles = lib.foldl' (
+    acc: subdir:
+    let
+      subdirPath = "${agentsDir}/${subdir}";
+      subdirEntries = builtins.readDir subdirPath;
+      mdFiles = lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".md" name) subdirEntries;
+    in
+    acc
+    // lib.mapAttrs' (name: _: {
+      name = "${subdir}/${name}";
+      value = "${subdirPath}/${name}";
+    }) mdFiles
+  ) { } (builtins.attrNames agentSubdirs);
+  # Combined: top-level files + subdirectory files
+  allAgentFiles =
+    (lib.mapAttrs' (name: _: {
+      name = name;
+      value = "${agentsDir}/${name}";
+    }) agentFiles)
+    // agentSubdirFiles;
+
+  # Read command files from the commands directory
+  commandEntries = builtins.readDir commandsDir;
+  commandFiles = lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".md" name) commandEntries;
+  commandsConfig = lib.mapAttrs' (name: _: {
+    # Remove .md extension for command name
+    name = lib.removeSuffix ".md" name;
+    value = builtins.readFile "${commandsDir}/${name}";
+  }) commandFiles;
+
   # Secrets configuration
   secretsDir = "${config.home.homeDirectory}/.claude/secrets";
   secretSubstitutions = mcpServers.mkSecretSubstitutions secretsDir;
@@ -132,27 +169,10 @@ in
     # Global CLAUDE.md content - applies to all projects
     memory.text = builtins.readFile "${memoryDir}/global.md";
 
-    # Custom slash commands (stored in private submodule for sensitive content)
-    commands = {
+    # Custom slash commands - auto-discovered from commandsDir + private commands
+    commands = commandsConfig // {
+      # Private commands (stored in private submodule for sensitive content)
       test-altinity-cloud = builtins.readFile "${private}/home/common/ai/resources/claude/commands/test-altinity-cloud.md";
-      code-review = builtins.readFile "${commandsDir}/code-review.md";
-      commit = builtins.readFile "${commandsDir}/commit.md";
-      commit-push-pr = builtins.readFile "${commandsDir}/commit-push-pr.md";
-      architecture-review = builtins.readFile "${commandsDir}/architecture-review.md";
-      dependency-audit = builtins.readFile "${commandsDir}/dependency-audit.md";
-      deep-review = builtins.readFile "${commandsDir}/deep-review.md";
-      sync-ai-dev = builtins.readFile "${commandsDir}/sync-ai-dev.md";
-      plan-to-tasks = builtins.readFile "${commandsDir}/plan-to-tasks.md";
-      task-init = builtins.readFile "${commandsDir}/task-init.md";
-      github-sync = builtins.readFile "${commandsDir}/github-sync.md";
-      next-task = builtins.readFile "${commandsDir}/next-task.md";
-      review = builtins.readFile "${commandsDir}/review.md";
-      # Parallel task delegation commands
-      work = builtins.readFile "${commandsDir}/work.md";
-      work-consolidated = builtins.readFile "${commandsDir}/work-consolidated.md";
-      delegate-tasks = builtins.readFile "${commandsDir}/delegate-tasks.md";
-      delegate-tasks-consolidated = builtins.readFile "${commandsDir}/delegate-tasks-consolidated.md";
-      resolve-conversations = builtins.readFile "${commandsDir}/resolve-conversations.md";
     };
 
     # Note: rules option is not available in this home-manager version
@@ -616,45 +636,7 @@ in
     ".claude/config/markdownlint.jsonc".source = "${resourcesDir}/config/markdownlint.jsonc";
 
     # Note: Orchestrator MCP server, CLI, and skills are now in orchestrator.nix
-
-    # Sub-agents for specialized workflows
-    ".claude/agents/code-reviewer.md".source = "${agentsDir}/code-reviewer.md";
-    ".claude/agents/security-auditor.md".source = "${agentsDir}/security-auditor.md";
-    ".claude/agents/test-analyzer.md".source = "${agentsDir}/test-analyzer.md";
-    ".claude/agents/documentation-writer.md".source = "${agentsDir}/documentation-writer.md";
-    ".claude/agents/silent-failure-hunter.md".source = "${agentsDir}/silent-failure-hunter.md";
-    ".claude/agents/performance-analyzer.md".source = "${agentsDir}/performance-analyzer.md";
-    ".claude/agents/type-checker.md".source = "${agentsDir}/type-checker.md";
-    ".claude/agents/refactoring-advisor.md".source = "${agentsDir}/refactoring-advisor.md";
-    ".claude/agents/code-simplifier.md".source = "${agentsDir}/code-simplifier.md";
-    ".claude/agents/comment-analyzer.md".source = "${agentsDir}/comment-analyzer.md";
-    ".claude/agents/dependency-checker.md".source = "${agentsDir}/dependency-checker.md";
-    # Sub-agents for multi-model workflows
-    ".claude/agents/consensus.md".source = "${agentsDir}/consensus.md";
-    ".claude/agents/debugger.md".source = "${agentsDir}/debugger.md";
-    ".claude/agents/planner.md".source = "${agentsDir}/planner.md";
-    ".claude/agents/precommit.md".source = "${agentsDir}/precommit.md";
-    ".claude/agents/thinkdeep.md".source = "${agentsDir}/thinkdeep.md";
-    ".claude/agents/tracer.md".source = "${agentsDir}/tracer.md";
-    # Query and architecture agents
-    ".claude/agents/query-clarifier.md".source = "${agentsDir}/query-clarifier.md";
-    ".claude/agents/architecture-reviewer.md".source = "${agentsDir}/architecture-reviewer.md";
-    # Compliance and certification agents
-    ".claude/agents/compliance-specialist.md".source = "${agentsDir}/compliance-specialist.md";
-    # Task automation agent (task-master workflow)
-    ".claude/agents/task-agent.md".source = "${agentsDir}/task-agent.md";
-    # Git workflow agent (commits and PRs)
-    ".claude/agents/git-committer.md".source = "${agentsDir}/git-committer.md";
-    # Tmux runner agent (context-efficient terminal commands)
-    ".claude/agents/tmux-runner.md".source = "${agentsDir}/tmux-runner.md";
-    # Worker orchestrator agent (manages parallel Claude worker instances)
-    ".claude/agents/worker-orchestrator.md".source = "${agentsDir}/worker-orchestrator.md";
-    # Task worker agent (autonomous task completion with TDD and PR workflow)
-    ".claude/agents/next-task-worker.md".source = "${agentsDir}/next-task-worker.md";
-    # GitHub Actions workflow specialist
-    ".claude/agents/gh-run-specialist.md".source = "${agentsDir}/gh-run-specialist.md";
-    # Suggestion critic agent (validates findings before task creation)
-    ".claude/agents/suggestion-critic.md".source = "${agentsDir}/suggestion-critic.md";
+    # Note: Agents are auto-discovered below via lib.mapAttrs'
   }
   // lib.mapAttrs' (name: content: {
     # Rules - Manual file creation (until home-manager rules option is available)
@@ -663,6 +645,13 @@ in
       text = content;
     };
   }) rulesConfig
+  // lib.mapAttrs' (name: sourcePath: {
+    # Agents - Auto-discovered from agentsDir (including _templates and _references)
+    name = ".claude/agents/${name}";
+    value = {
+      source = sourcePath;
+    };
+  }) allAgentFiles
   // accountFileEntries;
 
   #############################################################################

@@ -24,6 +24,7 @@ Evaluate each finding against these criteria:
 | **Necessity** | Theoretical issue, premature optimization, or style nitpick |
 | **False Positive** | Code has explicit justification (comments, docs) or follows known pattern |
 | **Duplication** | Same issue reported by multiple agents (merge into one) |
+| **Scope Creep** | Suggestion would expand PR beyond original intent |
 
 ## Workflow
 
@@ -86,11 +87,20 @@ Generate structured report with validated and filtered findings.
 - File not in changed files list (for branch/uncommitted reviews)
 - Finding about unrelated subsystem
 - Infrastructure/config files when reviewing application code
+- **PR scope expansion** - "While you're here" improvements to unrelated code
+- **Opportunistic refactors** - Suggestions to clean up code not directly affected by the PR
+- **Unrelated linting** - Style fixes in files touched only for imports/minor changes
 
 ### Not Actionable
 - "Consider migrating to X" (architectural change)
 - "Refactor entire module" (too broad)
 - "Improve overall error handling" (vague)
+
+### Scope Creep
+- "Consider also fixing X" where X is unrelated to PR purpose
+- "This file could use cleanup" for files with minimal changes
+- "Refactor nearby code" when original change is surgical
+- Suggestions that would significantly expand the PR diff
 
 ### Duplicates
 - Same file:line from multiple agents (keep most specific)
@@ -117,7 +127,8 @@ Generate structured report with validated and filtered findings.
   - Out of scope: B
   - Duplicates: C
   - Not actionable: D
-  - Severity adjusted: E
+  - Scope creep: E
+  - Severity adjusted: F
 
 ### Validated Findings by Severity
 
@@ -143,6 +154,9 @@ Generate structured report with validated and filtered findings.
 ...
 
 #### Not Actionable
+...
+
+#### Scope Creep
 ...
 
 #### Duplicates (Merged)
