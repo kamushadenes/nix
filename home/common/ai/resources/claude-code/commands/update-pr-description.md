@@ -8,7 +8,8 @@ Update the PR description to accurately reflect the FINAL changes this branch in
 ## Context
 
 - Current branch: !`git branch --show-current`
-- Default branch: !`gh repo view --json defaultBranchRef -q '.defaultBranchRef.name' 2>/dev/null || echo "unknown"`
+- PR base (if exists): !`gh pr view --json baseRefName -q '.baseRefName' 2>/dev/null || echo "no PR"`
+- Repo default: !`gh repo view --json defaultBranchRef -q '.defaultBranchRef.name' 2>/dev/null || echo "unknown"`
 
 ## Steps
 
@@ -18,12 +19,19 @@ Update the PR description to accurately reflect the FINAL changes this branch in
    current_branch=$(git branch --show-current)
 
    # Determine base branch (priority order):
-   # 1. From existing PR (most accurate)
+   # 1. From existing PR - most accurate, PR may target non-default branch
    # 2. From repo's default branch
    # 3. Fallback to main/master detection
-   base_branch=$(gh pr view --json baseRefName -q '.baseRefName' 2>/dev/null) ||
-   base_branch=$(gh repo view --json defaultBranchRef -q '.defaultBranchRef.name' 2>/dev/null) ||
-   base_branch=$(git rev-parse --verify main 2>/dev/null && echo main || echo master)
+   base_branch=$(gh pr view --json baseRefName -q '.baseRefName' 2>/dev/null)
+   if [ -z "$base_branch" ]; then
+     base_branch=$(gh repo view --json defaultBranchRef -q '.defaultBranchRef.name' 2>/dev/null)
+   fi
+   if [ -z "$base_branch" ]; then
+     base_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+   fi
+   if [ -z "$base_branch" ]; then
+     git rev-parse --verify origin/main &>/dev/null && base_branch="main" || base_branch="master"
+   fi
 
    # Get changed files
    changed_files=$(git diff --name-only ${base_branch}...HEAD)
