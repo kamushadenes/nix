@@ -13,10 +13,11 @@
 - [Group related file changes together]
 - [Focus on WHAT changed, not HOW you developed it]
 
-## Testing
+## External Integration (if applicable)
 
-[How to verify these changes work - manual steps or test commands]
-[If no obvious testing needed, state "No testing required" with brief reason]
+[When changes interface with external systems, provide:]
+- Configuration examples (exact formats, claim names, env vars)
+- Manual verification steps for the external system
 ```
 
 ## Principles
@@ -31,6 +32,11 @@
 - Be specific about outcomes, not process
 - Use action verbs: Add, Update, Fix, Remove, Refactor, Rename
 - Group related file changes into single bullet points
+
+**EXTERNAL INTEGRATIONS:**
+- Include configuration examples when changes affect external systems
+- Show exact formats, claim names, environment variables, etc.
+- Help operators understand what needs to change outside the codebase
 
 ## Examples
 
@@ -51,3 +57,24 @@
 - Created a new file after realizing we needed it
 - Went back and forth on where to put the logic
 ```
+
+### Good External Integration
+```markdown
+## External Integration
+
+### GitBook JWT Claims Configuration
+
+Configure the following claims in GitBook's JWT settings:
+
+| Claim | Value |
+|-------|-------|
+| `sub` | `{user_id}` |
+| `org` | `{organization_slug}` |
+| `role` | `viewer` or `editor` |
+```
+
+### When to Include
+- API contracts that external services depend on
+- Configuration required in third-party systems (GitBook, Auth0, etc.)
+- Environment variables needed in deployment platforms
+- Webhook payload formats consumers must handle
