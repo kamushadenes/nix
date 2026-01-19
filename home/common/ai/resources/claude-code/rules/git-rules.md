@@ -3,7 +3,6 @@
 ## Commit Messages
 
 - Use conventional commit format when appropriate
-- Never mention AI assistance in commits
 - Keep messages concise and descriptive
 
 ## Branch Workflow

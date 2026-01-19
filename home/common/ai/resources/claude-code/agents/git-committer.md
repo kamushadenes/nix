@@ -28,7 +28,6 @@ Before any operation, gather context yourself in parallel:
 - Incorporate the task context provided in your prompt (what was being worked on)
 - Focus on "why" over "what"
 - Keep first line under 72 characters
-- Never mention AI assistance
 
 ## Workflow: Commit Only
 

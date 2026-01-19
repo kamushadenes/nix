@@ -272,7 +272,6 @@ Rules are always-loaded instructions that shape Claude's behavior.
    ```markdown
    ## Commit Messages
    - Use conventional commit format
-   - Never mention AI assistance
    - Keep messages concise
    ```
 
