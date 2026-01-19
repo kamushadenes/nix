@@ -18,27 +18,21 @@ description: Update PR description based on branch changes against base
    [ -z "$base_branch" ] && base_branch=$(git rev-parse --verify origin/main &>/dev/null && echo main || echo master)
    ```
 
-2. **Check PR exists:**
+2. **Get PR info:**
    ```bash
    gh pr view --json number,title,url 2>/dev/null
    ```
-   If no PR: inform user to create one first.
+   If no PR exists, inform user to create one first.
 
-3. **Gather diff data and delegate to `pr-describer` agent:**
-   ```bash
-   git diff --name-only ${base_branch}...HEAD
-   git diff ${base_branch}...HEAD
-   git log ${base_branch}..HEAD --oneline
-   ```
+3. **Delegate to `pr-describer` agent:**
 
    Use **Task tool** with `subagent_type='pr-describer'`:
-   > Generate PR description for changes against [base_branch].
-   > Title: [current title]
-   > Files: [changed files]
-   > Diff: [diff]
-   > Commits: [commits]
+   > Generate PR description.
+   > Current branch: [current_branch]
+   > Base branch: [base_branch]
+   > PR title: [title]
 
-4. **Update PR:**
+4. **Update PR with agent output:**
    ```bash
    gh pr edit --body "$(cat <<'EOF'
    [agent output]

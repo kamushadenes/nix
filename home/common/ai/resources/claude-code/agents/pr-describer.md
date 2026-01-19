@@ -1,7 +1,7 @@
 ---
 name: pr-describer
 description: Generate PR descriptions from branch diffs. Use when updating or creating PR descriptions based on final changes against base branch.
-tools: Read, Grep, Glob
+tools: Bash(git:*), Bash(gh:*), Read, Grep, Glob
 model: sonnet
 ---
 
@@ -12,11 +12,26 @@ Analyze a git diff and generate a clear, concise PR description that describes t
 ## Input
 
 You will receive:
+- `current_branch`: The branch being merged
 - `base_branch`: The branch this PR targets
-- `changed_files`: List of files modified
-- `diff`: The full diff of changes
-- `commits`: Commit history (for context only, NOT for the description)
-- `current_title`: Existing PR title (if any)
+- `pr_title`: Existing PR title (if any)
+
+## Gather Context
+
+Run these commands to understand the changes:
+
+```bash
+# Changed files
+git diff --name-only ${base_branch}...HEAD
+
+# Full diff
+git diff ${base_branch}...HEAD
+
+# Commit messages (for context only, NOT for description)
+git log ${base_branch}..HEAD --oneline
+```
+
+If the diff is large, use `Read` to examine specific files for better understanding.
 
 ## Analysis Process
 
