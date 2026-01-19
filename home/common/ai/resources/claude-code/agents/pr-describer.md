@@ -74,9 +74,7 @@ If the diff is large, use `Read` to examine specific files for better understand
 - Don't speculate about intent beyond what's evident
 - Don't suggest additional changes or improvements
 
-## Output Format
-
-Return ONLY the PR description in this exact format:
+## PR Description Format
 
 ```markdown
 ## Summary
@@ -94,6 +92,23 @@ Return ONLY the PR description in this exact format:
 [How to verify these changes work - manual steps or test commands]
 [If no obvious testing needed, state "No testing required" with brief reason]
 ```
+
+## Update the PR
+
+After generating the description, update the PR directly:
+
+```bash
+gh pr edit --body "$(cat <<'EOF'
+[generated description]
+EOF
+)"
+```
+
+## Output
+
+Return a brief confirmation:
+- PR number and URL
+- Summary of what was described (1 sentence)
 
 ## Examples
 
