@@ -11,9 +11,7 @@ argument-hint: [PR-URL-or-number]
 
 ## Unresolved Threads Preview
 
-!`gh pr view --json reviewThreads --jq '.reviewThreads[] | select(.isResolved == false) | "- **\(.path):\(.line // .startLine // "general")** - \(.comments[0].body | split("\n")[0] | if length > 80 then .[:80] + "..." else . end) (@\(.comments[0].author.login))"' 2>/dev/null | head -20 || echo "No unresolved threads found"`
-
-**Note**: This preview shows the first 20 unresolved threads. Use the paginated GraphQL query in Step 2 to fetch all threads.
+**Note**: `gh pr view` does not support `reviewThreads` field. Use the GraphQL query in Step 2 to fetch unresolved threads.
 
 ## Your Task
 
@@ -36,12 +34,14 @@ Parse `$ARGUMENTS` to get the PR:
 
 **IMPORTANT**: PRs can have more than 100 review threads. You MUST handle pagination.
 
+**IMPORTANT**: Use heredoc syntax to avoid shell escaping issues with `!` in GraphQL types:
+
 ```bash
-gh api graphql -f query='
+query=$(cat <<'EOF'
 query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $pr) {
-      reviewThreads(first: 100, after: $cursor, filterBy: {resolved: false}) {
+      reviewThreads(first: 100, after: $cursor) {
         totalCount
         pageInfo {
           hasNextPage
@@ -49,6 +49,7 @@ query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
         }
         nodes {
           id
+          isResolved
           path
           line
           startLine
@@ -64,12 +65,20 @@ query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
       }
     }
   }
-}' -f owner=OWNER -f repo=REPO -F pr=NUMBER
+}
+EOF
+)
+gh api graphql -f query="$query" -f owner=OWNER -f repo=REPO -F pr=NUMBER
 ```
 
 **Pagination**: If `pageInfo.hasNextPage` is true, fetch the next page by adding `-f cursor=ENDCURSOR`. Repeat until all pages collected.
 
-Filter results for threads that have a `path` (file-level comments only).
+**Filter client-side**: GitHub's `reviewThreads` doesn't support server-side filtering. Use `jq` to filter:
+
+```bash
+# Filter for unresolved threads with a file path
+| jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false and .path != null)]'
+```
 
 ### Step 2.5: Validate Feedback with Critic
 
@@ -123,24 +132,30 @@ Use the critic's categorization to guide Step 3 processing:
 4. **If the comment is OUTDATED** (code already changed, line no longer exists, or issue already addressed):
    - Reply to the thread noting it's outdated:
      ```bash
-     gh api graphql -f query='
+     mutation=$(cat <<'EOF'
      mutation($threadId: ID!, $body: String!) {
        addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
          comment { id }
        }
-     }' -f threadId=THREAD_ID -f body="This feedback appears to be outdated - [explain why: code changed, line removed, etc.]"
+     }
+     EOF
+     )
+     gh api graphql -f query="$mutation" -f threadId=THREAD_ID -f body="This feedback appears to be outdated - [explain why: code changed, line removed, etc.]"
      ```
    - Then resolve the thread (Step 5)
 
 5. **If the comment is INVALID** (incorrect understanding, would introduce bugs, or doesn't apply):
    - Reply to the thread explaining why the feedback doesn't apply:
      ```bash
-     gh api graphql -f query='
+     mutation=$(cat <<'EOF'
      mutation($threadId: ID!, $body: String!) {
        addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
          comment { id }
        }
-     }' -f threadId=THREAD_ID -f body="EXPLANATION"
+     }
+     EOF
+     )
+     gh api graphql -f query="$mutation" -f threadId=THREAD_ID -f body="EXPLANATION"
      ```
    - Then resolve the thread (Step 5)
    - **Do NOT make code changes for invalid feedback**
@@ -170,12 +185,15 @@ git push
 For each thread ID that was fixed:
 
 ```bash
-gh api graphql -f query='
+mutation=$(cat <<'EOF'
 mutation($threadId: ID!) {
   resolveReviewThread(input: {threadId: $threadId}) {
     thread { isResolved }
   }
-}' -f threadId=THREAD_ID
+}
+EOF
+)
+gh api graphql -f query="$mutation" -f threadId=THREAD_ID
 ```
 
 ### Step 6: Report
