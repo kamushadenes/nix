@@ -27,3 +27,10 @@
 - Aim for under 400 changed lines
 - If larger, consider splitting into multiple PRs
 - Large PRs slow reviews and hide bugs
+
+## PR Description Guidelines
+- Describe the FINAL changes against the base branch only
+- Do NOT include development history (approaches tried and abandoned)
+- Do NOT mention iterations or pivots during implementation
+- Reviewers care about WHAT changed, not HOW you got there
+- The git history captures the journey; the description captures the destination
