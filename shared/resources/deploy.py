@@ -23,7 +23,6 @@ import subprocess
 import sys
 from argparse import ArgumentParser
 from dataclasses import dataclass
-from typing import Optional
 
 # Substituted by Nix at build time
 NODE_CONFIG = json.loads('''@nodeConfigJson@''')
@@ -49,9 +48,8 @@ class Node:
     type: str  # darwin | nixos
     role: str  # workstation | headless
     tags: list[str]
-    local: bool
-    target_host: Optional[str] = None
-    build_host: Optional[str] = None
+    target_hosts: list[str]  # List of hosts/IPs to try in order
+    build_host: str
 
 
 def get_nodes() -> dict[str, Node]:
@@ -62,9 +60,8 @@ def get_nodes() -> dict[str, Node]:
             type=cfg["type"],
             role=cfg["role"],
             tags=cfg["tags"],
-            local=cfg["local"],
-            target_host=cfg.get("targetHost"),
-            build_host=cfg.get("buildHost"),
+            target_hosts=cfg["targetHosts"],
+            build_host=cfg["buildHost"],
         )
         for name, cfg in NODE_CONFIG["nodes"].items()
     }
@@ -76,8 +73,14 @@ def get_current_host() -> str:
     # Handle common hostname suffixes
     for suffix in [".local", ".hyades.io"]:
         if hostname.endswith(suffix):
-            hostname = hostname[:-len(suffix)]
+            hostname = hostname[: -len(suffix)]
     return hostname
+
+
+def is_local_deploy(node: Node) -> bool:
+    """Check if deployment target is the current machine."""
+    current = get_current_host()
+    return current == node.name
 
 
 def decrypt_cache_key() -> None:
@@ -100,7 +103,9 @@ def decrypt_cache_key() -> None:
             except subprocess.CalledProcessError as e:
                 print(f"{YELLOW}[WARN]{NC} Failed to decrypt cache key: {e}")
         else:
-            print(f"{YELLOW}[WARN]{NC} Age identity not found at {age_identity}, skipping cache key decryption")
+            print(
+                f"{YELLOW}[WARN]{NC} Age identity not found at {age_identity}, skipping cache key decryption"
+            )
 
 
 def build_local_command(node: Node) -> list[str]:
@@ -109,18 +114,79 @@ def build_local_command(node: Node) -> list[str]:
     return ["nh", nh_type, "switch", "--impure", "-H", node.name]
 
 
-def build_remote_command(node: Node) -> list[str]:
+def build_remote_command(node: Node, target_host: str) -> list[str]:
     """Build the command for remote deployment using nixos-rebuild."""
     return [
-        "nix", "shell", "nixpkgs#nixos-rebuild", "-c",
-        "nixos-rebuild", "switch",
+        "nix",
+        "shell",
+        "nixpkgs#nixos-rebuild",
+        "-c",
+        "nixos-rebuild",
+        "switch",
         "--fast",  # Skip rebuilding nixos-rebuild for target platform
         "--impure",
-        "--flake", f"{FLAKE_PATH}#{node.name}",
-        "--target-host", node.target_host,
-        "--build-host", node.build_host,
+        "--flake",
+        f"{FLAKE_PATH}#{node.name}",
+        "--target-host",
+        target_host,
+        "--build-host",
+        node.build_host,
         "--use-remote-sudo",
     ]
+
+
+async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str]:
+    """
+    Try deploying to each target host in order until one succeeds.
+
+    Args:
+        node: The node to deploy to
+        prefix: Optional prefix for log messages
+
+    Returns:
+        Tuple of (node_name, success, output)
+    """
+    log_prefix = f"[{node.name}] " if prefix else ""
+
+    for i, target_host in enumerate(node.target_hosts):
+        host_info = (
+            f" (host {i + 1}/{len(node.target_hosts)}: {target_host})"
+            if len(node.target_hosts) > 1
+            else ""
+        )
+        print(
+            f"{BLUE}[INFO]{NC} {log_prefix}Deploying to {BOLD}{node.name}{NC}{host_info}..."
+        )
+
+        cmd = build_remote_command(node, target_host)
+
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        stdout, _ = await proc.communicate()
+        output = stdout.decode()
+        success = proc.returncode == 0
+
+        if success:
+            print(f"{GREEN}✓{NC} {log_prefix}{node.name} - deployment successful")
+            return node.name, True, output
+
+        # If this wasn't the last host, try the next one
+        if i < len(node.target_hosts) - 1:
+            print(
+                f"{YELLOW}[WARN]{NC} {log_prefix}Failed to deploy via {target_host}, trying next host..."
+            )
+        else:
+            print(f"{RED}✗{NC} {log_prefix}{node.name} - deployment failed")
+            lines = output.strip().split("\n")
+            if lines:
+                print(f"{YELLOW}  Last output:{NC}")
+                for line in lines[-5:]:
+                    print(f"    {line}")
+
+    return node.name, False, output
 
 
 async def deploy_node(node: Node, prefix: str = "") -> tuple[str, bool, str]:
@@ -135,35 +201,37 @@ async def deploy_node(node: Node, prefix: str = "") -> tuple[str, bool, str]:
         Tuple of (node_name, success, output)
     """
     log_prefix = f"[{node.name}] " if prefix else ""
-    print(f"{BLUE}[INFO]{NC} {log_prefix}Deploying to {BOLD}{node.name}{NC}...")
 
-    if node.local:
+    # Determine if this is a local or remote deployment
+    if is_local_deploy(node):
+        print(
+            f"{BLUE}[INFO]{NC} {log_prefix}Deploying to {BOLD}{node.name}{NC} (local)..."
+        )
         cmd = build_local_command(node)
+
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        stdout, _ = await proc.communicate()
+        output = stdout.decode()
+        success = proc.returncode == 0
+
+        if success:
+            print(f"{GREEN}✓{NC} {log_prefix}{node.name} - deployment successful")
+        else:
+            print(f"{RED}✗{NC} {log_prefix}{node.name} - deployment failed")
+            lines = output.strip().split("\n")
+            if lines:
+                print(f"{YELLOW}  Last output:{NC}")
+                for line in lines[-5:]:
+                    print(f"    {line}")
+
+        return node.name, success, output
     else:
-        cmd = build_remote_command(node)
-
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT,
-    )
-    stdout, _ = await proc.communicate()
-    output = stdout.decode()
-    success = proc.returncode == 0
-
-    # Print status
-    if success:
-        print(f"{GREEN}✓{NC} {log_prefix}{node.name} - deployment successful")
-    else:
-        print(f"{RED}✗{NC} {log_prefix}{node.name} - deployment failed")
-        # Print last few lines of output on failure for context
-        lines = output.strip().split("\n")
-        if lines:
-            print(f"{YELLOW}  Last output:{NC}")
-            for line in lines[-5:]:
-                print(f"    {line}")
-
-    return node.name, success, output
+        # Remote deployment - try each host in order
+        return await try_remote_hosts(node, prefix)
 
 
 async def deploy_parallel(nodes: list[Node]) -> bool:
@@ -177,7 +245,9 @@ async def deploy_parallel(nodes: list[Node]) -> bool:
         True if all deployments succeeded
     """
     node_names = ", ".join(n.name for n in nodes)
-    print(f"{BLUE}[INFO]{NC} Parallel deployment to {len(nodes)} nodes: {BOLD}{node_names}{NC}")
+    print(
+        f"{BLUE}[INFO]{NC} Parallel deployment to {len(nodes)} nodes: {BOLD}{node_names}{NC}"
+    )
     print()
 
     tasks = [deploy_node(node, prefix="parallel") for node in nodes]
@@ -214,7 +284,10 @@ def deploy_sequential(nodes: list[Node]) -> bool:
             all_success = False
             # Ask whether to continue on failure
             if i < len(nodes):
-                print(f"{YELLOW}[WARN]{NC} Deployment to {node.name} failed. Continue with remaining nodes? [y/N] ", end="")
+                print(
+                    f"{YELLOW}[WARN]{NC} Deployment to {node.name} failed. Continue with remaining nodes? [y/N] ",
+                    end="",
+                )
                 try:
                     response = input().strip().lower()
                     if response not in ("y", "yes"):
@@ -244,7 +317,9 @@ def expand_targets(targets: list[str], nodes: dict[str, Node]) -> list[Node]:
         if target.startswith("@"):
             # Tag - find all matching nodes
             tag = target
-            matching = [n for n in nodes.values() if tag in n.tags and n.name not in seen]
+            matching = [
+                n for n in nodes.values() if tag in n.tags and n.name not in seen
+            ]
             if not matching:
                 print(f"{YELLOW}[WARN]{NC} No nodes match tag: {tag}")
             for node in matching:
@@ -265,12 +340,18 @@ def expand_targets(targets: list[str], nodes: dict[str, Node]) -> list[Node]:
 
 def list_nodes(nodes: dict[str, Node]) -> None:
     """Print all available nodes and tags."""
-    print(f"{BOLD}Nodes:{NC}")
+    current_host = get_current_host()
+    print(f"{BOLD}Nodes:{NC} (current host: {current_host})")
     for name in sorted(nodes.keys()):
         node = nodes[name]
-        local_str = "local" if node.local else f"remote -> {node.target_host}"
+        is_local = name == current_host
+        if is_local:
+            deploy_method = "local"
+        else:
+            hosts_str = ", ".join(node.target_hosts)
+            deploy_method = f"remote -> [{hosts_str}]"
         tags_str = " ".join(node.tags)
-        print(f"  {BOLD}{name}{NC}: {node.type}/{node.role} ({local_str})")
+        print(f"  {BOLD}{name}{NC}: {node.type}/{node.role} ({deploy_method})")
         print(f"    tags: {tags_str}")
 
     # Collect and display all unique tags
@@ -285,11 +366,11 @@ def main() -> None:
     parser = ArgumentParser(
         description="Nix deployment tool with parallel execution and tag-based filtering",
         epilog="Examples:\n"
-               "  rebuild              Local rebuild (current machine)\n"
-               "  rebuild aether       Deploy to aether\n"
-               "  rebuild @nixos       Deploy to all NixOS machines\n"
-               "  rebuild -p @darwin   Parallel deploy to all Darwin machines\n"
-               "  rebuild --all        Deploy to all machines\n",
+        "  rebuild              Local rebuild (current machine)\n"
+        "  rebuild aether       Deploy to aether\n"
+        "  rebuild @nixos       Deploy to all NixOS machines\n"
+        "  rebuild -p @darwin   Parallel deploy to all Darwin machines\n"
+        "  rebuild --all        Deploy to all machines\n",
     )
     parser.add_argument(
         "targets",
@@ -297,22 +378,26 @@ def main() -> None:
         help="Nodes or @tags to deploy (default: current host)",
     )
     parser.add_argument(
-        "-p", "--parallel",
+        "-p",
+        "--parallel",
         action="store_true",
         help="Deploy to multiple targets in parallel",
     )
     parser.add_argument(
-        "-a", "--all",
+        "-a",
+        "--all",
         action="store_true",
         help="Deploy to all configured nodes",
     )
     parser.add_argument(
-        "-n", "--dry-run",
+        "-n",
+        "--dry-run",
         action="store_true",
         help="Show what would be deployed without executing",
     )
     parser.add_argument(
-        "-l", "--list",
+        "-l",
+        "--list",
         action="store_true",
         help="List all nodes and tags",
     )
@@ -337,7 +422,9 @@ def main() -> None:
         # Default: deploy to current host
         current = get_current_host()
         if current not in nodes:
-            print(f"{RED}[ERROR]{NC} Current host '{current}' not found in configuration")
+            print(
+                f"{RED}[ERROR]{NC} Current host '{current}' not found in configuration"
+            )
             print(f"Available nodes: {', '.join(sorted(nodes.keys()))}")
             print(f"\nTip: Use 'rebuild --list' to see all nodes and tags")
             sys.exit(1)
@@ -349,15 +436,23 @@ def main() -> None:
 
     # Handle --dry-run
     if args.dry_run:
-        print(f"{BOLD}Would deploy to:{NC}")
+        current_host = get_current_host()
+        print(f"{BOLD}Would deploy to:{NC} (current host: {current_host})")
         for node in targets:
-            method = "local" if node.local else f"remote ({node.target_host})"
-            print(f"  {node.name} ({node.type}, {method})")
-            if node.local:
+            is_local = node.name == current_host
+            if is_local:
+                method = "local"
                 cmd = build_local_command(node)
+                print(f"  {node.name} ({node.type}, {method})")
+                print(f"    cmd: {' '.join(cmd)}")
             else:
-                cmd = build_remote_command(node)
-            print(f"    cmd: {' '.join(cmd)}")
+                hosts_str = " -> ".join(node.target_hosts)
+                method = f"remote ({hosts_str})"
+                print(f"  {node.name} ({node.type}, {method})")
+                for i, host in enumerate(node.target_hosts):
+                    cmd = build_remote_command(node, host)
+                    prefix = "    cmd" if len(node.target_hosts) == 1 else f"    [{i+1}]"
+                    print(f"{prefix}: {' '.join(cmd)}")
         return
 
     # Execute deployment
