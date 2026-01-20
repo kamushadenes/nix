@@ -13,6 +13,9 @@ Usage:
     rebuild -pa          # Parallel deploy to all machines
     rebuild --list       # List nodes and tags
     rebuild -n @nixos    # Dry run - show what would deploy
+    rebuild --proxmox    # Build Proxmox VM and LXC images
+    rebuild --proxmox-vm # Build only Proxmox VM image
+    rebuild --proxmox-lxc # Build only Proxmox LXC image
 """
 
 import asyncio
@@ -415,6 +418,45 @@ def expand_targets(targets: list[str], nodes: dict[str, Node]) -> list[Node]:
     return result
 
 
+def build_proxmox_images(vm: bool = True, lxc: bool = True) -> bool:
+    """
+    Build Proxmox VM and/or LXC images.
+
+    Args:
+        vm: Whether to build VM image
+        lxc: Whether to build LXC image
+
+    Returns:
+        True if all builds succeeded
+    """
+    all_success = True
+    targets = []
+    if vm:
+        targets.append("proxmox-vm")
+    if lxc:
+        targets.append("proxmox-lxc")
+
+    for target in targets:
+        print(f"{BLUE}[INFO]{NC} Building {BOLD}{target}{NC}...")
+        cmd = ["nix", "build", f"{FLAKE_PATH}#{target}", "--impure", "-L"]
+
+        result = subprocess.run(cmd)
+        if result.returncode == 0:
+            # Find the output file
+            result_link = os.path.join(os.getcwd(), "result")
+            if os.path.islink(result_link):
+                real_path = os.path.realpath(result_link)
+                print(f"{GREEN}✓{NC} {target} built successfully")
+                print(f"  Output: {real_path}")
+            else:
+                print(f"{GREEN}✓{NC} {target} built successfully")
+        else:
+            print(f"{RED}✗{NC} {target} build failed")
+            all_success = False
+
+    return all_success
+
+
 def list_nodes(nodes: dict[str, Node]) -> None:
     """Print all available nodes and tags."""
     current_host = get_current_host()
@@ -478,6 +520,21 @@ def main() -> None:
         action="store_true",
         help="List all nodes and tags",
     )
+    parser.add_argument(
+        "--proxmox",
+        action="store_true",
+        help="Build Proxmox VM and LXC images",
+    )
+    parser.add_argument(
+        "--proxmox-vm",
+        action="store_true",
+        help="Build only Proxmox VM image (.vma.zst)",
+    )
+    parser.add_argument(
+        "--proxmox-lxc",
+        action="store_true",
+        help="Build only Proxmox LXC image (.tar.xz)",
+    )
     args = parser.parse_args()
 
     nodes = get_nodes()
@@ -486,6 +543,13 @@ def main() -> None:
     if args.list:
         list_nodes(nodes)
         return
+
+    # Handle --proxmox, --proxmox-vm, --proxmox-lxc
+    if args.proxmox or args.proxmox_vm or args.proxmox_lxc:
+        build_vm = args.proxmox or args.proxmox_vm
+        build_lxc = args.proxmox or args.proxmox_lxc
+        success = build_proxmox_images(vm=build_vm, lxc=build_lxc)
+        sys.exit(0 if success else 1)
 
     # Decrypt cache key before deployment
     decrypt_cache_key()

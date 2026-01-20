@@ -28,6 +28,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nixos-generators = {
+      url = "github:nix-community/nixos-generators";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   };
 
   outputs =
@@ -38,6 +43,7 @@
       darwin,
       agenix,
       claudebox,
+      nixos-generators,
       ...
     }:
     let
@@ -93,6 +99,36 @@
             platform = system;
           };
           modules = nixosModules;
+        };
+
+      # Helper to create Proxmox VM/LXC host configurations
+      # These hosts use ephemeral tmpfs root with configurable persistence
+      mkProxmoxHost =
+        {
+          machine,
+          hardware,
+          role ? "headless",
+          shared ? false,
+          extraPersistPaths ? [ ],
+          system ? "x86_64-linux",
+        }:
+        nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = {
+            inherit inputs machine shared private hardware role;
+            claudebox = claudebox.packages.${system}.default;
+            pkgs-unstable = import nixpkgs-unstable {
+              inherit system;
+              config.allowUnfree = true;
+            };
+            platform = system;
+          };
+          modules = nixosModules ++ [
+            ./nixos/proxmox/persistence.nix
+            ({ ... }: {
+              proxmox.persistence.extraPaths = extraPersistPaths;
+            })
+          ];
         };
 
       darwinModules = [
@@ -178,6 +214,37 @@
           machine = "aether";
           role = "headless";
           hardware = ./nixos/hardware/aether.nix;
+        };
+
+        # Proxmox VM/LXC examples (uncomment after deploying image):
+        #
+        # 1. Build images: rebuild --proxmox
+        # 2. Upload to Proxmox and boot VM/container
+        # 3. Create hardware config: nixos/hardware/<name>.nix
+        # 4. Uncomment and customize below:
+        #
+        # my-postgres-vm = mkProxmoxHost {
+        #   machine = "my-postgres-vm";
+        #   hardware = ./nixos/hardware/my-postgres-vm.nix;
+        #   role = "headless";  # or "workstation"
+        #   extraPersistPaths = [ "/var/lib/postgresql" ];
+        # };
+        #
+        # 5. Deploy: rebuild my-postgres-vm
+      };
+
+      # Proxmox image builders
+      # Build with: nix build .#proxmox-vm or nix build .#proxmox-lxc
+      packages.x86_64-linux = {
+        proxmox-vm = nixos-generators.nixosGenerate {
+          system = "x86_64-linux";
+          format = "proxmox";
+          modules = [ ./nixos/proxmox/vm.nix ];
+        };
+        proxmox-lxc = nixos-generators.nixosGenerate {
+          system = "x86_64-linux";
+          format = "proxmox-lxc";
+          modules = [ ./nixos/proxmox/lxc.nix ];
         };
       };
     };

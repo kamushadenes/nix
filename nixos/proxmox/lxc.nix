@@ -1,0 +1,37 @@
+# Proxmox LXC container template configuration
+# Produces a .tar.xz file that can be used to create LXC containers in Proxmox
+#
+# Proxmox settings for NixOS LXC:
+# - Unprivileged: Yes
+# - Nesting: Enabled (required for nix-daemon)
+# - Features: fuse=1,nesting=1
+{ config, lib, pkgs, modulesPath, ... }:
+
+{
+  imports = [
+    (modulesPath + "/virtualisation/proxmox-lxc.nix")
+    ./common.nix
+  ];
+
+  # LXC-specific boot configuration
+  boot.isContainer = true;
+
+  # Console configuration for LXC
+  systemd.services."getty@".enable = false;
+  systemd.services."autovt@".enable = false;
+  systemd.services.console-getty.enable = true;
+
+  # Filesystem layout for LXC:
+  # The container root is managed by Proxmox, but we configure
+  # persistence paths that should be bind-mounted from the host
+  # or persistent storage
+
+  # Default hostname (should be overridden when adding to nixosConfigurations)
+  networking.hostName = lib.mkDefault "nixos-lxc";
+
+  # Platform
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+
+  # LXC containers don't need bootloader
+  boot.loader.grub.enable = false;
+}
