@@ -13,6 +13,9 @@ let
   # Import account configuration for multi-account support
   accountsConfig = import ../home/common/ai/claude-accounts.nix { inherit config lib; };
 
+  # Import deployment configuration for rebuild tool
+  deployConfig = import ./deploy.nix { inherit lib pkgs; };
+
   # SSH keys to be loaded
   sshKeys = [ config.age.secrets."id_ed25519.age".path ];
 
@@ -21,20 +24,13 @@ let
   cacheKeyAgePath = "$HOME/.config/nix/config/private/cache-priv-key.pem.age";
   ageIdentity = "$HOME/.age/age.pem";
 
-  # Platform-specific nh command
-  nhCommand =
-    if pkgs.stdenv.isDarwin then
-      ''nh darwin switch --impure -H $(hostname -s | sed 's/.local//g')''
-    else
-      ''nh os switch --impure -H $(hostname -s | sed 's/.local//g')'';
-
-  # Substitutions for rebuild script template
-  rebuildSubst = {
+  # Substitutions for deploy.py script template
+  deploySubst = {
+    "@nodeConfigJson@" = deployConfig.configJson;
     "@cacheKeyPath@" = cacheKeyPath;
     "@cacheKeyAgePath@" = cacheKeyAgePath;
     "@ageIdentity@" = ageIdentity;
     "@ageBin@" = "${pkgs.age}/bin/age";
-    "@nhCommand@" = nhCommand;
   };
 
   # Helper to apply substitutions to a string
@@ -71,8 +67,8 @@ let
   standaloneScripts = {
     # Claude Code workspace manager - bash script with multi-account support
     c = applySubst cScriptSubst (builtins.readFile "${resourcesDir}/claude-tmux.sh");
-    # Rebuild script - unified bash script for local and remote deployments
-    rebuild = applySubst rebuildSubst (builtins.readFile "${resourcesDir}/rebuild.sh");
+    # Rebuild script - Python deployment tool with parallel execution and tag-based filtering
+    rebuild = applySubst deploySubst (builtins.readFile ./resources/deploy.py);
   };
 
   # Common PATH additions

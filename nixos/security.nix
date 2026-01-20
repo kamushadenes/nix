@@ -30,7 +30,6 @@ in
       qFlipper
       wireshark
       yubioath-flutter
-      yubikey-personalization-gui
     ]
   );
 
