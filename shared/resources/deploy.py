@@ -31,6 +31,7 @@ CACHE_KEY_PATH = "@cacheKeyPath@"
 CACHE_KEY_AGE_PATH = "@cacheKeyAgePath@"
 AGE_IDENTITY = "@ageIdentity@"
 AGE_BIN = "@ageBin@"
+NIX_REMOTE_SETUP = "@nixRemoteSetup@"
 
 # ANSI colors for terminal output
 GREEN = "\033[32m"
@@ -106,6 +107,77 @@ def decrypt_cache_key() -> None:
             print(
                 f"{YELLOW}[WARN]{NC} Age identity not found at {age_identity}, skipping cache key decryption"
             )
+
+
+def check_remote_prepared(target_host: str) -> bool:
+    """
+    Check if a remote host has the required files for nix deployment.
+    
+    Checks for:
+    - ~/.age/age.pem (age identity)
+    - ~/.config/nix/config/ (nix config repo)
+    
+    Returns True if remote is prepared, False otherwise.
+    """
+    try:
+        result = subprocess.run(
+            [
+                "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
+                target_host,
+                "test -f ~/.age/age.pem && test -d ~/.config/nix/config/"
+            ],
+            capture_output=True,
+            timeout=15,
+        )
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, subprocess.SubprocessError):
+        return False
+
+
+def prepare_remote(target_host: str) -> bool:
+    """
+    Run nix-remote-setup to prepare a remote host for deployment.
+    
+    Returns True if setup succeeded, False otherwise.
+    """
+    print(f"{BLUE}[INFO]{NC} Running nix-remote-setup for {target_host}...")
+    try:
+        result = subprocess.run(
+            [NIX_REMOTE_SETUP, target_host],
+            check=False,
+        )
+        if result.returncode == 0:
+            print(f"{GREEN}✓{NC} Remote setup completed for {target_host}")
+            return True
+        else:
+            print(f"{RED}✗{NC} Remote setup failed for {target_host}")
+            return False
+    except FileNotFoundError:
+        print(f"{RED}[ERROR]{NC} nix-remote-setup not found at {NIX_REMOTE_SETUP}")
+        return False
+    except subprocess.SubprocessError as e:
+        print(f"{RED}[ERROR]{NC} Failed to run nix-remote-setup: {e}")
+        return False
+
+
+def ensure_remote_prepared(node: Node) -> bool:
+    """
+    Ensure a remote node is prepared for deployment.
+    
+    Checks each target host and runs nix-remote-setup if needed.
+    Returns True if at least one host is prepared/preparable.
+    """
+    for target_host in node.target_hosts:
+        if check_remote_prepared(target_host):
+            return True
+        
+        print(f"{YELLOW}[WARN]{NC} Remote {target_host} is not prepared for deployment")
+        
+        # Try to prepare it
+        if prepare_remote(target_host):
+            return True
+    
+    return False
 
 
 def build_local_command(node: Node) -> list[str]:
@@ -230,6 +302,11 @@ async def deploy_node(node: Node, prefix: str = "") -> tuple[str, bool, str]:
 
         return node.name, success, output
     else:
+        # Remote deployment - ensure remote is prepared first
+        if not ensure_remote_prepared(node):
+            print(f"{RED}✗{NC} {log_prefix}{node.name} - remote not prepared and setup failed")
+            return node.name, False, "Remote not prepared for deployment"
+        
         # Remote deployment - try each host in order
         return await try_remote_hosts(node, prefix)
 

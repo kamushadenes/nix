@@ -5,6 +5,7 @@
   pkgs,
   osConfig,
   private,
+  packages,
   ...
 }:
 let
@@ -32,6 +33,7 @@ let
     "@cacheKeyAgePath@" = cacheKeyAgePath;
     "@ageIdentity@" = ageIdentity;
     "@ageBin@" = "${pkgs.age}/bin/age";
+    "@nixRemoteSetup@" = "${packages.nix-remote-setup}/bin/nix-remote-setup";
   };
 
   # Helper to apply substitutions to a string
