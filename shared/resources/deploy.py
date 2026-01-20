@@ -72,7 +72,26 @@ def get_nodes() -> dict[str, Node]:
 
 
 def get_current_host() -> str:
-    """Get the current machine's hostname (short form, lowercase)."""
+    """Get the current machine's hostname (short form, lowercase).
+
+    On macOS, uses scutil --get ComputerName which returns the nix-darwin
+    configured name, as socket.gethostname() may return a different value
+    (the DNS hostname rather than the machine name).
+    """
+    # Try macOS-specific method first (scutil --get ComputerName)
+    try:
+        result = subprocess.run(
+            ["scutil", "--get", "ComputerName"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip().lower()
+    except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
+        pass
+
+    # Fall back to socket.gethostname() for NixOS and other systems
     hostname = socket.gethostname().split(".")[0].lower()
     # Handle common hostname suffixes
     for suffix in [".local", ".hyades.io"]:
@@ -222,6 +241,7 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
         Tuple of (node_name, success, output)
     """
     log_prefix = f"[{node.name}] " if prefix else ""
+    output = ""
 
     for i, target_host in enumerate(node.target_hosts):
         host_info = (
