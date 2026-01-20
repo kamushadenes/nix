@@ -114,7 +114,7 @@
         ''
           [[on-window-detected]]
           if.app-id="com.mitchellh.ghostty"
-          run = ["layout tiling"]
+          run = ["layout floating"]
         ''
         ''
           # Mail keeps freezing

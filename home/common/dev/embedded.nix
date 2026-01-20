@@ -4,7 +4,7 @@
     avrdude
     platformio
     pyocd
-    pkgs-unstable.mtkclient
-    edl
+    #pkgs-unstable.mtkclient
+    #edl
   ];
 }
