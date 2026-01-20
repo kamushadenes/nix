@@ -13,38 +13,36 @@ let
   #
   # Note: local vs remote is determined at runtime by comparing current hostname.
   # targetHosts is a list of hosts/IPs to try in order until one succeeds.
-  # Order: Private IPs -> Tailscale IP (works anywhere) -> .hyades.io (local network) -> hostname
+  # Order: Local IPs (from privateHosts) -> Tailscale -> DNS short names -> FQDN -> Public IPs
   machines = {
     # Darwin (macOS) machines - all aarch64-darwin
     studio = {
       type = "darwin";
       role = "workstation";
-      # Tailscale: kamus-mac-studio
-      targetHosts = [ "REDACTED_TS_IP" "studio.hyades.io" "studio" ];
+      targetHosts = [ "REDACTED_TS_IP" "studio" "studio.hyades.io" ];
     };
     macbook-m3-pro = {
       type = "darwin";
       role = "workstation";
-      targetHosts = [ "REDACTED_TS_IP" "macbook-m3-pro.hyades.io" "macbook-m3-pro" ];
+      targetHosts = [ "REDACTED_TS_IP" "macbook-m3-pro" "macbook-m3-pro.hyades.io" ];
     };
     w-henrique = {
       type = "darwin";
       role = "workstation";
-      targetHosts = [ "REDACTED_TS_IP" "w-henrique.hyades.io" "w-henrique" ];
+      targetHosts = [ "REDACTED_TS_IP" "w-henrique" "w-henrique.hyades.io" ];
     };
 
     # NixOS machines - all x86_64-linux
     nixos = {
       type = "nixos";
       role = "workstation";
-      # No tailscale entry found - using hostname only
-      targetHosts = [ "nixos.hyades.io" "nixos" ];
+      targetHosts = [ "nixos" "nixos.hyades.io" ];
     };
     aether = {
       type = "nixos";
       role = "headless";
-      targetHosts = [ "REDACTED_TS_IP" "aether.hyades.io" "aether" ];
-      buildHost = "aether";
+      # Tailscale -> DNS short -> FQDN -> Public IPs (local IPs from privateHosts)
+      targetHosts = [ "REDACTED_TS_IP" "aether" "aether.hyades.io" "REDACTED_IP" "REDACTED_IPV6" ];
       sshPort = 5678;
     };
   };
