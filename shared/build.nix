@@ -3,11 +3,12 @@
   pkgs,
   machine,
   lib,
+  platform,
   ...
 }:
 let
-  # Helper to create a build machine configuration
-  mkBuildMachine = hostName: {
+  # Helper to create a Darwin build machine configuration
+  mkDarwinBuildMachine = hostName: {
     inherit hostName;
     system = "aarch64-darwin";
     protocol = "ssh-ng";
@@ -17,15 +18,38 @@ let
     mandatoryFeatures = [ ];
   };
 
-  # Define all build machines with their corresponding machine names
-  buildMachineConfigs = [
-    { hostName = "studio.hyades.io"; machineName = "studio.hyades.io"; }
-    { hostName = "mac.hyades.io"; machineName = "macbook-m3-pro.hyades.io"; }
-    { hostName = "w-henrique.hyades.io"; machineName = "w-henrique.hyades.io"; }
+  # Helper to create a Linux build machine configuration
+  mkLinuxBuildMachine = hostName: {
+    inherit hostName;
+    systems = [ "x86_64-linux" "aarch64-linux" ];
+    protocol = "ssh-ng";
+    maxJobs = 8;
+    speedFactor = 4;
+    supportedFeatures = [ "big-parallel" "kvm" "nixos-test" ];
+    mandatoryFeatures = [ ];
+  };
+
+  # Define Darwin build machines (currently disabled - use local builds)
+  darwinBuildMachineConfigs = [
   ];
 
-  # Filter out the current machine and create build machine configs
-  activeBuildMachines = lib.filter (m: m.machineName != machine) buildMachineConfigs;
+  # Define Linux build machines
+  linuxBuildMachineConfigs = [
+    { hostName = "aether"; machineName = "aether"; }
+  ];
+
+  # Filter out the current machine
+  activeDarwinMachines = lib.filter (m: m.machineName != machine) darwinBuildMachineConfigs;
+  activeLinuxMachines = lib.filter (m: m.machineName != machine) linuxBuildMachineConfigs;
+
+  # Combine all active build machines
+  allBuildMachines =
+    (map (m: mkDarwinBuildMachine m.hostName) activeDarwinMachines)
+    ++ (map (m: mkLinuxBuildMachine m.hostName) activeLinuxMachines);
+  # All hostnames for substituters
+  allSubstituterHosts =
+    (map (m: m.hostName) activeDarwinMachines)
+    ++ (map (m: m.hostName) activeLinuxMachines);
 in
 {
   nix = {
@@ -35,7 +59,7 @@ in
       options = "--delete-older-than 30d";
     };
 
-    buildMachines = map (m: mkBuildMachine m.hostName) activeBuildMachines;
+    buildMachines = allBuildMachines;
     # Use mkDefault so linux-builder can override this to true
     distributedBuilds = lib.mkDefault false;
     extraOptions = ''
@@ -47,7 +71,7 @@ in
     };
 
     settings = {
-      substituters = map (m: "ssh-ng://${m.hostName}") activeBuildMachines;
+      substituters = map (h: "ssh-ng://${h}") allSubstituterHosts;
     };
   };
 }

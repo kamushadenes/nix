@@ -8,6 +8,10 @@
     ./common.nix
   ];
 
+  # VM disk size (10GB default, override in nixosConfigurations)
+  # Set with mkForce to override proxmox module's deprecated qemuConf.diskSize default
+  virtualisation.diskSize = lib.mkForce 10240;
+
   # QEMU guest agent for Proxmox integration
   services.qemuGuest.enable = true;
 

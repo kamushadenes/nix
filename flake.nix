@@ -145,6 +145,7 @@
                 };
               }
               hmDefaults
+              hmDarwinRoot
               (pkgs.lib.mkIf shared hmShared)
             ];
           }
@@ -181,6 +182,11 @@
         users.kamushadenes = import ./home.nix;
         sharedModules = hmModules;
         backupFileExtension = "hm.bkp";
+      };
+
+      # Darwin-specific home-manager config for root (for nix remote builds)
+      hmDarwinRoot = {
+        users.root = import ./home_root.nix;
       };
 
       hmShared = {
