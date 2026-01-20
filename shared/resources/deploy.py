@@ -556,7 +556,8 @@ def build_proxmox_images(vm: bool = True, lxc: bool = True) -> bool:
 
     for target in targets:
         print(f"{BLUE}[ * ]{NC} Building {BOLD}{target}{NC}...")
-        cmd = ["nix", "build", f"{FLAKE_PATH}#{target}", "--impure", "-L"]
+        # Proxmox images are x86_64-linux only, explicitly specify to use remote builder
+        cmd = ["nix", "build", f"{FLAKE_PATH}#packages.x86_64-linux.{target}", "--impure", "-L"]
 
         result = subprocess.run(cmd)
         if result.returncode == 0:
