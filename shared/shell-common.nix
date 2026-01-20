@@ -4,6 +4,7 @@
   lib,
   pkgs,
   osConfig,
+  private,
   ...
 }:
 let
@@ -14,7 +15,7 @@ let
   accountsConfig = import ../home/common/ai/claude-accounts.nix { inherit config lib; };
 
   # Import deployment configuration for rebuild tool
-  deployConfig = import ./deploy.nix { inherit lib pkgs; };
+  deployConfig = import ./deploy.nix { inherit lib pkgs private; };
 
   # SSH keys to be loaded
   sshKeys = [ config.age.secrets."id_ed25519.age".path ];

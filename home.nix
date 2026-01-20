@@ -14,7 +14,7 @@ let
   fishPlugins = import ./shared/fish-plugins.nix { inherit pkgs; };
   helpers = import ./shared/helpers.nix { inherit config lib pkgs osConfig; };
   packages = import ./shared/packages.nix { inherit lib pkgs; };
-  shellCommon = import ./shared/shell-common.nix { inherit config lib pkgs osConfig; };
+  shellCommon = import ./shared/shell-common.nix { inherit config lib pkgs osConfig private; };
   themes = import ./shared/themes.nix { inherit pkgs; };
 
   # Role-based module composition

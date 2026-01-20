@@ -1,13 +1,19 @@
 # Node configuration for deployment tool
 # Generates JSON config consumed by deploy.py
-{ lib, pkgs }:
+{ lib, pkgs, private ? null }:
 let
+  # Private hosts to merge (from private submodule)
+  # These are prepended to the public targetHosts
+  privateHosts = if private != null && builtins.pathExists "${private}/deploy-hosts.nix"
+    then import "${private}/deploy-hosts.nix"
+    else {};
+
   # Machine definitions - single source of truth for deployment targets
   # Keep in sync with flake.nix darwinConfigurations and nixosConfigurations
   #
   # Note: local vs remote is determined at runtime by comparing current hostname.
   # targetHosts is a list of hosts/IPs to try in order until one succeeds.
-  # Order: Tailscale IP (works anywhere) -> .hyades.io (local network) -> hostname
+  # Order: Private IPs -> Tailscale IP (works anywhere) -> .hyades.io (local network) -> hostname
   machines = {
     # Darwin (macOS) machines - all aarch64-darwin
     studio = {
@@ -46,11 +52,16 @@ let
   mkTags = name: cfg:
     [ "@${cfg.type}" "@${cfg.role}" ];
 
+  # Merge private hosts with public hosts
+  # Private hosts are prepended (tried first)
+  mergeHosts = name: publicHosts:
+    (privateHosts.${name} or []) ++ publicHosts;
+
   # Transform machine configs into node configs with computed tags
   nodes = lib.mapAttrs (name: cfg: {
     inherit (cfg) type role;
     tags = mkTags name cfg;
-    targetHosts = cfg.targetHosts or [ name ];
+    targetHosts = mergeHosts name (cfg.targetHosts or [ name ]);
     buildHost = cfg.buildHost or name;
   }) machines;
 
