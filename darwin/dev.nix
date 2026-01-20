@@ -9,6 +9,7 @@
   # Casks
   homebrew.casks = [
     "arduino-ide"
+    "macfuse"
     "gitkraken"
     "imhex"
     #"lens"
