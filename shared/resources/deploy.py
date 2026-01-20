@@ -114,7 +114,7 @@ def decrypt_cache_key() -> None:
 
     if os.path.exists(cache_key_age_path) and not os.path.exists(cache_key_path):
         if os.path.exists(age_identity):
-            print(f"{BLUE}[INFO]{NC} Decrypting cache signing key...")
+            print(f"{BLUE}[ * ]{NC} Decrypting cache signing key...")
             try:
                 with open(cache_key_path, "w") as f:
                     subprocess.run(
@@ -124,10 +124,10 @@ def decrypt_cache_key() -> None:
                     )
                 os.chmod(cache_key_path, 0o600)
             except subprocess.CalledProcessError as e:
-                print(f"{YELLOW}[WARN]{NC} Failed to decrypt cache key: {e}")
+                print(f"{YELLOW}[ ! ]{NC} Failed to decrypt cache key: {e}")
         else:
             print(
-                f"{YELLOW}[WARN]{NC} Age identity not found at {age_identity}, skipping cache key decryption"
+                f"{YELLOW}[ ! ]{NC} Age identity not found at {age_identity}, skipping cache key decryption"
             )
 
 
@@ -162,23 +162,23 @@ def prepare_remote(target_host: str) -> bool:
     
     Returns True if setup succeeded, False otherwise.
     """
-    print(f"{BLUE}[INFO]{NC} Running nix-remote-setup for {target_host}...")
+    print(f"{BLUE}[ * ]{NC} Running nix-remote-setup for {target_host}...")
     try:
         result = subprocess.run(
             [NIX_REMOTE_SETUP, target_host],
             check=False,
         )
         if result.returncode == 0:
-            print(f"{GREEN}✓{NC} Remote setup completed for {target_host}")
+            print(f"{GREEN}[ ✓ ]{NC} Remote setup completed for {target_host}")
             return True
         else:
-            print(f"{RED}✗{NC} Remote setup failed for {target_host}")
+            print(f"{RED}[ ✗ ]{NC} Remote setup failed for {target_host}")
             return False
     except FileNotFoundError:
-        print(f"{RED}[ERROR]{NC} nix-remote-setup not found at {NIX_REMOTE_SETUP}")
+        print(f"{RED}[ ✗ ]{NC} nix-remote-setup not found at {NIX_REMOTE_SETUP}")
         return False
     except subprocess.SubprocessError as e:
-        print(f"{RED}[ERROR]{NC} Failed to run nix-remote-setup: {e}")
+        print(f"{RED}[ ✗ ]{NC} Failed to run nix-remote-setup: {e}")
         return False
 
 
@@ -193,7 +193,7 @@ def ensure_remote_prepared(node: Node) -> bool:
         if check_remote_prepared(target_host):
             return True
         
-        print(f"{YELLOW}[WARN]{NC} Remote {target_host} is not prepared for deployment")
+        print(f"{YELLOW}[ ! ]{NC} Remote {target_host} is not prepared for deployment")
         
         # Try to prepare it
         if prepare_remote(target_host):
@@ -250,7 +250,7 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
             else ""
         )
         print(
-            f"{BLUE}[INFO]{NC} {log_prefix}Deploying to {BOLD}{node.name}{NC}{host_info}..."
+            f"{BLUE}[ * ]{NC} {log_prefix}Deploying to {BOLD}{node.name}{NC}{host_info}..."
         )
 
         cmd = build_remote_command(node, target_host)
@@ -265,19 +265,19 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
         success = proc.returncode == 0
 
         if success:
-            print(f"{GREEN}✓{NC} {log_prefix}{node.name} - deployment successful")
+            print(f"{GREEN}[ ✓ ]{NC} {log_prefix}{node.name} - deployment successful")
             return node.name, True, output
 
         # If this wasn't the last host, try the next one
         if i < len(node.target_hosts) - 1:
             print(
-                f"{YELLOW}[WARN]{NC} {log_prefix}Failed to deploy via {target_host}, trying next host..."
+                f"{YELLOW}[ ! ]{NC} {log_prefix}Failed to deploy via {target_host}, trying next host..."
             )
         else:
-            print(f"{RED}✗{NC} {log_prefix}{node.name} - deployment failed")
+            print(f"{RED}[ ✗ ]{NC} {log_prefix}{node.name} - deployment failed")
             lines = output.strip().split("\n")
             if lines:
-                print(f"{YELLOW}  Last output:{NC}")
+                print(f"{YELLOW}[ * ]{NC} Last output:")
                 for line in lines[-5:]:
                     print(f"    {line}")
 
@@ -300,7 +300,7 @@ async def deploy_node(node: Node, prefix: str = "") -> tuple[str, bool, str]:
     # Determine if this is a local or remote deployment
     if is_local_deploy(node):
         print(
-            f"{BLUE}[INFO]{NC} {log_prefix}Deploying to {BOLD}{node.name}{NC} (local)..."
+            f"{BLUE}[ * ]{NC} {log_prefix}Deploying to {BOLD}{node.name}{NC} (local)..."
         )
         cmd = build_local_command(node)
 
@@ -314,12 +314,12 @@ async def deploy_node(node: Node, prefix: str = "") -> tuple[str, bool, str]:
         success = proc.returncode == 0
 
         if success:
-            print(f"{GREEN}✓{NC} {log_prefix}{node.name} - deployment successful")
+            print(f"{GREEN}[ ✓ ]{NC} {log_prefix}{node.name} - deployment successful")
         else:
-            print(f"{RED}✗{NC} {log_prefix}{node.name} - deployment failed")
+            print(f"{RED}[ ✗ ]{NC} {log_prefix}{node.name} - deployment failed")
             lines = output.strip().split("\n")
             if lines:
-                print(f"{YELLOW}  Last output:{NC}")
+                print(f"{YELLOW}[ * ]{NC} Last output:")
                 for line in lines[-5:]:
                     print(f"    {line}")
 
@@ -327,7 +327,7 @@ async def deploy_node(node: Node, prefix: str = "") -> tuple[str, bool, str]:
     else:
         # Remote deployment - ensure remote is prepared first
         if not ensure_remote_prepared(node):
-            print(f"{RED}✗{NC} {log_prefix}{node.name} - remote not prepared and setup failed")
+            print(f"{RED}[ ✗ ]{NC} {log_prefix}{node.name} - remote not prepared and setup failed")
             return node.name, False, "Remote not prepared for deployment"
         
         # Remote deployment - try each host in order
@@ -346,7 +346,7 @@ async def deploy_parallel(nodes: list[Node]) -> bool:
     """
     node_names = ", ".join(n.name for n in nodes)
     print(
-        f"{BLUE}[INFO]{NC} Parallel deployment to {len(nodes)} nodes: {BOLD}{node_names}{NC}"
+        f"{BLUE}[ * ]{NC} Parallel deployment to {len(nodes)} nodes: {BOLD}{node_names}{NC}"
     )
     print()
 
@@ -355,10 +355,10 @@ async def deploy_parallel(nodes: list[Node]) -> bool:
 
     # Print summary
     print()
-    print(f"{BLUE}[INFO]{NC} {BOLD}Deployment Summary:{NC}")
+    print(f"{BLUE}[ * ]{NC} {BOLD}Deployment Summary:{NC}")
     all_success = True
     for name, success, _ in results:
-        status = f"{GREEN}✓{NC}" if success else f"{RED}✗{NC}"
+        status = f"{GREEN}[ ✓ ]{NC}" if success else f"{RED}[ ✗ ]{NC}"
         print(f"  {status} {name}")
         if not success:
             all_success = False
@@ -378,23 +378,23 @@ def deploy_sequential(nodes: list[Node]) -> bool:
     """
     all_success = True
     for i, node in enumerate(nodes, 1):
-        print(f"\n{BLUE}[INFO]{NC} Deploying {i}/{len(nodes)}...")
+        print(f"\n{BLUE}[ * ]{NC} Deploying {i}/{len(nodes)}...")
         _, success, _ = asyncio.run(deploy_node(node))
         if not success:
             all_success = False
             # Ask whether to continue on failure
             if i < len(nodes):
                 print(
-                    f"{YELLOW}[WARN]{NC} Deployment to {node.name} failed. Continue with remaining nodes? [y/N] ",
+                    f"{YELLOW}[ ! ]{NC} Deployment to {node.name} failed. Continue with remaining nodes? [y/N] ",
                     end="",
                 )
                 try:
                     response = input().strip().lower()
                     if response not in ("y", "yes"):
-                        print(f"{BLUE}[INFO]{NC} Stopping deployment.")
+                        print(f"{BLUE}[ * ]{NC} Stopping deployment.")
                         break
                 except (EOFError, KeyboardInterrupt):
-                    print(f"\n{BLUE}[INFO]{NC} Stopping deployment.")
+                    print(f"\n{BLUE}[ * ]{NC} Stopping deployment.")
                     break
     return all_success
 
@@ -421,7 +421,7 @@ def expand_targets(targets: list[str], nodes: dict[str, Node]) -> list[Node]:
                 n for n in nodes.values() if tag in n.tags and n.name not in seen
             ]
             if not matching:
-                print(f"{YELLOW}[WARN]{NC} No nodes match tag: {tag}")
+                print(f"{YELLOW}[ ! ]{NC} No nodes match tag: {tag}")
             for node in matching:
                 result.append(node)
                 seen.add(node.name)
@@ -431,7 +431,7 @@ def expand_targets(targets: list[str], nodes: dict[str, Node]) -> list[Node]:
                 result.append(nodes[target])
                 seen.add(target)
         else:
-            print(f"{RED}[ERROR]{NC} Unknown target: {target}")
+            print(f"{RED}[ ✗ ]{NC} Unknown target: {target}")
             print(f"Available nodes: {', '.join(sorted(nodes.keys()))}")
             sys.exit(1)
 
@@ -457,7 +457,7 @@ def build_proxmox_images(vm: bool = True, lxc: bool = True) -> bool:
         targets.append("proxmox-lxc")
 
     for target in targets:
-        print(f"{BLUE}[INFO]{NC} Building {BOLD}{target}{NC}...")
+        print(f"{BLUE}[ * ]{NC} Building {BOLD}{target}{NC}...")
         cmd = ["nix", "build", f"{FLAKE_PATH}#{target}", "--impure", "-L"]
 
         result = subprocess.run(cmd)
@@ -466,12 +466,12 @@ def build_proxmox_images(vm: bool = True, lxc: bool = True) -> bool:
             result_link = os.path.join(os.getcwd(), "result")
             if os.path.islink(result_link):
                 real_path = os.path.realpath(result_link)
-                print(f"{GREEN}✓{NC} {target} built successfully")
+                print(f"{GREEN}[ ✓ ]{NC} {target} built successfully")
                 print(f"  Output: {real_path}")
             else:
-                print(f"{GREEN}✓{NC} {target} built successfully")
+                print(f"{GREEN}[ ✓ ]{NC} {target} built successfully")
         else:
-            print(f"{RED}✗{NC} {target} build failed")
+            print(f"{RED}[ ✗ ]{NC} {target} build failed")
             all_success = False
 
     return all_success
@@ -584,7 +584,7 @@ def main() -> None:
         current = get_current_host()
         if current not in nodes:
             print(
-                f"{RED}[ERROR]{NC} Current host '{current}' not found in configuration"
+                f"{RED}[ ✗ ]{NC} Current host '{current}' not found in configuration"
             )
             print(f"Available nodes: {', '.join(sorted(nodes.keys()))}")
             print(f"\nTip: Use 'rebuild --list' to see all nodes and tags")
@@ -592,7 +592,7 @@ def main() -> None:
         targets = [nodes[current]]
 
     if not targets:
-        print(f"{RED}[ERROR]{NC} No deployment targets found")
+        print(f"{RED}[ ✗ ]{NC} No deployment targets found")
         sys.exit(1)
 
     # Handle --dry-run
