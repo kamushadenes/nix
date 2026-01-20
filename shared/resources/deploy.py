@@ -54,6 +54,7 @@ class Node:
     tags: list[str]
     target_hosts: list[str]  # List of hosts/IPs to try in order
     build_host: str
+    ssh_port: int  # SSH port (default: 22)
 
 
 def get_nodes() -> dict[str, Node]:
@@ -66,6 +67,7 @@ def get_nodes() -> dict[str, Node]:
             tags=cfg["tags"],
             target_hosts=cfg["targetHosts"],
             build_host=cfg["buildHost"],
+            ssh_port=cfg.get("sshPort", 22),
         )
         for name, cfg in NODE_CONFIG["nodes"].items()
     }
@@ -131,20 +133,21 @@ def decrypt_cache_key() -> None:
             )
 
 
-def check_remote_prepared(target_host: str) -> bool:
+def check_remote_prepared(target_host: str, ssh_port: int = 22) -> bool:
     """
     Check if a remote host has the required files for nix deployment.
-    
+
     Checks for:
     - ~/.age/age.pem (age identity)
     - ~/.config/nix/config/ (nix config repo)
-    
+
     Returns True if remote is prepared, False otherwise.
     """
     try:
         result = subprocess.run(
             [
                 "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
+                "-p", str(ssh_port),
                 target_host,
                 "test -f ~/.age/age.pem && test -d ~/.config/nix/config/"
             ],
@@ -156,23 +159,25 @@ def check_remote_prepared(target_host: str) -> bool:
         return False
 
 
-def prepare_remote(target_host: str) -> bool:
+def prepare_remote(target_host: str, ssh_port: int = 22) -> bool:
     """
     Run nix-remote-setup to prepare a remote host for deployment.
-    
+
     Returns True if setup succeeded, False otherwise.
     """
-    print(f"{BLUE}[ * ]{NC} Running nix-remote-setup for {target_host}...")
+    # Format host with port for nix-remote-setup if non-standard
+    host_arg = f"{target_host}:{ssh_port}" if ssh_port != 22 else target_host
+    print(f"{BLUE}[ * ]{NC} Running nix-remote-setup for {host_arg}...")
     try:
         result = subprocess.run(
-            [NIX_REMOTE_SETUP, target_host],
+            [NIX_REMOTE_SETUP, host_arg],
             check=False,
         )
         if result.returncode == 0:
-            print(f"{GREEN}[ ✓ ]{NC} Remote setup completed for {target_host}")
+            print(f"{GREEN}[ ✓ ]{NC} Remote setup completed for {host_arg}")
             return True
         else:
-            print(f"{RED}[ ✗ ]{NC} Remote setup failed for {target_host}")
+            print(f"{RED}[ ✗ ]{NC} Remote setup failed for {host_arg}")
             return False
     except FileNotFoundError:
         print(f"{RED}[ ✗ ]{NC} nix-remote-setup not found at {NIX_REMOTE_SETUP}")
@@ -185,20 +190,21 @@ def prepare_remote(target_host: str) -> bool:
 def ensure_remote_prepared(node: Node) -> bool:
     """
     Ensure a remote node is prepared for deployment.
-    
+
     Checks each target host and runs nix-remote-setup if needed.
     Returns True if at least one host is prepared/preparable.
     """
     for target_host in node.target_hosts:
-        if check_remote_prepared(target_host):
+        if check_remote_prepared(target_host, node.ssh_port):
             return True
-        
-        print(f"{YELLOW}[ ! ]{NC} Remote {target_host} is not prepared for deployment")
-        
+
+        port_info = f" (port {node.ssh_port})" if node.ssh_port != 22 else ""
+        print(f"{YELLOW}[ ! ]{NC} Remote {target_host}{port_info} is not prepared for deployment")
+
         # Try to prepare it
-        if prepare_remote(target_host):
+        if prepare_remote(target_host, node.ssh_port):
             return True
-    
+
     return False
 
 
@@ -229,9 +235,65 @@ def build_remote_command(node: Node, target_host: str) -> list[str]:
     ]
 
 
+def get_ssh_env(ssh_port: int) -> dict[str, str]:
+    """Get environment variables for SSH with custom port."""
+    env = os.environ.copy()
+    if ssh_port != 22:
+        env["NIX_SSHOPTS"] = f"-p {ssh_port}"
+    return env
+
+
+def is_connection_error(output: str) -> bool:
+    """
+    Check if the error output indicates a connection failure vs deployment failure.
+
+    Connection failures should trigger fallback to the next host.
+    Deployment failures (build errors, etc.) should not.
+    """
+    connection_error_patterns = [
+        "Connection refused",
+        "Connection timed out",
+        "Operation timed out",
+        "No route to host",
+        "Network is unreachable",
+        "Name or service not known",
+        "Could not resolve hostname",
+        "Host is down",
+        "Permission denied (publickey",
+        "ssh: connect to host",
+        "ssh_exchange_identification",
+    ]
+    output_lower = output.lower()
+    return any(pattern.lower() in output_lower for pattern in connection_error_patterns)
+
+
+async def check_ssh_connection(target_host: str, ssh_port: int) -> tuple[bool, str]:
+    """
+    Quick SSH connection check to verify host is reachable.
+
+    Returns (success, error_message).
+    """
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+            "-p", str(ssh_port),
+            target_host, "true",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        stdout, _ = await proc.communicate()
+        output = stdout.decode()
+        return proc.returncode == 0, output
+    except Exception as e:
+        return False, str(e)
+
+
 async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str]:
     """
     Try deploying to each target host in order until one succeeds.
+
+    Only falls back to the next host on connection errors.
+    Deployment failures (build errors, etc.) are returned immediately.
 
     Args:
         node: The node to deploy to
@@ -249,16 +311,40 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
             if len(node.target_hosts) > 1
             else ""
         )
+
+        # First, check if we can connect to this host
         print(
-            f"{BLUE}[ * ]{NC} {log_prefix}Deploying to {BOLD}{node.name}{NC}{host_info}..."
+            f"{BLUE}[ * ]{NC} {log_prefix}Checking connectivity to {target_host}..."
+        )
+        conn_ok, conn_output = await check_ssh_connection(target_host, node.ssh_port)
+
+        if not conn_ok:
+            # Connection failed - try next host if available
+            if i < len(node.target_hosts) - 1:
+                print(
+                    f"{YELLOW}[ ! ]{NC} {log_prefix}Cannot connect to {target_host}, trying next host..."
+                )
+                continue
+            else:
+                print(f"{RED}[ ✗ ]{NC} {log_prefix}{node.name} - all hosts unreachable")
+                return node.name, False, conn_output
+
+        # Connection succeeded - proceed with deployment
+        # Note: SSH config should have port entries for all target hosts with non-standard ports
+        port_info = f" (port {node.ssh_port})" if node.ssh_port != 22 else ""
+        print(
+            f"{BLUE}[ * ]{NC} {log_prefix}Deploying to {BOLD}{node.name}{NC}{host_info}{port_info}..."
         )
 
         cmd = build_remote_command(node, target_host)
+        env = get_ssh_env(node.ssh_port)
+
 
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
+            env=env,
         )
         stdout, _ = await proc.communicate()
         output = stdout.decode()
@@ -268,18 +354,26 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
             print(f"{GREEN}[ ✓ ]{NC} {log_prefix}{node.name} - deployment successful")
             return node.name, True, output
 
-        # If this wasn't the last host, try the next one
-        if i < len(node.target_hosts) - 1:
-            print(
-                f"{YELLOW}[ ! ]{NC} {log_prefix}Failed to deploy via {target_host}, trying next host..."
-            )
-        else:
-            print(f"{RED}[ ✗ ]{NC} {log_prefix}{node.name} - deployment failed")
+        # Deployment failed - check if it's a connection error or actual deployment failure
+        if is_connection_error(output) and i < len(node.target_hosts) - 1:
+            # Show the actual error before trying next host
             lines = output.strip().split("\n")
-            if lines:
-                print(f"{YELLOW}[ * ]{NC} Last output:")
-                for line in lines[-5:]:
-                    print(f"    {line}")
+            print(
+                f"{YELLOW}[ ! ]{NC} {log_prefix}Connection error to {target_host}:"
+            )
+            for line in lines[-5:]:
+                print(f"    {line}")
+            print(f"{YELLOW}[ * ]{NC} Trying next host...")
+            continue
+
+        # Deployment failure (not connection-related) - return error immediately
+        print(f"{RED}[ ✗ ]{NC} {log_prefix}{node.name} - deployment failed")
+        lines = output.strip().split("\n")
+        if lines:
+            print(f"{YELLOW}[ * ]{NC} Last output:")
+            for line in lines[-10:]:
+                print(f"    {line}")
+        return node.name, False, output
 
     return node.name, False, output
 

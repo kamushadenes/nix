@@ -149,17 +149,20 @@ let
     GREEN='\033[0;32m'
     YELLOW='\033[1;33m'
     BLUE='\033[0;34m'
+    BOLD='\033[1m'
     NC='\033[0m' # No Color
 
-    log_info() { echo -e "''${BLUE}[INFO]''${NC} $1"; }
-    log_success() { echo -e "''${GREEN}[OK]''${NC} $1"; }
-    log_warn() { echo -e "''${YELLOW}[WARN]''${NC} $1"; }
-    log_error() { echo -e "''${RED}[ERROR]''${NC} $1"; }
+    # Logging functions matching deploy.py symbols
+    log_info() { echo -e "''${BLUE}[ * ]''${NC} $1"; }
+    log_success() { echo -e "''${GREEN}[ ✓ ]''${NC} $1"; }
+    log_warn() { echo -e "''${YELLOW}[ ! ]''${NC} $1"; }
+    log_error() { echo -e "''${RED}[ ✗ ]''${NC} $1"; }
 
-    REMOTE_HOST="''${1:-}"
+    # Parse host:port format
+    INPUT="''${1:-}"
 
-    if [[ -z "$REMOTE_HOST" ]]; then
-        echo "Usage: nix-remote-setup <user@host>"
+    if [[ -z "$INPUT" ]]; then
+        echo "Usage: nix-remote-setup <user@host[:port]>"
         echo ""
         echo "Prepares a remote machine to receive this nix configuration by:"
         echo "  1. Copying ~/.age/age.pem (age encryption key)"
@@ -175,6 +178,18 @@ let
         exit 1
     fi
 
+    # Parse host and port (format: host or host:port)
+    if [[ "$INPUT" == *:* ]]; then
+        REMOTE_HOST="''${INPUT%:*}"
+        SSH_PORT="''${INPUT##*:}"
+    else
+        REMOTE_HOST="$INPUT"
+        SSH_PORT="22"
+    fi
+
+    SSH_OPTS=(-p "$SSH_PORT")
+    SCP_OPTS=(-P "$SSH_PORT")
+
     # Verify local prerequisites
     if [[ ! -f "$HOME/.age/age.pem" ]]; then
         log_error "Local ~/.age/age.pem not found"
@@ -186,35 +201,37 @@ let
         exit 1
     fi
 
-    log_info "Setting up remote host: $REMOTE_HOST"
+    PORT_INFO=""
+    [[ "$SSH_PORT" != "22" ]] && PORT_INFO=" (port $SSH_PORT)"
+    log_info "Setting up remote host: ''${BOLD}$REMOTE_HOST''${NC}$PORT_INFO"
 
     # Get remote home directory
     log_info "Detecting remote home directory..."
-    REMOTE_HOME=$(ssh "$REMOTE_HOST" 'echo $HOME')
+    REMOTE_HOME=$(ssh "''${SSH_OPTS[@]}" "$REMOTE_HOST" 'echo $HOME')
     log_success "Remote home: $REMOTE_HOME"
 
     # Create required directories on remote
     log_info "Creating directories on remote..."
-    ssh "$REMOTE_HOST" "mkdir -p ~/.age ~/.ssh/keys ~/.config/nix"
+    ssh "''${SSH_OPTS[@]}" "$REMOTE_HOST" "mkdir -p ~/.age ~/.ssh/keys ~/.config/nix"
     log_success "Directories created"
 
     # Copy age key
     log_info "Copying age key..."
-    scp "$HOME/.age/age.pem" "$REMOTE_HOST:~/.age/age.pem"
-    ssh "$REMOTE_HOST" "chmod 600 ~/.age/age.pem"
+    scp "''${SCP_OPTS[@]}" "$HOME/.age/age.pem" "$REMOTE_HOST:~/.age/age.pem"
+    ssh "''${SSH_OPTS[@]}" "$REMOTE_HOST" "chmod 600 ~/.age/age.pem"
     log_success "Age key copied"
 
     # Copy SSH key
     log_info "Copying SSH key..."
-    scp "$HOME/.ssh/keys/id_ed25519" "$REMOTE_HOST:~/.ssh/id_ed25519"
-    ssh "$REMOTE_HOST" "chmod 600 ~/.ssh/id_ed25519"
+    scp "''${SCP_OPTS[@]}" "$HOME/.ssh/keys/id_ed25519" "$REMOTE_HOST:~/.ssh/id_ed25519"
+    ssh "''${SSH_OPTS[@]}" "$REMOTE_HOST" "chmod 600 ~/.ssh/id_ed25519"
     log_success "SSH key copied"
 
-    ssh "$REMOTE_HOST" "ssh-keyscan github.com >> ~/.ssh/known_hosts"
+    ssh "''${SSH_OPTS[@]}" "$REMOTE_HOST" "ssh-keyscan github.com >> ~/.ssh/known_hosts"
 
     # Create nix.conf with dynamic path
     log_info "Creating nix.conf..."
-    ssh "$REMOTE_HOST" "cat > ~/.config/nix/nix.conf" <<EOF
+    ssh "''${SSH_OPTS[@]}" "$REMOTE_HOST" "cat > ~/.config/nix/nix.conf" <<EOF
     experimental-features = nix-command flakes
     substituters = http://ncps.hyades.io:8501 https://nix-community.cachix.org https://cache.nixos.org
     trusted-public-keys = ncps.hyades.io:/02vviGNLGYhW28GFzmPFupnP6gZ4uDD4G3kRnXuutE= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
@@ -224,12 +241,12 @@ let
 
     # Clone the repo
     log_info "Cloning nix config repository..."
-    ssh "$REMOTE_HOST" "git clone --recursive git@github.com:kamushadenes/nix.git ~/.config/nix/config/"
+    ssh "''${SSH_OPTS[@]}" "$REMOTE_HOST" "git clone --recursive git@github.com:kamushadenes/nix.git ~/.config/nix/config/"
     log_success "Repository cloned"
 
     # Decrypt cache signing key
     #log_info "Decrypting cache signing key..."
-    #ssh "$REMOTE_HOST" "${lib.getExe pkgs.age} -d -i ~/.age/age.pem ~/.config/nix/config/private/cache-priv-key.pem.age > ~/.config/nix/config/private/cache-priv-key.pem && chmod 600 ~/.config/nix/config/private/cache-priv-key.pem"
+    #ssh "''${SSH_OPTS[@]}" "$REMOTE_HOST" "${lib.getExe pkgs.age} -d -i ~/.age/age.pem ~/.config/nix/config/private/cache-priv-key.pem.age > ~/.config/nix/config/private/cache-priv-key.pem && chmod 600 ~/.config/nix/config/private/cache-priv-key.pem"
     #log_success "Cache key decrypted"
 
     echo ""

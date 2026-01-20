@@ -45,6 +45,7 @@ let
       role = "headless";
       targetHosts = [ "REDACTED_TS_IP" "aether.hyades.io" "aether" ];
       buildHost = "aether";
+      sshPort = 5678;
     };
   };
 
@@ -63,6 +64,7 @@ let
     tags = mkTags name cfg;
     targetHosts = mergeHosts name (cfg.targetHosts or [ name ]);
     buildHost = cfg.buildHost or name;
+    sshPort = cfg.sshPort or 22;
   }) machines;
 
 in
