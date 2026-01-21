@@ -240,11 +240,22 @@
       };
 
       # Proxmox image builders
-      # Build with: nix build .#proxmox-vm or nix build .#proxmox-lxc
+      # Build with: rebuild --proxmox-vm or rebuild --proxmox-lxc
       packages.x86_64-linux = {
+        # BROKEN: VMA format fails with qemu vma bug:
+        # "vma_writer_close failed vma_queue_write: write error - Invalid argument"
+        # Kept for future reference when upstream fixes the issue.
         proxmox-vm = nixos-generators.nixosGenerate {
           system = "x86_64-linux";
           format = "proxmox";
+          modules = [ ./nixos/proxmox/vm.nix ];
+        };
+
+        # Workaround: use qcow2 format and import with:
+        #   qm importdisk <vmid> nixos-proxmox-vm-qcow2-*.qcow2 <storage>
+        proxmox-vm-qcow2 = nixos-generators.nixosGenerate {
+          system = "x86_64-linux";
+          format = "qcow";
           modules = [ ./nixos/proxmox/vm.nix ];
         };
         proxmox-lxc = nixos-generators.nixosGenerate {

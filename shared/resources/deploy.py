@@ -13,8 +13,9 @@ Usage:
     rebuild -pa          # Parallel deploy to all machines
     rebuild --list       # List nodes and tags
     rebuild -n @nixos    # Dry run - show what would deploy
-    rebuild --proxmox    # Build Proxmox VM and LXC images
-    rebuild --proxmox-vm # Build only Proxmox VM image
+    rebuild --proxmox    # Build Proxmox VM (qcow2) and LXC images
+    rebuild --proxmox-vm # Build Proxmox VM image (.vma.zst, currently broken)
+    rebuild --proxmox-vm-qcow2 # Build Proxmox VM image (.qcow2, use qm importdisk)
     rebuild --proxmox-lxc # Build only Proxmox LXC image
 """
 
@@ -632,23 +633,41 @@ def expand_targets(targets: list[str], nodes: dict[str, Node]) -> list[Node]:
     return result
 
 
-def build_proxmox_images(vm: bool = True, lxc: bool = True) -> bool:
+def build_proxmox_images(vm: bool = False, vm_qcow2: bool = False, lxc: bool = False) -> bool:
     """
     Build Proxmox VM and/or LXC images.
 
     Args:
-        vm: Whether to build VM image
+        vm: Whether to build VM image (VMA format, currently broken)
+        vm_qcow2: Whether to build VM image (qcow2 format, working)
         lxc: Whether to build LXC image
 
     Returns:
         True if all builds succeeded
     """
+    from datetime import datetime
+    import glob as glob_module
+
     all_success = True
     targets = []
     if vm:
+        # NOTE: proxmox-vm (VMA format) is broken due to a qemu vma bug:
+        # "vma_writer_close failed vma_queue_write: write error - Invalid argument"
+        print(f"{YELLOW}[ ! ]{NC} VMA format is currently broken (qemu vma bug)")
+        print(f"{YELLOW}[ ! ]{NC} Consider using --proxmox-vm-qcow2 instead")
         targets.append("proxmox-vm")
+    if vm_qcow2:
+        # qcow2 format as workaround. Import with: qm importdisk <vmid> <file> <storage>
+        targets.append("proxmox-vm-qcow2")
     if lxc:
         targets.append("proxmox-lxc")
+
+    # Expected output extensions for each target type
+    extensions = {
+        "proxmox-vm": ".vma.zst",
+        "proxmox-vm-qcow2": ".qcow2",
+        "proxmox-lxc": ".tar.xz",
+    }
 
     for target in targets:
         print(f"{BLUE}[ * ]{NC} Building {BOLD}{target}{NC}...")
@@ -661,8 +680,34 @@ def build_proxmox_images(vm: bool = True, lxc: bool = True) -> bool:
             result_link = os.path.join(os.getcwd(), "result")
             if os.path.islink(result_link):
                 real_path = os.path.realpath(result_link)
-                print(f"{GREEN}[ ✓ ]{NC} {target} built successfully")
-                print(f"  Output: {real_path}")
+
+                # Find the actual image file in the output directory (may be nested)
+                ext = extensions.get(target, ".*")
+                pattern = os.path.join(real_path, "**", f"*{ext}")
+                matches = glob_module.glob(pattern, recursive=True)
+
+                if matches:
+                    src_file = matches[0]
+                    # Create a meaningful filename with timestamp
+                    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+                    dest_name = f"nixos-{target}-{timestamp}{ext}"
+                    dest_path = os.path.join(os.getcwd(), dest_name)
+
+                    # Copy the file to cwd
+                    print(f"{BLUE}[ * ]{NC} Copying to {dest_name}...")
+                    shutil.copy2(src_file, dest_path)
+
+                    # Clean up the result symlink
+                    os.unlink(result_link)
+
+                    print(f"{GREEN}[ ✓ ]{NC} {target} built successfully")
+                    print(f"  Output: {dest_path}")
+                else:
+                    print(f"{GREEN}[ ✓ ]{NC} {target} built successfully")
+                    print(f"  Output: {real_path}")
+
+                    # Clean up the result symlink
+                    os.unlink(result_link)
             else:
                 print(f"{GREEN}[ ✓ ]{NC} {target} built successfully")
         else:
@@ -739,12 +784,17 @@ def main() -> None:
     parser.add_argument(
         "--proxmox",
         action="store_true",
-        help="Build Proxmox VM and LXC images",
+        help="Build Proxmox VM (qcow2) and LXC images",
     )
     parser.add_argument(
         "--proxmox-vm",
         action="store_true",
-        help="Build only Proxmox VM image (.vma.zst)",
+        help="Build Proxmox VM image (.vma.zst, currently broken)",
+    )
+    parser.add_argument(
+        "--proxmox-vm-qcow2",
+        action="store_true",
+        help="Build Proxmox VM image (.qcow2, import with qm importdisk)",
     )
     parser.add_argument(
         "--proxmox-lxc",
@@ -765,11 +815,12 @@ def main() -> None:
         list_nodes(nodes, tailscale_up)
         return
 
-    # Handle --proxmox, --proxmox-vm, --proxmox-lxc
-    if args.proxmox or args.proxmox_vm or args.proxmox_lxc:
-        build_vm = args.proxmox or args.proxmox_vm
+    # Handle --proxmox, --proxmox-vm, --proxmox-vm-qcow2, --proxmox-lxc
+    if args.proxmox or args.proxmox_vm or args.proxmox_vm_qcow2 or args.proxmox_lxc:
+        build_vm = args.proxmox_vm
+        build_vm_qcow2 = args.proxmox or args.proxmox_vm_qcow2  # --proxmox uses qcow2
         build_lxc = args.proxmox or args.proxmox_lxc
-        success = build_proxmox_images(vm=build_vm, lxc=build_lxc)
+        success = build_proxmox_images(vm=build_vm, vm_qcow2=build_vm_qcow2, lxc=build_lxc)
         sys.exit(0 if success else 1)
 
     # Decrypt cache key before deployment
