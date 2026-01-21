@@ -17,9 +17,21 @@
   boot.isContainer = true;
 
   # Console configuration for LXC
-  systemd.services."getty@".enable = false;
+  # Proxmox uses /dev/console for container console access
+  systemd.services."getty@tty1".enable = false;
   systemd.services."autovt@".enable = false;
   systemd.services.console-getty.enable = true;
+
+  # Ensure console-getty is properly configured
+  systemd.services.console-getty = {
+    serviceConfig = {
+      ExecStart = [
+        ""  # Clear default
+        "${pkgs.util-linux}/sbin/agetty --noclear --keep-baud console 115200,38400,9600 $TERM"
+      ];
+      Restart = "always";
+    };
+  };
 
   # Filesystem layout for LXC:
   # The container root is managed by Proxmox, but we configure

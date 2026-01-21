@@ -47,10 +47,17 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   # Root user with SSH key access
-  users.users.root.openssh.authorizedKeys.keys = [
-    # Add your SSH public key here for initial access
-    # This will be overridden when you add the machine to nixosConfigurations
-  ];
+  users.users.root = {
+    # Allow empty password for initial console login (change immediately after first boot!)
+    initialHashedPassword = "";
+    openssh.authorizedKeys.keys = [
+      # Add your SSH public key here for initial access
+      # This will be overridden when you add the machine to nixosConfigurations
+    ];
+  };
+
+  # Allow empty password login for initial setup (console only, not SSH)
+  security.pam.services.login.allowNullPassword = true;
 
   # System state version
   system.stateVersion = "24.11";
