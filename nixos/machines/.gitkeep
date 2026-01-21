@@ -1,0 +1,8 @@
+# Machine-specific service configurations
+# Created by /migrate-lxc command for LXC container migrations
+#
+# Each file contains service configuration for a specific machine,
+# separate from hardware configuration (in nixos/hardware/) and
+# sensitive configuration (in private/nixos/).
+#
+# Example: nixos/machines/postgres.nix contains PostgreSQL service config
