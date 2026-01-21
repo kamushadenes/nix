@@ -100,11 +100,6 @@
     includes = [
       { path = themes.deltaCatppuccin + "/catppuccin.gitconfig"; }
     ]
-    ++ (helpers.mkConditionalGithubIncludes "Altinity" {
-      user = {
-        email = (helpers.mkEmail "hgoncalves" "altinity.com");
-      };
-    })
     ++ (helpers.mkConditionalGithubIncludes "Iniciador-de-Pagamentos" {
       user = {
         email = (helpers.mkEmail "henrique" "iniciador.com.br");

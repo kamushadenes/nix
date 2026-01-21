@@ -18,12 +18,6 @@
           userSettings = {
             "vs-kubernetes" = {
               "vs-kubernetes.minikube-show-information-expiration" = "2025-10-06T17:35:52.183Z";
-              "vs-kubernetes.knownKubeconfigs" = [
-                "/Users/kamushadenes/.kube/config_altinity_dev"
-                "/Users/kamushadenes/.kube/config_altinity_staging"
-                "/Users/kamushadenes/.kube/config_altinity_prod"
-              ];
-              "vs-kubernetes.kubeconfig" = "/Users/kamushadenes/.kube/config_altinity_dev";
             };
             "workbench.colorTheme" = "Catppuccin Macchiato";
             "workbench.iconTheme" = "catppuccin-macchiato";

@@ -95,13 +95,6 @@ let
     ../home/common/shell/kitty.nix
   ];
 
-  # Private/work-specific modules
-  altinity = [
-    "${private}/home/altinity/clickhouse.nix"
-    "${private}/home/altinity/cloud.nix"
-    "${private}/home/altinity/utils.nix"
-  ];
-
   # macOS-specific (workstation + darwin only)
   macos = [
     ../home/macos/aerospace.nix
@@ -123,7 +116,7 @@ let
 in
 {
   # Export module groups for documentation/debugging
-  inherit base ai dev editors infra utils sync media guiShell altinity macos linuxDesktop linuxCli;
+  inherit base ai dev editors infra utils sync media guiShell macos linuxDesktop linuxCli;
 
   # Compose modules based on role and platform
   # platform should be "darwin" or "linux"
@@ -145,7 +138,6 @@ in
           ++ sync
           ++ media
           ++ guiShell
-          ++ altinity
           ++ lib.optionals isDarwin macos
           ++ lib.optionals isLinux (linuxDesktop ++ linuxCli);
 
@@ -158,7 +150,6 @@ in
           ++ infra
           ++ utils
           ++ sync
-          ++ altinity
           ++ lib.optionals isLinux linuxCli;
 
         # Minimal - just shell and git

@@ -34,22 +34,6 @@ rec {
         "iniciador-vanta"
       ];
     };
-
-    # Altinity - ClickHouse cloud platform
-    altinity = {
-      # Git remote patterns (regex, case-insensitive via [Aa])
-      gitRemotePatterns = [
-        "github\\.com[:/][Aa]ltinity/"
-      ];
-      # Path prefixes
-      pathPrefixes = [
-        "${homeDir}/Dropbox/Projects/Altinity"
-      ];
-      # Altinity-specific MCP servers
-      mcpServers = [
-        "altinity-slack"
-      ];
-    };
   };
 
   #############################################################################

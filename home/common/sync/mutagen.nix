@@ -12,7 +12,6 @@ let
 
   # Projects to sync
   projects = [
-    "Altinity"
     "Iniciador"
     "Hadenes"
     "Personal"
