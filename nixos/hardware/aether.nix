@@ -30,6 +30,10 @@
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
+  # Enable aarch64-linux emulation via QEMU binfmt
+  # Allows building aarch64-linux packages (e.g., for darwin linux-builder bootstrap)
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+
   # Filesystem layout:
   # - tmpfs root (ephemeral, 8GB)
   # - Two ext4 boot partitions (mirrored manually)

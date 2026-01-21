@@ -60,8 +60,8 @@ in
     };
 
     buildMachines = allBuildMachines;
-    # Use mkDefault so linux-builder can override this to true
-    distributedBuilds = lib.mkDefault false;
+    # Enable distributed builds when remote builders are configured
+    distributedBuilds = allBuildMachines != [];
     extraOptions = ''
       builders-use-substitutes = true
     '';

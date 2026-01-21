@@ -19,13 +19,16 @@ Usage:
 """
 
 import asyncio
+import ipaddress
 import json
 import os
+import shutil
 import socket
 import subprocess
 import sys
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from functools import lru_cache
 
 # Substituted by Nix at build time
 NODE_CONFIG = json.loads('''@nodeConfigJson@''')
@@ -44,6 +47,90 @@ BLUE = "\033[34m"
 BOLD = "\033[1m"
 NC = "\033[0m"  # No Color / Reset
 
+# Tailscale CGNAT range: 100.64.0.0/10 (100.64.0.0 - 100.127.255.255)
+TAILSCALE_CGNAT = ipaddress.ip_network("100.64.0.0/10")
+
+
+def find_tailscale_binary() -> str | None:
+    """Find the tailscale binary on the system.
+
+    Checks common locations:
+    - PATH (Linux/NixOS)
+    - /Applications/Tailscale.app/Contents/MacOS/Tailscale (macOS App Store)
+    """
+    # Try PATH first (works on NixOS and if tailscale is in PATH)
+    tailscale = shutil.which("tailscale")
+    if tailscale:
+        return tailscale
+
+    # macOS App Store location
+    macos_app = "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+    if os.path.exists(macos_app):
+        return macos_app
+
+    return None
+
+
+@lru_cache(maxsize=1)
+def is_tailscale_connected() -> bool:
+    """Check if Tailscale is connected.
+
+    Uses `tailscale status --json` to check if BackendState is "Running".
+    Returns False if tailscale is not installed or not running.
+    """
+    tailscale = find_tailscale_binary()
+    if not tailscale:
+        return False
+
+    try:
+        result = subprocess.run(
+            [tailscale, "status", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode != 0:
+            return False
+
+        status = json.loads(result.stdout)
+        return status.get("BackendState") == "Running"
+    except (subprocess.TimeoutExpired, subprocess.SubprocessError, json.JSONDecodeError):
+        return False
+
+
+def is_tailscale_ip(host: str) -> bool:
+    """Check if a host is a Tailscale IP address (100.64.0.0/10 CGNAT range).
+
+    Args:
+        host: Hostname or IP address to check
+
+    Returns:
+        True if the host is an IP in the Tailscale CGNAT range
+    """
+    try:
+        ip = ipaddress.ip_address(host)
+        return ip in TAILSCALE_CGNAT
+    except ValueError:
+        # Not a valid IP address (hostname), not a Tailscale IP
+        return False
+
+
+def filter_tailscale_ips(hosts: list[str], tailscale_up: bool) -> list[str]:
+    """Filter out Tailscale IPs from host list if Tailscale is not connected.
+
+    Args:
+        hosts: List of hostnames/IPs to filter
+        tailscale_up: Whether Tailscale is connected
+
+    Returns:
+        Filtered list of hosts (Tailscale IPs removed if Tailscale is down)
+    """
+    if tailscale_up:
+        return hosts
+
+    filtered = [h for h in hosts if not is_tailscale_ip(h)]
+    return filtered
+
 
 @dataclass
 class Node:
@@ -57,15 +144,23 @@ class Node:
     ssh_port: int  # SSH port (default: 22)
 
 
-def get_nodes() -> dict[str, Node]:
-    """Parse node configuration into Node objects."""
+def get_nodes(tailscale_up: bool = True) -> dict[str, Node]:
+    """Parse node configuration into Node objects.
+
+    Args:
+        tailscale_up: Whether Tailscale is connected. If False, Tailscale IPs
+                      are filtered from target_hosts.
+
+    Returns:
+        Dictionary of node name to Node object
+    """
     return {
         name: Node(
             name=name,
             type=cfg["type"],
             role=cfg["role"],
             tags=cfg["tags"],
-            target_hosts=cfg["targetHosts"],
+            target_hosts=filter_tailscale_ips(cfg["targetHosts"], tailscale_up),
             build_host=cfg["buildHost"],
             ssh_port=cfg.get("sshPort", 22),
         )
@@ -211,7 +306,8 @@ def ensure_remote_prepared(node: Node) -> bool:
 def build_local_command(node: Node) -> list[str]:
     """Build the command for local deployment using nh."""
     nh_type = "darwin" if node.type == "darwin" else "os"
-    return ["nh", nh_type, "switch", "--impure", "-H", node.name]
+    # Pass FLAKE_PATH explicitly to ensure it works when nh uses sudo internally
+    return ["nh", nh_type, "switch", "--impure", "-H", node.name, FLAKE_PATH]
 
 
 def build_remote_command(node: Node, target_host: str) -> list[str]:
@@ -576,10 +672,11 @@ def build_proxmox_images(vm: bool = True, lxc: bool = True) -> bool:
     return all_success
 
 
-def list_nodes(nodes: dict[str, Node]) -> None:
+def list_nodes(nodes: dict[str, Node], tailscale_up: bool = True) -> None:
     """Print all available nodes and tags."""
     current_host = get_current_host()
-    print(f"{BOLD}Nodes:{NC} (current host: {current_host})")
+    ts_status = f"{GREEN}connected{NC}" if tailscale_up else f"{YELLOW}disconnected{NC}"
+    print(f"{BOLD}Nodes:{NC} (current host: {current_host}, tailscale: {ts_status})")
     for name in sorted(nodes.keys()):
         node = nodes[name]
         is_local = name == current_host
@@ -656,11 +753,16 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    nodes = get_nodes()
+    # Check Tailscale connection status
+    tailscale_up = is_tailscale_connected()
+    if not tailscale_up:
+        print(f"{YELLOW}[ ! ]{NC} Tailscale not connected - skipping 100.x.x.x addresses")
+
+    nodes = get_nodes(tailscale_up)
 
     # Handle --list
     if args.list:
-        list_nodes(nodes)
+        list_nodes(nodes, tailscale_up)
         return
 
     # Handle --proxmox, --proxmox-vm, --proxmox-lxc
