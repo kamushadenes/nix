@@ -1,6 +1,7 @@
 ---
 allowed-tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(gh:*), AskUserQuestion, Task, TaskOutput
 description: Delegate tasks to parallel worker Claude instances
+argument-hint: [--auto-merge]
 ---
 
 ## Context

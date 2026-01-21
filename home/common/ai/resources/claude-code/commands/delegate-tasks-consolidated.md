@@ -1,6 +1,7 @@
 ---
 allowed-tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(gh:*), AskUserQuestion, Task, TaskOutput
 description: Delegate tasks to parallel workers with single consolidated PR
+argument-hint: [--base branch] [--auto-merge] [--name feature]
 ---
 
 ## Context

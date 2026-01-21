@@ -1,6 +1,7 @@
 ---
 allowed-tools: Skill(commit-push-pr), Skill(review), Bash(wt switch:*), Bash(wt remove:*), Bash(git push:*), Bash(git remote:*), Bash(git remote prune:*), Bash(gh pr:*), Bash(cd:*), Bash(direnv allow:*), MCPSearch, mcp__task-master-ai__*, TodoWrite, AskUserQuestion
 description: Work on next task with branch and PR workflow
+argument-hint: [--auto-merge]
 ---
 
 # Work on Next Task

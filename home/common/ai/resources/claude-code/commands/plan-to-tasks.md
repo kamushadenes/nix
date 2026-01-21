@@ -1,6 +1,7 @@
 ---
 allowed-tools: Task, Bash(ls:*), Read, MCPSearch, mcp__task-master-ai__*
 description: Convert a Claude Code plan file into task-master tasks for cross-session tracking
+argument-hint: [plan-file-path]
 ---
 
 # Convert Plan to Task-Master Tasks
