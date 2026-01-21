@@ -16,20 +16,21 @@ let
   # Order: Local IPs (from privateHosts) -> Tailscale -> DNS short names -> FQDN -> Public IPs
   machines = {
     # Darwin (macOS) machines - all aarch64-darwin
+    # IPs are loaded from privateHosts
     studio = {
       type = "darwin";
       role = "workstation";
-      targetHosts = [ "REDACTED_TS_IP" "studio" "studio.hyades.io" ];
+      targetHosts = [ "studio" "studio.hyades.io" ];
     };
     macbook-m3-pro = {
       type = "darwin";
       role = "workstation";
-      targetHosts = [ "REDACTED_TS_IP" "macbook-m3-pro" "macbook-m3-pro.hyades.io" ];
+      targetHosts = [ "macbook-m3-pro" "macbook-m3-pro.hyades.io" ];
     };
     w-henrique = {
       type = "darwin";
       role = "workstation";
-      targetHosts = [ "REDACTED_TS_IP" "w-henrique" "w-henrique.hyades.io" ];
+      targetHosts = [ "w-henrique" "w-henrique.hyades.io" ];
     };
 
     # NixOS machines - all x86_64-linux
@@ -41,8 +42,8 @@ let
     aether = {
       type = "nixos";
       role = "headless";
-      # Tailscale -> DNS short -> FQDN -> Public IPs (local IPs from privateHosts)
-      targetHosts = [ "REDACTED_TS_IP" "aether" "aether.hyades.io" "REDACTED_IP" "REDACTED_IPV6" ];
+      # IPs loaded from privateHosts
+      targetHosts = [ "aether" "aether.hyades.io" ];
       sshPort = 5678;
     };
   };
