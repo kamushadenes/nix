@@ -15,9 +15,6 @@ let
   # Import account configuration for multi-account support
   accountsConfig = import ../home/common/ai/claude-accounts.nix { inherit config lib; };
 
-  # Import deployment configuration for rebuild tool
-  deployConfig = import ./deploy.nix { inherit lib pkgs private; };
-
   # SSH keys to be loaded (only if agenix is enabled)
   sshKeys =
     if config.age.secrets ? "id_ed25519.age"
@@ -30,8 +27,8 @@ let
   ageIdentity = "$HOME/.age/age.pem";
 
   # Substitutions for deploy.py script template
+  # Note: Node config is read directly from private/nodes.json at runtime
   deploySubst = {
-    "@nodeConfigJson@" = deployConfig.configJson;
     "@cacheKeyPath@" = cacheKeyPath;
     "@cacheKeyAgePath@" = cacheKeyAgePath;
     "@ageIdentity@" = ageIdentity;

@@ -31,9 +31,9 @@ from argparse import ArgumentParser
 from dataclasses import dataclass
 from functools import lru_cache
 
-# Substituted by Nix at build time
-NODE_CONFIG = json.loads('''@nodeConfigJson@''')
+# Paths
 FLAKE_PATH = os.path.expanduser("~/.config/nix/config")
+NODES_JSON_PATH = os.path.join(FLAKE_PATH, "private", "nodes.json")
 CACHE_KEY_PATH = "@cacheKeyPath@"
 CACHE_KEY_AGE_PATH = "@cacheKeyAgePath@"
 AGE_IDENTITY = "@ageIdentity@"
@@ -145,6 +145,33 @@ class Node:
     ssh_port: int  # SSH port (default: 22)
 
 
+def load_node_config() -> dict:
+    """Load node configuration from nodes.json file.
+
+    Reads from FLAKE_PATH/shared/nodes.json and processes each node
+    to add computed fields (tags, buildHost defaults).
+
+    Returns:
+        Dictionary with 'nodes' key containing processed node configs
+    """
+    with open(NODES_JSON_PATH) as f:
+        raw_config = json.load(f)
+
+    # Process each node to add computed fields
+    nodes = {}
+    for name, cfg in raw_config["nodes"].items():
+        nodes[name] = {
+            "type": cfg["type"],
+            "role": cfg["role"],
+            "tags": [f"@{cfg['type']}", f"@{cfg['role']}"],
+            "targetHosts": cfg.get("targetHosts", [name]),
+            "buildHost": cfg.get("buildHost", name),
+            "sshPort": cfg.get("sshPort", 22),
+        }
+
+    return {"nodes": nodes}
+
+
 def get_nodes(tailscale_up: bool = True) -> dict[str, Node]:
     """Parse node configuration into Node objects.
 
@@ -155,6 +182,7 @@ def get_nodes(tailscale_up: bool = True) -> dict[str, Node]:
     Returns:
         Dictionary of node name to Node object
     """
+    node_config = load_node_config()
     return {
         name: Node(
             name=name,
@@ -165,7 +193,7 @@ def get_nodes(tailscale_up: bool = True) -> dict[str, Node]:
             build_host=cfg["buildHost"],
             ssh_port=cfg.get("sshPort", 22),
         )
-        for name, cfg in NODE_CONFIG["nodes"].items()
+        for name, cfg in node_config["nodes"].items()
     }
 
 
