@@ -222,6 +222,14 @@
           hardware = ./nixos/hardware/aether.nix;
         };
 
+        # Atuin shell history sync server (LXC)
+        atuin = mkProxmoxHost {
+          machine = "atuin";
+          hardware = ./nixos/hardware/atuin.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/atuin" ];
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox

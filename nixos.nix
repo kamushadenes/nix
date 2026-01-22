@@ -11,8 +11,10 @@ let
   packages = import ./shared/packages.nix { inherit pkgs; lib = pkgs.lib; };
   overlays = import ./shared/overlays.nix;
 
-  # Check if this is a headless server (no GUI)
+  # Role-based conditionals
   isHeadless = role == "headless";
+  isMinimal = role == "minimal";
+  isServer = isHeadless || isMinimal; # Both headless and minimal are "server" roles
 in
 {
   _module.args = {
@@ -27,16 +29,19 @@ in
       ./shared/cache.nix
 
       # Core modules (always imported)
-      ./nixos/dev.nix
-      ./nixos/fonts.nix
       "${private}/nixos/network.nix"
       ./nixos/nix.nix
       ./nixos/security.nix
       ./nixos/shells.nix
       ./nixos/users.nix
     ]
-    # GUI/desktop modules (skip for headless servers)
-    ++ lib.optionals (!isHeadless) [
+    # Development tools (workstation only - not for headless or minimal)
+    ++ lib.optionals (!isServer) [
+      ./nixos/dev.nix
+      ./nixos/fonts.nix
+    ]
+    # GUI/desktop modules (skip for headless and minimal servers)
+    ++ lib.optionals (!isServer) [
       ./nixos/audio.nix
       ./nixos/browser.nix
       ./nixos/display_gnome.nix
@@ -46,6 +51,10 @@ in
       ./nixos/media.nix
       ./nixos/meeting.nix
       ./nixos/utils.nix
+    ]
+    # Minimal role specific - default SSH keys
+    ++ lib.optionals isMinimal [
+      ./nixos/minimal.nix
     ];
 
   # Allow unfree packages to be installed.

@@ -2,36 +2,58 @@
 #
 # Roles control which home-manager modules are imported for each machine.
 # This enables headless servers to skip GUI modules while maintaining
-# full dev tooling.
+# full dev tooling, and service containers to have a familiar shell
+# environment without development overhead.
+#
+# Role hierarchy:
+#   workstation - Full GUI experience with all dev tools
+#   headless    - Full dev tooling, CLI only (no GUI apps)
+#   minimal     - Familiar shell environment only (for service containers)
 #
 # Usage in flake.nix:
 #   mkDarwinHost { machine = "..."; role = "workstation"; }
 #   mkNixosHost { machine = "..."; role = "headless"; }
+#   mkProxmoxHost { machine = "..."; role = "minimal"; }
 #
 { lib, private }:
 let
-  # Base modules included in ALL roles
-  base = [
-    # Core
+  # ============================================================
+  # Module Groups - Building blocks for role composition
+  # ============================================================
+
+  # Minimal core - just nix settings (garbage collection, flakes)
+  minimalCore = [
+    ../home/common/core/nix.nix
+  ];
+
+  # Full core - adds agenix, fonts, git, network, ssh
+  fullCore = minimalCore ++ [
     ../home/common/core/agenix.nix
     ../home/common/core/fonts.nix
     ../home/common/core/git.nix
     ../home/common/core/network.nix
-    ../home/common/core/nix.nix
     "${private}/home/common/core/ssh.nix"
+  ];
 
-    # Shell (CLI only - no GUI terminals)
+  # Shell modules - CLI configuration (no GUI terminals)
+  # Provides: fish/bash/zsh with starship, tmux, modern CLI tools
+  shellAll = [
     ../home/common/shell/bash.nix
     ../home/common/shell/fish.nix
     ../home/common/shell/zsh.nix
-    ../home/common/shell/misc.nix
+    ../home/common/shell/misc.nix # ripgrep, fd, fzf, bat, htop, jq, eza, etc.
     ../home/common/shell/starship.nix
     ../home/common/shell/tmux.nix
+  ];
 
-    # Security
+  # Security modules - GPG, security scanning tools
+  security = [
     ../home/common/security/gpg.nix
     ../home/common/security/tools.nix
   ];
+
+  # Base modules for workstation/headless roles (backwards compat)
+  base = fullCore ++ shellAll ++ security;
 
   # AI tools - Claude, orchestrator, etc.
   ai = [
@@ -113,10 +135,16 @@ let
     ../home/linux/shell.nix
     ../home/linux/systemd.nix
   ];
+
+  # Linux minimal - just systemd for user session variables
+  linuxMinimal = [
+    ../home/linux/systemd.nix
+  ];
 in
 {
   # Export module groups for documentation/debugging
   inherit base ai dev editors infra utils sync media guiShell macos linuxDesktop linuxCli;
+  inherit minimalCore fullCore shellAll security linuxMinimal;
 
   # Compose modules based on role and platform
   # platform should be "darwin" or "linux"
@@ -152,8 +180,14 @@ in
           ++ sync
           ++ lib.optionals isLinux linuxCli;
 
-        # Minimal - just shell and git
-        minimal = base;
+        # Minimal - familiar shell environment only
+        # For service containers and simple machines
+        # Includes: shells (fish/bash/zsh), starship, tmux, modern CLI tools
+        # Excludes: agenix, fonts, git, SSH client config, security tools, dev tools
+        minimal =
+          minimalCore
+          ++ shellAll
+          ++ lib.optionals isLinux linuxMinimal;
       };
     in
     groups.${role} or (throw "Unknown role: ${role}. Valid roles: workstation, headless, minimal");

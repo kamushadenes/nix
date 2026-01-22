@@ -18,8 +18,11 @@ let
   # Import deployment configuration for rebuild tool
   deployConfig = import ./deploy.nix { inherit lib pkgs private; };
 
-  # SSH keys to be loaded
-  sshKeys = [ config.age.secrets."id_ed25519.age".path ];
+  # SSH keys to be loaded (only if agenix is enabled)
+  sshKeys =
+    if config.age.secrets ? "id_ed25519.age"
+    then [ config.age.secrets."id_ed25519.age".path ]
+    else [ ];
 
   # Cache key paths for rebuild function
   cacheKeyPath = "$HOME/.config/nix/config/private/cache-priv-key.pem";
