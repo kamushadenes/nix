@@ -103,11 +103,15 @@ def is_tailscale_ip(host: str) -> bool:
     """Check if a host is a Tailscale IP address (100.64.0.0/10 CGNAT range).
 
     Args:
-        host: Hostname or IP address to check
+        host: Hostname or IP address to check (may include user@ prefix)
 
     Returns:
         True if the host is an IP in the Tailscale CGNAT range
     """
+    # Strip user@ prefix if present
+    if "@" in host:
+        host = host.split("@", 1)[1]
+
     try:
         ip = ipaddress.ip_address(host)
         return ip in TAILSCALE_CGNAT
@@ -143,6 +147,7 @@ class Node:
     target_hosts: list[str]  # List of hosts/IPs to try in order
     build_host: str
     ssh_port: int  # SSH port (default: 22)
+    user: str | None = None  # SSH user override (prepended to target_hosts)
 
 
 def load_node_config() -> dict:
@@ -160,13 +165,21 @@ def load_node_config() -> dict:
     # Process each node to add computed fields
     nodes = {}
     for name, cfg in raw_config["nodes"].items():
+        user = cfg.get("user")  # SSH user override (e.g., "root")
+        target_hosts = cfg.get("targetHosts", [name])
+
+        # Prepend user@ to each target host if user is specified
+        if user:
+            target_hosts = [f"{user}@{h}" for h in target_hosts]
+
         nodes[name] = {
             "type": cfg["type"],
             "role": cfg["role"],
             "tags": [f"@{cfg['type']}", f"@{cfg['role']}"],
-            "targetHosts": cfg.get("targetHosts", [name]),
+            "targetHosts": target_hosts,
             "buildHost": cfg.get("buildHost", name),
             "sshPort": cfg.get("sshPort", 22),
+            "user": user,
         }
 
     return {"nodes": nodes}
@@ -192,6 +205,7 @@ def get_nodes(tailscale_up: bool = True) -> dict[str, Node]:
             target_hosts=filter_tailscale_ips(cfg["targetHosts"], tailscale_up),
             build_host=cfg["buildHost"],
             ssh_port=cfg.get("sshPort", 22),
+            user=cfg.get("user"),
         )
         for name, cfg in node_config["nodes"].items()
     }

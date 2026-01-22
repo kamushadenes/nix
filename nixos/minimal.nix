@@ -12,4 +12,7 @@ in
 
   # SSH authorized keys for root (for remote deployment)
   users.users.root.openssh.authorizedKeys.keys = [ authorizedKey ];
+
+  # Allow root login for minimal role (needed for remote deployment)
+  services.openssh.settings.PermitRootLogin = lib.mkForce "prohibit-password";
 }

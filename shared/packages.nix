@@ -229,6 +229,11 @@ let
     ssh "$REMOTE_HOST" "git clone --recursive git@github.com:kamushadenes/nix.git ~/.config/nix/config/"
     log_success "Repository cloned"
 
+    # Decrypt cache signing key
+    log_info "Decrypting cache signing key..."
+    ssh "$REMOTE_HOST" 'AGE=$(find /nix/store -name "age" -type f -path "*/bin/*" 2>/dev/null | head -1); cd ~/.config/nix/config/private && $AGE -d -i ~/.age/age.pem cache-priv-key.pem.age > cache-priv-key.pem && chmod 600 cache-priv-key.pem'
+    log_success "Cache key decrypted"
+
     echo ""
     log_success "Remote setup complete!"
     echo ""

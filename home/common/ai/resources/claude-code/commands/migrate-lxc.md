@@ -276,7 +276,7 @@ Add to `nixosConfigurations`:
 <machine> = mkProxmoxHost {
   machine = "<machine>";
   hardware = ./nixos/hardware/<machine>.nix;
-  role = "headless";
+  role = "minimal";  # Familiar shell environment for service containers
   extraPersistPaths = [ "/var/lib/<service>" ];  # Service-specific
 };
 ```
@@ -321,13 +321,54 @@ git add flake.nix
 cd private && git add nixos/<machine>.nix nixos/secrets/<machine>/ && cd ..
 ```
 
-### 7.3 Deploy to new container
+### 7.3 Set up persistence directories BEFORE first rebuild (CRITICAL)
+
+**This step MUST be done before the first `rebuild`.** Services create their state during initial activation. If persistence directories don't exist as bind mounts yet, data goes to ephemeral storage and is lost.
+
+```bash
+# SSH to new container (may need console access for fresh containers)
+ssh <new_ssh>
+
+# Create base persistence structure
+mkdir -p /nix/persist/etc/nixos
+mkdir -p /nix/persist/etc/ssh
+mkdir -p /nix/persist/var/log
+mkdir -p /nix/persist/home
+
+# Create service-specific persistence directory
+mkdir -p /nix/persist/var/lib/<service>
+
+# Generate SSH host keys (required for sshd)
+ssh-keygen -t ed25519 -f /nix/persist/etc/ssh/ssh_host_ed25519_key -N ""
+ssh-keygen -t rsa -b 4096 -f /nix/persist/etc/ssh/ssh_host_rsa_key -N ""
+
+# Generate machine-id (required for systemd-journald)
+systemd-machine-id-setup --root=/nix/persist
+
+# Symlink machine-id so it's available immediately
+ln -sf /nix/persist/etc/machine-id /etc/machine-id
+
+# Create bind mounts manually for first boot
+mount --bind /nix/persist/etc/nixos /etc/nixos
+mount --bind /nix/persist/etc/ssh /etc/ssh
+mount --bind /nix/persist/var/log /var/log
+mount --bind /nix/persist/home /home
+mount --bind /nix/persist/var/lib/<service> /var/lib/<service>
+```
+
+**Why this matters:**
+- On first nixos-rebuild, the service activation scripts run
+- Services like atuin, postgresql, etc. initialize their data directories
+- Without bind mounts in place, this data goes to tmpfs
+- After reboot, the persistence module creates bind mounts, but the data is gone
+
+### 7.4 Deploy to new container
 
 ```bash
 rebuild <machine>
 ```
 
-### 7.4 Generate data migration commands
+### 7.5 Generate data migration commands
 
 Present migration commands (don't execute without confirmation):
 
@@ -348,7 +389,7 @@ ssh <new_ssh> "systemctl restart <service>"
 ssh <origin_ssh> "systemctl start <service>"
 ```
 
-### 7.5 Execute migration
+### 7.6 Execute migration
 
 Ask user to confirm each step or proceed automatically.
 
@@ -416,6 +457,115 @@ Reference for `extraPersistPaths` in flake.nix:
 | Secret extraction failed | Prompt user for manual secret entry |
 | Data sync failed | Retry rsync, check disk space, verify permissions |
 | Health check failed | Check systemd logs: `journalctl -u <service>` |
+
+---
+
+## Common Pitfalls & Solutions
+
+### Persistence Module Issues
+
+The `proxmox.persistence` module creates bind mounts from `/nix/persist/*`. Key points:
+
+1. **Directories are auto-created** - The `create-persist-dirs.service` runs early (before `local-fs-pre.target`) to create all persist directories
+2. **SSH host keys are auto-generated** - If `/nix/persist/etc/ssh/` is empty, host keys are generated automatically
+3. **Machine-id is auto-generated** - Required for systemd-journald
+
+If persistence fails:
+```bash
+# Check if create-persist-dirs ran
+systemctl status create-persist-dirs
+
+# Check mount status
+mount | grep /nix/persist
+
+# Manual recovery
+mkdir -p /nix/persist/{etc/nixos,etc/ssh,var/log,home}
+ssh-keygen -A -f /nix/persist  # Generate host keys
+```
+
+### SSH Access Issues
+
+**PermitRootLogin**: The `security.nix` sets `PermitRootLogin = "no"` by default. For minimal role containers that need root SSH access for deployment:
+
+- The `minimal.nix` module sets `PermitRootLogin = "prohibit-password"` via `lib.mkForce`
+- Authorized keys are configured for both `root` and `kamushadenes` users
+
+**Socket activation**: NixOS uses socket-activated SSH (`sshd.socket` + `sshd@.service`), not a monolithic `sshd.service`. To check:
+```bash
+systemctl status sshd.socket
+systemctl list-units --type=service | grep sshd
+```
+
+**SFTP Subsystem**: The `nix-remote-setup` script uses `scp` which requires the SFTP subsystem. If you see `subsystem request failed on channel 0`, add to `/etc/ssh/sshd_config`:
+```bash
+SFTP=$(find /nix/store -name sftp-server -type f | head -1)
+echo "Subsystem sftp $SFTP" >> /etc/ssh/sshd_config
+systemctl restart sshd.socket
+```
+
+**Deployment user**: For minimal role containers, add `"user": "root"` to the node config in `private/nodes.json`:
+```json
+"<machine>": {
+  "type": "nixos",
+  "role": "minimal",
+  "user": "root",
+  "targetHosts": ["<ip>", "<hostname>"]
+}
+```
+
+### DynamicUser and Bind Mounts
+
+Services using `DynamicUser=true` (like atuin) don't work well with bind mounts due to permission issues. The dynamic user can't access directories owned by root.
+
+**Solution**: Override the systemd unit to use a static user:
+```nix
+# Create static user
+users.users.<service> = {
+  isSystemUser = true;
+  group = "<service>";
+  home = "/var/lib/<service>";
+};
+users.groups.<service> = { };
+
+# Override systemd unit
+systemd.services.<service> = {
+  serviceConfig = {
+    DynamicUser = lib.mkForce false;
+    User = "<service>";
+    Group = "<service>";
+    StateDirectory = "<service>";
+    StateDirectoryMode = "0700";
+  };
+};
+```
+
+### Service Database Configuration
+
+**PostgreSQL vs SQLite**: Many NixOS service modules default to `database.createLocally = true` which sets up PostgreSQL. For SQLite:
+
+```nix
+services.<service> = {
+  enable = true;
+  database = {
+    createLocally = false;  # Don't use PostgreSQL
+    uri = "sqlite:///var/lib/<service>/data.db";
+  };
+};
+```
+
+Check service unit for `Requires=postgresql.target` which indicates PostgreSQL dependency:
+```bash
+systemctl cat <service>.service | grep -i postgres
+```
+
+### First Boot Issues
+
+On first deployment, if the LXC becomes inaccessible:
+
+1. **Access via Proxmox console** - Don't rely on SSH for first boot
+2. **Check persistence mounts** - `mount | grep persist`
+3. **Check SSH** - `systemctl status sshd.socket`, check `/etc/ssh/` for host keys
+4. **Check service logs** - `journalctl -u <service>` (may be empty if /var/log bind mount failed)
 
 ### Rollback procedure
 

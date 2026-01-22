@@ -102,13 +102,14 @@
         };
 
       # Helper to create Proxmox VM/LXC host configurations
-      # These hosts use ephemeral tmpfs root with configurable persistence
+      # These hosts can optionally use ephemeral tmpfs root with configurable persistence
       mkProxmoxHost =
         {
           machine,
           hardware,
           role ? "headless",
           shared ? false,
+          persistence ? true, # Set to false for LXC with persistent root (no bind mounts needed)
           extraPersistPaths ? [ ],
           system ? "x86_64-linux",
         }:
@@ -123,12 +124,12 @@
             };
             platform = system;
           };
-          modules = nixosModules ++ [
+          modules = nixosModules ++ (if persistence then [
             ./nixos/proxmox/persistence.nix
             ({ ... }: {
               proxmox.persistence.extraPaths = extraPersistPaths;
             })
-          ];
+          ] else []);
         };
 
       darwinModules = [

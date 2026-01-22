@@ -7,6 +7,8 @@
 }:
 let
   isHeadless = role == "headless";
+  isMinimal = role == "minimal";
+  isServer = isHeadless || isMinimal;
 in
 {
   # Passwordless sudo for kamushadenes
@@ -23,7 +25,7 @@ in
   ];
 
   # GUI security tools (only for desktop systems)
-  environment.systemPackages = lib.optionals (!isHeadless) (
+  environment.systemPackages = lib.optionals (!isServer) (
     with pkgs; [
       burpsuite
       ngrok
@@ -34,8 +36,8 @@ in
   );
 
   # 1Password GUI (only for desktop systems)
-  programs._1password-gui.enable = !isHeadless;
-  programs._1password-gui.polkitPolicyOwners = lib.mkIf (!isHeadless) [
+  programs._1password-gui.enable = !isServer;
+  programs._1password-gui.polkitPolicyOwners = lib.mkIf (!isServer) [
     config.users.users.kamushadenes.name
   ];
 

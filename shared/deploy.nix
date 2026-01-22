@@ -16,6 +16,7 @@ let
     targetHosts = cfg.targetHosts or [ name ];
     buildHost = cfg.buildHost or name;
     sshPort = cfg.sshPort or 22;
+    user = cfg.user or null;  # SSH user override (e.g., "root" for minimal role containers)
   }) nodesJson.nodes;
 
 in
