@@ -70,7 +70,7 @@
         ''
 
         (lib.mkIf config.programs.yazi.enable ''
-          if test $fish_key_bindings = fish_default_key_bindings
+          if test "$fish_key_bindings" = fish_default_key_bindings
               bind \cf yazi
           else
               bind -M insert \cf yazi
