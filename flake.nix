@@ -231,6 +231,14 @@
           extraPersistPaths = [ "/var/lib/atuin" ];
         };
 
+        # Mosquitto MQTT broker (LXC) for Home Assistant
+        mqtt = mkProxmoxHost {
+          machine = "mqtt";
+          hardware = ./nixos/hardware/mqtt.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/mosquitto" ];
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox
