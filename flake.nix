@@ -239,6 +239,14 @@
           extraPersistPaths = [ "/var/lib/mosquitto" ];
         };
 
+        # Cloudflare Tunnel (LXC) for pve1
+        cloudflared = mkProxmoxHost {
+          machine = "cloudflared";
+          hardware = ./nixos/hardware/cloudflared.nix;
+          role = "minimal";
+          # No extraPersistPaths - token-based tunnels have no persistent state
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox
