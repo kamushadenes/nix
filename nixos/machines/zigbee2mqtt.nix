@@ -62,7 +62,7 @@
     isSystemUser = true;
     group = "zigbee2mqtt";
     home = "/var/lib/zigbee2mqtt";
-    extraGroups = [ "dialout" ]; # For serial device access
+    extraGroups = [ "dialout" "lp" ]; # For serial device access (lp needed in container)
   };
   users.groups.zigbee2mqtt = { };
 
