@@ -3,7 +3,10 @@
 { config, lib, pkgs, private, ... }:
 
 {
+  imports = [ "${private}/nixos/lxc-management.nix" ];
+
   # Agenix identity paths for secret decryption (uses SSH host key)
+  # lxc-management.nix adds the global LXC key via mkAfter
   age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
 
   # Agenix secret for cloudflared tunnel token (pve1)

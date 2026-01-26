@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# Add a new LXC machine to the lxc-management secrets
+# Usage: lxc-add-machine <machine-name> <ssh-target>
+# Example: lxc-add-machine atuin root@10.23.23.126
+
+set -euo pipefail
+
+MACHINE_NAME="${1:?Usage: lxc-add-machine <machine-name> <ssh-target>}"
+SSH_TARGET="${2:?Usage: lxc-add-machine <machine-name> <ssh-target>}"
+
+PRIVATE_DIR="$HOME/.config/nix/config/private"
+SECRETS_NIX="$PRIVATE_DIR/nixos/secrets/lxc-management/secrets.nix"
+LXC_KEY_FILE="$PRIVATE_DIR/nixos/secrets/lxc-management/lxc-management.pem.age"
+AGE_IDENTITY="$HOME/.age/age.pem"
+
+echo "==> Fetching SSH host key from $SSH_TARGET..."
+MACHINE_KEY=$(ssh -o StrictHostKeyChecking=accept-new "$SSH_TARGET" \
+  "cat /nix/persist/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub" \
+  | cut -d' ' -f1,2)
+
+if [[ -z "$MACHINE_KEY" ]]; then
+  echo "ERROR: Could not fetch SSH host key from $SSH_TARGET"
+  exit 1
+fi
+
+echo "==> Machine key: $MACHINE_KEY"
+
+# Check if machine already exists in secrets.nix
+if grep -q "${MACHINE_NAME}Key" "$SECRETS_NIX"; then
+  echo "==> Machine '$MACHINE_NAME' already exists in secrets.nix"
+else
+  echo "==> Adding ${MACHINE_NAME}Key to secrets.nix..."
+
+  # Create temp file for editing
+  TEMP_FILE=$(mktemp)
+
+  # Read current file, add new key definition before mainKey, and update publicKeys
+  awk -v name="${MACHINE_NAME}Key" -v key="$MACHINE_KEY" '
+    /mainKey = / {
+      print "  " name " = \"" key "\";"
+    }
+    /publicKeys = \[/ {
+      sub(/publicKeys = \[/, "publicKeys = [ " name)
+    }
+    { print }
+  ' "$SECRETS_NIX" > "$TEMP_FILE"
+
+  mv "$TEMP_FILE" "$SECRETS_NIX"
+fi
+
+echo "==> Re-encrypting lxc-management.pem.age with all keys..."
+
+# Extract all ssh-ed25519 keys from secrets.nix
+mapfile -t KEYS < <(grep -oE 'ssh-ed25519 [A-Za-z0-9+/]+' "$SECRETS_NIX" | sort -u)
+
+if [[ ${#KEYS[@]} -eq 0 ]]; then
+  echo "ERROR: No keys found in $SECRETS_NIX"
+  exit 1
+fi
+
+# Build age recipient arguments
+AGE_ARGS=()
+for key in "${KEYS[@]}"; do
+  AGE_ARGS+=(-r "$key")
+done
+
+echo "==> Found ${#KEYS[@]} keys for encryption"
+
+# Decrypt and re-encrypt the management key
+if [[ -f "$AGE_IDENTITY" ]]; then
+  echo "==> Using identity: $AGE_IDENTITY"
+
+  # Decrypt current key (try deployment file first, then workstation backup)
+  if [[ -f "$LXC_KEY_FILE" ]]; then
+    DECRYPTED=$(age -d -i "$AGE_IDENTITY" "$LXC_KEY_FILE")
+  elif [[ -f "$PRIVATE_DIR/lxc-management.age" ]]; then
+    DECRYPTED=$(age -d -i "$AGE_IDENTITY" "$PRIVATE_DIR/lxc-management.age")
+  else
+    echo "ERROR: Could not find lxc-management key file"
+    exit 1
+  fi
+
+  # Re-encrypt with all keys
+  echo "$DECRYPTED" | age "${AGE_ARGS[@]}" > "$LXC_KEY_FILE"
+
+  echo "==> Successfully re-encrypted lxc-management.pem.age"
+else
+  echo "ERROR: Age identity not found at $AGE_IDENTITY"
+  exit 1
+fi
+
+echo ""
+echo "==> Done! Next steps:"
+echo "    1. Create persist directory: ssh $SSH_TARGET 'mkdir -p /nix/persist/etc/age'"
+echo "    2. Add to machine config: imports = [ \"\${private}/nixos/lxc-management.nix\" ];"
+echo "    3. Set identity paths: age.identityPaths = [ \"/nix/persist/etc/ssh/ssh_host_ed25519_key\" ];"
+echo "    4. Commit private submodule: cd $PRIVATE_DIR && git add -A && git commit -m 'feat: add $MACHINE_NAME to lxc-management'"
+echo "    5. Deploy: rebuild -vL $MACHINE_NAME"
