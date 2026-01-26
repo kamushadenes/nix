@@ -34,6 +34,13 @@ let
     if [ ! -f /nix/persist/etc/ssh/ssh_host_rsa_key ]; then
       ${pkgs.openssh}/bin/ssh-keygen -t rsa -b 4096 -f /nix/persist/etc/ssh/ssh_host_rsa_key -N ""
     fi
+
+    # Create kamushadenes home directory if missing
+    # NixOS may skip createHome when "reviving" an existing user
+    if [ ! -d /nix/persist/home/kamushadenes ]; then
+      mkdir -p /nix/persist/home/kamushadenes
+      chown 1000:995 /nix/persist/home/kamushadenes
+    fi
   '';
 in
 {
