@@ -194,6 +194,24 @@ in
 }
 ```
 
+### 4.4 Register Machine for Global LXC Secrets
+
+Run the `lxc-add-machine` script to add the new machine to the global LXC key infrastructure:
+
+```bash
+# Add machine to lxc-management secrets (updates secrets.nix and re-encrypts key)
+lxc-add-machine <machine> root@<ip>
+```
+
+This script:
+1. Fetches the machine's SSH host key
+2. Adds it to `private/nixos/secrets/lxc-management/secrets.nix`
+3. Re-encrypts `lxc-management.pem.age` with all LXC keys
+
+**Two-Tier Secret Architecture:**
+- **Machine-specific secrets**: `machineKey + mainKey` - decrypted via SSH host key
+- **Global LXC secrets**: `lxcManagementKey + mainKey` - decrypted via shared key deployed to all LXCs
+
 ---
 
 ## PHASE 5: Generate NixOS Configuration
@@ -264,8 +282,11 @@ let
   authorizedKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGqdVyJjYEVc0TfIAEa0OBtqSJJ6bVH1MQcuFnSG0ePp";
 in
 {
+  # Import LXC management module for global secrets support
+  imports = [ "${private}/nixos/lxc-management.nix" ];
+
   # CRITICAL: Agenix identity paths for secret decryption
-  # Must point to the SSH host key used to encrypt secrets
+  # SSH host key for machine-specific secrets; lxc-management.nix adds global key via mkAfter
   age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
 
   # Agenix secrets
