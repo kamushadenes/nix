@@ -6,9 +6,9 @@ let
   cfg = config.proxmox.persistence;
 
   # Always persisted (required for system operation)
+  # Note: /etc/ssh is NOT bind mounted - we persist host keys via services.openssh.hostKeys
   basePaths = [
     "/etc/nixos"
-    "/etc/ssh"
     "/var/log"
     "/home"
   ];
