@@ -275,6 +275,14 @@
           extraPersistPaths = [ "/var/lib/esphome" "/var/lib/docker" ];
         };
 
+        # Nix Cache Proxy Server (ncps) - local binary cache with NFS storage
+        ncps = mkProxmoxHost {
+          machine = "ncps";
+          hardware = ./nixos/hardware/ncps.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/docker" ]; # Cache on NFS, only Docker state local
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox
