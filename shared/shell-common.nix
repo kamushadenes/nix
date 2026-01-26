@@ -72,6 +72,8 @@ let
     c = applySubst cScriptSubst (builtins.readFile "${resourcesDir}/claude-tmux.sh");
     # Rebuild script - Python deployment tool with parallel execution and tag-based filtering
     rebuild = applySubst deploySubst (builtins.readFile ./resources/deploy.py);
+    # LXC machine registration script - adds machines to lxc-management secrets
+    lxc-add-machine = builtins.readFile ../scripts/lxc-add-machine;
   };
 
   # Common PATH additions

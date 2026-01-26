@@ -1,5 +1,5 @@
-# Hardware configuration for cloudflared LXC
-# Proxmox LXC container running Cloudflare Tunnel
+# Hardware configuration for cloudflared-pve1 LXC
+# Proxmox LXC container running Cloudflare Tunnel on pve1
 { config, lib, pkgs, modulesPath, ... }:
 
 {
@@ -15,6 +15,6 @@
   systemd.services."autovt@".enable = false;
   systemd.services.console-getty.enable = true;
 
-  networking.hostName = "cloudflared";
+  networking.hostName = "cloudflared-pve1";
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }

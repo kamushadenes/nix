@@ -18,6 +18,9 @@
 
       # Rebuild script - unified bash script for local and remote deployments
       (writeScriptBin "rebuild" shellCommon.standaloneScripts.rebuild)
+
+      # LXC machine registration script - adds machines to lxc-management secrets
+      (writeScriptBin "lxc-add-machine" shellCommon.standaloneScripts.lxc-add-machine)
     ]
     ++ lib.optionals stdenv.isDarwin [
       terminal-notifier

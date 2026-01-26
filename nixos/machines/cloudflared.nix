@@ -1,5 +1,6 @@
 # Machine configuration for cloudflared LXC
 # Cloudflare Tunnel with token-based authentication (dashboard-managed)
+# All nodes share the same tunnel token - they're connectors to the same tunnel for HA
 { config, lib, pkgs, private, ... }:
 
 {
@@ -9,9 +10,9 @@
   # lxc-management.nix adds the global LXC key via mkAfter
   age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
 
-  # Agenix secret for cloudflared tunnel token (pve1)
-  age.secrets."cloudflared-token-pve1" = {
-    file = "${private}/nixos/secrets/cloudflared/cloudflared-token-pve1.age";
+  # Agenix secret for cloudflared tunnel token (shared across all nodes)
+  age.secrets."cloudflared-token" = {
+    file = "${private}/nixos/secrets/cloudflared/cloudflared-token.age";
     owner = "cloudflared";
     group = "cloudflared";
   };
@@ -42,7 +43,7 @@
 
     # Read token from agenix secret file and pass to cloudflared
     script = ''
-      TOKEN=$(cat ${config.age.secrets."cloudflared-token-pve1".path})
+      TOKEN=$(cat ${config.age.secrets."cloudflared-token".path})
       exec ${pkgs.cloudflared}/bin/cloudflared --no-autoupdate tunnel run --token "$TOKEN"
     '';
   };

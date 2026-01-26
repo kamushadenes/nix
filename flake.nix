@@ -56,6 +56,14 @@
         ref = "main";
       } + "/private";
 
+      # Proxmox cluster nodes for daemon LXCs and pct commands
+      # Maps node name -> Proxmox host IP (for SSH access as root)
+      pveNodes = {
+        pve1 = "10.23.5.10";
+        pve2 = "10.23.5.11";
+        pve3 = "10.23.5.12";
+      };
+
       # Helper to create Darwin host configurations
       mkDarwinHost =
         {
@@ -131,6 +139,18 @@
             })
           ] else []);
         };
+
+      # Helper to create daemon LXCs that run on all Proxmox nodes
+      # Generates: { daemon-pve1 = ...; daemon-pve2 = ...; daemon-pve3 = ...; }
+      mkDaemonLXCs = { name, hardware, role ? "minimal", extraPersistPaths ? [] }:
+        builtins.listToAttrs (map (node: {
+          name = "${name}-${node}";
+          value = mkProxmoxHost {
+            machine = "${name}-${node}";
+            hardware = hardware node;  # Function that takes node name
+            inherit role extraPersistPaths;
+          };
+        }) (builtins.attrNames pveNodes));
 
       darwinModules = [
         ./darwin.nix
@@ -239,14 +259,6 @@
           extraPersistPaths = [ "/var/lib/mosquitto" ];
         };
 
-        # Cloudflare Tunnel (LXC) for pve1
-        cloudflared = mkProxmoxHost {
-          machine = "cloudflared";
-          hardware = ./nixos/hardware/cloudflared.nix;
-          role = "minimal";
-          # No extraPersistPaths - token-based tunnels have no persistent state
-        };
-
         # Zigbee2MQTT coordinator (LXC) for Home Assistant
         zigbee2mqtt = mkProxmoxHost {
           machine = "zigbee2mqtt";
@@ -270,7 +282,13 @@
         # };
         #
         # 5. Deploy: rebuild my-postgres-vm
-      };
+      } // (mkDaemonLXCs {
+        # Cloudflare Tunnel daemon - runs on all Proxmox nodes for HA
+        # All instances share the same tunnel token (they're connectors to the same tunnel)
+        name = "cloudflared";
+        hardware = node: ./nixos/hardware/cloudflared-${node}.nix;
+        # No extraPersistPaths - token-based tunnels have no persistent state
+      });
 
       # Proxmox image builders
       # Build with: rebuild --proxmox-vm or rebuild --proxmox-lxc

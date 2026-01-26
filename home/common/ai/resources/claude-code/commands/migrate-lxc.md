@@ -31,6 +31,14 @@ When `new_ssh` is `"new"`, a new LXC container is created via `/new-lxc` before 
 
 ---
 
+## Constants
+
+| Item | Value |
+|------|-------|
+| Proxmox Nodes | pve1: 10.23.5.10 (main), pve2: 10.23.5.11, pve3: 10.23.5.12 |
+
+---
+
 ## PHASE 1: Parse & Validate Arguments
 
 ### 1.1 Parse the arguments
@@ -69,26 +77,53 @@ If either fails, report the error and ask user to fix before proceeding.
 
 If the second argument is `"new"`, create a new LXC container by delegating to `/new-lxc`.
 
-### 1.5.1 Fetch specs from origin LXC (via Proxmox SSH)
+### 1.5.1 Find which Proxmox node hosts the origin container
 
-SSH to `root@10.23.5.10` (Proxmox) and query the origin container to determine specs:
+Query ALL Proxmox nodes to find where the container exists:
 
 ```bash
+# Proxmox nodes (pveNodes from flake.nix)
+PVE_NODES="pve1:10.23.5.10 pve2:10.23.5.11 pve3:10.23.5.12"
+
 # Extract origin hostname from origin_ssh (e.g., root@old-mqtt.local -> old-mqtt)
 ORIGIN_HOSTNAME=$(echo "<origin_ssh>" | sed 's/.*@//' | sed 's/\..*//')
 
-# Get VMID from origin hostname
-ORIGIN_VMID=$(ssh root@10.23.5.10 "pct list | grep -E '$ORIGIN_HOSTNAME' | awk '{print \$1}'")
+# Find container across all nodes
+for node_spec in $PVE_NODES; do
+  node_name="${node_spec%:*}"
+  node_ip="${node_spec#*:}"
+  VMID=$(ssh root@$node_ip "pct list 2>/dev/null | grep -E '$ORIGIN_HOSTNAME' | awk '{print \$1}'" 2>/dev/null)
+  if [[ -n "$VMID" ]]; then
+    PVE_HOST="$node_ip"
+    PVE_NODE="$node_name"
+    break
+  fi
+done
 
-# Get specs
-ORIGIN_RAM=$(ssh root@10.23.5.10 "pct config $ORIGIN_VMID | grep memory | awk '{print \$2}'")
-ORIGIN_CORES=$(ssh root@10.23.5.10 "pct config $ORIGIN_VMID | grep cores | awk '{print \$2}'")
-ORIGIN_DISK=$(ssh root@10.23.5.10 "pct config $ORIGIN_VMID | grep rootfs | grep -oP 'size=\K[0-9]+'")
-ORIGIN_VLAN=$(ssh root@10.23.5.10 "pct config $ORIGIN_VMID | grep net0 | grep -oP 'tag=\K[0-9]+'")
-ORIGIN_UNPRIVILEGED=$(ssh root@10.23.5.10 "pct config $ORIGIN_VMID | grep unprivileged | awk '{print \$2}'")
+if [[ -z "$VMID" ]]; then
+  echo "ERROR: Container $ORIGIN_HOSTNAME not found on any Proxmox node"
+  exit 1
+fi
+
+echo "Found container $ORIGIN_HOSTNAME (VMID: $VMID) on $PVE_NODE ($PVE_HOST)"
 ```
 
-### 1.5.2 Calculate final specs with minimums
+### 1.5.2 Fetch specs from origin LXC
+
+Query the discovered Proxmox node for container specs:
+
+```bash
+# Get specs from the node where container was found
+ORIGIN_RAM=$(ssh root@$PVE_HOST "pct config $VMID | grep memory | awk '{print \$2}'")
+ORIGIN_CORES=$(ssh root@$PVE_HOST "pct config $VMID | grep cores | awk '{print \$2}'")
+ORIGIN_DISK=$(ssh root@$PVE_HOST "pct config $VMID | grep rootfs | grep -oP 'size=\K[0-9]+'")
+ORIGIN_VLAN=$(ssh root@$PVE_HOST "pct config $VMID | grep net0 | grep -oP 'tag=\K[0-9]+'")
+ORIGIN_UNPRIVILEGED=$(ssh root@$PVE_HOST "pct config $VMID | grep unprivileged | awk '{print \$2}'")
+```
+
+**Note**: Container IPs stay the same after migration (MAC address preserved = same DHCP lease).
+
+### 1.5.3 Calculate final specs with minimums
 
 Apply minimum values to ensure adequate resources:
 
@@ -100,7 +135,7 @@ Apply minimum values to ensure adequate resources:
 | VLAN | ORIGIN_VLAN (copy from origin) |
 | Privileged | 1 if ORIGIN_UNPRIVILEGED=0, else 0 |
 
-### 1.5.3 Invoke /new-lxc with --from-migration flag
+### 1.5.4 Invoke /new-lxc with --from-migration flag
 
 Execute the `/new-lxc` command in migration mode, passing specs as flags:
 
@@ -120,7 +155,7 @@ The /new-lxc command is invoked internally with these flags:
 - `--vlan=<origin_vlan>`
 - `--privileged=<0_or_1>`
 
-### 1.5.4 Get new LXC IP from /new-lxc output
+### 1.5.5 Get new LXC IP from /new-lxc output
 
 After /new-lxc completes, it outputs the new LXC's IP address. Parse this and update:
 
@@ -128,7 +163,7 @@ After /new-lxc completes, it outputs the new LXC's IP address. Parse this and up
 new_ssh="root@<NEW_IP>"
 ```
 
-### 1.5.5 Validate new LXC connectivity
+### 1.5.6 Validate new LXC connectivity
 
 ```bash
 # Test new host connectivity and verify it's NixOS

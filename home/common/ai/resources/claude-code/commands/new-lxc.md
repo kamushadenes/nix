@@ -43,6 +43,7 @@ Create a new NixOS LXC container on Proxmox with impermanence, configured for th
 | IPv4 | DHCP |
 | Onboot | Yes |
 | Features | nesting=1 |
+| Proxmox Nodes | pve1: 10.23.5.10 (main), pve2: 10.23.5.11, pve3: 10.23.5.12 |
 
 ---
 
@@ -90,8 +91,12 @@ Ask: "What should be the hostname for this LXC?"
 
 Ask: "Which Proxmox host should run this LXC?"
 - Options:
-  - `10.23.5.10` (pve1) - Recommended
+  - `pve1` (10.23.5.10) - Main node (Recommended)
+  - `pve2` (10.23.5.11)
+  - `pve3` (10.23.5.12)
 - Header: "PVE Host"
+
+Store selected node IP in `<proxmox_host>` variable for use in later phases.
 
 ### 4.3 Storage
 
@@ -404,8 +409,8 @@ Reference for `extraPersistPaths` in flake.nix:
 
 | Error | Recovery |
 |-------|----------|
-| Proxmox SSH failed | Check SSH key, verify host 10.23.5.10 is reachable |
-| Template not found | Verify template exists: `ssh root@10.23.5.10 "ls /var/lib/vz/template/cache/"` |
+| Proxmox SSH failed | Check SSH key, verify selected Proxmox host is reachable |
+| Template not found | Verify template exists: `ssh root@<proxmox_host> "ls /var/lib/vz/template/cache/"` |
 | VMID conflict | Use `pvesh get /cluster/nextid` again |
 | No IP assigned | Check VLAN tag, verify DHCP server is running |
 | Persistence setup failed | SSH to LXC via Proxmox console: `pct enter $VMID` |
