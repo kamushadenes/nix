@@ -247,6 +247,14 @@
           # No extraPersistPaths - token-based tunnels have no persistent state
         };
 
+        # Zigbee2MQTT coordinator (LXC) for Home Assistant
+        zigbee2mqtt = mkProxmoxHost {
+          machine = "zigbee2mqtt";
+          hardware = ./nixos/hardware/zigbee2mqtt.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/zigbee2mqtt" ];
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox
