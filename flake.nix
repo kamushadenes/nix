@@ -288,6 +288,13 @@
         name = "cloudflared";
         hardware = node: ./nixos/hardware/cloudflared-${node}.nix;
         # No extraPersistPaths - token-based tunnels have no persistent state
+      }) // (mkDaemonLXCs {
+        # Tailscale subnet router daemon - runs on all Proxmox nodes for HA
+        # Unlike cloudflared, each node has its OWN state (unique machine identity)
+        # pve2/pve3: Create LXCs and auth before deploying (see hardware config TODOs)
+        name = "tailscale";
+        hardware = node: ./nixos/hardware/tailscale-${node}.nix;
+        extraPersistPaths = [ "/var/lib/tailscale" ];
       });
 
       # Proxmox image builders
