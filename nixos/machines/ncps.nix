@@ -32,6 +32,7 @@
         "/mnt/ncps:/storage"
       ];
       cmd = [
+        "/bin/ncps"
         "serve"
         "--cache-hostname=ncps.hyades.io"
         "--cache-data-path=/storage"
