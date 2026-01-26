@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Add a new LXC machine to the lxc-management secrets
 # Usage: lxc-add-machine <machine-name> <ssh-target>
-# Example: lxc-add-machine atuin root@10.23.23.126
+# Example: lxc-add-machine atuin root@10.23.23.124
 
 set -euo pipefail
 

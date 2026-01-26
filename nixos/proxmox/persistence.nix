@@ -9,6 +9,7 @@ let
   # Note: /etc/ssh is NOT bind mounted - we persist host keys via services.openssh.hostKeys
   basePaths = [
     "/etc/nixos"
+    "/var/lib/systemd" # DHCP leases, timers, etc.
     "/var/log"
     "/home"
   ];
