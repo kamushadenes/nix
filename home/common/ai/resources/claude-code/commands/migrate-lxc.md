@@ -12,15 +12,22 @@ Migrate a non-NixOS LXC container to NixOS with impermanence, handling configura
 ## Syntax
 
 ```
-/migrate-lxc <origin-ssh> <new-ssh> <service-type> "<description>"
+/migrate-lxc <origin-ssh> <new-ssh|new> <service-type> "<description>"
 ```
 
 **Examples:**
 ```bash
+# Migrate to existing NixOS LXC
 /migrate-lxc root@old-postgres.local root@postgres.hyades.io postgresql "Production PostgreSQL database"
 /migrate-lxc admin@web-01.local root@web-01.hyades.io nginx "Main reverse proxy"
 /migrate-lxc root@docker-host.local root@containers.hyades.io docker "Docker host with Portainer"
+
+# Create new LXC and migrate (use "new" as second argument)
+/migrate-lxc root@old-mqtt.local new mqtt "MQTT broker for IoT"
+/migrate-lxc root@old-db.local new postgresql "Production database"
 ```
+
+When `new_ssh` is `"new"`, a new LXC container is created via `/new-lxc` before migration.
 
 ---
 
@@ -53,6 +60,82 @@ ssh -o ConnectTimeout=5 -o BatchMode=yes <new_ssh> "hostname && nixos-version"
 ```
 
 If either fails, report the error and ask user to fix before proceeding.
+
+**Exception:** If `new_ssh` is `"new"`, skip validation of new host and proceed to Phase 1.5.
+
+---
+
+## PHASE 1.5: Create New LXC (when target is "new")
+
+If the second argument is `"new"`, create a new LXC container by delegating to `/new-lxc`.
+
+### 1.5.1 Fetch specs from origin LXC (via Proxmox SSH)
+
+SSH to `root@10.23.5.10` (Proxmox) and query the origin container to determine specs:
+
+```bash
+# Extract origin hostname from origin_ssh (e.g., root@old-mqtt.local -> old-mqtt)
+ORIGIN_HOSTNAME=$(echo "<origin_ssh>" | sed 's/.*@//' | sed 's/\..*//')
+
+# Get VMID from origin hostname
+ORIGIN_VMID=$(ssh root@10.23.5.10 "pct list | grep -E '$ORIGIN_HOSTNAME' | awk '{print \$1}'")
+
+# Get specs
+ORIGIN_RAM=$(ssh root@10.23.5.10 "pct config $ORIGIN_VMID | grep memory | awk '{print \$2}'")
+ORIGIN_CORES=$(ssh root@10.23.5.10 "pct config $ORIGIN_VMID | grep cores | awk '{print \$2}'")
+ORIGIN_DISK=$(ssh root@10.23.5.10 "pct config $ORIGIN_VMID | grep rootfs | grep -oP 'size=\K[0-9]+'")
+ORIGIN_VLAN=$(ssh root@10.23.5.10 "pct config $ORIGIN_VMID | grep net0 | grep -oP 'tag=\K[0-9]+'")
+ORIGIN_UNPRIVILEGED=$(ssh root@10.23.5.10 "pct config $ORIGIN_VMID | grep unprivileged | awk '{print \$2}'")
+```
+
+### 1.5.2 Calculate final specs with minimums
+
+Apply minimum values to ensure adequate resources:
+
+| Spec | Value |
+|------|-------|
+| RAM | max(512, ORIGIN_RAM) MB |
+| Cores | max(1, ORIGIN_CORES) |
+| Disk | max(16, ORIGIN_DISK) GB |
+| VLAN | ORIGIN_VLAN (copy from origin) |
+| Privileged | 1 if ORIGIN_UNPRIVILEGED=0, else 0 |
+
+### 1.5.3 Invoke /new-lxc with --from-migration flag
+
+Execute the `/new-lxc` command in migration mode, passing specs as flags:
+
+```bash
+# /new-lxc will:
+# - Ask for hostname and storage (via AskUserQuestion)
+# - Create the LXC with passed specs
+# - Set up persistence directories
+# - Return the new IP address
+```
+
+The /new-lxc command is invoked internally with these flags:
+- `--from-migration` - Signal migration mode (skip plan mode, skip NixOS config generation)
+- `--ram=<calculated_ram>`
+- `--cores=<calculated_cores>`
+- `--disk=<calculated_disk>`
+- `--vlan=<origin_vlan>`
+- `--privileged=<0_or_1>`
+
+### 1.5.4 Get new LXC IP from /new-lxc output
+
+After /new-lxc completes, it outputs the new LXC's IP address. Parse this and update:
+
+```bash
+new_ssh="root@<NEW_IP>"
+```
+
+### 1.5.5 Validate new LXC connectivity
+
+```bash
+# Test new host connectivity and verify it's NixOS
+ssh -o ConnectTimeout=5 -o BatchMode=yes $new_ssh "hostname && nixos-version"
+```
+
+Continue to Phase 2 with the newly created LXC.
 
 ---
 
