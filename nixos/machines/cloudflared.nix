@@ -3,6 +3,9 @@
 { config, lib, pkgs, private, ... }:
 
 {
+  # Agenix identity paths for secret decryption (uses SSH host key)
+  age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
+
   # Agenix secret for cloudflared tunnel token (pve1)
   age.secrets."cloudflared-token-pve1" = {
     file = "${private}/nixos/secrets/cloudflared/cloudflared-token-pve1.age";
