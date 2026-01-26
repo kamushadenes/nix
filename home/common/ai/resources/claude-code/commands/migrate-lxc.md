@@ -73,6 +73,55 @@ If either fails, report the error and ask user to fix before proceeding.
 
 ---
 
+## PHASE 1.4: Tag Existing LXC (when target is existing)
+
+If `new_ssh` is NOT `"new"`, find and tag the existing container with "nixos".
+
+### 1.4.1 Find which Proxmox node hosts the target container
+
+```bash
+# Proxmox nodes
+PVE_NODES="pve1:10.23.5.10 pve2:10.23.5.11 pve3:10.23.5.12"
+
+# Extract target hostname from new_ssh (e.g., root@postgres.hyades.io -> postgres)
+TARGET_HOSTNAME=$(echo "<new_ssh>" | sed 's/.*@//' | sed 's/\..*//')
+
+# Find container across all nodes
+for node_spec in $PVE_NODES; do
+  node_name="${node_spec%:*}"
+  node_ip="${node_spec#*:}"
+  TARGET_VMID=$(ssh root@$node_ip "pct list 2>/dev/null | grep -E '$TARGET_HOSTNAME' | awk '{print \$1}'" 2>/dev/null)
+  if [[ -n "$TARGET_VMID" ]]; then
+    TARGET_PVE_HOST="$node_ip"
+    break
+  fi
+done
+```
+
+### 1.4.2 Add nixos tag to the container
+
+```bash
+if [[ -n "$TARGET_VMID" ]]; then
+  # Get existing tags
+  EXISTING_TAGS=$(ssh root@$TARGET_PVE_HOST "pct config $TARGET_VMID | grep -oP '^tags: \K.*'" 2>/dev/null || echo "")
+
+  # Add nixos tag if not already present
+  if [[ ! "$EXISTING_TAGS" =~ nixos ]]; then
+    if [[ -n "$EXISTING_TAGS" ]]; then
+      NEW_TAGS="${EXISTING_TAGS};nixos"
+    else
+      NEW_TAGS="nixos"
+    fi
+    ssh root@$TARGET_PVE_HOST "pct set $TARGET_VMID --tags '$NEW_TAGS'"
+    echo "Added 'nixos' tag to container $TARGET_HOSTNAME (VMID: $TARGET_VMID)"
+  fi
+fi
+```
+
+Continue to Phase 2.
+
+---
+
 ## PHASE 1.5: Create New LXC (when target is "new")
 
 If the second argument is `"new"`, create a new LXC container by delegating to `/new-lxc`.

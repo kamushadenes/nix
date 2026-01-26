@@ -183,6 +183,7 @@ ssh root@<proxmox_host> "pct create $VMID <storage>:vztmpl/nixos-proxmox-lxc-202
   --onboot 1 \
   --unprivileged <0_or_1> \
   --features nesting=1 \
+  --tags nixos \
   --ssh-public-keys /dev/stdin" <<< "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGqdVyJjYEVc0TfIAEa0OBtqSJJ6bVH1MQcuFnSG0ePp henrique.goncalves@henrique.goncalves"
 ```
 
