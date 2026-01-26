@@ -5,6 +5,7 @@ Nix deployment tool with parallel execution and tag-based filtering.
 Usage:
     rebuild              # Local rebuild (current machine)
     rebuild aether       # Deploy to single target
+    rebuild -vL cloudflared  # LXC deploy: verbose + local build (recommended)
     rebuild @headless    # Deploy to all nodes with @headless tag
     rebuild @nixos       # Deploy to all NixOS machines
     rebuild @darwin      # Deploy to all Darwin machines
@@ -356,8 +357,8 @@ def build_local_command(node: Node) -> list[str]:
 def build_remote_command(node: Node, target_host: str) -> list[str]:
     """Build the command for remote deployment using nixos-rebuild.
 
-    Uses target_host for both --target-host and --build-host to ensure
-    consistent SSH connection handling.
+    Builds locally (no --build-host) and pushes to target_host.
+    This is faster for LXCs with limited resources.
     """
     return [
         "nix",
@@ -372,17 +373,22 @@ def build_remote_command(node: Node, target_host: str) -> list[str]:
         f"{FLAKE_PATH}#{node.name}",
         "--target-host",
         target_host,
-        "--build-host",
-        target_host,
         "--use-remote-sudo",
     ]
 
 
+# Global flags
+VERBOSE = False
+LOCAL_BUILD = False
+
+
 def get_nix_ssh_env(ssh_port: int) -> dict[str, str]:
-    """Get environment with NIX_SSHOPTS for custom SSH port."""
+    """Get environment with NIX_SSHOPTS for custom SSH port and host key checking."""
     env = os.environ.copy()
+    ssh_opts = ["-o", "StrictHostKeyChecking=accept-new"]
     if ssh_port != 22:
-        env["NIX_SSHOPTS"] = f"-p {ssh_port}"
+        ssh_opts.extend(["-p", str(ssh_port)])
+    env["NIX_SSHOPTS"] = " ".join(ssh_opts)
     return env
 
 
@@ -423,6 +429,7 @@ async def check_ssh_connection(target_host: str) -> tuple[bool, str]:
     try:
         proc = await asyncio.create_subprocess_exec(
             "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+            "-o", "StrictHostKeyChecking=accept-new",
             target_host, "true",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
@@ -483,15 +490,27 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
         cmd = build_remote_command(node, target_host)
         env = get_nix_ssh_env(node.ssh_port)
 
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-            env=env,
-        )
-        stdout, _ = await proc.communicate()
-        output = stdout.decode()
-        success = proc.returncode == 0
+        if VERBOSE:
+            # Stream output in real-time
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=None,  # Inherit stdout
+                stderr=None,  # Inherit stderr
+                env=env,
+            )
+            await proc.wait()
+            output = ""
+            success = proc.returncode == 0
+        else:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+                env=env,
+            )
+            stdout, _ = await proc.communicate()
+            output = stdout.decode()
+            success = proc.returncode == 0
 
         if success:
             print(f"{GREEN}[ ✓ ]{NC} {log_prefix}{node.name} - deployment successful")
@@ -541,32 +560,47 @@ async def deploy_node(node: Node, prefix: str = "") -> tuple[str, bool, str]:
         )
         cmd = build_local_command(node)
 
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-        )
-        stdout, _ = await proc.communicate()
-        output = stdout.decode()
-        success = proc.returncode == 0
+        if VERBOSE:
+            # Stream output in real-time
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=None,  # Inherit stdout
+                stderr=None,  # Inherit stderr
+            )
+            await proc.wait()
+            output = ""
+            success = proc.returncode == 0
+        else:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            stdout, _ = await proc.communicate()
+            output = stdout.decode()
+            success = proc.returncode == 0
 
         if success:
             print(f"{GREEN}[ ✓ ]{NC} {log_prefix}{node.name} - deployment successful")
         else:
             print(f"{RED}[ ✗ ]{NC} {log_prefix}{node.name} - deployment failed")
-            lines = output.strip().split("\n")
-            if lines:
-                print(f"{YELLOW}[ * ]{NC} Last output:")
-                for line in lines[-5:]:
-                    print(f"    {line}")
+            if not VERBOSE:
+                lines = output.strip().split("\n")
+                if lines:
+                    print(f"{YELLOW}[ * ]{NC} Last output:")
+                    for line in lines[-5:]:
+                        print(f"    {line}")
 
         return node.name, success, output
     else:
-        # Remote deployment - ensure remote is prepared first
-        if not ensure_remote_prepared(node):
-            print(f"{RED}[ ✗ ]{NC} {log_prefix}{node.name} - remote not prepared and setup failed")
-            return node.name, False, "Remote not prepared for deployment"
-        
+        # Remote deployment
+        # When using local build, skip remote preparation (no need to copy age/ssh keys)
+        if not LOCAL_BUILD:
+            # Ensure remote is prepared first
+            if not ensure_remote_prepared(node):
+                print(f"{RED}[ ✗ ]{NC} {log_prefix}{node.name} - remote not prepared and setup failed")
+                return node.name, False, "Remote not prepared for deployment"
+
         # Remote deployment - try each host in order
         return await try_remote_hosts(node, prefix)
 
@@ -843,7 +877,24 @@ def main() -> None:
         action="store_true",
         help="Build only Proxmox LXC image (.tar.xz)",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Stream deployment output in real-time (recommended for LXC/slow builds)",
+    )
+    parser.add_argument(
+        "-L",
+        "--local-build",
+        action="store_true",
+        help="Build locally and push to remote (recommended for LXCs with limited resources)",
+    )
     args = parser.parse_args()
+
+    # Set global flags
+    global VERBOSE, LOCAL_BUILD
+    VERBOSE = args.verbose
+    LOCAL_BUILD = args.local_build
 
     # Check Tailscale connection status
     tailscale_up = is_tailscale_connected()

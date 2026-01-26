@@ -10,6 +10,10 @@ This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS sys
 
 - Darwin: `studio`, `macbook-m3-pro`, `w-henrique` (all aarch64-darwin)
 - NixOS: `nixos`, `aether` (x86_64-linux)
+- Proxmox LXCs: `atuin`, `mqtt`, `cloudflared` (x86_64-linux, minimal role)
+
+**Proxmox Hosts:**
+- `pve1`: 10.23.5.10 (SSH as root for LXC management via `pct` commands)
 
 ## Commands
 
@@ -37,6 +41,13 @@ darwin-rebuild switch --flake ~/.config/nix/config/ --impure
 error: unable to download 'http://ncps.hyades.io:8501/...': Connection timed out
 ```
 This is NOT benign - the build was interrupted and packages may not be installed. Run `rebuild` again until it completes without cache errors.
+
+**IMPORTANT: Use `-vL` flags for LXC deployments.** When deploying to Proxmox LXCs, always use both flags:
+```bash
+rebuild -vL cloudflared  # Build locally (-L), stream output (-v)
+```
+- `-v` / `--verbose`: Streams output in real-time (prevents timeouts)
+- `-L` / `--local-build`: Builds locally and pushes to remote (faster, no need to copy age/ssh keys to LXC)
 
 ## Architecture
 
