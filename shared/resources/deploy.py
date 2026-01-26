@@ -672,10 +672,10 @@ def deploy_sequential(nodes: list[Node]) -> bool:
 
 def expand_targets(targets: list[str], nodes: dict[str, Node]) -> list[Node]:
     """
-    Expand tags and node names to a list of Node objects.
+    Expand tags, node names, and prefixes to a list of Node objects.
 
     Args:
-        targets: List of node names or @tags
+        targets: List of node names, @tags, or prefixes (e.g., "cloudflared" matches cloudflared-pve*)
         nodes: Dict of all available nodes
 
     Returns:
@@ -697,14 +697,25 @@ def expand_targets(targets: list[str], nodes: dict[str, Node]) -> list[Node]:
                 result.append(node)
                 seen.add(node.name)
         elif target in nodes:
-            # Direct node name
+            # Direct node name (exact match)
             if target not in seen:
                 result.append(nodes[target])
                 seen.add(target)
         else:
-            print(f"{RED}[ ✗ ]{NC} Unknown target: {target}")
-            print(f"Available nodes: {', '.join(sorted(nodes.keys()))}")
-            sys.exit(1)
+            # Try prefix matching (e.g., "cloudflared" matches "cloudflared-pve1", "cloudflared-pve2")
+            prefix_matches = [
+                n for n in nodes.values()
+                if n.name.startswith(f"{target}-") and n.name not in seen
+            ]
+            if prefix_matches:
+                print(f"{BLUE}[ * ]{NC} Prefix match: {target} -> {', '.join(n.name for n in prefix_matches)}")
+                for node in prefix_matches:
+                    result.append(node)
+                    seen.add(node.name)
+            else:
+                print(f"{RED}[ ✗ ]{NC} Unknown target: {target}")
+                print(f"Available nodes: {', '.join(sorted(nodes.keys()))}")
+                sys.exit(1)
 
     return result
 
