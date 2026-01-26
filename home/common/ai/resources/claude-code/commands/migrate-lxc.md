@@ -238,19 +238,23 @@ For services **without** native NixOS module support, prompt user:
   2. **systemd service** - Create custom systemd unit
   3. **Manual** - Create placeholder, user will configure
 
-### 5.3 Create private config
+### 5.3 Create machine config with secrets
 
-Create `private/nixos/<machine>.nix`:
+Create `nixos/machines/<machine>.nix`:
 
 ```nix
-# Private configuration for <machine>
-# Contains networking details and agenix secrets
+# Machine configuration for <machine>
+# <description>
 { config, lib, pkgs, private, ... }:
 
 let
   authorizedKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGqdVyJjYEVc0TfIAEa0OBtqSJJ6bVH1MQcuFnSG0ePp";
 in
 {
+  # CRITICAL: Agenix identity paths for secret decryption
+  # Must point to the SSH host key used to encrypt secrets
+  age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
+
   # Agenix secrets
   age.secrets = {
     "<secret-name>" = {
@@ -461,6 +465,49 @@ Reference for `extraPersistPaths` in flake.nix:
 ---
 
 ## Common Pitfalls & Solutions
+
+### Agenix Identity Paths (CRITICAL for Secrets)
+
+LXCs using agenix secrets **MUST** have `age.identityPaths` configured. Without this, agenix cannot find the key to decrypt secrets.
+
+**In the machine config** (`nixos/machines/<machine>.nix`):
+```nix
+{
+  # Agenix identity paths for secret decryption (uses SSH host key)
+  age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
+
+  # Then your secrets...
+  age.secrets."my-secret" = {
+    file = "${private}/nixos/secrets/<machine>/my-secret.age";
+  };
+}
+```
+
+**Critical: SSH key consistency.** The SSH host key used for encryption (in `secrets.nix`) must match the key at the identity path:
+
+1. **Encrypt secrets with the persisted key** - Use the public key from `/nix/persist/etc/ssh/ssh_host_ed25519_key.pub`
+2. **Or sync keys after LXC creation** - If the LXC was created with a different key, copy it to the persist location
+
+**Symptoms of missing/mismatched identity:**
+```
+age: error: no identity matched any of the recipients
+chmod: cannot access '/run/agenix.d/1/secret-name.tmp': No such file or directory
+```
+
+**Fix for key mismatch:**
+```bash
+# Check which key secrets.nix expects
+cat private/nixos/secrets/<machine>/secrets.nix | grep ssh-ed25519
+
+# Check what key is on the LXC
+ssh root@<machine> "cat /nix/persist/etc/ssh/ssh_host_ed25519_key.pub"
+
+# If they don't match, either:
+# 1. Copy the correct key to persist:
+ssh root@<machine> "cp /etc/ssh/ssh_host_ed25519_key* /nix/persist/etc/ssh/"
+
+# 2. Or re-encrypt secrets with the persist key (update secrets.nix with new pubkey)
+```
 
 ### Persistence Module Issues
 
