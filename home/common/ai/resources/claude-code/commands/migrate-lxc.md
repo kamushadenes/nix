@@ -163,21 +163,34 @@ For each identified secret:
 # Extract secret value
 SECRET=$(ssh <origin_ssh> "grep -oP 'password=\K.*' /path/to/config")
 
-# Encrypt with age using the project's SSH key
-echo "$SECRET" | age -r "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGNSkXQmM7HTbNUvGnaiDZpRlCnqHtMPGSlW3cXYBEBf" > private/nixos/secrets/<machine>/<secret-name>.age
+# Get the machine's SSH host key (after LXC is created)
+MACHINE_KEY=$(ssh <new_ssh> "cat /nix/persist/etc/ssh/ssh_host_ed25519_key.pub | cut -d' ' -f1,2")
+
+# Main age key (always the same)
+MAIN_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGNSkXQmM7HTbNUvGnaiDZpRlCnqHtMPGSlW3cXYBEBf"
+
+# Encrypt with BOTH keys - machine key for LXC decryption, main key for management
+echo "$SECRET" | age -r "$MACHINE_KEY" -r "$MAIN_KEY" > private/nixos/secrets/<machine>/<secret-name>.age
 ```
 
 ### 4.3 Create secrets.nix
 
 Generate `private/nixos/secrets/<machine>/secrets.nix`:
 
+**IMPORTANT:** Include BOTH the machine's SSH host key AND the main age key as recipients. This allows:
+- The LXC to decrypt secrets using its SSH host key
+- Workstations to re-encrypt/manage secrets using the main age key
+
 ```nix
 let
-  key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGNSkXQmM7HTbNUvGnaiDZpRlCnqHtMPGSlW3cXYBEBf";
+  # Machine's SSH host key (get from /nix/persist/etc/ssh/ssh_host_ed25519_key.pub on the LXC)
+  machineKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...";
+  # Main age key (always the same across all secrets)
+  mainKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGNSkXQmM7HTbNUvGnaiDZpRlCnqHtMPGSlW3cXYBEBf";
 in
 {
-  "db-password.age".publicKeys = [ key ];
-  "ssl-key.age".publicKeys = [ key ];
+  "db-password.age".publicKeys = [ machineKey mainKey ];
+  "ssl-key.age".publicKeys = [ machineKey mainKey ];
 }
 ```
 
