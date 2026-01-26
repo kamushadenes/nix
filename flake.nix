@@ -267,6 +267,14 @@
           extraPersistPaths = [ "/var/lib/zigbee2mqtt" ];
         };
 
+        # ESPHome builder and interface (LXC) for Home Assistant
+        esphome = mkProxmoxHost {
+          machine = "esphome";
+          hardware = ./nixos/hardware/esphome.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/esphome" "/var/lib/docker" ];
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox
