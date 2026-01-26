@@ -8,9 +8,9 @@
   # Agenix identity paths for secret decryption
   age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
 
-  # NFS mount for cache storage (TrueNAS)
+  # NFS mount for cache storage (TrueNAS at 10.23.23.14)
   fileSystems."/mnt/ncps" = {
-    device = "truenas.hyades.io:/mnt/HDD/Cache/ncps";
+    device = "10.23.23.14:/mnt/HDD/Cache/ncps";
     fsType = "nfs";
     options = [ "defaults" "_netdev" "x-systemd.automount" ];
   };
