@@ -47,7 +47,9 @@
 
   # Create secrets file for zigbee2mqtt before service starts
   # Note: preStart runs as zigbee2mqtt user, so no chown needed
+  # Remove existing file first since it's chmod 400
   systemd.services.zigbee2mqtt.preStart = lib.mkAfter ''
+    rm -f /var/lib/zigbee2mqtt/secret.yaml
     echo "mqtt_password: $(cat ${config.age.secrets."zigbee2mqtt-mqtt-password".path})" > /var/lib/zigbee2mqtt/secret.yaml
     chmod 400 /var/lib/zigbee2mqtt/secret.yaml
   '';
