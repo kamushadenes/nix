@@ -67,6 +67,7 @@
   users.groups.zigbee2mqtt = { };
 
   # Override systemd unit to use static user instead of DynamicUser
+  # Also relax device policy for USB access in LXC
   systemd.services.zigbee2mqtt = {
     serviceConfig = {
       DynamicUser = lib.mkForce false;
@@ -74,6 +75,9 @@
       Group = "zigbee2mqtt";
       StateDirectory = "zigbee2mqtt";
       StateDirectoryMode = "0700";
+      # Relax device sandbox for USB passthrough in LXC
+      DevicePolicy = lib.mkForce "auto";
+      DeviceAllow = lib.mkForce [ "/dev/ttyACM0" "/dev/serial/by-id/usb-ITEAD_SONOFF_Zigbee_3.0_USB_Dongle_Plus_V2_20240123191316-if00" ];
     };
   };
 
