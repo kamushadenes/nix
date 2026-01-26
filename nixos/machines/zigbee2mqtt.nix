@@ -46,10 +46,10 @@
   };
 
   # Create secrets file for zigbee2mqtt before service starts
+  # Note: preStart runs as zigbee2mqtt user, so no chown needed
   systemd.services.zigbee2mqtt.preStart = lib.mkAfter ''
     echo "mqtt_password: $(cat ${config.age.secrets."zigbee2mqtt-mqtt-password".path})" > /var/lib/zigbee2mqtt/secret.yaml
     chmod 400 /var/lib/zigbee2mqtt/secret.yaml
-    chown zigbee2mqtt:zigbee2mqtt /var/lib/zigbee2mqtt/secret.yaml
   '';
 
   # Open firewall for frontend
