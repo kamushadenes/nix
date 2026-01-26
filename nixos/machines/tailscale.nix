@@ -14,6 +14,7 @@
   services.tailscale = {
     enable = true;
     useRoutingFeatures = "both"; # Act as both subnet router and exit node
+    extraDaemonFlags = [ "--no-logs-no-support" ]; # Disable telemetry
   };
 
   # Use native nftables mode for better firewall integration
