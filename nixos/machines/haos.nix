@@ -6,6 +6,9 @@ let
   # Load custom components and lovelace modules
   customComponents = import ./haos-custom-components.nix { pkgs = pkgs-unstable; };
   customLovelaceModules = import ./haos-lovelace-modules.nix { pkgs = pkgs-unstable; };
+
+  # YAML config files from private submodule
+  haosConfigDir = "${private}/nixos/haos-config";
 in
 {
   imports = [ "${private}/nixos/lxc-management.nix" ];
@@ -156,6 +159,21 @@ in
       # Default integrations
       default_config = {};
 
+      # Include YAML config files (deployed from private submodule)
+      alert = "!include alert.yaml";
+      template = "!include template.yaml";
+
+      # Frontend customization
+      frontend = {
+        themes = "!include_dir_merge_named themes";
+        customize = "!include customize.yaml";
+      };
+
+      # MQTT sensors from YAML
+      mqtt = {
+        sensor = "!include mqtt_sensor.yaml";
+      };
+
       # HTTP configuration
       http = {
         server_port = 8123;
@@ -184,6 +202,27 @@ in
 
       # MQTT is configured via UI (stored in .storage/core.config_entries)
       # Do NOT add mqtt broker config here - it causes conflicts
+
+      # Lovelace configuration with YAML dashboards
+      lovelace = {
+        mode = "storage";
+        dashboards = {
+          "main-dashboard" = {
+            mode = "yaml";
+            title = "Dashboard";
+            icon = "mdi:home";
+            show_in_sidebar = true;
+            filename = "dashboard.yaml";
+          };
+          "floor-plan" = {
+            mode = "yaml";
+            title = "Floor Plan";
+            icon = "mdi:floor-plan";
+            show_in_sidebar = true;
+            filename = "floorplan.yaml";
+          };
+        };
+      };
     };
   };
 
@@ -229,6 +268,22 @@ in
 
   # Use systemd-networkd only (disable NetworkManager from base network.nix)
   networking.networkmanager.enable = lib.mkForce false;
+
+  # Deploy YAML config files from private submodule
+  # These are copied (not symlinked) so they can be edited via UI if needed
+  system.activationScripts.haosConfig = {
+    deps = [ "users" "groups" ];
+    text = ''
+      # Copy YAML config files to Home Assistant directory
+      install -m 0644 -o hass -g hass ${haosConfigDir}/dashboard.yaml /var/lib/hass/dashboard.yaml
+      install -m 0644 -o hass -g hass ${haosConfigDir}/floorplan.yaml /var/lib/hass/floorplan.yaml
+      install -m 0644 -o hass -g hass ${haosConfigDir}/floorplan_data.yaml /var/lib/hass/floorplan_data.yaml
+      install -m 0644 -o hass -g hass ${haosConfigDir}/alert.yaml /var/lib/hass/alert.yaml
+      install -m 0644 -o hass -g hass ${haosConfigDir}/customize.yaml /var/lib/hass/customize.yaml
+      install -m 0644 -o hass -g hass ${haosConfigDir}/mqtt_sensor.yaml /var/lib/hass/mqtt_sensor.yaml
+      install -m 0644 -o hass -g hass ${haosConfigDir}/template.yaml /var/lib/hass/template.yaml
+    '';
+  };
 
   # Increase system-wide file descriptor limits
   security.pam.loginLimits = [
