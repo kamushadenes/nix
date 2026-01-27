@@ -547,8 +547,11 @@ mkdir -p /nix/persist/var/lib/<service>
 ssh-keygen -t ed25519 -f /nix/persist/etc/ssh/ssh_host_ed25519_key -N ""
 ssh-keygen -t rsa -b 4096 -f /nix/persist/etc/ssh/ssh_host_rsa_key -N ""
 
-# Generate machine-id (required for systemd-journald)
-systemd-machine-id-setup --root=/nix/persist
+# Copy machine-id from origin (preserves DHCP identity for stable IPs)
+# The machine-id is used by systemd-networkd to generate the DUID,
+# which DHCP servers use to track leases. Keeping it ensures same IP.
+scp <origin_ssh>:/etc/machine-id /nix/persist/etc/machine-id 2>/dev/null || \
+  systemd-machine-id-setup --root=/nix/persist  # Fallback if origin unavailable
 
 # Symlink machine-id so it's available immediately
 ln -sf /nix/persist/etc/machine-id /etc/machine-id

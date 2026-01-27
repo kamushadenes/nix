@@ -235,7 +235,8 @@ ssh root@$NEW_IP "
   ssh-keygen -t ed25519 -f /nix/persist/etc/ssh/ssh_host_ed25519_key -N ''
   ssh-keygen -t rsa -b 4096 -f /nix/persist/etc/ssh/ssh_host_rsa_key -N ''
 
-  # Machine ID
+  # Machine ID (used by systemd-networkd for DHCP DUID - ensures stable IPs)
+  # For migrations: /migrate-lxc copies machine-id from origin to preserve DHCP identity
   systemd-machine-id-setup --root=/nix/persist
 "
 ```
