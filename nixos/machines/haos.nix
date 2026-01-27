@@ -176,6 +176,9 @@ in
         sensor = "!include mqtt_sensor.yaml";
       };
 
+      # Enable lovelace_gen for Jinja2 templating in dashboards
+      lovelace_gen = {};
+
       # HTTP configuration
       http = {
         server_port = 8123;
