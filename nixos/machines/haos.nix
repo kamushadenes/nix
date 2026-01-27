@@ -219,6 +219,8 @@ in
       MemoryMax = "6G";
       # Increase file descriptor limit for HACS and large installations
       LimitNOFILE = 65536;
+      # Disable private /tmp so HACS can write to /tmp/hacs_backup
+      PrivateTmp = lib.mkForce false;
     };
     # Ensure secrets are available before starting
     after = [ "agenix.service" ];
