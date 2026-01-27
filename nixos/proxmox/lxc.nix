@@ -41,6 +41,14 @@
   # Default hostname (should be overridden when adding to nixosConfigurations)
   networking.hostName = lib.mkDefault "nixos-lxc";
 
+  # Automatic garbage collection for LXC containers
+  # Minimal role containers have limited disk space
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 7d";
+  };
+
   # Platform
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 

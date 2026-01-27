@@ -418,6 +418,42 @@ def is_connection_error(output: str) -> bool:
     return any(pattern.lower() in output_lower for pattern in connection_error_patterns)
 
 
+async def cleanup_remote(target_host: str) -> bool:
+    """Run garbage collection on remote host after deployment.
+
+    Removes old generations and cleans up the nix store to free disk space.
+    This is especially important for minimal role containers with limited storage.
+
+    Args:
+        target_host: SSH target (user@host or just host)
+
+    Returns:
+        True if cleanup succeeded, False otherwise (non-fatal)
+    """
+    print(f"{BLUE}[ * ]{NC} Cleaning up old generations on {target_host}...")
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=30",
+            target_host, "sudo nix-collect-garbage -d",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        stdout, _ = await proc.communicate()
+        if proc.returncode == 0:
+            print(f"{GREEN}[ ✓ ]{NC} Cleanup completed on {target_host}")
+            return True
+        else:
+            output = stdout.decode()
+            print(f"{YELLOW}[ ! ]{NC} Cleanup failed on {target_host} (non-fatal)")
+            if output.strip():
+                for line in output.strip().split("\n")[-3:]:
+                    print(f"    {line}")
+            return False
+    except Exception as e:
+        print(f"{YELLOW}[ ! ]{NC} Cleanup failed on {target_host}: {e} (non-fatal)")
+        return False
+
+
 async def check_ssh_connection(target_host: str) -> tuple[bool, str]:
     """
     Quick SSH connection check to verify host is reachable.
@@ -514,6 +550,8 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
 
         if success:
             print(f"{GREEN}[ ✓ ]{NC} {log_prefix}{node.name} - deployment successful")
+            # Run garbage collection on remote to free disk space
+            await cleanup_remote(target_host)
             return node.name, True, output
 
         # Deployment failed - check if it's a connection error or actual deployment failure

@@ -21,7 +21,12 @@ let
   # Module Groups - Building blocks for role composition
   # ============================================================
 
-  # Minimal core - just nix settings (garbage collection, flakes)
+  # Core minimal - just disabled man pages (for service containers)
+  coreMinimal = [
+    ../home/common/core/nix-minimal.nix
+  ];
+
+  # Minimal core - nix tools (nh, devbox, nix-tree, etc.)
   minimalCore = [
     ../home/common/core/nix.nix
   ];
@@ -33,6 +38,18 @@ let
     ../home/common/core/git.nix
     ../home/common/core/network.nix
     "${private}/home/common/core/ssh.nix"
+  ];
+
+  # Shell minimal - essential shell config with core CLI tools (for service containers)
+  # Includes: fish/bash/zsh, starship, tmux, ripgrep, fd, bat, eza, fzf, nh
+  # Excludes: atuin, broot, yazi, dust, difftastic, and other heavy Rust tools
+  shellMinimal = [
+    ../home/common/shell/bash.nix
+    ../home/common/shell/fish.nix
+    ../home/common/shell/zsh.nix
+    ../home/common/shell/misc-minimal.nix # Essential tools only (ripgrep, fd, bat, eza, fzf)
+    ../home/common/shell/starship.nix
+    ../home/common/shell/tmux.nix
   ];
 
   # Shell modules - CLI configuration (no GUI terminals)
@@ -144,7 +161,7 @@ in
 {
   # Export module groups for documentation/debugging
   inherit base ai dev editors infra utils sync media guiShell macos linuxDesktop linuxCli;
-  inherit minimalCore fullCore shellAll security linuxMinimal;
+  inherit coreMinimal minimalCore fullCore shellMinimal shellAll security linuxMinimal;
 
   # Compose modules based on role and platform
   # platform should be "darwin" or "linux"
@@ -182,11 +199,12 @@ in
 
         # Minimal - familiar shell environment only
         # For service containers and simple machines
-        # Includes: shells (fish/bash/zsh), starship, tmux, modern CLI tools
+        # Includes: shells (fish/bash/zsh), starship, tmux, essential CLI tools (rg, fd, bat, eza, fzf, nh)
         # Excludes: agenix, fonts, git, SSH client config, security tools, dev tools
+        # Excludes: heavy CLI tools (atuin, broot, yazi, dust, difftastic, etc.)
         minimal =
-          minimalCore
-          ++ shellAll
+          coreMinimal
+          ++ shellMinimal
           ++ lib.optionals isLinux linuxMinimal;
       };
     in
