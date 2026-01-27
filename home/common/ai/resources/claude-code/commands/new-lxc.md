@@ -198,19 +198,53 @@ ssh root@<proxmox_host> "pct start $VMID"
 # Wait for network
 sleep 10
 
-# Get IP address
-NEW_IP=$(ssh root@<proxmox_host> "pct exec $VMID -- ip -4 addr show eth0 2>/dev/null | grep -oP 'inet \\K[0-9.]+' | head -1")
+# Get IP address (try NixOS path first, then standard)
+NEW_IP=$(ssh root@<proxmox_host> "pct exec $VMID -- /run/current-system/sw/bin/ip -4 addr show eth0 2>/dev/null | grep -oP 'inet \\K[0-9.]+' | head -1")
 
 # If no IP yet, wait and retry
 if [ -z "$NEW_IP" ]; then
   sleep 10
-  NEW_IP=$(ssh root@<proxmox_host> "pct exec $VMID -- ip -4 addr show eth0 2>/dev/null | grep -oP 'inet \\K[0-9.]+' | head -1")
+  NEW_IP=$(ssh root@<proxmox_host> "pct exec $VMID -- /run/current-system/sw/bin/ip -4 addr show eth0 2>/dev/null | grep -oP 'inet \\K[0-9.]+' | head -1")
 fi
 ```
 
 Report: VMID `$VMID`, IP `$NEW_IP`
 
-### 7.3 Set up persistence directories
+### 7.3 Convert DHCP to Static IP
+
+After the container has obtained an IP via DHCP, update the PCT config to make it static:
+
+```bash
+# Get gateway from the container's routing table (assigned by DHCP)
+GATEWAY=$(ssh root@<proxmox_host> "pct exec $VMID -- /run/current-system/sw/bin/ip route show default 2>/dev/null | grep -oP 'via \\K[0-9.]+'")
+
+# Fallback: derive gateway from IP (assume .1) if route lookup fails
+if [ -z "$GATEWAY" ]; then
+  GATEWAY=$(echo "$NEW_IP" | sed 's/\.[0-9]*$/.1/')
+fi
+
+# Get current net0 config to preserve hwaddr, firewall, etc.
+CURRENT_NET0=$(ssh root@<proxmox_host> "pct config $VMID | grep '^net0:'")
+
+# Extract MAC address
+MAC=$(echo "$CURRENT_NET0" | sed 's/.*hwaddr=\([^,]*\).*/\1/')
+
+# Check if firewall is enabled
+if echo "$CURRENT_NET0" | grep -q "firewall=1"; then
+  FIREWALL=",firewall=1"
+else
+  FIREWALL=""
+fi
+
+# Update to static IP
+ssh root@<proxmox_host> "pct set $VMID -net0 name=eth0,bridge=vmbr0${FIREWALL},hwaddr=${MAC},ip=${NEW_IP}/24,gw=${GATEWAY},tag=<VLAN>,type=veth"
+
+echo "Converted $NEW_IP from DHCP to static (gateway: $GATEWAY)"
+```
+
+**Note:** The "Address already assigned" warning is expected since the container already has this IP via DHCP. The important thing is that the config is now static and will persist across reboots.
+
+### 7.4 Set up persistence directories
 
 ```bash
 ssh root@$NEW_IP "

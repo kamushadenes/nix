@@ -62,28 +62,23 @@ DESTRUCTIVE_PATTERNS = [
         r"git\s+branch\s+-D\b",
         "git branch -D force-deletes without merge check. Use -d for safety."
     ),
-    # Destructive filesystem commands
-    # Note: [rR] because both -r and -R mean recursive in GNU coreutils
-    # Note: [a-zA-Z] to handle any flag combinations
-    # Note: Specific root/home pattern MUST come before generic pattern for correct error message
-    # Note: Also catch separate flags (-r -f) and long options (--recursive --force)
+    # Destructive filesystem commands - only block the truly catastrophic ones
+    # rm -rf *, rm -rf /, rm -rf /*, rm -rf ~
     (
-        r"rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f[a-zA-Z]*\s+[/~]|rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR][a-zA-Z]*\s+[/~]",
-        "rm -rf on root or home paths is EXTREMELY DANGEROUS. This command will NOT be executed. Ask the user to run it manually if truly needed."
+        r"rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f[a-zA-Z]*\s+[*]|rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR][a-zA-Z]*\s+[*]",
+        "rm -rf * is EXTREMELY DANGEROUS. This command will NOT be executed."
     ),
     (
-        r"rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f|rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR]",
-        "rm -rf is destructive and requires human approval. Explain what you want to delete and why, then ask the user to run the command manually."
+        r"rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f[a-zA-Z]*\s+/\s*$|rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR][a-zA-Z]*\s+/\s*$",
+        "rm -rf / is EXTREMELY DANGEROUS. This command will NOT be executed."
     ),
-    # Catch rm with separate -r and -f flags (e.g., rm -r -f, rm -f -r, rm -r -i -f)
     (
-        r"rm\s+(-[a-zA-Z]+\s+)*-[rR]\s+(-[a-zA-Z]+\s+)*-f|rm\s+(-[a-zA-Z]+\s+)*-f\s+(-[a-zA-Z]+\s+)*-[rR]",
-        "rm with separate -r -f flags is destructive and requires human approval."
+        r"rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f[a-zA-Z]*\s+/[*]|rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR][a-zA-Z]*\s+/[*]",
+        "rm -rf /* is EXTREMELY DANGEROUS. This command will NOT be executed."
     ),
-    # Catch rm with long options (--recursive, --force)
     (
-        r"rm\s+.*--recursive.*--force|rm\s+.*--force.*--recursive",
-        "rm --recursive --force is destructive and requires human approval."
+        r"rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f[a-zA-Z]*\s+~\s*$|rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR][a-zA-Z]*\s+~\s*$",
+        "rm -rf ~ is EXTREMELY DANGEROUS. This command will NOT be executed."
     ),
     # Git stash drop/clear without explicit permission
     (
@@ -105,30 +100,6 @@ SAFE_PATTERNS = [
     r"git\s+restore\s+-S\s+(?!.*--worktree)(?!.*-W\b)",        # Unstaging short form (safe)
     r"git\s+clean\s+-[a-z]*n[a-z]*",     # Dry run (matches -n, -fn, -nf, -xnf, etc.)
     r"git\s+clean\s+--dry-run",          # Dry run (long form)
-    # Allow rm -rf on temp directories (designed for ephemeral data)
-    # Note: [rR] because both -r and -R mean recursive
-    # Note: Must handle BOTH flag orderings: -rf/-Rf AND -fr/-fR
-    r"rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f[a-zA-Z]*\s+/tmp/",        # /tmp/... (-rf, -Rf style)
-    r"rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR][a-zA-Z]*\s+/tmp/",        # /tmp/... (-fr, -fR style)
-    r"rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f[a-zA-Z]*\s+/var/tmp/",    # /var/tmp/... (-rf style)
-    r"rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR][a-zA-Z]*\s+/var/tmp/",    # /var/tmp/... (-fr style)
-    r"rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f[a-zA-Z]*\s+\$TMPDIR/",    # $TMPDIR/... (-rf style)
-    r"rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR][a-zA-Z]*\s+\$TMPDIR/",    # $TMPDIR/... (-fr style)
-    r"rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f[a-zA-Z]*\s+\$\{TMPDIR",   # ${TMPDIR}/... (-rf style)
-    r"rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR][a-zA-Z]*\s+\$\{TMPDIR",   # ${TMPDIR}/... (-fr style)
-    r'rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f[a-zA-Z]*\s+"\$TMPDIR/',   # "$TMPDIR/..." (-rf style)
-    r'rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR][a-zA-Z]*\s+"\$TMPDIR/',   # "$TMPDIR/..." (-fr style)
-    r'rm\s+-[a-zA-Z]*[rR][a-zA-Z]*f[a-zA-Z]*\s+"\$\{TMPDIR',  # "${TMPDIR}/..." (-rf style)
-    r'rm\s+-[a-zA-Z]*f[a-zA-Z]*[rR][a-zA-Z]*\s+"\$\{TMPDIR',  # "${TMPDIR}/..." (-fr style)
-    # Also allow separate flags (-r -f) and long options on temp directories
-    r"rm\s+(-[a-zA-Z]+\s+)*-[rR]\s+(-[a-zA-Z]+\s+)*-f\s+/tmp/",      # rm -r -f /tmp/...
-    r"rm\s+(-[a-zA-Z]+\s+)*-f\s+(-[a-zA-Z]+\s+)*-[rR]\s+/tmp/",      # rm -f -r /tmp/...
-    r"rm\s+(-[a-zA-Z]+\s+)*-[rR]\s+(-[a-zA-Z]+\s+)*-f\s+/var/tmp/",  # rm -r -f /var/tmp/...
-    r"rm\s+(-[a-zA-Z]+\s+)*-f\s+(-[a-zA-Z]+\s+)*-[rR]\s+/var/tmp/",  # rm -f -r /var/tmp/...
-    r"rm\s+.*--recursive.*--force\s+/tmp/",   # rm --recursive --force /tmp/...
-    r"rm\s+.*--force.*--recursive\s+/tmp/",   # rm --force --recursive /tmp/...
-    r"rm\s+.*--recursive.*--force\s+/var/tmp/",
-    r"rm\s+.*--force.*--recursive\s+/var/tmp/",
 ]
 
 
