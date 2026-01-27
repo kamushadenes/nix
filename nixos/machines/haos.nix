@@ -38,6 +38,15 @@ in
         aioesphomeapi   # ESPHome integration
         psycopg2        # PostgreSQL (if using external recorder)
         securetar       # Backup support
+        # Packages for migrated integrations
+        getmac          # Samsung TV
+        caldav          # CalDAV calendar
+        pycryptodome    # BLE Adv (Crypto module)
+        fido2           # iCloud3
+        srp             # iCloud3 secure remote password
+        httpx-auth      # ICS Calendar authentication
+        arrow           # Date/time library for various integrations
+        ics             # ICS Calendar parsing
       ];
       extraComponents = [
         # Core components that might need extra deps
@@ -106,6 +115,18 @@ in
         "conversation"
         "intent_script"
         "homeassistant_alerts"
+        # Migrated integrations
+        "ipp"
+        "wled"
+        "nextdns"
+        "todoist"
+        "samsungtv"
+        "caldav"
+        "apple_tv"
+        "homekit"
+        "wyoming"
+        "google_sheets"
+        "smartthings"
       ];
     });
 
