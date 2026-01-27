@@ -1,0 +1,212 @@
+# Machine configuration for haos LXC
+# Home Assistant native NixOS service (not Docker)
+{ config, lib, pkgs, pkgs-unstable, private, ... }:
+
+let
+  # Load custom components and lovelace modules
+  customComponents = import ./haos-custom-components.nix { pkgs = pkgs-unstable; };
+  customLovelaceModules = import ./haos-lovelace-modules.nix { pkgs = pkgs-unstable; };
+in
+{
+  imports = [ "${private}/nixos/lxc-management.nix" ];
+
+  # Agenix identity paths for secret decryption (uses SSH host key)
+  # lxc-management.nix adds the global LXC key via mkAfter
+  age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
+
+  # Agenix secrets for Home Assistant
+  age.secrets = {
+    "haos-secrets.yaml" = {
+      file = "${private}/nixos/secrets/haos/secrets.yaml.age";
+      path = "/var/lib/hass/secrets.yaml";
+      owner = "hass";
+      group = "hass";
+      mode = "0400";
+    };
+  };
+
+  # Home Assistant service configuration
+  services.home-assistant = {
+    enable = true;
+    openFirewall = true;
+
+    # Use UNSTABLE Home Assistant for latest features
+    package = (pkgs-unstable.home-assistant.override {
+      extraPackages = ps: with ps; [
+        # Python packages needed by integrations
+        aiohomekit      # HomeKit controller
+        aioesphomeapi   # ESPHome integration
+        psycopg2        # PostgreSQL (if using external recorder)
+        securetar       # Backup support
+      ];
+      extraComponents = [
+        # Core components that might need extra deps
+        "esphome"
+        "homekit_controller"
+        "mobile_app"
+        "cast"
+        "bluetooth"
+        "zeroconf"
+        "ssdp"
+        "usb"
+        "dhcp"
+        "radio_browser"
+        "unifi"
+        "unifiprotect"
+        "mqtt"
+        "zha"  # Zigbee (though using Z2M externally)
+        "spotify"
+        "google_translate"
+        "openweathermap"
+        "co2signal"
+        "github"
+        "google_assistant"
+        "rest"
+        "command_line"
+        "template"
+        "group"
+        "input_boolean"
+        "input_datetime"
+        "input_number"
+        "input_select"
+        "input_text"
+        "counter"
+        "timer"
+        "schedule"
+        "scene"
+        "script"
+        "automation"
+        "person"
+        "zone"
+        "sun"
+        "moon"
+        "season"
+        "time_date"
+        "workday"
+        "calendar"
+        "todo"
+        "shopping_list"
+        "utility_meter"
+        "history_stats"
+        "statistics"
+        "min_max"
+        "derivative"
+        "integration"
+        "trend"
+        "threshold"
+        "bayesian"
+        "generic_thermostat"
+        "proximity"
+        "notify"
+        "persistent_notification"
+        "file"
+        "image"
+        "webhook"
+        "tag"
+        "conversation"
+        "intent_script"
+        "homeassistant_alerts"
+      ];
+    });
+
+    # Allow UI to modify config files (automations, scenes, scripts)
+    configWritable = true;
+    lovelaceConfigWritable = true;
+
+    # Custom components built declaratively
+    customComponents = customComponents;
+    customLovelaceModules = customLovelaceModules;
+
+    # Base config - most config comes from migrated files
+    config = {
+      homeassistant = {
+        name = "Home";
+        latitude = "!secret latitude";
+        longitude = "!secret longitude";
+        elevation = "!secret elevation";
+        unit_system = "metric";
+        time_zone = "America/Sao_Paulo";
+        currency = "BRL";
+        country = "BR";
+        internal_url = "http://haos.hyades.io:8123";
+        external_url = "!secret external_url";
+      };
+
+      # Default integrations
+      default_config = {};
+
+      # HTTP configuration
+      http = {
+        server_port = 8123;
+        use_x_forwarded_for = true;
+        trusted_proxies = [
+          "172.16.0.0/12"  # Docker networks
+          "10.0.0.0/8"     # Internal networks
+          "127.0.0.1"      # Localhost
+        ];
+      };
+
+      # Recorder for history (use default SQLite for now)
+      recorder = {
+        db_url = "sqlite:////var/lib/hass/home-assistant_v2.db";
+        purge_keep_days = 30;
+      };
+
+      # Logger configuration
+      logger = {
+        default = "info";
+        logs = {
+          "homeassistant.components.mqtt" = "warning";
+          "homeassistant.components.unifi" = "warning";
+        };
+      };
+
+      # MQTT broker configuration (external)
+      mqtt = {
+        broker = "mqtt.hyades.io";
+        port = 1883;
+        username = "!secret mqtt_user";
+        password = "!secret mqtt_password";
+      };
+    };
+  };
+
+  # Firewall
+  networking.firewall.allowedTCPPorts = [
+    8123  # Home Assistant web UI
+    # 8300  # Matter (if needed later)
+  ];
+
+  # Static user for Home Assistant (DynamicUser doesn't work with bind mounts)
+  users.users.hass = {
+    isSystemUser = true;
+    group = "hass";
+    home = "/var/lib/hass";
+    # Groups for device access if needed in future
+    extraGroups = [ "dialout" ];
+  };
+  users.groups.hass = { };
+
+  # Ensure config directory exists with correct permissions
+  systemd.tmpfiles.rules = [
+    "d /var/lib/hass 0750 hass hass -"
+  ];
+
+  # Override systemd unit to use static user instead of DynamicUser
+  systemd.services.home-assistant = {
+    serviceConfig = {
+      DynamicUser = lib.mkForce false;
+      User = "hass";
+      Group = "hass";
+      StateDirectory = lib.mkForce "";  # We manage this ourselves
+      # Increase memory limit for large HA installations
+      MemoryMax = "6G";
+    };
+    # Ensure secrets are available before starting
+    after = [ "agenix.service" ];
+    wants = [ "agenix.service" ];
+  };
+
+  # Use systemd-networkd only (disable NetworkManager from base network.nix)
+  networking.networkmanager.enable = lib.mkForce false;
+}

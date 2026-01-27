@@ -291,6 +291,15 @@
           extraPersistPaths = [ "/var/lib/waha" "/var/lib/docker" ];
         };
 
+        # Home Assistant (LXC) - native NixOS service, not Docker
+        # Migrated from HAOS VM (vmid 101)
+        haos = mkProxmoxHost {
+          machine = "haos";
+          hardware = ./nixos/hardware/haos.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/hass" ];
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox
