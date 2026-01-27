@@ -283,6 +283,14 @@
           extraPersistPaths = [ "/var/lib/docker" ]; # Cache on NFS, only Docker state local
         };
 
+        # WAHA WhatsApp HTTP API (LXC)
+        waha = mkProxmoxHost {
+          machine = "waha";
+          hardware = ./nixos/hardware/waha.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/waha" "/var/lib/docker" ];
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox
