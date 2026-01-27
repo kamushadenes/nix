@@ -13,6 +13,10 @@
     ./common.nix
   ];
 
+  # Have NixOS manage network instead of Proxmox auto-config
+  # This allows us to set DHCP ClientIdentifier for stable IPs
+  proxmoxLXC.manageNetwork = true;
+
   # LXC-specific boot configuration
   boot.isContainer = true;
 
@@ -46,4 +50,40 @@
 
   # LXC containers don't need bootloader
   boot.loader.grub.enable = false;
+
+  # Use systemd-networkd with MAC-based DHCP client identifier for stable IPs
+  # This ensures DHCP leases are consistent across reboots
+  systemd.network = {
+    enable = true;
+    networks = {
+      # Default config for eth0 (primary interface)
+      "10-eth0" = {
+        matchConfig.Name = "eth0";
+        networkConfig = {
+          DHCP = "ipv4";
+          IPv6AcceptRA = false;
+        };
+        dhcpV4Config = {
+          UseDNS = false;
+          UseHostname = true;
+          SendHostname = true;
+          ClientIdentifier = "mac";  # Use MAC address for stable DHCP lease
+        };
+      };
+      # Default config for eth1 (secondary interface, if present)
+      "20-eth1" = {
+        matchConfig.Name = "eth1";
+        networkConfig = {
+          DHCP = "ipv4";
+          IPv6AcceptRA = false;
+        };
+        dhcpV4Config = {
+          UseDNS = false;
+          UseHostname = true;
+          SendHostname = true;
+          ClientIdentifier = "mac";  # Use MAC address for stable DHCP lease
+        };
+      };
+    };
+  };
 }

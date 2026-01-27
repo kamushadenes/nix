@@ -96,9 +96,6 @@ let
 
       # Claude Code LSP tools
       ENABLE_LSP_TOOLS = "1";
-
-      # Happy Coder server URL (local network)
-      HAPPY_SERVER_URL = "https://happy.hyades.io";
     };
 
     launchctl = mkVarExports (

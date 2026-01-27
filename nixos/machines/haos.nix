@@ -217,6 +217,8 @@ in
       StateDirectory = lib.mkForce "";  # We manage this ourselves
       # Increase memory limit for large HA installations
       MemoryMax = "6G";
+      # Increase file descriptor limit for HACS and large installations
+      LimitNOFILE = 65536;
     };
     # Ensure secrets are available before starting
     after = [ "agenix.service" ];
@@ -225,4 +227,10 @@ in
 
   # Use systemd-networkd only (disable NetworkManager from base network.nix)
   networking.networkmanager.enable = lib.mkForce false;
+
+  # Increase system-wide file descriptor limits
+  security.pam.loginLimits = [
+    { domain = "*"; type = "soft"; item = "nofile"; value = "65536"; }
+    { domain = "*"; type = "hard"; item = "nofile"; value = "65536"; }
+  ];
 }

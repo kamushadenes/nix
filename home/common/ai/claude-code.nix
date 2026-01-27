@@ -130,7 +130,6 @@ in
     # markdownlint-cli is installed in emacs.nix
     ruff # Python formatting
     github-mcp-server # GitHub MCP server binary
-    packages.happy-coder # Mobile/web client wrapper for Claude Code and Codex (custom build)
     packages.ccusage # Claude Code usage analysis (avoids CPU-intensive npx calls)
     claudebox # Sandboxed Claude Code execution
   ];
