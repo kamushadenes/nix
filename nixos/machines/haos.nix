@@ -50,7 +50,8 @@ in
         httpx-auth      # ICS Calendar authentication
         arrow           # Date/time library for various integrations
         ics             # ICS Calendar parsing
-        tinytuya        # Tuya Local integration
+        tinytuya                # Tuya Local integration
+        tuya-device-sharing-sdk # Tuya Local device sharing
       ];
       extraComponents = [
         # Core components that might need extra deps
