@@ -154,6 +154,7 @@ in
         country = "BR";
         internal_url = "http://haos.hyades.io:8123";
         external_url = "!secret external_url";
+        customize = "!include customize.yaml";
       };
 
       # Default integrations
@@ -163,10 +164,9 @@ in
       alert = "!include alert.yaml";
       template = "!include template.yaml";
 
-      # Frontend customization
+      # Frontend themes
       frontend = {
         themes = "!include_dir_merge_named themes";
-        customize = "!include customize.yaml";
       };
 
       # MQTT sensors from YAML
