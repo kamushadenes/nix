@@ -161,13 +161,8 @@ in
         };
       };
 
-      # MQTT broker configuration (external)
-      mqtt = {
-        broker = "mqtt.hyades.io";
-        port = 1883;
-        username = "!secret mqtt_user";
-        password = "!secret mqtt_password";
-      };
+      # MQTT is configured via UI (stored in .storage/core.config_entries)
+      # Do NOT add mqtt broker config here - it causes conflicts
     };
   };
 
