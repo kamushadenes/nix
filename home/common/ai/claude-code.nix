@@ -462,6 +462,20 @@ in
             ];
           }
         ];
+
+        # Run after tool failures
+        PostToolUseFailure = [
+          # Suggest nix-shell for missing commands
+          {
+            matcher = "Bash";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PostToolUseFailure/suggest-nix-shell.sh";
+              }
+            ];
+          }
+        ];
       };
 
       # Custom status line command
@@ -625,6 +639,12 @@ in
     # PostToolUse hooks (additional)
     ".claude/hooks/PostToolUse/link-pr-to-task.sh" = {
       source = "${scriptsDir}/hooks/PostToolUse/link-pr-to-task.sh";
+      executable = true;
+    };
+
+    # PostToolUseFailure hooks
+    ".claude/hooks/PostToolUseFailure/suggest-nix-shell.sh" = {
+      source = "${scriptsDir}/hooks/PostToolUseFailure/suggest-nix-shell.sh";
       executable = true;
     };
 
