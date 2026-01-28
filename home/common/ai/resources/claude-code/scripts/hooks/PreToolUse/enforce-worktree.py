@@ -110,11 +110,17 @@ def main() -> None:
     if not command:
         sys.exit(0)
 
-    # Only check git commit commands
+    # OPTIMIZATION: Check git commit regex BEFORE any subprocess/file I/O
+    # This avoids expensive operations for non-commit commands
     if not re.search(r"git\s+commit", command):
         sys.exit(0)
 
-    # Check if on protected branch
+    # OPTIMIZATION: Check if .taskmaster exists before any git operations
+    # Most repos don't use task-master, so exit early
+    if not os.path.isdir(".taskmaster"):
+        sys.exit(0)
+
+    # Now do the expensive checks only for git commit in task-master repos
     branch = get_current_branch()
     if not is_protected_branch(branch):
         sys.exit(0)  # Not on protected branch, allow

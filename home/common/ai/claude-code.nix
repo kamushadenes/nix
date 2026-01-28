@@ -234,12 +234,13 @@ in
             ];
           }
           # Block workers from executing commands if task is already complete
+          # Uses bash instead of Python for faster startup (~5ms vs ~30ms)
           {
             matcher = "";
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/PreToolUse/block-completed-worker.py";
+                command = "~/.claude/hooks/PreToolUse/block-completed-worker.sh";
               }
             ];
           }
@@ -623,8 +624,8 @@ in
       source = "${scriptsDir}/hooks/PreToolUse/deny-task-status-write.py";
       executable = true;
     };
-    ".claude/hooks/PreToolUse/block-completed-worker.py" = {
-      source = "${scriptsDir}/hooks/PreToolUse/block-completed-worker.py";
+    ".claude/hooks/PreToolUse/block-completed-worker.sh" = {
+      source = "${scriptsDir}/hooks/PreToolUse/block-completed-worker.sh";
       executable = true;
     };
     ".claude/hooks/PreToolUse/block-pr-consolidated.py" = {
