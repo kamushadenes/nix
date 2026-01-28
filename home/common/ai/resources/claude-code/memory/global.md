@@ -71,14 +71,6 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
-These rules apply to all projects.
-
 ## Task Tracking (IMPORTANT)
 
 Use task-master MCP for task tracking
-
-## Code Style
-
-- Follow existing project conventions
-- Prefer simplicity over cleverness
-- Write self-documenting code with minimal comments
