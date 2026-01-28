@@ -5,6 +5,7 @@
   hardware,
   private,
   role,
+  inputs,
   ...
 }:
 let
@@ -80,7 +81,10 @@ in
   # Timezone
   time.timeZone = "America/Sao_Paulo";
 
-  nixpkgs.overlays = [ overlays.lixOverlay ];
+  nixpkgs.overlays = [
+    overlays.lixOverlay
+    inputs.nix-clawdbot.overlays.default
+  ];
 
   nix.package = pkgs.lixPackageSets.stable.lix;
 }

@@ -5,6 +5,7 @@
   pkgs-unstable,
   platform,
   private,
+  inputs,
   ...
 }:
 let
@@ -94,7 +95,10 @@ in
 
   age.identityPaths = [ "${config.users.users.kamushadenes.home}/.age/age.pem" ];
 
-  nixpkgs.overlays = [ overlays.lixOverlay ];
+  nixpkgs.overlays = [
+    overlays.lixOverlay
+    inputs.nix-clawdbot.overlays.default
+  ];
 
   nix.package = pkgs.lixPackageSets.stable.lix;
 }
