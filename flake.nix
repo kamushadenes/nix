@@ -187,6 +187,7 @@
                 };
               }
               hmDefaults
+              hmNixosRoot
               (pkgs.lib.mkIf shared hmShared)
             ];
           }
@@ -208,6 +209,11 @@
       # Darwin-specific home-manager config for root (for nix remote builds)
       hmDarwinRoot = {
         users.root = import ./home_root.nix;
+      };
+
+      # NixOS home-manager config for root (same shell environment as kamushadenes)
+      hmNixosRoot = {
+        users.root = import ./home_root_nixos.nix;
       };
 
       hmShared = {
