@@ -26,6 +26,9 @@
       settings.allow_anonymous = false;
       users.haos = {
         hashedPasswordFile = config.age.secrets."mosquitto-passwd".path;
+        acl = [
+          "readwrite #"  # Allow read/write to all topics
+        ];
       };
     }];
   };
