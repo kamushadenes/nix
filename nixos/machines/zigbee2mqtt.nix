@@ -69,12 +69,16 @@
   # Override systemd unit to use static user instead of DynamicUser
   # Also relax sandbox for USB passthrough in LXC
   systemd.services.zigbee2mqtt = {
+    # Wait for the USB device to be available before starting
+    after = [ "dev-serial-by\\x2did-usb\\x2dITEAD_SONOFF_Zigbee_3.0_USB_Dongle_Plus_V2_20240123191316\\x2dif00.device" ];
+    wants = [ "dev-serial-by\\x2did-usb\\x2dITEAD_SONOFF_Zigbee_3.0_USB_Dongle_Plus_V2_20240123191316\\x2dif00.device" ];
     serviceConfig = {
       DynamicUser = lib.mkForce false;
       User = "zigbee2mqtt";
       Group = "zigbee2mqtt";
       StateDirectory = "zigbee2mqtt";
       StateDirectoryMode = "0700";
+      RestartSec = "10";  # Increase restart delay to avoid rapid restart loops
       # Relax sandbox for USB passthrough in LXC
       DevicePolicy = lib.mkForce "auto";
       DeviceAllow = lib.mkForce [ "/dev/ttyACM0" "/dev/serial/by-id/usb-ITEAD_SONOFF_Zigbee_3.0_USB_Dongle_Plus_V2_20240123191316-if00" ];
