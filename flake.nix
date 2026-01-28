@@ -29,7 +29,7 @@
     };
 
     nix-clawdbot = {
-      url = "github:moltbot/nix-moltbot";
+      url = "github:kamushadenes/nix-moltbot";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
@@ -203,7 +203,7 @@
 
       hmModules = [
         agenix.homeManagerModules.default
-        nix-clawdbot.homeManagerModules.clawdbot
+        nix-clawdbot.homeManagerModules.moltbot
       ];
 
       hmDefaults = {
