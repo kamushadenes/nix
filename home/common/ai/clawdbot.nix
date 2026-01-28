@@ -36,11 +36,13 @@ let
   # Check if secrets exist
   telegramTokenAgeFile = "${private}/home/common/ai/resources/clawdbot/telegram-bot-token.age";
   anthropicKeyAgeFile = "${private}/home/common/ai/resources/clawdbot/anthropic-api-key.age";
+  gatewayTokenAgeFile = "${private}/home/common/ai/resources/clawdbot/gateway-token.age";
   secretsExist = enabled && builtins.pathExists telegramTokenAgeFile && builtins.pathExists anthropicKeyAgeFile;
 
   # Agenix secrets paths (decrypted at runtime)
   telegramTokenPath = "${secretsDir}/telegram-bot-token";
   anthropicKeyPath = "${secretsDir}/anthropic-api-key";
+  gatewayTokenPath = "${secretsDir}/gateway-token";
 in
 {
   # Agenix secrets for moltbot (only if the .age files exist)
@@ -52,6 +54,10 @@ in
     moltbot-anthropic-key = {
       file = anthropicKeyAgeFile;
       path = anthropicKeyPath;
+    };
+    moltbot-gateway-token = {
+      file = gatewayTokenAgeFile;
+      path = gatewayTokenPath;
     };
   };
 
@@ -95,6 +101,9 @@ in
       # Anthropic API key
       providers.anthropic.apiKeyFile = anthropicKeyPath;
 
+      # Gateway auth token (from agenix secret)
+      gateway.tokenFile = gatewayTokenPath;
+
       # Telegram provider (now works with fixed module)
       providers.telegram = {
         enable = true;
@@ -103,10 +112,8 @@ in
       };
 
       # Disable memory plugin (set to "none" per moltbot docs)
-      # Set gateway auth token for local access
       configOverrides = {
         plugins.slots.memory = "none";
-        gateway.auth.token = "local-gateway-token";
       };
     };
   };
