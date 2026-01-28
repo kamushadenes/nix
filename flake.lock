@@ -242,11 +242,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1769633142,
-        "narHash": "sha256-UmztRTTjwbc05VvA7XW3C1xSUQIo1pF/y2qXLFjER0U=",
+        "lastModified": 1769639502,
+        "narHash": "sha256-h/c5k6LWVLboq+Uiup5WsX/jALGEjXVM/O43YG24dsA=",
         "owner": "kamushadenes",
         "repo": "nix-moltbot",
-        "rev": "8237e8f4f0b19c4ea6447b888364a4a07bf42ef8",
+        "rev": "c6b21f58e480f5c9259914b16c449f9880136c7f",
         "type": "github"
       },
       "original": {

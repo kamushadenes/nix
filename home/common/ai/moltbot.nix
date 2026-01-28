@@ -1,9 +1,5 @@
 # Moltbot - AI assistant gateway for Telegram
 #
-# Uses fork (github:kamushadenes/nix-moltbot) with fixes for:
-#   - byProvider -> byChannel (routing config)
-#   - telegram at root -> channels.telegram
-#
 # Uses nix-moltbot for declarative configuration.
 # Runs as a launchd service on macOS, systemd user service on Linux.
 #
@@ -12,14 +8,14 @@
 # 2. Get your Telegram user ID via @userinfobot
 # 3. Create and encrypt secrets with agenix:
 #    cd ~/.config/nix/config/private
-#    echo "YOUR_BOT_TOKEN" | agenix -e home/common/ai/resources/clawdbot/telegram-bot-token.age
-#    echo "YOUR_ANTHROPIC_KEY" | agenix -e home/common/ai/resources/clawdbot/anthropic-api-key.age
+#    echo "YOUR_BOT_TOKEN" | agenix -e home/common/ai/resources/moltbot/telegram-bot-token.age
+#    echo "YOUR_ANTHROPIC_KEY" | agenix -e home/common/ai/resources/moltbot/anthropic-api-key.age
 # 4. Update allowFrom in this file with your Telegram user ID(s)
 # 5. Rebuild: rebuild
 #
 # Resources:
 # - README: https://github.com/moltbot/nix-moltbot
-# - Plugins: https://github.com/clawdbot/nix-steipete-tools
+# - Plugins: https://github.com/moltbot/nix-steipete-tools
 {
   config,
   lib,
@@ -34,15 +30,18 @@ let
   enabled = true;
 
   # Check if secrets exist
-  telegramTokenAgeFile = "${private}/home/common/ai/resources/clawdbot/telegram-bot-token.age";
-  anthropicKeyAgeFile = "${private}/home/common/ai/resources/clawdbot/anthropic-api-key.age";
-  gatewayTokenAgeFile = "${private}/home/common/ai/resources/clawdbot/gateway-token.age";
-  secretsExist = enabled && builtins.pathExists telegramTokenAgeFile && builtins.pathExists anthropicKeyAgeFile;
+  telegramTokenAgeFile = "${private}/home/common/ai/resources/moltbot/telegram-bot-token.age";
+  anthropicKeyAgeFile = "${private}/home/common/ai/resources/moltbot/anthropic-api-key.age";
+  gatewayTokenAgeFile = "${private}/home/common/ai/resources/moltbot/gateway-token.age";
+  secretsExist = enabled && builtins.pathExists anthropicKeyAgeFile;
 
   # Agenix secrets paths (decrypted at runtime)
   telegramTokenPath = "${secretsDir}/telegram-bot-token";
   anthropicKeyPath = "${secretsDir}/anthropic-api-key";
   gatewayTokenPath = "${secretsDir}/gateway-token";
+
+  # Use full moltbot package with lower priority to avoid conflicts
+  moltbotPackage = lib.lowPrio pkgs.moltbot;
 in
 {
   # Agenix secrets for moltbot (only if the .age files exist)
@@ -61,57 +60,41 @@ in
     };
   };
 
-  # Use instances API for proper configuration
+  # Moltbot config using instances API (required for proper defaults)
   programs.moltbot = lib.mkIf secretsExist {
-    # Use gateway-only package (memory plugin disabled via "none")
-    package = pkgs.moltbot-gateway;
-
-    # Don't expose plugin packages to avoid conflicts
-    exposePluginPackages = false;
-
     # AI model defaults
     defaults = {
-      model = "anthropic/claude-sonnet-4-20250514"; # Fast and capable
+      model = "anthropic/claude-sonnet-4-20250514";
       thinkingDefault = "medium";
     };
 
-    # First-party plugins
-    # NOTE: Currently disabled - upstream nix-steipete-tools doesn't export moltbotPlugin
-    # TODO: Re-enable when upstream plugin format is fixed
-    firstParty = {
-      summarize.enable = false;
-      peekaboo.enable = false;
-      oracle.enable = false;
-      poltergeist.enable = false;
-      sag.enable = false;
-      camsnap.enable = false;
-      gogcli.enable = false;
-      bird.enable = false;
-      sonoscli.enable = false;
-      imsg.enable = false;
-    };
+    # Use full moltbot package with conflicts removed
+    package = moltbotPackage;
 
-    # Use named instance to get proper defaults for all nested options
+    # Use instances.default for proper configuration
     instances.default = {
       enable = true;
 
-      # Use gateway-only package
-      package = pkgs.moltbot-gateway;
+      # Use full moltbot package with conflicts removed
+      package = moltbotPackage;
 
-      # Anthropic API key
-      providers.anthropic.apiKeyFile = anthropicKeyPath;
-
-      # Gateway auth token (from agenix secret)
-      gateway.tokenFile = gatewayTokenPath;
-
-      # Telegram provider (now works with fixed module)
+      # Telegram provider
       providers.telegram = {
         enable = true;
         botTokenFile = telegramTokenPath;
         allowFrom = [ 28814201 ]; # @kamushadenes
       };
 
-      # Disable memory plugin (set to "none" per moltbot docs)
+      # Anthropic API key
+      providers.anthropic.apiKeyFile = anthropicKeyPath;
+
+      # Gateway auth token
+      gateway.tokenFile = gatewayTokenPath;
+
+      # No plugins (upstream nix-steipete-tools doesn't export moltbotPlugin yet)
+      plugins = [];
+
+      # Disable memory plugin (not needed for basic Telegram)
       configOverrides = {
         plugins.slots.memory = "none";
       };
@@ -119,7 +102,6 @@ in
   };
 
   # Create .env file for moltbot with API key from agenix-decrypted secret
-  # This runs after agenix decrypts the secrets
   home.activation.moltbot-env = lib.mkIf secretsExist (
     lib.hm.dag.entryAfter [ "agenix" ] ''
       if [ -f "${anthropicKeyPath}" ]; then
@@ -135,8 +117,8 @@ in
     Moltbot is disabled because secrets are not configured.
     To enable, create the encrypted secrets:
       cd ~/.config/nix/config/private
-      echo "YOUR_TELEGRAM_BOT_TOKEN" | agenix -e home/common/ai/resources/clawdbot/telegram-bot-token.age
-      echo "YOUR_ANTHROPIC_API_KEY" | agenix -e home/common/ai/resources/clawdbot/anthropic-api-key.age
-    Then update allowFrom in home/common/ai/clawdbot.nix with your Telegram user ID.
+      echo "YOUR_TELEGRAM_BOT_TOKEN" | agenix -e home/common/ai/resources/moltbot/telegram-bot-token.age
+      echo "YOUR_ANTHROPIC_API_KEY" | agenix -e home/common/ai/resources/moltbot/anthropic-api-key.age
+    Then update allowFrom in home/common/ai/moltbot.nix with your Telegram user ID.
   '';
 }

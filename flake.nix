@@ -28,7 +28,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nix-clawdbot = {
+    nix-moltbot = {
       url = "github:kamushadenes/nix-moltbot";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
@@ -49,7 +49,7 @@
       darwin,
       agenix,
       claudebox,
-      nix-clawdbot,
+      nix-moltbot,
       nixos-generators,
       ...
     }:
@@ -203,7 +203,7 @@
 
       hmModules = [
         agenix.homeManagerModules.default
-        nix-clawdbot.homeManagerModules.moltbot
+        nix-moltbot.homeManagerModules.moltbot
       ];
 
       hmDefaults = {

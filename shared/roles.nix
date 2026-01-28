@@ -74,7 +74,7 @@ let
 
   # AI tools - Claude, orchestrator, etc.
   ai = [
-    ../home/common/ai/clawdbot.nix
+    ../home/common/ai/moltbot.nix
     ../home/common/ai/claude-code.nix
     ../home/common/ai/codex-cli.nix
     ../home/common/ai/gemini-cli.nix
