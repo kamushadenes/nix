@@ -6,6 +6,10 @@
   # Enable flakes and nix-command
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
+  # Enable bash with proper Nix PATH setup for all users (including root via SSH)
+  # Without this, SSH sessions as root won't have Nix binaries in PATH
+  programs.bash.enable = true;
+
   # Add trusted users for remote rebuilds
   nix.settings.trusted-users = [ "root" "@wheel" ];
 
