@@ -33,15 +33,6 @@ let
 
   enabled = true;
 
-  # Create minimal wrapper with only the moltbot binary
-  # Full moltbot package bundles entire shell environment (bash, python, gotools, etc.)
-  # which conflicts with system packages
-  moltbotMinimal = pkgs.runCommand "moltbot-minimal" { } ''
-    mkdir -p $out/bin
-    # Only symlink the moltbot binary, not the entire bundled environment
-    ln -s ${pkgs.moltbot}/bin/moltbot $out/bin/moltbot
-  '';
-
   # Check if secrets exist
   telegramTokenAgeFile = "${private}/home/common/ai/resources/clawdbot/telegram-bot-token.age";
   anthropicKeyAgeFile = "${private}/home/common/ai/resources/clawdbot/anthropic-api-key.age";
@@ -66,9 +57,8 @@ in
 
   # Use instances API for proper configuration
   programs.moltbot = lib.mkIf secretsExist {
-    # Use filtered full package (excludes idle binary that conflicts with system Python)
-    # Full package needed for memory-core plugin
-    package = moltbotMinimal;
+    # Use gateway-only package (memory plugin disabled via "none")
+    package = pkgs.moltbot-gateway;
 
     # Don't expose plugin packages to avoid conflicts
     exposePluginPackages = false;
@@ -99,8 +89,8 @@ in
     instances.default = {
       enable = true;
 
-      # Use filtered full package at instance level too
-      package = moltbotMinimal;
+      # Use gateway-only package
+      package = pkgs.moltbot-gateway;
 
       # Anthropic API key
       providers.anthropic.apiKeyFile = anthropicKeyPath;
