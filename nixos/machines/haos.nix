@@ -259,8 +259,7 @@ in
       User = "hass";
       Group = "hass";
       StateDirectory = lib.mkForce "";  # We manage this ourselves
-      # Increase memory limit for large HA installations
-      MemoryMax = "8G";
+      # No memory limit - let systemd use available container RAM
       # Increase file descriptor limit for HACS and large installations
       LimitNOFILE = 65536;
       # Disable private /tmp so HACS can write to /tmp/hacs_backup
