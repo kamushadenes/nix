@@ -1,13 +1,10 @@
 # Moltbot - AI assistant gateway for Telegram
 #
-# STATUS: DISABLED - moltbot gateway expects memory-core plugin which isn't included
-# in the gateway-only package. Full moltbot package conflicts with system Python.
-# Using fork (github:kamushadenes/nix-moltbot) with fixes for:
+# Uses fork (github:kamushadenes/nix-moltbot) with fixes for:
 #   - byProvider -> byChannel (routing config)
 #   - telegram at root -> channels.telegram
-# TODO: Fix upstream - need way to disable memory slot or include memory-core in gateway
 #
-# Uses nix-moltbot (github:kamushadenes/nix-moltbot) for declarative configuration.
+# Uses nix-moltbot for declarative configuration.
 # Runs as a launchd service on macOS, systemd user service on Linux.
 #
 # Setup:
@@ -34,10 +31,16 @@ let
   homeDir = config.home.homeDirectory;
   secretsDir = "${homeDir}/.moltbot/secrets";
 
-  # DISABLED: moltbot expects memory-core plugin which isn't in gateway-only package
-  # Full moltbot package conflicts with system Python
-  # TODO: Fix upstream - need way to disable memory slot or include memory-core in gateway
-  enabled = false;
+  enabled = true;
+
+  # Create minimal wrapper with only the moltbot binary
+  # Full moltbot package bundles entire shell environment (bash, python, gotools, etc.)
+  # which conflicts with system packages
+  moltbotMinimal = pkgs.runCommand "moltbot-minimal" { } ''
+    mkdir -p $out/bin
+    # Only symlink the moltbot binary, not the entire bundled environment
+    ln -s ${pkgs.moltbot}/bin/moltbot $out/bin/moltbot
+  '';
 
   # Check if secrets exist
   telegramTokenAgeFile = "${private}/home/common/ai/resources/clawdbot/telegram-bot-token.age";
@@ -63,9 +66,9 @@ in
 
   # Use instances API for proper configuration
   programs.moltbot = lib.mkIf secretsExist {
-    # Use gateway-only package to avoid conflicts with system tools
-    # The batteries-included package bundles python, gotools, etc. that conflict
-    package = pkgs.moltbot-gateway;
+    # Use filtered full package (excludes idle binary that conflicts with system Python)
+    # Full package needed for memory-core plugin
+    package = moltbotMinimal;
 
     # Don't expose plugin packages to avoid conflicts
     exposePluginPackages = false;
@@ -96,8 +99,8 @@ in
     instances.default = {
       enable = true;
 
-      # Use gateway-only package at instance level too
-      package = pkgs.moltbot-gateway;
+      # Use filtered full package at instance level too
+      package = moltbotMinimal;
 
       # Anthropic API key
       providers.anthropic.apiKeyFile = anthropicKeyPath;
@@ -109,13 +112,11 @@ in
         allowFrom = [ 28814201 ]; # @kamushadenes
       };
 
-      # Disable memory plugin (moltbot expects memory-core by default but
-      # it's not included in gateway-only package)
-      # Using empty string as "disabled" value
+      # Disable memory plugin (set to "none" per moltbot docs)
+      # Set gateway auth token for local access
       configOverrides = {
-        plugins.slots = {
-          memory = "";
-        };
+        plugins.slots.memory = "none";
+        gateway.auth.token = "local-gateway-token";
       };
     };
   };
