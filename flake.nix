@@ -314,6 +314,14 @@
           extraPersistPaths = [ "/var/lib/hass" ];
         };
 
+        # Moltbot Gateway (LXC) - Telegram AI assistant
+        moltbot = mkProxmoxHost {
+          machine = "moltbot";
+          hardware = ./nixos/hardware/moltbot.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/moltbot" ];
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox
