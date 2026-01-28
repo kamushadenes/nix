@@ -260,7 +260,7 @@ in
       Group = "hass";
       StateDirectory = lib.mkForce "";  # We manage this ourselves
       # Increase memory limit for large HA installations
-      MemoryMax = "6G";
+      MemoryMax = "8G";
       # Increase file descriptor limit for HACS and large installations
       LimitNOFILE = 65536;
       # Disable private /tmp so HACS can write to /tmp/hacs_backup
