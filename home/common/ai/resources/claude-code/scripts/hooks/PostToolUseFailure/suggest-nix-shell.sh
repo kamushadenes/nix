@@ -7,47 +7,33 @@
 #   "hook_event_name": "PostToolUseFailure",
 #   "tool_name": "Bash",
 #   "tool_input": { "command": "cowsay hello" },
-#   "tool_error": "bash: cowsay: command not found"
+#   "error": "Exit code 127\ncowsay: command not found"
 # }
 
 # Read JSON input from stdin
 input=$(cat)
 
-# Debug: log input to file
-mkdir -p ~/.claude/logs
-echo "$(date -Iseconds) PostToolUseFailure suggest-nix-shell input:" >> ~/.claude/logs/hook-debug.log
-echo "$input" >> ~/.claude/logs/hook-debug.log
-echo "---" >> ~/.claude/logs/hook-debug.log
-
-# Extract fields - try both tool_error and tool_response for compatibility
-tool_error=$(echo "$input" | jq -r '.tool_error // empty')
+# Extract fields
+tool_error=$(echo "$input" | jq -r '.error // empty')
 command_str=$(echo "$input" | jq -r '.tool_input.command // empty')
-
-# Fall back to tool_response if tool_error is empty
-if [[ -z "$tool_error" ]]; then
-  tool_response=$(echo "$input" | jq -r '.tool_response // empty')
-  if echo "$tool_response" | jq -e 'type == "object"' &>/dev/null; then
-    tool_error=$(echo "$tool_response" | jq -r '.stderr // empty')
-  else
-    tool_error="$tool_response"
-  fi
-fi
 
 # Check if this is a "command not found" error
 if [[ ! "$tool_error" =~ (command\ not\ found|not\ found) ]]; then
   exit 0
 fi
 
-# Extract the missing command from error message
-# Handles: "bash: foo: command not found" or "foo: not found"
+# Extract the missing command - parse the line that has "command not found"
+# The error format is "Exit code 127\ncowsay: command not found"
 binary=""
-if [[ "$tool_error" =~ bash:\ ([^:]+):\ command\ not\ found ]]; then
-  binary="${BASH_REMATCH[1]}"
-elif [[ "$tool_error" =~ ([^:\ ]+):\ command\ not\ found ]]; then
-  binary="${BASH_REMATCH[1]}"
-elif [[ "$tool_error" =~ ([^:\ ]+):\ not\ found ]]; then
-  binary="${BASH_REMATCH[1]}"
-fi
+while IFS= read -r line; do
+  if [[ "$line" =~ ^([^:]+):\ command\ not\ found$ ]]; then
+    binary="${BASH_REMATCH[1]}"
+    break
+  elif [[ "$line" =~ ^bash:\ ([^:]+):\ command\ not\ found$ ]]; then
+    binary="${BASH_REMATCH[1]}"
+    break
+  fi
+done <<< "$tool_error"
 
 [[ -z "$binary" ]] && exit 0
 
@@ -62,12 +48,20 @@ if [[ -n "$packages" ]]; then
   # Get first package (remove .out/.bin suffix)
   pkg=$(echo "$packages" | head -1 | sed 's/\.\(out\|bin\)$//')
 
-  echo ""
-  echo "Command '$binary' not found. Available in nixpkgs:"
-  echo "$packages" | sed 's/\.\(out\|bin\)$//' | sed 's/^/   - /'
-  echo ""
-  echo "   Run with: nix-shell -p $pkg --run \"$command_str\""
-  echo ""
+  # Build the suggestion message
+  pkg_list=$(echo "$packages" | sed 's/\.\(out\|bin\)$//' | sed 's/^/   - /')
+  suggestion="Command '$binary' not found. Available in nixpkgs:
+$pkg_list
+
+Run with: nix-shell -p $pkg --run \"$command_str\""
+
+  # Output JSON with additionalContext so Claude sees the suggestion
+  jq -n --arg ctx "$suggestion" '{
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUseFailure",
+      "additionalContext": $ctx
+    }
+  }'
 fi
 
 exit 0
