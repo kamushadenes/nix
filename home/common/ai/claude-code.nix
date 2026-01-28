@@ -447,18 +447,6 @@ in
               }
             ];
           }
-          # Suggest nix-shell for missing commands
-          # TODO: Migrate to PostToolUseFailure when available in Claude Code
-          # (more efficient - only runs on failures)
-          {
-            matcher = "Bash";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/PostToolUse/suggest-nix-shell.sh";
-              }
-            ];
-          }
         ];
 
         # Run when subagent finishes
@@ -475,6 +463,19 @@ in
           }
         ];
 
+        # Run after tool failures
+        PostToolUseFailure = [
+          # Suggest nix-shell for missing commands
+          {
+            matcher = "Bash";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PostToolUseFailure/suggest-nix-shell.sh";
+              }
+            ];
+          }
+        ];
       };
 
       # Custom status line command
@@ -641,9 +642,9 @@ in
       executable = true;
     };
 
-    # Suggest nix-shell for command not found
-    ".claude/hooks/PostToolUse/suggest-nix-shell.sh" = {
-      source = "${scriptsDir}/hooks/PostToolUse/suggest-nix-shell.sh";
+    # Suggest nix-shell for command not found (PostToolUseFailure)
+    ".claude/hooks/PostToolUseFailure/suggest-nix-shell.sh" = {
+      source = "${scriptsDir}/hooks/PostToolUseFailure/suggest-nix-shell.sh";
       executable = true;
     };
 
