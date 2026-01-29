@@ -84,6 +84,7 @@ in
     path = [ pkgs.moltbot-gateway pkgs.bash pkgs.coreutils pkgs.vdirsyncer pkgs.khal ];
 
     # Read secrets from agenix files and pass to moltbot-gateway
+    # Note: email config and auth-profiles.json are managed dynamically by moltbot
     script = ''
       export PATH="${pkgs.moltbot-gateway}/bin:$PATH"
       export TELEGRAM_BOT_TOKEN=$(cat ${config.age.secrets."moltbot-telegram-token".path})
@@ -96,50 +97,6 @@ in
       export MOLTBOT_THINKING_DEFAULT="medium"
       export FASTMAIL_USER="kamus@hadenes.io"
       export FASTMAIL_PASSWORD=$(cat ${config.age.secrets."moltbot-fastmail-password".path})
-
-      # Create email tool config
-      mkdir -p /var/lib/moltbot/.moltbot/tools/email
-      cat > /var/lib/moltbot/.moltbot/tools/email/config.json << EOF
-{
-  "accounts": {
-    "default": {
-      "email": "$FASTMAIL_USER",
-      "password": "$FASTMAIL_PASSWORD",
-      "imap": {
-        "host": "imap.fastmail.com",
-        "port": 993,
-        "secure": true
-      },
-      "smtp": {
-        "host": "smtp.fastmail.com",
-        "port": 465,
-        "secure": true
-      }
-    }
-  },
-  "defaultAccount": "default"
-}
-EOF
-
-      # Create auth-profiles.json for agent API access
-      mkdir -p /var/lib/moltbot/.moltbot/agents/main/agent
-      cat > /var/lib/moltbot/.moltbot/agents/main/agent/auth-profiles.json << EOF
-{
-  "version": 1,
-  "profiles": {
-    "google:default": {
-      "type": "api_key",
-      "provider": "google",
-      "key": "$GOOGLE_API_KEY"
-    },
-    "anthropic:default": {
-      "type": "token",
-      "provider": "anthropic",
-      "token": "$ANTHROPIC_API_KEY"
-    }
-  }
-}
-EOF
 
       exec ${pkgs.moltbot-gateway}/bin/moltbot gateway --port 18789
     '';
