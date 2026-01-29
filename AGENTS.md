@@ -15,6 +15,27 @@ This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS sys
 **Proxmox Hosts:**
 - `pve1`: 10.23.5.10 (SSH as root for LXC management via `pct` commands)
 
+## Moltbot (AI Assistant Gateway)
+
+Moltbot is deployed as a Proxmox LXC container providing AI assistant capabilities via Telegram.
+
+**Configuration Files:**
+- **NixOS config:** `nixos/machines/moltbot.nix` - systemd service, secrets, tmpfiles
+- **Runtime config:** `private/nixos/machines/resources/moltbot/moltbot.json` - channels, agents, models (private)
+- **Secrets:** `private/nixos/secrets/moltbot/*.age` - API keys, tokens
+
+**Key Locations on LXC:**
+- Config: `/var/lib/moltbot/.moltbot/moltbot.json`
+- Workspace: `/var/lib/moltbot/workspace`
+- Auth profiles: `/var/lib/moltbot/.moltbot/agents/main/agent/auth-profiles.json`
+
+**Deployment:**
+```bash
+rebuild -vL moltbot  # Build locally and deploy to LXC
+```
+
+**Documentation:** https://docs.molt.bot/
+
 ## Commands
 
 ```bash
@@ -156,6 +177,19 @@ The `private/` directory is a git submodule. Due to nix flakes not including sub
 - Private/sensitive configs use the `private` variable (NOT symlinks) - see "Private Submodule Access" section
 - Uses Lix (alternative Nix implementation) from stable package sets
 - Primary shell is Fish; primary editor is Neovim (unstable channel)
+
+## CRITICAL: Never Guess - Always Consult Documentation
+
+**NEVER guess or assume configuration formats, API structures, or tool behaviors.** Always consult official documentation before implementing.
+
+When working with tools or services:
+1. **Find the documentation first** - Don't invent config formats
+2. **Verify the expected format** - Check docs or existing working examples
+3. **If docs are unavailable** - Ask the user before proceeding with assumptions
+
+### Key Documentation URLs
+
+- **Moltbot**: https://docs.molt.bot/ - AI assistant gateway (Telegram, Discord, etc.)
 
 ## Landing the Plane (Session Completion)
 

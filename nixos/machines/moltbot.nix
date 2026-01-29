@@ -3,7 +3,8 @@
 { config, lib, pkgs, private, ... }:
 let
   # Config template - deployed to /var/lib/moltbot/moltbot.json
-  moltbotConfigTemplate = ./resources/moltbot/moltbot.json;
+  # Stored in private submodule (contains channel IDs and user allowlists)
+  moltbotConfigTemplate = "${private}/nixos/machines/resources/moltbot/moltbot.json";
 in
 {
   imports = [ "${private}/nixos/lxc-management.nix" ];
@@ -96,6 +97,30 @@ in
       export MOLTBOT_THINKING_DEFAULT="medium"
       export FASTMAIL_USER="kamus@hadenes.io"
       export FASTMAIL_PASSWORD=$(cat ${config.age.secrets."moltbot-fastmail-password".path})
+
+      # Create email tool config
+      mkdir -p /var/lib/moltbot/.moltbot/tools/email
+      cat > /var/lib/moltbot/.moltbot/tools/email/config.json << EOF
+{
+  "accounts": {
+    "default": {
+      "email": "$FASTMAIL_USER",
+      "password": "$FASTMAIL_PASSWORD",
+      "imap": {
+        "host": "imap.fastmail.com",
+        "port": 993,
+        "secure": true
+      },
+      "smtp": {
+        "host": "smtp.fastmail.com",
+        "port": 465,
+        "secure": true
+      }
+    }
+  },
+  "defaultAccount": "default"
+}
+EOF
 
       # Create auth-profiles.json for agent API access
       mkdir -p /var/lib/moltbot/.moltbot/agents/main/agent
