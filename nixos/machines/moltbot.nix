@@ -73,6 +73,7 @@ in
       export GOOGLE_API_KEY=$(cat ${config.age.secrets."moltbot-google-key".path})
       export BRAVE_SEARCH_API_KEY=$(cat ${config.age.secrets."moltbot-brave-key".path})
       export GATEWAY_TOKEN=$(cat ${config.age.secrets."moltbot-gateway-token".path})
+      export CLAWDBOT_GATEWAY_TOKEN=$GATEWAY_TOKEN
       export MOLTBOT_DIR=/var/lib/moltbot
       export MOLTBOT_THINKING_DEFAULT="medium"
       exec ${pkgs.moltbot-gateway}/bin/moltbot gateway --port 18789
@@ -80,10 +81,12 @@ in
   };
 
   # Ensure data directory exists and copy config template
+  # Moltbot looks for config at ~/.moltbot/moltbot.json (HOME=/var/lib/moltbot)
   systemd.tmpfiles.rules = [
     "d /var/lib/moltbot 0700 moltbot moltbot -"
+    "d /var/lib/moltbot/.moltbot 0700 moltbot moltbot -"
     "d /var/lib/moltbot/workspace 0700 moltbot moltbot -"
-    "C /var/lib/moltbot/moltbot.json 0600 moltbot moltbot - ${moltbotConfigTemplate}"
+    "C /var/lib/moltbot/.moltbot/moltbot.json 0600 moltbot moltbot - ${moltbotConfigTemplate}"
   ];
 
   # Open firewall for gateway HTTP API (optional, for web UI)
