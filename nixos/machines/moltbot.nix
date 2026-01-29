@@ -25,6 +25,16 @@
       owner = "moltbot";
       group = "moltbot";
     };
+    "moltbot-google-key" = {
+      file = "${private}/nixos/secrets/moltbot/google-api-key.age";
+      owner = "moltbot";
+      group = "moltbot";
+    };
+    "moltbot-brave-key" = {
+      file = "${private}/nixos/secrets/moltbot/brave-api-key.age";
+      owner = "moltbot";
+      group = "moltbot";
+    };
   };
 
   # Create moltbot user (DynamicUser doesn't work with bind mounts)
@@ -57,9 +67,10 @@
     script = ''
       export TELEGRAM_BOT_TOKEN=$(cat ${config.age.secrets."moltbot-telegram-token".path})
       export ANTHROPIC_API_KEY=$(cat ${config.age.secrets."moltbot-anthropic-key".path})
+      export GOOGLE_API_KEY=$(cat ${config.age.secrets."moltbot-google-key".path})
+      export BRAVE_SEARCH_API_KEY=$(cat ${config.age.secrets."moltbot-brave-key".path})
       export GATEWAY_TOKEN=$(cat ${config.age.secrets."moltbot-gateway-token".path})
       export MOLTBOT_DIR=/var/lib/moltbot
-      export MOLTBOT_MODEL="anthropic/claude-sonnet-4-20250514"
       export MOLTBOT_THINKING_DEFAULT="medium"
       exec ${pkgs.moltbot-gateway}/bin/moltbot-gateway
     '';
