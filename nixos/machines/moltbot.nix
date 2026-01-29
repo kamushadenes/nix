@@ -5,6 +5,9 @@ let
   # Config template - deployed to /var/lib/moltbot/moltbot.json
   # Stored in private submodule (contains channel IDs and user allowlists)
   moltbotConfigTemplate = "${private}/nixos/machines/resources/moltbot/moltbot.json";
+
+  # Skill directories
+  caldavSkillDir = "${private}/nixos/machines/resources/moltbot/skills/caldav-calendar";
 in
 {
   imports = [ "${private}/nixos/lxc-management.nix" ];
@@ -81,8 +84,8 @@ in
       WorkingDirectory = "/var/lib/moltbot";
     };
 
-    # Ensure moltbot binary is in PATH
-    path = [ pkgs.moltbot-gateway pkgs.bash pkgs.coreutils ];
+    # Ensure moltbot binary and skill dependencies are in PATH
+    path = [ pkgs.moltbot-gateway pkgs.bash pkgs.coreutils pkgs.vdirsyncer pkgs.khal ];
 
     # Read secrets from agenix files and pass to moltbot-gateway
     script = ''
@@ -154,6 +157,9 @@ EOF
     "d /var/lib/moltbot/workspace 0700 moltbot moltbot -"
     "L /var/lib/moltbot/.clawdbot - - - - /var/lib/moltbot/.moltbot"
     "C /var/lib/moltbot/.moltbot/moltbot.json 0600 moltbot moltbot - ${moltbotConfigTemplate}"
+    # CalDAV calendar skill
+    "d /var/lib/moltbot/.moltbot/skills/caldav-calendar 0700 moltbot moltbot -"
+    "C /var/lib/moltbot/.moltbot/skills/caldav-calendar/SKILL.md 0600 moltbot moltbot - ${caldavSkillDir}/SKILL.md"
   ];
 
   # Open firewall for gateway HTTP API (optional, for web UI)
@@ -162,6 +168,6 @@ EOF
   # Use systemd-networkd only (disable NetworkManager from base network.nix)
   networking.networkmanager.enable = lib.mkForce false;
 
-  # Add moltbot to system PATH for all users
-  environment.systemPackages = [ pkgs.moltbot-gateway ];
+  # Add moltbot and skill dependencies to system PATH for all users
+  environment.systemPackages = [ pkgs.moltbot-gateway pkgs.vdirsyncer pkgs.khal ];
 }
