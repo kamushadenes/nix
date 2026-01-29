@@ -48,8 +48,8 @@ Moltbot runs as a Proxmox LXC container.
 
 **Files:**
 - NixOS config: `nixos/machines/moltbot.nix`
-- Runtime config: `private/nixos/machines/resources/moltbot/moltbot.json`
 - Secrets: `private/nixos/secrets/moltbot/*.age`
+- Skills: `private/nixos/machines/resources/moltbot/skills/`
 
 **Deploy:**
 ```bash
@@ -57,8 +57,9 @@ rebuild -vL moltbot  # Build locally and push to LXC
 ```
 
 **Key paths on LXC:**
-- Config: `/var/lib/moltbot/.moltbot/moltbot.json`
+- Config: `/var/lib/moltbot/.moltbot/moltbot.json` (managed dynamically, not via Nix)
 - Workspace: `/var/lib/moltbot/workspace`
+- Skills: `/var/lib/moltbot/.moltbot/skills/`
 - Auth profiles: `/var/lib/moltbot/.moltbot/agents/main/agent/auth-profiles.json`
 
 ## Core Concepts

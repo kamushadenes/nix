@@ -2,11 +2,7 @@
 # Moltbot-gateway - AI assistant gateway for Telegram
 { config, lib, pkgs, private, ... }:
 let
-  # Config template - deployed to /var/lib/moltbot/moltbot.json
-  # Stored in private submodule (contains channel IDs and user allowlists)
-  moltbotConfigTemplate = "${private}/nixos/machines/resources/moltbot/moltbot.json";
-
-  # Skill directories
+  # Skill directories (skills are deployed via tmpfiles)
   caldavSkillDir = "${private}/nixos/machines/resources/moltbot/skills/caldav-calendar";
 in
 {
@@ -149,14 +145,13 @@ EOF
     '';
   };
 
-  # Ensure data directory exists and copy config template
-  # Moltbot looks for config at ~/.moltbot/moltbot.json (HOME=/var/lib/moltbot)
+  # Ensure data directories exist
+  # Moltbot config at ~/.moltbot/moltbot.json is managed dynamically (not deployed via Nix)
   systemd.tmpfiles.rules = [
     "d /var/lib/moltbot 0700 moltbot moltbot -"
     "d /var/lib/moltbot/.moltbot 0700 moltbot moltbot -"
     "d /var/lib/moltbot/workspace 0700 moltbot moltbot -"
     "L /var/lib/moltbot/.clawdbot - - - - /var/lib/moltbot/.moltbot"
-    "C /var/lib/moltbot/.moltbot/moltbot.json 0600 moltbot moltbot - ${moltbotConfigTemplate}"
     # CalDAV calendar skill
     "d /var/lib/moltbot/.moltbot/skills/caldav-calendar 0700 moltbot moltbot -"
     "C /var/lib/moltbot/.moltbot/skills/caldav-calendar/SKILL.md 0600 moltbot moltbot - ${caldavSkillDir}/SKILL.md"
