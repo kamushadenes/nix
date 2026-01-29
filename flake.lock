@@ -230,7 +230,7 @@
         "type": "github"
       }
     },
-    "nix-clawdbot": {
+    "nix-moltbot": {
       "inputs": {
         "flake-utils": "flake-utils_2",
         "home-manager": [
@@ -379,7 +379,7 @@
         "claudebox": "claudebox",
         "darwin": "darwin_2",
         "home-manager": "home-manager_2",
-        "nix-clawdbot": "nix-clawdbot",
+        "nix-moltbot": "nix-moltbot",
         "nixos-generators": "nixos-generators",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-unstable": "nixpkgs-unstable",
