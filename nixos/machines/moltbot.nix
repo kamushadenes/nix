@@ -38,6 +38,11 @@ in
       owner = "moltbot";
       group = "moltbot";
     };
+    "moltbot-fastmail-password" = {
+      file = "${private}/nixos/secrets/moltbot/fastmail-password.age";
+      owner = "moltbot";
+      group = "moltbot";
+    };
   };
 
   # Create moltbot user (DynamicUser doesn't work with bind mounts)
@@ -45,6 +50,15 @@ in
     isSystemUser = true;
     group = "moltbot";
     home = "/var/lib/moltbot";
+    shell = pkgs.bash;
+    # Allow login for interactive use
+    createHome = true;
+  };
+
+  # Set up environment for moltbot user with full system PATH
+  environment.variables = {
+    # Ensure nix profile paths are available
+    PATH = lib.mkForce "/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:$PATH";
   };
   users.groups.moltbot = { };
 
@@ -66,8 +80,12 @@ in
       WorkingDirectory = "/var/lib/moltbot";
     };
 
+    # Ensure moltbot binary is in PATH
+    path = [ pkgs.moltbot-gateway pkgs.bash pkgs.coreutils ];
+
     # Read secrets from agenix files and pass to moltbot-gateway
     script = ''
+      export PATH="${pkgs.moltbot-gateway}/bin:$PATH"
       export TELEGRAM_BOT_TOKEN=$(cat ${config.age.secrets."moltbot-telegram-token".path})
       export ANTHROPIC_API_KEY=$(cat ${config.age.secrets."moltbot-anthropic-key".path})
       export GOOGLE_API_KEY=$(cat ${config.age.secrets."moltbot-google-key".path})
@@ -76,6 +94,29 @@ in
       export CLAWDBOT_GATEWAY_TOKEN=$GATEWAY_TOKEN
       export MOLTBOT_DIR=/var/lib/moltbot
       export MOLTBOT_THINKING_DEFAULT="medium"
+      export FASTMAIL_USER="kamus@hadenes.io"
+      export FASTMAIL_PASSWORD=$(cat ${config.age.secrets."moltbot-fastmail-password".path})
+
+      # Create auth-profiles.json for agent API access
+      mkdir -p /var/lib/moltbot/.moltbot/agents/main/agent
+      cat > /var/lib/moltbot/.moltbot/agents/main/agent/auth-profiles.json << EOF
+{
+  "version": 1,
+  "profiles": {
+    "google:default": {
+      "type": "api_key",
+      "provider": "google",
+      "key": "$GOOGLE_API_KEY"
+    },
+    "anthropic:default": {
+      "type": "token",
+      "provider": "anthropic",
+      "token": "$ANTHROPIC_API_KEY"
+    }
+  }
+}
+EOF
+
       exec ${pkgs.moltbot-gateway}/bin/moltbot gateway --port 18789
     '';
   };
@@ -86,6 +127,7 @@ in
     "d /var/lib/moltbot 0700 moltbot moltbot -"
     "d /var/lib/moltbot/.moltbot 0700 moltbot moltbot -"
     "d /var/lib/moltbot/workspace 0700 moltbot moltbot -"
+    "L /var/lib/moltbot/.clawdbot - - - - /var/lib/moltbot/.moltbot"
     "C /var/lib/moltbot/.moltbot/moltbot.json 0600 moltbot moltbot - ${moltbotConfigTemplate}"
   ];
 
@@ -94,4 +136,7 @@ in
 
   # Use systemd-networkd only (disable NetworkManager from base network.nix)
   networking.networkmanager.enable = lib.mkForce false;
+
+  # Add moltbot to system PATH for all users
+  environment.systemPackages = [ pkgs.moltbot-gateway ];
 }

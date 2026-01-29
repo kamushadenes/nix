@@ -92,6 +92,10 @@
     "auth": {
       "mode": "token"
     },
+    "controlUi": {
+      "enabled": true,
+      "dangerouslyDisableDeviceAuth": true
+    },
     "tailscale": {
       "mode": "off",
       "resetOnExit": false
