@@ -33,9 +33,8 @@ let
   darwinBuildMachineConfigs = [
   ];
 
-  # Define Linux build machines
+  # Define Linux build machines (disabled - use local builds only)
   linuxBuildMachineConfigs = [
-    { hostName = "aether"; machineName = "aether"; }
   ];
 
   # Filter out the current machine
@@ -61,7 +60,8 @@ in
 
     buildMachines = allBuildMachines;
     # Enable distributed builds when remote builders are configured
-    distributedBuilds = allBuildMachines != [];
+    # Use mkDefault to allow linux-builder module to override
+    distributedBuilds = lib.mkDefault (allBuildMachines != []);
     extraOptions = ''
       builders-use-substitutes = true
     '';

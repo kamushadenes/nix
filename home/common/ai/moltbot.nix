@@ -27,7 +27,8 @@ let
   homeDir = config.home.homeDirectory;
   secretsDir = "${homeDir}/.moltbot/secrets";
 
-  enabled = true;
+  # Disabled - moltbot now runs as a system service on moltbot LXC
+  enabled = false;
 
   # Check if secrets exist
   telegramTokenAgeFile = "${private}/home/common/ai/resources/moltbot/telegram-bot-token.age";
