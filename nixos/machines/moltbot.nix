@@ -1,7 +1,10 @@
 # Machine configuration for moltbot LXC
 # Moltbot-gateway - AI assistant gateway for Telegram
 { config, lib, pkgs, private, ... }:
-
+let
+  # Config template - deployed to /var/lib/moltbot/moltbot.json
+  moltbotConfigTemplate = ./resources/moltbot/moltbot.json;
+in
 {
   imports = [ "${private}/nixos/lxc-management.nix" ];
 
@@ -72,13 +75,15 @@
       export GATEWAY_TOKEN=$(cat ${config.age.secrets."moltbot-gateway-token".path})
       export MOLTBOT_DIR=/var/lib/moltbot
       export MOLTBOT_THINKING_DEFAULT="medium"
-      exec ${pkgs.moltbot-gateway}/bin/moltbot
+      exec ${pkgs.moltbot-gateway}/bin/moltbot daemon
     '';
   };
 
-  # Ensure data directory exists
+  # Ensure data directory exists and copy config template
   systemd.tmpfiles.rules = [
     "d /var/lib/moltbot 0700 moltbot moltbot -"
+    "d /var/lib/moltbot/workspace 0700 moltbot moltbot -"
+    "C /var/lib/moltbot/moltbot.json 0600 moltbot moltbot - ${moltbotConfigTemplate}"
   ];
 
   # Open firewall for gateway HTTP API (optional, for web UI)
