@@ -72,7 +72,7 @@
       export GATEWAY_TOKEN=$(cat ${config.age.secrets."moltbot-gateway-token".path})
       export MOLTBOT_DIR=/var/lib/moltbot
       export MOLTBOT_THINKING_DEFAULT="medium"
-      exec ${pkgs.moltbot-gateway}/bin/moltbot-gateway
+      exec ${pkgs.moltbot-gateway}/bin/moltbot
     '';
   };
 
