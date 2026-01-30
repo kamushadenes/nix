@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(test:*), Task, AskUserQuestion, MCPSearch, mcp__task-master-ai__*, Skill
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(gh pr:*), Bash(test:*), Task, AskUserQuestion, MCPSearch, mcp__task-master-ai__*, Skill
 description: Comprehensive multi-agent code review using 9 specialized agents with 3-model consensus
 ---
 
@@ -380,7 +380,33 @@ Use the critic's filtered output for the remaining steps. Only validated finding
 
     > Created X task-master tasks for the selected findings. Use `next_task` to view them.
 
-11. **Commit the changes** (if reviewing uncommitted changes):
+11. **If reviewing branch changes, offer to post findings as PR review comments:**
+
+    a. Check if there's an open PR for the current branch:
+
+    ```bash
+    gh pr view --json number --jq '.number' 2>/dev/null
+    ```
+
+    b. If a PR exists, ask the user:
+
+    ```
+    Question: "Post these findings as inline PR review comments?"
+    Header: "PR review"
+    Options:
+    - "Yes, submit review" - Post validated findings as GitHub PR review with inline comments
+    - "No, skip" - Don't post to GitHub
+    ```
+
+    c. If user selects "Yes", invoke the github-pr-review skill with the PR number:
+
+    ```python
+    Skill(skill="github-pr-review", args=str(pr_number))
+    ```
+
+    The skill will use the findings already in context to create inline review comments with code suggestions.
+
+12. **Commit the changes** (if reviewing uncommitted changes):
 
     If `review_scope == "uncommitted"` and there are staged/unstaged changes:
 
