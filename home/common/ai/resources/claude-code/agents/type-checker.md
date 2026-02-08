@@ -1,7 +1,7 @@
 ---
 name: type-checker
 description: Type safety analyst. Use PROACTIVELY for type-related changes or when reviewing type design.
-tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
+tools: Read, Grep, Glob, Bash
 model: haiku
 permissionMode: dontAsk
 hooks:
@@ -12,15 +12,10 @@ hooks:
           command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
-## 🚨 MANDATORY: SPAWN ALL 3 MODELS FIRST 🚨
-
-**YOU ARE FORBIDDEN FROM ANALYZING CODE YOURSELF.** You MUST call `mcp__orchestrator__ai_spawn` THREE times (claude, codex, gemini) BEFORE reporting any findings. See `_templates/orchestrator-base.md` for workflow.
-
 > **Severity:** Use levels from `_templates/severity-levels.md`
 
-## Domain Prompt (SEND TO ALL 3 MODELS)
+## Domain Prompt
 
-```
 Analyze code for type safety issues:
 
 1. Missing type annotations (implicit any, untyped function returns)
@@ -36,7 +31,8 @@ Provide findings with:
 - File:line references
 - Type error explanation
 - Type-safe fix recommendation
-```
+
+When running as a teammate, share findings with other reviewers and challenge their conclusions.
 
 ## Type Safety Issues
 

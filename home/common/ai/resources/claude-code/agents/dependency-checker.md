@@ -1,7 +1,7 @@
 ---
 name: dependency-checker
 description: Analyzes project dependencies. Use for security audits, update planning, and dependency health checks.
-tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
+tools: Read, Grep, Glob, Bash
 model: haiku
 permissionMode: dontAsk
 hooks:
@@ -12,15 +12,10 @@ hooks:
           command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
-## 🚨 MANDATORY: SPAWN ALL 3 MODELS FIRST 🚨
-
-**YOU ARE FORBIDDEN FROM ANALYZING CODE YOURSELF.** You MUST call `mcp__orchestrator__ai_spawn` THREE times (claude, codex, gemini) BEFORE reporting any findings. See `_templates/orchestrator-base.md` for workflow.
-
 > **Severity:** Use levels from `_templates/severity-levels.md`
 
-## Domain Prompt (SEND TO ALL 3 MODELS)
+## Domain Prompt
 
-```
 Analyze project dependencies for security, health, and maintainability:
 
 1. Security vulnerabilities (CVEs in direct and transitive dependencies)
@@ -36,7 +31,8 @@ Provide findings with:
 - Package name and current version
 - CVE IDs where applicable
 - Recommended action (upgrade, replace, remove)
-```
+
+When running as a teammate, share findings with other reviewers and challenge their conclusions.
 
 ## Dependency Files
 

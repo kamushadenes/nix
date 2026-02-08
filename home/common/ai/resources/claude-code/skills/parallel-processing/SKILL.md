@@ -1,12 +1,24 @@
 ---
 name: parallel-processing
-description: Run multiple tasks in parallel using tmux windows
+description: Run multiple tasks in parallel using tmux windows or Agent Teams
 triggers: background tasks, parallel execution, concurrent work, multi-task, batch processing, async operations, running multiple commands
 ---
 
 # Parallel Processing
 
-Use tmux for background tasks and parallel work.
+Use tmux for background tasks, Agent Teams for multi-instance parallel work.
+
+## Agent Teams (Preferred for Multi-Task Work)
+
+For 2+ independent tasks that each need a full Claude session:
+
+```
+Create an Agent Team with one teammate per task.
+Each teammate gets a spawn prompt with their task details.
+Teammates can discuss findings across domains.
+```
+
+Use `/delegate-tasks` to automate team creation for task-master tasks.
 
 ## Recommended: Use Subagents for Context Efficiency
 

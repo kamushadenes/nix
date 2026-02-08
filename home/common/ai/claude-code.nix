@@ -182,6 +182,10 @@ in
       # Always enable extended thinking for better reasoning
       enableExtendedThinking = true;
 
+      # Agent Teams - native multi-instance coordination
+      env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1";
+      teammateMode = "auto"; # split panes in tmux, in-process otherwise
+
       # Hooks - commands that run at various points in Claude Code's lifecycle
       hooks = {
         # Run before file modifications - TDD guard ensures tests exist
@@ -213,57 +217,6 @@ in
               }
             ];
           }
-          # Deny task-master MCP access to worker instances
-          {
-            matcher = "mcp__task-master-ai__*|mcp__task_master_ai__*";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/PreToolUse/deny-taskmaster-worker.py";
-              }
-            ];
-          }
-          # Deny workers from writing directly to task_status
-          {
-            matcher = "Write";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/PreToolUse/deny-task-status-write.py";
-              }
-            ];
-          }
-          # Block workers from executing commands if task is already complete
-          # Uses bash instead of Python for faster startup (~5ms vs ~30ms)
-          {
-            matcher = "";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/PreToolUse/block-completed-worker.sh";
-              }
-            ];
-          }
-          # Block /commit-push-pr in consolidated workflow mode
-          {
-            matcher = "Skill";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/PreToolUse/block-pr-consolidated.py";
-              }
-            ];
-          }
-          # Worker heartbeat - update timestamp on every tool use
-          {
-            matcher = "";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/worker-heartbeat.sh";
-              }
-            ];
-          }
         ];
 
         # Run on every user prompt submission
@@ -292,10 +245,6 @@ in
                 type = "command";
                 command = "~/.claude/hooks/SessionStart/task-context.sh";
               }
-              {
-                type = "command";
-                command = "~/.claude/hooks/SessionStart/worker-task-inject.sh";
-              }
             ];
           }
           # Web-only: Install devbox and initialize direnv when devbox.json exists
@@ -305,20 +254,6 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/SessionStart/devbox-setup.sh";
-              }
-            ];
-          }
-        ];
-
-        # Run before context compaction
-        PreCompact = [
-          # Worker heartbeat - update timestamp before compaction
-          {
-            matcher = "";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/worker-heartbeat.sh";
               }
             ];
           }
@@ -341,10 +276,6 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/Stop/task-status-reminder.sh";
-              }
-              {
-                type = "command";
-                command = "~/.claude/hooks/Stop/worker-completion.sh";
               }
               {
                 type = "command";
@@ -438,30 +369,6 @@ in
               }
             ];
           }
-          # Worker heartbeat - update timestamp after tool use
-          {
-            matcher = "";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/worker-heartbeat.sh";
-              }
-            ];
-          }
-        ];
-
-        # Run when subagent finishes
-        SubagentStop = [
-          # Worker heartbeat - update timestamp when subagent stops
-          {
-            matcher = "";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/worker-heartbeat.sh";
-              }
-            ];
-          }
         ];
 
         # Run after tool failures
@@ -473,6 +380,32 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PostToolUseFailure/suggest-nix-shell.sh";
+              }
+            ];
+          }
+        ];
+
+        # Run when a teammate finishes and goes idle
+        TeammateIdle = [
+          {
+            matcher = "";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/TeammateIdle/quality-gate.sh";
+              }
+            ];
+          }
+        ];
+
+        # Run when a task is being marked complete
+        TaskCompleted = [
+          {
+            matcher = "";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/TaskCompleted/verify-completion.sh";
               }
             ];
           }
@@ -581,10 +514,6 @@ in
       source = "${scriptsDir}/hooks/Stop/debug-env.sh";
       executable = true;
     };
-    ".claude/hooks/Stop/worker-completion.sh" = {
-      source = "${scriptsDir}/hooks/Stop/worker-completion.sh";
-      executable = true;
-    };
     ".claude/hooks/Stop/session-cleanup.sh" = {
       source = "${scriptsDir}/hooks/Stop/session-cleanup.sh";
       executable = true;
@@ -596,40 +525,14 @@ in
       source = "${scriptsDir}/hooks/SessionStart/task-context.sh";
       executable = true;
     };
-    ".claude/hooks/SessionStart/worker-task-inject.sh" = {
-      source = "${scriptsDir}/hooks/SessionStart/worker-task-inject.sh";
-      executable = true;
-    };
     ".claude/hooks/SessionStart/devbox-setup.sh" = {
       source = "${scriptsDir}/hooks/SessionStart/devbox-setup.sh";
-      executable = true;
-    };
-
-    # Shared hooks (used by multiple hook types)
-    ".claude/hooks/worker-heartbeat.sh" = {
-      source = "${scriptsDir}/hooks/worker-heartbeat.sh";
       executable = true;
     };
 
     # PreToolUse hooks (additional)
     ".claude/hooks/PreToolUse/enforce-worktree.py" = {
       source = "${scriptsDir}/hooks/PreToolUse/enforce-worktree.py";
-      executable = true;
-    };
-    ".claude/hooks/PreToolUse/deny-taskmaster-worker.py" = {
-      source = "${scriptsDir}/hooks/PreToolUse/deny-taskmaster-worker.py";
-      executable = true;
-    };
-    ".claude/hooks/PreToolUse/deny-task-status-write.py" = {
-      source = "${scriptsDir}/hooks/PreToolUse/deny-task-status-write.py";
-      executable = true;
-    };
-    ".claude/hooks/PreToolUse/block-completed-worker.sh" = {
-      source = "${scriptsDir}/hooks/PreToolUse/block-completed-worker.sh";
-      executable = true;
-    };
-    ".claude/hooks/PreToolUse/block-pr-consolidated.py" = {
-      source = "${scriptsDir}/hooks/PreToolUse/block-pr-consolidated.py";
       executable = true;
     };
     ".claude/hooks/PreToolUse/suggest-modern-tools.py" = {
@@ -646,6 +549,18 @@ in
     # Suggest nix-shell for command not found (PostToolUseFailure)
     ".claude/hooks/PostToolUseFailure/suggest-nix-shell.sh" = {
       source = "${scriptsDir}/hooks/PostToolUseFailure/suggest-nix-shell.sh";
+      executable = true;
+    };
+
+    # TeammateIdle hooks
+    ".claude/hooks/TeammateIdle/quality-gate.sh" = {
+      source = "${scriptsDir}/hooks/TeammateIdle/quality-gate.sh";
+      executable = true;
+    };
+
+    # TaskCompleted hooks
+    ".claude/hooks/TaskCompleted/verify-completion.sh" = {
+      source = "${scriptsDir}/hooks/TaskCompleted/verify-completion.sh";
       executable = true;
     };
 

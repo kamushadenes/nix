@@ -1,112 +1,79 @@
 ---
-allowed-tools: Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Task, TodoWrite
-description: Quick code review of branch changes using 4 key agents
+allowed-tools: Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Task
+description: Quick code review of branch changes using 4 reviewer teammates
 ---
 
-Run a focused code review of branch changes against main using 4 essential agents. For comprehensive review with all 9 agents, use `/deep-review` instead.
+Run a focused code review of branch changes using an Agent Team of 4 essential reviewers. For comprehensive review with all 9 agents, use `/deep-review` instead.
 
 ## Steps
 
 1. **Determine the base branch:**
+   ```bash
+   git rev-parse --verify main 2>/dev/null && base_branch="main" || base_branch="master"
+   ```
 
-```bash
-git rev-parse --verify main 2>/dev/null && base_branch="main" || base_branch="master"
-```
+2. **Get branch info and check for changes:**
+   ```bash
+   current_branch=$(git branch --show-current)
+   commit_count=$(git rev-list --count ${base_branch}..HEAD)
+   git log ${base_branch}..HEAD --oneline
+   ```
+   If no changes, inform user and stop.
 
-2. **Get branch info:**
+3. **Get the diff:**
+   ```bash
+   diff=$(git diff ${base_branch}...HEAD)
+   changed_files=$(git diff --name-only ${base_branch}...HEAD)
+   ```
 
-```bash
-current_branch=$(git branch --show-current)
-commit_count=$(git rev-list --count ${base_branch}..HEAD)
-```
+4. **Create a review team with 4 essential reviewer teammates:**
 
-3. **Check for changes:**
+   | Teammate | Agent | Focus |
+   |----------|-------|-------|
+   | 1 | code-reviewer | Code quality, best practices, maintainability |
+   | 2 | security-auditor | Security vulnerabilities, OWASP issues |
+   | 3 | test-analyzer | Test coverage, missing tests |
+   | 4 | silent-failure-hunter | Error handling, swallowed exceptions |
 
-```bash
-git log ${base_branch}..HEAD --oneline
-```
+   Each teammate gets the review context (diff, changed files, branch info) and their domain focus. Reviewers can discuss and cross-reference findings.
 
-If no changes, inform the user and stop:
+5. **After all reviewers complete**, run suggestion-critic as a subagent to validate findings.
 
-> No changes found between current branch and ${base_branch}.
+6. **Present validated findings by severity:**
 
-4. **Get the diff:**
+   ```markdown
+   ## Review Summary
 
-```bash
-diff=$(git diff ${base_branch}...HEAD)
-changed_files=$(git diff --name-only ${base_branch}...HEAD)
-```
+   **Branch:** [current_branch] vs [base_branch] ([commit_count] commits)
+   **Files changed:** [count]
 
-5. **Launch 4 key review agents in parallel:**
+   ### Critical Issues
+   [findings]
 
-```python
-review_context = f"Review branch changes ({commit_count} commits on {current_branch} vs {base_branch}):\n\nChanged files: {changed_files}\n\n{diff}"
+   ### High Priority
+   [findings]
 
-# Essential agents only
-code_reviewer = Task(
-    subagent_type="code-reviewer",
-    prompt=f"Review these branch changes for code quality issues:\n\n{review_context}",
-    description="Code quality review"
-)
+   ### Medium Priority
+   [findings]
 
-security_auditor = Task(
-    subagent_type="security-auditor",
-    prompt=f"Review these branch changes for security vulnerabilities:\n\n{review_context}",
-    description="Security audit"
-)
-
-test_analyzer = Task(
-    subagent_type="test-analyzer",
-    prompt=f"Review these branch changes - analyze test coverage:\n\n{review_context}",
-    description="Test analysis"
-)
-
-silent_failure_hunter = Task(
-    subagent_type="silent-failure-hunter",
-    prompt=f"Review these branch changes for silent failures and missing error handling:\n\n{review_context}",
-    description="Error handling review"
-)
-```
-
-6. **Present findings by severity:**
-
-```markdown
-## Review Summary
-
-**Branch:** [current_branch] vs [base_branch] ([commit_count] commits)
-**Files changed:** [count]
-
-### Critical Issues
-
-[Issues that must be fixed]
-
-### High Priority
-
-[Issues that should be fixed]
-
-### Medium Priority
-
-[Recommended improvements]
-
-### Low Priority
-
-[Optional suggestions]
-```
+   ### Low Priority
+   [findings]
+   ```
 
 7. **Offer to fix issues** if any Critical or High severity findings exist.
 
 ## Agents Used
 
-| Agent                 | Focus                                         |
-| --------------------- | --------------------------------------------- |
-| code-reviewer         | Code quality, best practices, maintainability |
-| security-auditor      | Security vulnerabilities, OWASP issues        |
-| test-analyzer         | Test coverage, missing tests                  |
-| silent-failure-hunter | Error handling, swallowed exceptions          |
+| Agent | Focus |
+|-------|-------|
+| code-reviewer | Code quality, best practices, maintainability |
+| security-auditor | Security vulnerabilities, OWASP issues |
+| test-analyzer | Test coverage, missing tests |
+| silent-failure-hunter | Error handling, swallowed exceptions |
 
 ## Notes
 
-- Runs 4 agents vs 9 in `/deep-review` - faster but less comprehensive
-- Each agent uses 3 AI models (claude, codex, gemini) for consensus
-- Total of 12 model invocations (vs 27 in deep-review)
+- 4 reviewer teammates (vs 9 in `/deep-review`) - faster but less comprehensive
+- Reviewers can discuss findings across domains
+- Suggestion-critic validates after reviewers complete
 - For full analysis including performance, types, dependencies, use `/deep-review`

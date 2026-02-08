@@ -4,5 +4,6 @@
     sqlite
     mycli
     pgcli
+    postgresql
   ];
 }

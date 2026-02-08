@@ -1,84 +1,39 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
-description: Run a multi-focus code review on current changes using parallel AI models
+allowed-tools: Bash(git status:*), Bash(git diff:*), Task
+description: Quick code review of uncommitted changes using 3 reviewer teammates
 ---
 
-Run a multi-focus code review on current changes using parallel AI models for diverse perspectives.
+Run a focused code review on current uncommitted changes using an Agent Team of 3 reviewers.
 
 ## Steps
 
-1. Check if there are changes to review by running `git status --short`
+1. **Check for changes:**
+   ```bash
+   git status --short
+   ```
+   If no changes, inform user and stop.
 
-2. If there are no changes, inform the user and stop
+2. **Get the diff:**
+   ```bash
+   diff=$(git diff HEAD)
+   changed_files=$(git diff --name-only HEAD)
+   ```
 
-3. If there are changes, get the diff for review context:
+3. **Create a review team with 3 focused reviewer teammates:**
 
-```bash
-diff=$(git diff HEAD)
-```
+   | Teammate | Agent | Focus |
+   |----------|-------|-------|
+   | 1 | security-auditor | Injection attacks, auth issues, data exposure, input validation |
+   | 2 | code-reviewer | Simplicity, readability, naming, duplication, complexity |
+   | 3 | silent-failure-hunter | Missing error checks, swallowed exceptions, cleanup in error paths |
 
-4. Spawn focused reviews in parallel using ai_spawn:
+   Each teammate gets the review context (diff, changed files) and their domain focus. Reviewers can discuss and cross-reference findings.
 
-```python
-# Security focus
-security_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Review these changes focusing ONLY on security vulnerabilities:
-- Injection attacks (SQL, command, template)
-- Authentication/authorization issues
-- Data exposure risks
-- Input validation gaps
-
-Changes:
-{diff}
-
-Output: List findings with severity (Critical/High/Medium/Low) and file:line references."""
-)
-
-# Code quality focus
-quality_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Review these changes focusing ONLY on code quality:
-- Simplicity and readability
-- Naming conventions
-- Code duplication
-- Complexity issues
-
-Changes:
-{diff}
-
-Output: List findings with severity and file:line references."""
-)
-
-# Error handling focus
-error_job = mcp__orchestrator__ai_spawn(
-    cli="codex",
-    prompt=f"""Review these changes focusing ONLY on error handling:
-- Missing error checks
-- Silent failures (swallowed exceptions)
-- Improper exception handling
-- Missing cleanup in error paths
-
-Changes:
-{diff}
-
-Output: List findings with severity and file:line references."""
-)
-```
-
-5. Fetch all results (they ran in parallel):
-
-```python
-security_review = mcp__orchestrator__ai_fetch(job_id=security_job.job_id, timeout=120)
-quality_review = mcp__orchestrator__ai_fetch(job_id=quality_job.job_id, timeout=120)
-error_review = mcp__orchestrator__ai_fetch(job_id=error_job.job_id, timeout=120)
-```
-
-6. Present findings organized by severity:
+4. **Present findings by severity:**
 
    - **Critical Issues** - Must fix before committing
    - **Warnings** - Should address soon
    - **Suggestions** - Nice to have improvements
    - **Positive Notes** - What's done well
 
-7. Offer to help address any issues found
+5. **Offer to help address any issues found**

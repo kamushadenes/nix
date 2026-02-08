@@ -1,7 +1,7 @@
 ---
 name: test-analyzer
 description: Test coverage and quality analyst. Use PROACTIVELY after test changes or when reviewing test adequacy.
-tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
+tools: Read, Grep, Glob, Bash
 model: opus
 permissionMode: dontAsk
 skills:
@@ -14,15 +14,10 @@ hooks:
           command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
-## 🚨 MANDATORY: SPAWN ALL 3 MODELS FIRST 🚨
-
-**YOU ARE FORBIDDEN FROM ANALYZING CODE YOURSELF.** You MUST call `mcp__orchestrator__ai_spawn` THREE times (claude, codex, gemini) BEFORE reporting any findings. See `_templates/orchestrator-base.md` for workflow.
-
 > **Severity:** Use levels from `_templates/severity-levels.md`
 
-## Domain Prompt (SEND TO ALL 3 MODELS)
+## Domain Prompt
 
-```
 Analyze test coverage and quality:
 
 1. Coverage gaps - Untested public functions, error paths, edge cases
@@ -37,7 +32,8 @@ Provide findings with:
 - Severity (Critical/High/Medium/Low)
 - File:line references for untested code
 - Specific test cases to add
-```
+
+When running as a teammate, share findings with other reviewers and challenge their conclusions.
 
 ## Five-Stage Analysis
 

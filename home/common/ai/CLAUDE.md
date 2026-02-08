@@ -2,23 +2,12 @@
 
 Nix configurations for AI CLI tools (Claude Code, Codex CLI, Gemini CLI).
 
-## Role Hierarchy
-
-| CLI    | Role       | Mode      | Purpose                          |
-| ------ | ---------- | --------- | -------------------------------- |
-| claude | Worker     | Full      | Any tool/command                 |
-| codex  | Reviewer   | Read-only | Code review, analysis            |
-| gemini | Researcher | Read-only | Web search, documentation lookup |
-
 ## Orchestrator MCP Tools
 
 The orchestrator MCP server (`scripts/orchestrator-mcp-server.py`) provides:
 
 - `tmux_*` - Terminal window automation
-- `ai_call` - Synchronous AI CLI call
-- `ai_spawn` / `ai_fetch` - Async AI CLI (parallel execution)
-- `ai_list` - List AI jobs
-- `ai_review` - Spawn all 3 CLIs in parallel
+- `notify` - Desktop notifications
 
 ---
 
@@ -164,14 +153,14 @@ description: What it does. Use when [specific triggers]. (1-2 sentences)
 
 ### Agents (`resources/claude-code/agents/`)
 
-Agents are specialized subagents invoked via Task tool.
+Agents are specialized subagents invoked via Task tool, or used as Agent Team teammates.
 
 **File format:**
 ```markdown
 ---
 name: agent-name
 description: Brief description. Use [when/triggers].
-tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn
+tools: Read, Grep, Glob, Bash
 model: opus  # or sonnet, haiku
 ---
 
@@ -203,24 +192,18 @@ model: opus  # or sonnet, haiku
    - Fix recommendations
    ```
 
-2. **Multi-model orchestrator** - Spawns claude/codex/gemini in parallel:
+2. **Team teammate** - Participates in Agent Teams, can discuss with other teammates:
    ```markdown
-   > **Orchestration:** Follow `_templates/orchestrator-base.md`
+   ## Domain Prompt
+   [Analysis focus]
 
-   **STOP. DO NOT analyze code yourself.**
-   Your ONLY job is to spawn 3 AI models and synthesize.
-
-   ## Workflow
-   1. Identify files via Glob
-   2. Spawn 3 models with domain prompt
-   3. Fetch results
-   4. Synthesize into unified report
+   When running as a teammate, share findings with other reviewers
+   and challenge their conclusions.
    ```
 
 **Best practices:**
 - Reference shared templates (`_templates/`) for common patterns
 - Include severity levels and report format
-- For orchestrators: explicitly forbid direct analysis
 - Scoped feedback: only review what changed, no unrelated suggestions
 
 ---
@@ -258,10 +241,10 @@ Rules are always-loaded instructions that shape Claude's behavior.
 
 2. **Tool rules** - When/how to use tools:
    ```markdown
-   ## When to Use Multi-Model
+   ## When to Use Teams
    **Use when:**
-   - Stuck on complex bugs
-   - Major architectural decisions
+   - 2+ independent tasks needing full sessions
+   - Tasks benefit from cross-discussion
 
    **Don't use when:**
    - Simple tasks
@@ -292,6 +275,8 @@ Hooks are scripts that run at specific events.
 - `PostToolUse/` - After tool execution
 - `SessionStart/` - When a session begins
 - `Stop/` - When session ends
+- `TeammateIdle/` - When a teammate finishes and goes idle
+- `TaskCompleted/` - When a task is marked complete
 
 **PreToolUse pattern (blocking):**
 ```python
@@ -352,7 +337,7 @@ For detailed token optimization patterns, see `skills/skill-creator/references/c
 | Skill SKILL.md | ~500 tokens |
 | References | ~300 tokens each |
 
-**Shared templates:** `agents/_templates/` for orchestration patterns, `agents/_references/` for domain knowledge.
+**Shared templates:** `agents/_templates/` for common patterns, `agents/_references/` for domain knowledge.
 
 ---
 
@@ -364,7 +349,7 @@ For detailed token optimization patterns, see `skills/skill-creator/references/c
 | Skill   | `skills/*/SKILL.md`             | Auto (via desc)      | On match     |
 | Agent   | `agents/`                       | Task tool            | On spawn     |
 | Rule    | `rules/`                        | Always               | Always       |
-| Hook    | `scripts/hooks/{Pre,Post,SessionStart,Stop}` | Tool/event lifecycle | N/A          |
+| Hook    | `scripts/hooks/{Pre,Post,SessionStart,Stop,TeammateIdle,TaskCompleted}` | Tool/event lifecycle | N/A          |
 
 ---
 

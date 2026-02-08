@@ -1,8 +1,7 @@
 # Orchestrator MCP Server configuration
 #
 # Provides:
-# - MCP server for terminal automation (tmux_* tools)
-# - AI CLI orchestration tools (ai_call, ai_spawn, ai_fetch, ai_review)
+# - MCP server for terminal automation (tmux_* tools) and notifications
 # - Auto-discovered skills from resources/claude-code/skills/
 {
   config,

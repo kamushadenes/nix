@@ -288,13 +288,6 @@
     "mcp__orchestrator__tmux_interrupt"
     "mcp__orchestrator__notify"
 
-    # MCP: Orchestrator - AI (parallel AI CLI orchestration)
-    "mcp__orchestrator__ai_call"
-    "mcp__orchestrator__ai_spawn"
-    "mcp__orchestrator__ai_fetch"
-    "mcp__orchestrator__ai_list"
-    "mcp__orchestrator__ai_review"
-
     # MCP: Claude-in-Chrome browser automation
     "mcp__claude-in-chrome__javascript_tool"
     "mcp__claude-in-chrome__read_page"

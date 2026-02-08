@@ -1,7 +1,7 @@
 ---
 name: suggestion-critic
 description: Validates findings from review agents. Use as final filter before task creation to remove false positives, unnecessary suggestions, and out-of-scope items.
-tools: Read, Grep, Glob, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
+tools: Read, Grep, Glob
 model: opus
 permissionMode: dontAsk
 ---

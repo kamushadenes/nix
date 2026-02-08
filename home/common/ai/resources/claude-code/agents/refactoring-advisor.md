@@ -1,7 +1,7 @@
 ---
 name: refactoring-advisor
 description: Identifies refactoring opportunities. Use PROACTIVELY when code has grown complex or during cleanup phases.
-tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
+tools: Read, Grep, Glob, Bash
 model: sonnet
 permissionMode: dontAsk
 hooks:
@@ -12,15 +12,10 @@ hooks:
           command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
-## 🚨 MANDATORY: SPAWN ALL 3 MODELS FIRST 🚨
-
-**YOU ARE FORBIDDEN FROM ANALYZING CODE YOURSELF.** You MUST call `mcp__orchestrator__ai_spawn` THREE times (claude, codex, gemini) BEFORE reporting any findings. See `_templates/orchestrator-base.md` for workflow.
-
 > **Patterns:** See `_references/code-smells-catalog.md`
 
-## Domain Prompt (SEND TO ALL 3 MODELS)
+## Domain Prompt
 
-```
 Identify refactoring opportunities:
 
 1. Decomposition needs - Oversized files (>5000 LOC), classes (>1000 LOC), functions (>150 LOC)
@@ -36,7 +31,8 @@ Provide findings with:
 - File:line references
 - Specific refactoring technique to apply
 - Before/after code examples where helpful
-```
+
+When running as a teammate, share findings with other reviewers and challenge their conclusions.
 
 ## Priority Order
 

@@ -1,6 +1,6 @@
 ---
 allowed-tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(gh:*), AskUserQuestion, Task, TaskOutput
-description: Delegate tasks to parallel worker Claude instances
+description: Delegate tasks to parallel Claude instances via Agent Teams
 argument-hint: [--auto-merge]
 ---
 
@@ -14,188 +14,85 @@ argument-hint: [--auto-merge]
 
 Parse arguments from $ARGUMENTS:
 
-- `--auto-merge` or `-a`: Automatically merge PRs after creation (uses admin bypass if needed)
-
-## Configuration
-
-- **MAX_TASKS_TO_SHOW**: 5
-- **POLL_INTERVAL**: 30 seconds
-- **HEARTBEAT_TIMEOUT**: 5 minutes (300 seconds)
-- **MAX_RETRIES**: 2
-- **AUTO_MERGE**: false (unless --auto-merge flag is passed)
+- `--auto-merge` or `-a`: Automatically merge PRs after creation
 
 ## Workflow
 
-### Phase 1: Load MCP Tools
+### Phase 1: Task Selection
 
-Load task-master tools for task selection:
+1. Load task-master MCP tools: `mcp__task-master-ai__get_tasks`, `mcp__task-master-ai__next_task`, `mcp__task-master-ai__get_task`
+2. Get up to 5 available tasks using `next_task` repeatedly (skip `in-progress`)
+3. Present tasks to user via AskUserQuestion with multiSelect
 
-1. `mcp__task-master-ai__get_tasks` - List all tasks
-2. `mcp__task-master-ai__next_task` - Get next available task
-3. `mcp__task-master-ai__get_task` - Get task details
-
-### Phase 2: Parse Arguments
-
-Check if `--auto-merge` or `-a` was passed:
-
-- If yes: set AUTO_MERGE = true
-- If no: set AUTO_MERGE = false (default)
-
-### Phase 3: Task Selection
-
-1. Get up to MAX_TASKS_TO_SHOW available tasks using `next_task` repeatedly
-
-   - Store each task temporarily
-   - Skip tasks that are already `in-progress`
-
-2. Present tasks to user via AskUserQuestion:
-
-   ```
-   AskUserQuestion with:
-     questions: [{
-       question: "Which tasks would you like to delegate to worker instances?",
-       header: "Tasks",
-       multiSelect: true,
-       options: [
-         { label: "Task 1: <title>", description: "<brief description>" },
-         { label: "Task 2: <title>", description: "<brief description>" },
-         ...
-       ]
-     }]
-   ```
-
-3. Parse user selection - only proceed with selected tasks
-
-If user selects "Other" to provide custom input, or selects nothing, ask for clarification.
-
-### Phase 4: Prepare Worktrees
+### Phase 2: Prepare Worktrees
 
 For each selected task:
 
 1. Get full task data with `get_task`
-2. Create worktree: `wt switch --create <branch-name>`
-   - Branch naming: `feat/<id>-<slugified-title>`
-   - The worktree path will be in `~/.worktrees/<branch-name>`
-3. Build task object with worktree_path
+2. Create worktree: `wt switch --create feat/<id>-<slugified-title>`
+3. Store worktree path for each task
 
-### Phase 5: Spawn Worker Orchestrators
+### Phase 3: Create Agent Team
 
-**Spawn one worker-orchestrator per task for true parallelism.**
+Create an Agent Team, spawning one teammate per task. Each teammate gets a spawn prompt containing:
 
-For each selected task, create a separate Task tool call:
+- Full task description and subtasks
+- Worktree path (cd to it first)
+- Instructions: implement, commit using /commit, push, create PR
+- Auto-merge flag if set
+- Repository context
 
-```python
-# Spawn all orchestrators in parallel (single message with multiple Task calls)
-for task in selected_tasks:
-    Task(
-        subagent_type="worker-orchestrator",
-        description=f"Task {task.id}: {task.title[:30]}",
-        prompt=json.dumps({
-            "tasks": [
-                {
-                    "id": task.id,
-                    "title": task.title,
-                    "description": task.description,
-                    "subtasks": task.subtasks,
-                    "worktree_path": task.worktree_path
-                }
-            ],
-            "repo": "<owner/repo from context>",
-            "auto_merge": AUTO_MERGE,
-            "config": {
-                "poll_interval": 30,
-                "heartbeat_timeout": 300,
-                "max_retries": 2
-            }
-        }),
-        run_in_background=True  # Run all orchestrators concurrently
-    )
+For each task, the teammate spawn prompt should be:
+```
+You are working on task <id>: <title>
+
+## Task Details
+<full description and subtasks>
+
+## Instructions
+1. cd <worktree_path>
+2. Work through all subtasks
+3. Commit after each subtask using /commit
+4. When done, push and create a PR targeting main
+5. <If auto-merge: Merge the PR with gh pr merge --squash>
+
+## Repository
+<owner/repo>
 ```
 
-**Important:** All Task tool calls must be in a single message to enable parallel execution. Each orchestrator runs independently and handles:
-- Expanding its task into subtasks if needed
-- Spawning the worker instance
-- Monitoring progress and syncing subtasks
-- Stuck detection with two-phase tmux capture
-- Retry logic for failed workers
-- Cleanup of merged worktree
+Use delegate mode so the lead focuses on coordination only.
 
-### Phase 6: Collect and Display Results
+### Phase 4: Monitor and Collect Results
 
-Each background orchestrator returns results independently. Collect all results using TaskOutput:
+Wait for all teammates to complete. The lead:
+- Monitors teammate progress via Teams messaging
+- Updates task-master status when teammates complete
+- Collects PR URLs and completion summaries
 
-```python
-results = {
-    "completed": [],
-    "failed": [],
-    "stuck": []
-}
+### Phase 5: Display Results
 
-for task_id in spawned_task_ids:
-    result = TaskOutput(task_id=task_id, block=True, timeout=600000)
-    # Parse orchestrator's JSON result and merge into results
-    orchestrator_result = json.loads(result)
-    results["completed"].extend(orchestrator_result.get("completed", []))
-    results["failed"].extend(orchestrator_result.get("failed", []))
-    results["stuck"].extend(orchestrator_result.get("stuck", []))
+Show aggregated results:
+
+**Completed:**
 ```
-
-Display aggregated results:
-
-**Completed (merged):**
-
-```
-✓ Task <id>: <title>
-  Summary: <summary>
-  Actions: <actions bullet list>
-  Files: <files_changed>
-  PR: <pr_url> (merged)
-```
-
-**Completed (PR open):**
-
-```
-✓ Task <id>: <title>
-  Summary: <summary>
-  Actions: <actions bullet list>
-  Files: <files_changed>
+Task <id>: <title>
   PR: <pr_url>
-  Worktree: <path> (preserved until merged)
+  Files: <count>
 ```
 
 **Failed:**
-
 ```
-✗ Task <id>: <title>
+Task <id>: <title>
   Error: <error>
-  Completed: <partial_actions if any>
-  Worktree: <path> (preserved for investigation)
+  Worktree: <path> (preserved)
 ```
 
-**Stuck:**
-
-```
-⚠ Task <id>: <title>
-  Window: <window_id> (still open)
-  Worktree: <path>
-  Last output: <last_output snippet>
-```
-
-**Remaining:**
-
-- Count of remaining tasks in task-master queue
-- User must run `/delegate-task` again to select more tasks
-
-### Phase 7: Sync Main Branch
-
-After all workers complete, pull the latest changes to get merged PRs:
+### Phase 6: Sync Main Branch
 
 ```bash
 git pull --rebase
 ```
 
-This ensures the local main branch has all the merged changes from the worker PRs.
-
 ## Begin Execution
 
-Start by loading the MCP tools, parsing arguments, getting available tasks, then presenting selection to user.
+Start by loading MCP tools, parsing arguments, getting available tasks, then presenting selection to user.

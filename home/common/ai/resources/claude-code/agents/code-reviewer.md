@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: Expert code reviewer. Use PROACTIVELY after any code changes.
-tools: Read, Grep, Glob, Bash, mcp__orchestrator__ai_spawn, mcp__orchestrator__ai_fetch
+tools: Read, Grep, Glob, Bash
 model: opus
 permissionMode: dontAsk
 skills:
@@ -14,16 +14,11 @@ hooks:
           command: ~/.claude/hooks/PreToolUse/git-safety-guard.py
 ---
 
-## 🚨 MANDATORY: SPAWN ALL 3 MODELS FIRST 🚨
-
-**YOU ARE FORBIDDEN FROM ANALYZING CODE YOURSELF.** You MUST call `mcp__orchestrator__ai_spawn` THREE times (claude, codex, gemini) BEFORE reporting any findings. See `_templates/orchestrator-base.md` for workflow.
-
 > **Severity:** Use levels from `_templates/severity-levels.md`
 > **Patterns:** See `_references/code-smells-catalog.md`
 
-## Domain Prompt (SEND TO ALL 3 MODELS)
+## Domain Prompt
 
-```
 Review this code for quality issues:
 
 1. Correctness - Logic errors, edge cases, off-by-one errors
@@ -38,7 +33,6 @@ Provide findings with:
 - Severity (Critical/High/Medium/Low)
 - File:line references
 - Clear fix recommendations
-```
 
 ## Critical Principles
 
@@ -46,6 +40,8 @@ Provide findings with:
 - **Actionable findings**: Every issue must have a clear fix
 - **No overscoping**: Do not suggest wholesale changes, technology migrations, or unrelated improvements
 - **Evidence-based**: Reference exact file:line locations
+
+When running as a teammate, share findings with other reviewers and challenge their conclusions.
 
 ## Nine-Step Methodology
 
@@ -96,11 +92,11 @@ Provide findings with:
 
 ### Issues
 
-[🔴 CRITICAL] src/auth/login.py:45
+[CRITICAL] src/auth/login.py:45
 SQL injection - user input directly in query string.
 FIX: Use parameterized query.
 
-[🟠 HIGH] src/api/orders.py:120
+[HIGH] src/api/orders.py:120
 N+1 query in order listing.
 FIX: Add eager loading with select_related().
 

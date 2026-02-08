@@ -1,6 +1,6 @@
 ---
 allowed-tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(gh:*), AskUserQuestion, Task, TaskOutput
-description: Delegate tasks to parallel workers with single consolidated PR
+description: Delegate tasks to parallel Claude instances with single consolidated PR
 argument-hint: [--base branch] [--auto-merge] [--name feature]
 ---
 
@@ -15,267 +15,82 @@ argument-hint: [--base branch] [--auto-merge] [--name feature]
 Parse from $ARGUMENTS:
 
 - `--base <branch>` or `-b <branch>`: Target branch for final PR (default: main)
-- `--auto-merge` or `-a`: Auto-merge the final PR (feature branch → target branch)
+- `--auto-merge` or `-a`: Auto-merge sub-branches to parent (final PR always requires manual review)
 - `--name <feature>` or `-n <feature>`: Override auto-detected feature name
-
-## Configuration
-
-- **MAX_CONCURRENT**: 4 (max parallel workers)
-- **POLL_INTERVAL**: 10 seconds
-- **HEARTBEAT_TIMEOUT**: 5 minutes (300 seconds)
-- **MAX_RETRIES**: 2
 
 ## Workflow
 
-### Phase 1: Parse Arguments
+### Phase 1: Task Selection
 
-1. Check for `--base` / `-b` flag → set target_base (default: "main")
-2. Check for `--auto-merge` / `-a` flag → set AUTO_MERGE_SUBS = true (default: false)
-   - **Note**: This controls auto-merge of **sub-branches to parent** (not the final PR)
-   - The final PR to main/master is NEVER auto-merged (requires manual review)
-3. Check for `--name` / `-n` flag → set FEATURE_NAME override (optional)
+1. Load task-master MCP tools
+2. Get ALL available tasks using `get_tasks`, filter to `pending` or `ready`
+3. If ambiguous feature name, confirm with user via AskUserQuestion
 
-### Phase 2: Load MCP Tools
+### Phase 2: Create Parent Branch
 
-Load task-master tools for task selection:
+1. Auto-detect feature name from task titles (or use `--name`)
+2. Create parent branch worktree from target_base: `wt switch --create feat/<FEATURE_SLUG>`
+3. Push parent branch to remote
 
-1. `mcp__task-master-ai__get_tasks` - List all tasks
-2. `mcp__task-master-ai__next_task` - Get next available task
-3. `mcp__task-master-ai__get_task` - Get task details
+### Phase 3: Prepare Sub-Branch Worktrees
 
-### Phase 3: Get All Tasks
+For each task:
 
-1. Get ALL available tasks using `get_tasks`
-2. Filter to only `pending` or `ready` tasks (skip `in-progress`, `done`, `blocked`)
-3. Build task queue for batch processing
-4. If no tasks available, report and exit
+1. Create sub-branch from parent: `wt switch --create feat/<FEATURE_SLUG>-task/<id>-<title> --base feat/<FEATURE_SLUG>`
+2. Store worktree path and target branch for each task
 
-### Phase 4: Auto-Detect Feature Name
+### Phase 4: Create Agent Team
 
-If no `--name` provided:
-
-1. Analyze task titles for common theme/prefix
-2. If all tasks share a parent (e.g., all subtasks of same task), use parent title
-3. Otherwise, generate from first task: `feat/<task-id>-<slugified-title>`
-4. If ambiguous, confirm with user via AskUserQuestion:
+Create an Agent Team, spawning one teammate per task. Each teammate gets a spawn prompt:
 
 ```
-AskUserQuestion with:
-  questions: [{
-    question: "What should the consolidated feature branch be named?",
-    header: "Branch",
-    multiSelect: false,
-    options: [
-      { label: "<auto-detected>", description: "Based on task analysis" },
-      { label: "feat/<first-task>", description: "Use first task ID" }
-    ]
-  }]
+You are working on task <id>: <title>
+
+## Task Details
+<full description and subtasks>
+
+## Instructions (CONSOLIDATED MODE)
+1. cd <worktree_path>
+2. Work through all subtasks
+3. Commit after each subtask using /commit
+4. When done: merge to parent via `wt merge --yes --no-remove <parent_branch>`
+5. Push parent branch after merge
+6. Do NOT create a PR - the lead will create a single consolidated PR
+
+## Target Branch
+<parent_branch>
 ```
 
-Store as `FEATURE_SLUG` (sanitized for branch names: lowercase, no spaces, no special chars).
+### Phase 5: Monitor and Collect Results
 
-### Phase 5: Create Parent Branch
+Wait for all teammates to complete. Handle merge conflicts by escalating to user.
 
-1. Check if branch already exists:
+### Phase 6: Create Final PR
+
+1. Switch to parent branch worktree
+2. Push all merged work to remote
+3. Create PR from parent branch to target_base:
    ```bash
-   git ls-remote --heads origin | grep -q "refs/heads/feat/<FEATURE_SLUG>"
+   gh pr create --base <target_base> --title "feat: <FEATURE_SLUG>" --body "..."
    ```
+4. The final PR is NEVER auto-merged (requires manual review)
 
-2. If branch exists, **reuse it**:
-   - Switch to existing branch worktree: `wt switch "feat/<FEATURE_SLUG>" --yes`
-   - Pull latest: `cd <parent_worktree> && git pull`
-   - Skip branch creation, proceed to Phase 6
-
-3. If branch does NOT exist, create it:
-   - Ensure we're on target_base branch:
-     ```bash
-     git checkout <target_base> && git pull
-     ```
-   - Create parent branch worktree from target_base:
-     ```bash
-     wt switch --create "feat/<FEATURE_SLUG>" --yes
-     ```
-   - Push parent branch to remote:
-     ```bash
-     cd <parent_worktree> && git push -u origin HEAD
-     ```
-
-4. Store `parent_branch = "feat/<FEATURE_SLUG>"`
-
-### Phase 6: Prepare Sub-Branch Worktrees
-
-For each task in the queue:
-
-1. Create sub-branch from parent:
-   ```bash
-   # Create sub-branch worktree based on parent
-   # Use feat/<FEATURE_SLUG>-task/... to avoid git nested branch conflict with feat/<FEATURE_SLUG>
-   wt switch --create "feat/<FEATURE_SLUG>-task/<task-id>-<slugified-title>" --base "feat/<FEATURE_SLUG>" --yes
-   ```
-
-2. Store: `task.worktree_path = <worktree_path>`
-3. Set: `task.target_branch = parent_branch`
-
-### Phase 7: Spawn Workers (Rolling Batch)
-
-Spawn workers in rolling batches of MAX_CONCURRENT:
-
-```python
-task_queue = all_tasks[:]  # Copy of all tasks
-active_agents = {}  # task_id -> agent_task_id
-completed = []
-failed = []
-
-# Initial batch: spawn up to MAX_CONCURRENT workers
-initial_batch = task_queue[:MAX_CONCURRENT]
-task_queue = task_queue[MAX_CONCURRENT:]
-
-# Spawn initial batch in parallel (single message with multiple Task calls)
-for task in initial_batch:
-    agent_id = Task(
-        subagent_type="worker-orchestrator",
-        description=f"Task {task.id}: {task.title[:30]}",
-        prompt=json.dumps({
-            "tasks": [{
-                "id": task.id,
-                "title": task.title,
-                "description": task.description,
-                "subtasks": task.subtasks,
-                "worktree_path": task.worktree_path
-            }],
-            "repo": "<owner/repo>",
-            "auto_merge": AUTO_MERGE_SUBS,
-            "target_branch": parent_branch,
-            "config": {
-                "poll_interval": 30,
-                "heartbeat_timeout": 300,
-                "max_retries": 2
-            }
-        }),
-        run_in_background=True
-    )
-    active_agents[task.id] = agent_id
-```
-
-### Phase 8: Monitor Loop (Rolling)
-
-```python
-while active_agents or task_queue:
-    for task_id, agent_id in list(active_agents.items()):
-        result = TaskOutput(task_id=agent_id, block=False, timeout=1000)
-
-        if result.is_complete:
-            parsed = json.loads(result.output)
-            if parsed.get("completed"):
-                completed.extend(parsed["completed"])
-            if parsed.get("failed"):
-                failed.extend(parsed["failed"])
-
-            del active_agents[task_id]
-
-            # Spawn next worker if queue not empty
-            if task_queue:
-                next_task = task_queue.pop(0)
-                new_agent_id = Task(
-                    subagent_type="worker-orchestrator",
-                    prompt=json.dumps({...}),  # Same format as above
-                    run_in_background=True
-                )
-                active_agents[next_task.id] = new_agent_id
-
-    # Progress report
-    print(f"Active: {len(active_agents)}/{MAX_CONCURRENT}, Completed: {len(completed)}, Failed: {len(failed)}, Queue: {len(task_queue)}")
-
-    sleep(POLL_INTERVAL)
-```
-
-### Phase 9: Handle Failures
-
-After all tasks processed:
-
-- If all succeeded: proceed to create final PR
-- If some failed: report failures via AskUserQuestion:
-  ```
-  "X tasks failed. Continue with partial results or abort?"
-  Options: "Continue with partial", "Abort"
-  ```
-
-### Phase 10: Create Final PR
-
-1. Switch to parent branch worktree:
-   ```bash
-   cd <parent_worktree>
-   ```
-
-2. Ensure parent branch has all merged changes and is pushed:
-   ```bash
-   # Sync any remote changes (workers may have pushed)
-   git fetch origin <parent_branch>
-   git merge --ff-only origin/<parent_branch> || true
-
-   # Push all merged work to remote (CRITICAL: without this, PR will be empty/stale)
-   git push origin <parent_branch>
-   ```
-
-3. Create final PR to target_base:
-   ```bash
-   gh pr create --base <target_base> --title "feat: <FEATURE_SLUG>" --body "$(cat <<'EOF'
-   ## Summary
-   Consolidated PR for: <FEATURE_SLUG>
-
-   ### Completed Tasks
-   - Task X: <title> (merged to parent)
-   - Task Y: <title> (merged to parent)
-
-   ### Failed Tasks
-   - Task Z: <error> (worktree preserved)
-
-   ---
-   Generated with /delegate-tasks-consolidated
-   EOF
-   )"
-   ```
-
-4. Report final PR URL
-
-### Phase 11: Display Results
-
-**Final Summary:**
+### Phase 7: Display Results
 
 ```
 === Consolidated PR Created ===
 PR: <final_pr_url>
 Branch: feat/<FEATURE_SLUG> -> <target_base>
 
-Completed Tasks (merged to parent):
-  ✓ Task <id>: <title> (merged)
-  ✓ Task <id>: <title> (merged)
+Completed Tasks:
+  Task <id>: <title> (merged to parent)
 
 Failed Tasks:
-  ✗ Task <id>: <title>
+  Task <id>: <title>
     Error: <error>
     Worktree: <path>
-    Cleanup: Run `wt remove <path>` after investigation
-    Branch: Run `git push origin --delete <sub_branch>` to remove remote
-
-Parent Worktree: <parent_worktree_path>
-(Preserved until final PR merged)
-
-=== Post-Merge Cleanup ===
-After the final PR is merged, run these commands to clean up:
-  wt remove <parent_worktree_path>
-  git push origin --delete feat/<FEATURE_SLUG>
 ```
-
-### Phase 12: Cleanup (Optional)
-
-If `--auto-merge` was passed, do NOT auto-merge the final PR. The final PR should always require manual review.
-
-Worktree cleanup (handled by worker-orchestrator):
-- Completed tasks merged to parent: worktrees auto-removed
-- Failed tasks: worktrees preserved for investigation
-- Parent worktree: preserved until final PR merged
 
 ## Begin Execution
 
-Start by parsing arguments, loading MCP tools, getting all available tasks, auto-detecting feature name, then creating the parent branch and sub-branch worktrees.
+Start by parsing arguments, loading MCP tools, getting all available tasks, then creating the branch structure.
