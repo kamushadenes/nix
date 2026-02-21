@@ -39,7 +39,7 @@ let
   # Helper to apply substitutions to a string
   applySubst = subst: str: builtins.foldl' (s: name: builtins.replaceStrings [ name ] [ subst.${name} ] s) str (builtins.attrNames subst);
 
-  # Substitutions for c script (Claude workspace manager with multi-account support)
+  # Substitutions for c script (account detection patterns)
   cScriptSubst = {
     "@ACCOUNT_PATTERNS@" = accountsConfig.allAccountPatternVars;
     "@ACCOUNT_DETECTION_LOGIC@" = accountsConfig.allAccountDetectionLogic;
@@ -68,7 +68,7 @@ let
   # Standalone scripts (installed to PATH, not shell functions)
   # These are processed with substitutions and return content (not paths)
   standaloneScripts = {
-    # Claude Code workspace manager - bash script with multi-account support
+    # Claude Code wrapper - opens claude inside tmux, bypassing permissions
     c = applySubst cScriptSubst (builtins.readFile "${resourcesDir}/claude-tmux.sh");
     # Rebuild script - Python deployment tool with parallel execution and tag-based filtering
     rebuild = applySubst deploySubst (builtins.readFile ./resources/deploy.py);
