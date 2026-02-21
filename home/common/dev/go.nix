@@ -65,6 +65,7 @@ in
       pkgs-unstable.gotestsum
       pkgs-unstable.go-outline
       pkgs-unstable.wails
+      zig
 
       tdd-guard-go
     ]

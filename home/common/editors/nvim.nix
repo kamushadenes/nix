@@ -33,7 +33,12 @@ in
     sqlfluff
 
     # Latex
-    texliveBasic
+    (texliveSmall.withPackages (
+      ps: with ps; [
+        collection-fontsrecommended
+        collection-xetex
+      ]
+    ))
 
     # Misc
     ast-grep
