@@ -1,19 +1,7 @@
-# Post-Plan Team Suggestion
+# Post-Plan Execution
 
-After a plan is accepted by the user (exiting plan mode), proactively evaluate whether the plan would benefit from an Agent Team:
+After a plan is accepted (exiting plan mode):
 
-**Suggest a team when:**
-- Plan has 3+ independent implementation steps
-- Steps can be parallelized across different files/modules
-- Work would take significant time sequentially
-
-**How to suggest:**
-Use AskUserQuestion to ask:
-"This plan has N independent steps that could run in parallel. Would you like me to create an agent team to execute them?"
-- "Yes, create a team" - Spawn teammates for parallel execution
-- "No, I'll work through it sequentially" - Execute steps one by one
-
-**Do NOT suggest when:**
-- Plan has <3 steps
-- Steps are sequential/dependent
-- Plan is simple (single file, trivial changes)
+**If .planning/ exists:** Suggest `/gsd:execute-phase` for structured execution
+**If no .planning/:** For 3+ independent steps, suggest `/gsd:quick`
+**Simple tasks (<3 steps):** Execute directly, no orchestration needed

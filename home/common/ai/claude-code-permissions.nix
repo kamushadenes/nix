@@ -182,6 +182,11 @@
     "Bash(tmux -V:*)"
     "Bash(tmux source-file:*)"
 
+    # GSD framework
+    "Bash(node ~/.claude/get-shit-done/bin/gsd-tools.js:*)"
+    "Bash(node *gsd-tools.js:*)"
+    "Bash(npx get-shit-done-cc:*)"
+
     # Node/NPM - read-only
     "Bash(npm view:*)"
     "Bash(npm ls:*)"

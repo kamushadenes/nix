@@ -249,6 +249,16 @@ in
               }
             ];
           }
+          # GSD framework update check (no-op if GSD not installed)
+          {
+            matcher = "startup";
+            hooks = [
+              {
+                type = "command";
+                command = "test -f ~/.claude/hooks/gsd-update-check.js && node ~/.claude/hooks/gsd-update-check.js || true";
+              }
+            ];
+          }
         ];
 
         # Run when Claude stops working
@@ -550,6 +560,12 @@ in
   #############################################################################
   # Secret Substitution and MCP Config Activation
   #############################################################################
+
+  home.activation.gsdBootstrap = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ ! -d "${config.home.homeDirectory}/.claude/get-shit-done" ]; then
+      echo "NOTE: GSD not installed. Run: npx get-shit-done-cc --claude --global"
+    fi
+  '';
 
   home.activation.claudeCodeMcpServers = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run mkdir -p ${secretsDir}
