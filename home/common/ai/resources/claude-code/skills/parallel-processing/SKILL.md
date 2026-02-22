@@ -18,7 +18,7 @@ Each teammate gets a spawn prompt with their task details.
 Teammates can discuss findings across domains.
 ```
 
-Use `/delegate-tasks` to automate team creation for task-master tasks.
+Use `/delegate-tasks` to automate team creation from the task list.
 
 ## Recommended: Use Subagents for Context Efficiency
 

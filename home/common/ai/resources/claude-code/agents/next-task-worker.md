@@ -2,7 +2,6 @@
 name: next-task-worker
 description: Autonomous task completion worker. Handles full workflow from task claim to PR creation.
 tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch, mcp__github__*
-disallowedTools: mcp__task-master-ai__*
 model: sonnet
 permissionMode: acceptEdits
 skills:
@@ -37,7 +36,7 @@ hooks:
           command: ~/.claude/hooks/PostToolUse/format-nix.sh
 ---
 
-You complete task-master tasks autonomously with full PR workflow. Task status updates are handled by the parent context, not you.
+You complete tasks autonomously with full PR workflow. Task status updates are handled by the parent context, not you.
 
 ## Input Format
 

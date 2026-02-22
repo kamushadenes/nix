@@ -209,10 +209,6 @@ in
               }
               {
                 type = "command";
-                command = "~/.claude/hooks/PreToolUse/enforce-worktree.py";
-              }
-              {
-                type = "command";
                 command = "~/.claude/hooks/PreToolUse/suggest-modern-tools.py";
               }
             ];
@@ -241,10 +237,6 @@ in
                 type = "command";
                 command = "tdd-guard";
               }
-              {
-                type = "command";
-                command = "~/.claude/hooks/SessionStart/task-context.sh";
-              }
             ];
           }
           # Web-only: Install devbox and initialize direnv when devbox.json exists
@@ -272,10 +264,6 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/Stop/post-lint.sh";
-              }
-              {
-                type = "command";
-                command = "~/.claude/hooks/Stop/task-status-reminder.sh";
               }
               {
                 type = "command";
@@ -356,16 +344,6 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-go.sh";
-              }
-            ];
-          }
-          # Auto-link PRs to GitHub issues and task-master
-          {
-            matcher = "Bash";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/PostToolUse/link-pr-to-task.sh";
               }
             ];
           }
@@ -506,10 +484,6 @@ in
       source = "${scriptsDir}/hooks/Stop/post-lint.sh";
       executable = true;
     };
-    ".claude/hooks/Stop/task-status-reminder.sh" = {
-      source = "${scriptsDir}/hooks/Stop/task-status-reminder.sh";
-      executable = true;
-    };
     ".claude/hooks/Stop/debug-env.sh" = {
       source = "${scriptsDir}/hooks/Stop/debug-env.sh";
       executable = true;
@@ -521,31 +495,18 @@ in
     # Note: ralph-loop.sh is provided by ralph-loop@claude-plugins-official plugin
 
     # SessionStart hooks
-    ".claude/hooks/SessionStart/task-context.sh" = {
-      source = "${scriptsDir}/hooks/SessionStart/task-context.sh";
-      executable = true;
-    };
     ".claude/hooks/SessionStart/devbox-setup.sh" = {
       source = "${scriptsDir}/hooks/SessionStart/devbox-setup.sh";
       executable = true;
     };
 
     # PreToolUse hooks (additional)
-    ".claude/hooks/PreToolUse/enforce-worktree.py" = {
-      source = "${scriptsDir}/hooks/PreToolUse/enforce-worktree.py";
-      executable = true;
-    };
     ".claude/hooks/PreToolUse/suggest-modern-tools.py" = {
       source = "${scriptsDir}/hooks/PreToolUse/suggest-modern-tools.py";
       executable = true;
     };
 
     # PostToolUse hooks (additional)
-    ".claude/hooks/PostToolUse/link-pr-to-task.sh" = {
-      source = "${scriptsDir}/hooks/PostToolUse/link-pr-to-task.sh";
-      executable = true;
-    };
-
     # Suggest nix-shell for command not found (PostToolUseFailure)
     ".claude/hooks/PostToolUseFailure/suggest-nix-shell.sh" = {
       source = "${scriptsDir}/hooks/PostToolUseFailure/suggest-nix-shell.sh";

@@ -44,7 +44,6 @@ rec {
     "github"
     "Ref"
     "orchestrator"
-    "task-master-ai"
     "iniciador-vanta"
   ];
 

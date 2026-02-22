@@ -28,7 +28,7 @@ cleanup_orphaned_mcp() {
     # Use || true to prevent pgrep's exit code 1 (no matches) from triggering set -e
     pgrep -P 1 -f "$mcp_pattern" 2>/dev/null | while read -r pid; do
         # Verify it's actually an MCP-related process before killing
-        if ps -p "$pid" -o args= 2>/dev/null | grep -qE "(mcp|task-master|orchestrator)"; then
+        if ps -p "$pid" -o args= 2>/dev/null | grep -qE "(mcp|orchestrator)"; then
             kill "$pid" 2>/dev/null || true
         fi
     done || true
@@ -37,7 +37,6 @@ cleanup_orphaned_mcp() {
 # Clean up known MCP server patterns
 cleanup_orphaned_mcp "slack-mcp-server"
 cleanup_orphaned_mcp "vanta-mcp-server"
-cleanup_orphaned_mcp "task-master-ai"
 cleanup_orphaned_mcp "orchestrator-mcp"
 cleanup_orphaned_mcp "github-mcp-server"
 cleanup_orphaned_mcp "claude-in-chrome-mcp"

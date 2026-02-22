@@ -1,5 +1,5 @@
 ---
-allowed-tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(gh:*), AskUserQuestion, Task, TaskOutput
+allowed-tools: Bash(wt:*), Bash(git:*), Bash(gh:*), AskUserQuestion, Task, TaskOutput, TaskList, TaskGet, TaskUpdate
 description: Delegate tasks to parallel Claude instances via Agent Teams
 argument-hint: [--auto-merge]
 ---
@@ -20,15 +20,14 @@ Parse arguments from $ARGUMENTS:
 
 ### Phase 1: Task Selection
 
-1. Load task-master MCP tools: `mcp__task-master-ai__get_tasks`, `mcp__task-master-ai__next_task`, `mcp__task-master-ai__get_task`
-2. Get up to 5 available tasks using `next_task` repeatedly (skip `in-progress`)
-3. Present tasks to user via AskUserQuestion with multiSelect
+1. Use `TaskList` to see available tasks
+2. Present tasks to user via AskUserQuestion with multiSelect
 
 ### Phase 2: Prepare Worktrees
 
 For each selected task:
 
-1. Get full task data with `get_task`
+1. Get full task data with `TaskGet`
 2. Create worktree: `wt switch --create feat/<id>-<slugified-title>`
 3. Store worktree path for each task
 
@@ -66,7 +65,7 @@ Use delegate mode so the lead focuses on coordination only.
 
 Wait for all teammates to complete. The lead:
 - Monitors teammate progress via Teams messaging
-- Updates task-master status when teammates complete
+- Updates task status via TaskUpdate when teammates complete
 - Collects PR URLs and completion summaries
 
 ### Phase 5: Display Results
@@ -95,4 +94,4 @@ git pull --rebase
 
 ## Begin Execution
 
-Start by loading MCP tools, parsing arguments, getting available tasks, then presenting selection to user.
+Start by parsing arguments, getting available tasks via TaskList, then presenting selection to user.

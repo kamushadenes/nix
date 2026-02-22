@@ -10,7 +10,7 @@ Use the **Task tool** with `subagent_type="git-committer"` for the full PR workf
 
 In your prompt to the agent, include:
 
-1. **Task context**: Summarize what was being worked on in this session (from conversation history, todo list, or task-master task if applicable)
+1. **Task context**: Summarize what was being worked on in this session (from conversation history or todo list)
 2. **Mode**: "full PR workflow" (branch, commit, push, PR)
 3. **Any specific instructions** from the user
 4. **Extra instructions**: $ARGUMENTS

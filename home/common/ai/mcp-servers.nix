@@ -106,18 +106,6 @@ let
       ];
     };
 
-    # Task Master - AI-driven task management
-    # Uses locally installed version from ~/.npm-global/bin (installed via node.nix activation hook)
-    task-master-ai = {
-      transport = "stdio";
-      command = "${homeDir}/.npm-global/bin/task-master-mcp";
-      args = [ ];
-      env = {
-        TASK_MASTER_TOOLS = "standard";
-        OPENROUTER_API_KEY = "@OPENROUTER_API_KEY@";
-      };
-    };
-
     # Note: clickup and vanta moved to private/home/common/ai/mcp-servers-private.nix
     # as iniciador-clickup and iniciador-vanta (workspace-scoped)
   };
@@ -131,7 +119,6 @@ let
     "github"
     "Ref"
     "orchestrator"
-    "task-master-ai"
   ];
 
   #############################################################################

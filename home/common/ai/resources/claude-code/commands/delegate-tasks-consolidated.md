@@ -1,5 +1,5 @@
 ---
-allowed-tools: MCPSearch, Bash(wt:*), Bash(git:*), Bash(gh:*), AskUserQuestion, Task, TaskOutput
+allowed-tools: Bash(wt:*), Bash(git:*), Bash(gh:*), AskUserQuestion, Task, TaskOutput, TaskList, TaskGet, TaskUpdate
 description: Delegate tasks to parallel Claude instances with single consolidated PR
 argument-hint: [--base branch] [--auto-merge] [--name feature]
 ---
@@ -22,9 +22,8 @@ Parse from $ARGUMENTS:
 
 ### Phase 1: Task Selection
 
-1. Load task-master MCP tools
-2. Get ALL available tasks using `get_tasks`, filter to `pending` or `ready`
-3. If ambiguous feature name, confirm with user via AskUserQuestion
+1. Use `TaskList` to get all available tasks, filter to `pending`
+2. If ambiguous feature name, confirm with user via AskUserQuestion
 
 ### Phase 2: Create Parent Branch
 
@@ -93,4 +92,4 @@ Failed Tasks:
 
 ## Begin Execution
 
-Start by parsing arguments, loading MCP tools, getting all available tasks, then creating the branch structure.
+Start by parsing arguments, getting all available tasks via TaskList, then creating the branch structure.

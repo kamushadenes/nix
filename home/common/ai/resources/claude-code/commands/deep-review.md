@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(gh pr:*), Bash(test:*), Task, AskUserQuestion, MCPSearch, mcp__task-master-ai__*, Skill
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(gh pr:*), Bash(test:*), Task, AskUserQuestion, Skill
 description: Comprehensive code review using 9 specialized reviewer teammates
 ---
 
@@ -22,9 +22,7 @@ Run a comprehensive deep review using an Agent Team of 9 specialized reviewers t
 
    If no changes found, inform user and stop.
 
-3. **Check if task-master is initialized** (`test -d .taskmaster`)
-
-4. **Create a review team with 9 specialized reviewer teammates:**
+3. **Create a review team with 9 specialized reviewer teammates:**
 
    Create an Agent Team with these 9 reviewers. Each teammate gets the review context (diff, changed files, scope) plus their domain focus:
 
@@ -53,7 +51,7 @@ Run a comprehensive deep review using an Agent Team of 9 specialized reviewers t
 
    Reviewers can discuss and cross-reference findings across domains (e.g., security reviewer confirms a performance fix doesn't introduce vulnerabilities).
 
-5. **After all reviewers complete**, run suggestion-critic as a **subagent** (not teammate):
+4. **After all reviewers complete**, run suggestion-critic as a **subagent** (not teammate):
 
    ```python
    critic = Task(
@@ -72,7 +70,7 @@ Run a comprehensive deep review using an Agent Team of 9 specialized reviewers t
    )
    ```
 
-6. **Present validated findings by severity:**
+5. **Present validated findings by severity:**
 
    ```markdown
    ## Deep Review Summary
@@ -100,13 +98,11 @@ Run a comprehensive deep review using an Agent Team of 9 specialized reviewers t
    - Validated: Y / Filtered: Z (false positives, out of scope, duplicates)
    ```
 
-7. **Offer to help address issues found**
+6. **Offer to help address issues found**
 
-8. **If task-master available**, offer to create tasks for Critical/High findings via AskUserQuestion multiSelect
+7. **If branch scope and PR exists**, offer to post findings as PR review comments via `github-pr-review` skill
 
-9. **If branch scope and PR exists**, offer to post findings as PR review comments via `github-pr-review` skill
-
-10. **If uncommitted scope**, offer to commit via `/commit` skill
+8. **If uncommitted scope**, offer to commit via `/commit` skill
 
 ## Notes
 

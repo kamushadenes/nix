@@ -1,4 +1,4 @@
-{ pkgs, pkgs-unstable, lib, ... }:
+{ config, pkgs, pkgs-unstable, lib, ... }:
 let
   # TDD Guard for Linux - on macOS it's installed via homebrew cask
   tdd-guard = pkgs.buildNpmPackage rec {
@@ -71,19 +71,20 @@ in
       tdd-guard-vitest
     ];
 
-  # Install task-master-ai globally via npm to user-local prefix
-  # PATH is configured via shell-common.nix pathAdditions
-  # Note: buildNpmPackage fails due to complex peer dependencies, so we use activation hook
-  # npm global packages go to ~/.npm-global, which should be in PATH via shell config
-  home.activation.installTaskMasterAi = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  # Install myrlin-workbook globally via npm (browser-based project manager for Claude Code)
+  # Uses --ignore-scripts because the published tarball has a broken postinstall.js,
+  # then rebuilds native deps (node-pty) separately
+  home.activation.installMyrlinWorkbook = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     export NPM_CONFIG_PREFIX="$HOME/.npm-global"
     export PATH="${pkgs.nodejs}/bin:$PATH"
     run mkdir -p "$NPM_CONFIG_PREFIX"
 
-    # Only install if not already installed or outdated
-    CURRENT_VERSION=$("$NPM_CONFIG_PREFIX/bin/task-master" --version 2>/dev/null | head -1 || echo "none")
-    if [[ "$CURRENT_VERSION" != *"0.42.0"* ]]; then
-      run ${pkgs.nodejs}/bin/npm install -g task-master-ai@0.42.0 --prefix="$NPM_CONFIG_PREFIX" 2>&1 || true
+    CURRENT_VERSION=$(node "$NPM_CONFIG_PREFIX/lib/node_modules/myrlin-workbook/src/gui.js" --version 2>/dev/null | head -1 || echo "none")
+    if [[ "$CURRENT_VERSION" != *"0.7.0-alpha.5"* ]]; then
+      run ${pkgs.nodejs}/bin/npm install -g myrlin-workbook@0.7.0-alpha.5 --prefix="$NPM_CONFIG_PREFIX" --ignore-scripts 2>&1 || true
+      # Rebuild native deps (node-pty) that --ignore-scripts skipped
+      run ${pkgs.nodejs}/bin/npm rebuild --prefix="$NPM_CONFIG_PREFIX" 2>&1 || true
     fi
   '';
+
 }

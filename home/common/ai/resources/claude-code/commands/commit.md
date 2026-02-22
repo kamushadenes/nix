@@ -10,7 +10,7 @@ Use the **Task tool** with `subagent_type="git-committer"` to create a commit.
 
 In your prompt to the agent, include:
 
-1. **Task context**: Summarize what was being worked on in this session (from conversation history, todo list, or task-master task if applicable)
+1. **Task context**: Summarize what was being worked on in this session (from conversation history or todo list)
 2. **Mode**: "commit only" (not full PR workflow)
 3. **Any specific instructions** from the user (e.g., specific files to include, message preferences)
 4. **Extra instructions**: $ARGUMENTS
