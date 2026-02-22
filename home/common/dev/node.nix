@@ -71,20 +71,5 @@ in
       tdd-guard-vitest
     ];
 
-  # Install myrlin-workbook globally via npm (browser-based project manager for Claude Code)
-  # Uses --ignore-scripts because the published tarball has a broken postinstall.js,
-  # then rebuilds native deps (node-pty) separately
-  home.activation.installMyrlinWorkbook = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    export NPM_CONFIG_PREFIX="$HOME/.npm-global"
-    export PATH="${pkgs.nodejs}/bin:$PATH"
-    run mkdir -p "$NPM_CONFIG_PREFIX"
-
-    CURRENT_VERSION=$(node "$NPM_CONFIG_PREFIX/lib/node_modules/myrlin-workbook/src/gui.js" --version 2>/dev/null | head -1 || echo "none")
-    if [[ "$CURRENT_VERSION" != *"0.7.0-alpha.5"* ]]; then
-      run ${pkgs.nodejs}/bin/npm install -g myrlin-workbook@0.7.0-alpha.5 --prefix="$NPM_CONFIG_PREFIX" --ignore-scripts 2>&1 || true
-      # Rebuild native deps (node-pty) that --ignore-scripts skipped
-      run ${pkgs.nodejs}/bin/npm rebuild --prefix="$NPM_CONFIG_PREFIX" 2>&1 || true
-    fi
-  '';
 
 }
