@@ -1439,7 +1439,7 @@ function cmdResolveModel(cwd, agentType, raw) {
   }
 
   const resolved = agentModels[profile] || agentModels['balanced'] || 'sonnet';
-  const model = resolved === 'opus' ? 'inherit' : resolved;
+  const model = resolved;
   const result = { model, profile };
   output(result, raw, model);
 }
@@ -4045,7 +4045,7 @@ function resolveModelInternal(cwd, agentType) {
   // Check per-agent override first
   const override = config.model_overrides?.[agentType];
   if (override) {
-    return override === 'opus' ? 'inherit' : override;
+    return override;
   }
 
   // Fall back to profile lookup
@@ -4053,7 +4053,7 @@ function resolveModelInternal(cwd, agentType) {
   const agentModels = MODEL_PROFILES[agentType];
   if (!agentModels) return 'sonnet';
   const resolved = agentModels[profile] || agentModels['balanced'] || 'sonnet';
-  return resolved === 'opus' ? 'inherit' : resolved;
+  return resolved;
 }
 
 function getArchivedPhaseDirs(cwd) {
