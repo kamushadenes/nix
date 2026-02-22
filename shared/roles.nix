@@ -78,6 +78,7 @@ let
     ../home/common/ai/claude-code.nix
     ../home/common/ai/codex-cli.nix
     ../home/common/ai/gemini-cli.nix
+    ../home/common/ai/gsd.nix
     ../home/common/ai/orchestrator.nix
   ];
 
