@@ -330,6 +330,14 @@
           extraPersistPaths = [ "/var/lib/prometheus2" ];
         };
 
+        # Grafana (LXC) - monitoring dashboards
+        grafana = mkProxmoxHost {
+          machine = "grafana";
+          hardware = ./nixos/hardware/grafana.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/grafana" ];
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox
