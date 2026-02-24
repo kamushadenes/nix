@@ -1,7 +1,42 @@
 # Machine configuration for prometheus LXC
 # Central Prometheus server scraping all monitoring targets
 { config, lib, pkgs, private, ... }:
+let
+  # Derive all scrape targets from nodes.json
+  nodesData = builtins.fromJSON (builtins.readFile "${private}/nodes.json");
+  nodes = nodesData.nodes;
 
+  # Helper: get the first IP (targetHosts[0]) for a node
+  nodeIp = name: builtins.head nodes.${name}.targetHosts;
+
+  # PVE node name -> host IP mapping
+  pveNodes = {
+    pve1 = "10.23.5.10";
+    pve2 = "10.23.5.11";
+    pve3 = "10.23.5.12";
+  };
+  pveNodeNames = builtins.attrNames pveNodes;
+
+  # Exporter container IPs (prom-exporter-pve{1,2,3})
+  exporterIps = map (node: nodeIp "prom-exporter-${node}") pveNodeNames;
+
+  # Cloudflared container IPs
+  cloudflaredIps = map (node: nodeIp "cloudflared-${node}") pveNodeNames;
+
+  # Build PVE relabel configs: map each exporter IP to its PVE node IP
+  pveRelabelConfigs = (lib.imap0 (i: node: {
+    source_labels = [ "__address__" ];
+    regex = lib.replaceStrings ["."] ["\\."] (builtins.elemAt exporterIps i) + ":9221";
+    target_label = "__param_target";
+    replacement = pveNodes.${node};
+  }) pveNodeNames) ++ [
+    # Keep the PVE node IP as the instance label
+    {
+      source_labels = [ "__param_target" ];
+      target_label = "instance";
+    }
+  ];
+in
 {
   imports = [ "${private}/nixos/lxc-management.nix" ];
 
@@ -28,12 +63,7 @@
       {
         job_name = "node";
         static_configs = [{
-          targets = [
-            "10.23.23.50:9100"  # prom-exporter-pve1
-            "10.23.23.51:9100"  # prom-exporter-pve2
-            "10.23.23.52:9100"  # prom-exporter-pve3
-            "localhost:9100"    # prometheus self
-          ];
+          targets = (map (ip: "${ip}:9100") exporterIps) ++ [ "localhost:9100" ];
         }];
       }
 
@@ -42,52 +72,18 @@
       {
         job_name = "pve";
         static_configs = [{
-          targets = [
-            "10.23.23.50:9221"  # prom-exporter-pve1
-            "10.23.23.51:9221"  # prom-exporter-pve2
-            "10.23.23.52:9221"  # prom-exporter-pve3
-          ];
+          targets = map (ip: "${ip}:9221") exporterIps;
         }];
-        # Map each exporter to its PVE node via ?target= parameter
         metrics_path = "/pve";
         params = { "cluster" = ["1"]; "node" = ["1"]; };
-        relabel_configs = [
-          # Map exporter IP to PVE node IP
-          {
-            source_labels = [ "__address__" ];
-            regex = "10\\.23\\.23\\.50:9221";
-            target_label = "__param_target";
-            replacement = "10.23.5.10";
-          }
-          {
-            source_labels = [ "__address__" ];
-            regex = "10\\.23\\.23\\.51:9221";
-            target_label = "__param_target";
-            replacement = "10.23.5.11";
-          }
-          {
-            source_labels = [ "__address__" ];
-            regex = "10\\.23\\.23\\.52:9221";
-            target_label = "__param_target";
-            replacement = "10.23.5.12";
-          }
-          # Keep the exporter address as the actual scrape target
-          {
-            source_labels = [ "__param_target" ];
-            target_label = "instance";
-          }
-        ];
+        relabel_configs = pveRelabelConfigs;
       }
 
       # Cloudflared metrics from tunnel daemons
       {
         job_name = "cloudflared";
         static_configs = [{
-          targets = [
-            "10.23.23.82:33399"   # cloudflared-pve1
-            "10.23.23.141:33399"  # cloudflared-pve2
-            "10.23.23.217:33399"  # cloudflared-pve3
-          ];
+          targets = map (ip: "${ip}:33399") cloudflaredIps;
         }];
       }
     ];
