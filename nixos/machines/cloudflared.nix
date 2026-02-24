@@ -44,7 +44,7 @@
     # Read token from agenix secret file and pass to cloudflared
     script = ''
       TOKEN=$(cat ${config.age.secrets."cloudflared-token".path})
-      exec ${pkgs.cloudflared}/bin/cloudflared --no-autoupdate tunnel run --token "$TOKEN"
+      exec ${pkgs.cloudflared}/bin/cloudflared --no-autoupdate --metrics localhost:33399 tunnel run --token "$TOKEN"
     '';
   };
 
