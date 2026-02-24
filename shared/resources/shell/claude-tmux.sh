@@ -60,7 +60,7 @@ else
 fi
 printf '\033]0;%s\007' "$title"
 
-cmd="claude --dangerously-skip-permissions"
+cmd="claude --dangerously-skip-permissions --yes"
 
 if test -n "${TMUX:-}"; then
     if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
