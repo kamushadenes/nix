@@ -322,6 +322,14 @@
           extraPersistPaths = [ "/var/lib/moltbot" ];
         };
 
+        # Prometheus server (LXC) - central metrics collection
+        prometheus = mkProxmoxHost {
+          machine = "prometheus";
+          hardware = ./nixos/hardware/prometheus.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/prometheus2" ];
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox
@@ -350,6 +358,12 @@
         name = "tailscale";
         hardware = node: ./nixos/hardware/tailscale-${node}.nix;
         extraPersistPaths = [ "/var/lib/tailscale" ];
+      }) // (mkDaemonLXCs {
+        # Prometheus exporters daemon - node_exporter + pve_exporter on each Proxmox node
+        # All instances share the same PVE API credentials
+        name = "prom-exporter";
+        hardware = node: ./nixos/hardware/prom-exporter-${node}.nix;
+        # No extraPersistPaths - exporters are stateless
       });
 
       # Proxmox image builders
