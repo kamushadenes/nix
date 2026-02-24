@@ -106,6 +106,35 @@ let
     };
   };
 
+  # bigtcze/pve-exporter - Go-based Proxmox VE metrics exporter
+  pve-exporter-go = pkgs.stdenv.mkDerivation rec {
+    pname = "pve-exporter";
+    version = "1.12.0";
+
+    src = pkgs.fetchurl {
+      url = "https://github.com/bigtcze/pve-exporter/releases/download/v${version}/pve-exporter-linux-amd64";
+      hash = "sha256-6zrfICaZ0QGW0konCgYFspoaaAkWETE79JgEBSwctAU=";
+    };
+
+    nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+
+    dontUnpack = true;
+
+    installPhase = ''
+      mkdir -p $out/bin
+      cp $src $out/bin/pve-exporter
+      chmod +x $out/bin/pve-exporter
+    '';
+
+    meta = {
+      description = "Prometheus exporter for Proxmox VE";
+      homepage = "https://github.com/bigtcze/pve-exporter";
+      license = lib.licenses.mit;
+      mainProgram = "pve-exporter";
+      platforms = [ "x86_64-linux" ];
+    };
+  };
+
   # Script to prepare a remote machine for this nix configuration
   # Copies age key, SSH key, creates nix.conf, clones repos, and provides activation instructions
   nix-remote-setup = pkgs.writeScriptBin "nix-remote-setup" ''
@@ -227,6 +256,7 @@ in
     lazyworktree
     worktrunk
     ccusage
+    pve-exporter-go
     nix-remote-setup
     ;
 }
