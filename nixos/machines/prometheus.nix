@@ -76,6 +76,15 @@ in
         }];
       }
 
+      # IPMI exporter - hardware sensor metrics from each Proxmox node
+      {
+        job_name = "ipmi";
+        static_configs = lib.imap0 (i: node: {
+          targets = [ "${builtins.elemAt exporterIps i}:9290" ];
+          labels = { instance = node; };
+        }) pveNodeNames;
+      }
+
       # Cloudflared metrics from tunnel daemons
       {
         job_name = "cloudflared";
