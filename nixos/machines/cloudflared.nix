@@ -44,9 +44,12 @@
     # Read token from agenix secret file and pass to cloudflared
     script = ''
       TOKEN=$(cat ${config.age.secrets."cloudflared-token".path})
-      exec ${pkgs.cloudflared}/bin/cloudflared --no-autoupdate --metrics localhost:33399 tunnel run --token "$TOKEN"
+      exec ${pkgs.cloudflared}/bin/cloudflared --no-autoupdate --metrics 0.0.0.0:33399 tunnel run --token "$TOKEN"
     '';
   };
+
+  # Allow Prometheus to scrape metrics
+  networking.firewall.allowedTCPPorts = [ 33399 ];
 
   # Use systemd-networkd only (disable NetworkManager from base network.nix)
   networking.networkmanager.enable = lib.mkForce false;
