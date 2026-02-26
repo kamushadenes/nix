@@ -10,10 +10,14 @@
 
   age.secrets."influxdb-admin-password" = {
     file = "${private}/nixos/secrets/influxdb/admin-password.age";
+    owner = "influxdb2";
+    group = "influxdb2";
   };
 
   age.secrets."influxdb-admin-token" = {
     file = "${private}/nixos/secrets/influxdb/admin-token.age";
+    owner = "influxdb2";
+    group = "influxdb2";
   };
 
   services.influxdb2 = {
