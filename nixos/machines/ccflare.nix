@@ -25,6 +25,10 @@ let
       bunNix = "${ccflareSrcWithBunNix}/bun.nix";
     };
 
+    # Override default --linker=isolated which breaks workspace package resolution
+    # (workspace symlinks aren't created, so cross-package imports fail)
+    bunInstallFlags = "--frozen-lockfile";
+
     # Compile the server entry point to a standalone binary
     module = "apps/server/src/server.ts";
 
