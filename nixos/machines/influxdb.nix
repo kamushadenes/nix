@@ -19,7 +19,7 @@
   services.influxdb2 = {
     enable = true;
     settings = {
-      http-bind-address = ":8086";
+      http-bind-address = "0.0.0.0:8086";
     };
     provision = {
       enable = true;
