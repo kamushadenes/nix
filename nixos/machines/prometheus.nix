@@ -1,7 +1,6 @@
 # Machine configuration for prometheus LXC
 # Central Prometheus server scraping all monitoring targets
-# Also runs the Go-based PVE exporter (bigtcze/pve-exporter) for cluster-wide Proxmox metrics
-{ config, lib, pkgs, packages, private, ... }:
+{ config, lib, pkgs, private, ... }:
 let
   # Derive all scrape targets from nodes.json
   nodesData = builtins.fromJSON (builtins.readFile "${private}/nodes.json");
@@ -26,25 +25,6 @@ in
   # lxc-management.nix adds the global LXC key via mkAfter
   age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
 
-  # PVE API credentials for the Go exporter
-  age.secrets."pve-config" = {
-    file = "${private}/nixos/secrets/prometheus/pve-config.age";
-  };
-
-  # Go-based PVE exporter (bigtcze/pve-exporter)
-  # Single instance scrapes entire cluster via PVE API
-  systemd.services.pve-exporter = {
-    description = "Proxmox VE Exporter (Go)";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
-    serviceConfig = {
-      ExecStart = "${packages.pve-exporter-go}/bin/pve-exporter -config ${config.age.secrets."pve-config".path}";
-      Restart = "always";
-      RestartSec = 5;
-    };
-  };
-
   # Prometheus node_exporter for self-monitoring
   services.prometheus.exporters.node = {
     enable = true;
@@ -68,14 +48,6 @@ in
         }];
       }
 
-      # PVE exporter (Go) - cluster-wide Proxmox metrics from local instance
-      {
-        job_name = "pve";
-        static_configs = [{
-          targets = [ "localhost:9222" ];
-        }];
-      }
-
       # IPMI exporter - hardware sensor metrics from each Proxmox node
       {
         job_name = "ipmi";
@@ -95,8 +67,8 @@ in
     ];
   };
 
-  # Allow access to Prometheus UI/API, node_exporter, and PVE exporter
-  networking.firewall.allowedTCPPorts = [ 9090 9100 9222 ];
+  # Allow access to Prometheus UI/API and node_exporter
+  networking.firewall.allowedTCPPorts = [ 9090 9100 ];
 
   # Use systemd-networkd only (disable NetworkManager from base network.nix)
   networking.networkmanager.enable = lib.mkForce false;

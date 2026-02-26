@@ -352,6 +352,14 @@
           extraPersistPaths = [ "/var/lib/ccflare" ];
         };
 
+        # InfluxDB v2 (LXC) - time-series database for Proxmox native metrics
+        influxdb = mkProxmoxHost {
+          machine = "influxdb";
+          hardware = ./nixos/hardware/influxdb.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/influxdb2" ];
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox
@@ -381,8 +389,8 @@
         hardware = node: ./nixos/hardware/tailscale-${node}.nix;
         extraPersistPaths = [ "/var/lib/tailscale" ];
       }) // (mkDaemonLXCs {
-        # Prometheus exporters daemon - node_exporter + pve_exporter on each Proxmox node
-        # All instances share the same PVE API credentials
+        # Prometheus exporters daemon - node_exporter + ipmi_exporter on each Proxmox node
+        # Stateless metric exporters scraped by the central Prometheus server
         name = "prom-exporter";
         hardware = node: ./nixos/hardware/prom-exporter-${node}.nix;
         # No extraPersistPaths - exporters are stateless

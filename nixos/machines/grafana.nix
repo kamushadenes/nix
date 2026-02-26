@@ -7,6 +7,7 @@ let
   nodes = nodesData.nodes;
   nodeIp = name: builtins.head nodes.${name}.targetHosts;
   prometheusUrl = "http://${nodeIp "prometheus"}:9090";
+  influxdbUrl = "http://${nodeIp "influxdb"}:8086";
 
   # Dashboard JSON files to provision
   dashboardDir = ./resources/grafana/dashboards;
@@ -19,6 +20,12 @@ in
 
   age.secrets."grafana-admin-password" = {
     file = "${private}/nixos/secrets/grafana/admin-password.age";
+    owner = "grafana";
+    group = "grafana";
+  };
+
+  age.secrets."grafana-influxdb-token" = {
+    file = "${private}/nixos/secrets/grafana/influxdb-token.age";
     owner = "grafana";
     group = "grafana";
   };
@@ -41,15 +48,33 @@ in
       enable = true;
       datasources.settings = {
         apiVersion = 1;
-        datasources = [{
-          name = "Prometheus";
-          type = "prometheus";
-          uid = "prometheus";
-          url = prometheusUrl;
-          access = "proxy";
-          isDefault = true;
-          editable = false;
-        }];
+        datasources = [
+          {
+            name = "Prometheus";
+            type = "prometheus";
+            uid = "prometheus";
+            url = prometheusUrl;
+            access = "proxy";
+            isDefault = true;
+            editable = false;
+          }
+          {
+            name = "InfluxDB";
+            type = "influxdb";
+            uid = "influxdb";
+            url = influxdbUrl;
+            access = "proxy";
+            editable = false;
+            jsonData = {
+              version = "Flux";
+              organization = "proxmox";
+              defaultBucket = "proxmox";
+            };
+            secureJsonData = {
+              token = "$__file{${config.age.secrets."grafana-influxdb-token".path}}";
+            };
+          }
+        ];
       };
       dashboards.settings = {
         apiVersion = 1;
