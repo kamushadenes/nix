@@ -232,7 +232,9 @@ let
       fish_add_path --move --prepend --path ${
         lib.concatMapStringsSep " " dquote (makeBinPathList osConfig.environment.profiles)
       }
-      ${lib.optionalString (!pkgs.stdenv.isDarwin) ''fish_add_path --move --prepend --path "${wrappersPath}"''}
+      ${lib.optionalString (
+        !pkgs.stdenv.isDarwin
+      ) ''fish_add_path --move --prepend --path "${wrappersPath}"''}
       set fish_user_paths $fish_user_paths
     '';
 
