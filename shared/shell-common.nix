@@ -12,9 +12,6 @@ let
   # Resource files directory
   resourcesDir = ./resources/shell;
 
-  # Import account configuration for multi-account support
-  accountsConfig = import ../home/common/ai/claude-accounts.nix { inherit config lib; };
-
   # SSH keys to be loaded (only if agenix is enabled)
   sshKeys =
     if config.age.secrets ? "id_ed25519.age"
@@ -38,12 +35,6 @@ let
 
   # Helper to apply substitutions to a string
   applySubst = subst: str: builtins.foldl' (s: name: builtins.replaceStrings [ name ] [ subst.${name} ] s) str (builtins.attrNames subst);
-
-  # Substitutions for c script (account detection patterns)
-  cScriptSubst = {
-    "@ACCOUNT_PATTERNS@" = accountsConfig.allAccountPatternVars;
-    "@ACCOUNT_DETECTION_LOGIC@" = accountsConfig.allAccountDetectionLogic;
-  };
 
   # Read script files - bash/zsh versions (use POSIX syntax where possible)
   bashScripts = {
@@ -69,7 +60,7 @@ let
   # These are processed with substitutions and return content (not paths)
   standaloneScripts = {
     # Claude Code wrapper - opens claude inside tmux, bypassing permissions
-    c = applySubst cScriptSubst (builtins.readFile "${resourcesDir}/claude-tmux.sh");
+    c = builtins.readFile "${resourcesDir}/claude-tmux.sh";
     # Rebuild script - Python deployment tool with parallel execution and tag-based filtering
     rebuild = applySubst deploySubst (builtins.readFile ./resources/deploy.py);
     # LXC machine registration script - adds machines to lxc-management secrets

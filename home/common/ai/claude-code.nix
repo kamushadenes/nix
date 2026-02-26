@@ -20,9 +20,6 @@ let
   # Import shared MCP server configuration (with private merge support)
   mcpServers = import ./mcp-servers.nix { inherit config lib private; };
 
-  # Import account configuration for multi-account support
-  accountsConfig = import ./claude-accounts.nix { inherit config lib; };
-
   # Import permissions configuration (extracted for maintainability)
   permissions = import ./claude-code-permissions.nix;
 
@@ -84,41 +81,14 @@ let
   secretsDir = "${config.home.homeDirectory}/.claude/secrets";
   secretSubstitutions = mcpServers.mkSecretSubstitutions secretsDir;
 
-  # Default MCP config (common servers only, for non-account directories)
-  # Account-specific directories get their own configs with additional servers
-  defaultMcpConfigTemplate = mcpServers.mkMcpConfig accountsConfig.commonMcpServers;
+  defaultMcpConfigTemplate = mcpServers.mkMcpConfig [
+    "deepwiki"
+    "github"
+    "Ref"
+    "orchestrator"
+    "iniciador-vanta"
+  ];
 
-  # Generate account directory entries for home.file
-  # Each account gets:
-  # - mcp-servers.json.template (with account-specific servers)
-  # - Symlinks to shared resources (settings.json, rules/, hooks/, etc.)
-  accountFileEntries = lib.foldl' (
-    acc: name:
-    let
-      accountMcps = accountsConfig.getAccountMcps name;
-      accountDir = ".claude/accounts/${name}";
-      homeDir = config.home.homeDirectory;
-    in
-    acc
-    // {
-      # Account-specific MCP servers template
-      "${accountDir}/mcp-servers.json.template".text = mcpServers.mkMcpConfig accountMcps;
-
-      # Symlinks to shared resources
-      "${accountDir}/settings.json".source =
-        config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/settings.json";
-      "${accountDir}/rules".source = config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/rules";
-      "${accountDir}/hooks".source = config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/hooks";
-      "${accountDir}/agents".source = config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/agents";
-      "${accountDir}/commands".source =
-        config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/commands";
-      "${accountDir}/secrets".source =
-        config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/secrets";
-      "${accountDir}/config".source = config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/config";
-      "${accountDir}/statusline-command.sh".source =
-        config.lib.file.mkOutOfStoreSymlink "${homeDir}/.claude/statusline-command.sh";
-    }
-  ) { } accountsConfig.accountNames;
 in
 {
   #############################################################################
@@ -452,7 +422,6 @@ in
 
   home.file = {
     # MCP template with @PLACEHOLDER@ values - secrets substituted at activation
-    # Default config only includes common MCP servers (account-specific dirs add their own)
     ".claude/mcp-servers.json.template".text = defaultMcpConfigTemplate;
 
     # Statusline script - executable bash script for custom status display
@@ -554,8 +523,7 @@ in
     value = {
       source = sourcePath;
     };
-  }) allAgentFiles
-  // accountFileEntries;
+  }) allAgentFiles;
 
   #############################################################################
   # Secret Substitution and MCP Config Activation
@@ -606,49 +574,5 @@ in
              ${config.home.homeDirectory}/.claude.json
     fi
 
-    #############################################################################
-    # Process Account-Specific MCP Configurations
-    #############################################################################
-
-    ${lib.concatMapStrings (name: ''
-      # Process ${name} account MCP config
-      run mkdir -p ${config.home.homeDirectory}/.claude/accounts/${name}
-      run rm -f ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json
-
-      # Copy account template to working file
-      run cp ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json.template \
-             ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json
-
-      # Substitute @PLACEHOLDER@ values in account config
-      ${lib.concatMapStrings (
-        ph:
-        let
-          secretPath = secretSubstitutions.${ph};
-        in
-        ''
-          if [ -f "${secretPath}" ]; then
-            run ${lib.getExe pkgs.gnused} -i "s|${ph}|$(cat ${secretPath})|g" \
-                ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json
-          fi
-        ''
-      ) (lib.attrNames secretSubstitutions)}
-
-      # Merge into account-specific .claude.json
-      # Replace mcpServers entirely but preserve other settings (OAuth, etc.)
-      if [ -f "${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json" ]; then
-        run ${lib.getExe pkgs.jq} -s '
-          (.[0] | del(.mcpServers)) * .[1]
-        ' ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json \
-          ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json \
-          > ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json.tmp
-        # Remove target first (may be read-only), then move
-        run rm -f ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json
-        run mv ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json.tmp \
-               ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json
-      else
-        run cp ${config.home.homeDirectory}/.claude/accounts/${name}/mcp-servers.json \
-               ${config.home.homeDirectory}/.claude/accounts/${name}/.claude.json
-      fi
-    '') accountsConfig.accountNames}
   '';
 }

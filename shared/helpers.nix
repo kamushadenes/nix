@@ -96,6 +96,9 @@ let
 
       # Claude Code LSP tools
       ENABLE_LSP_TOOLS = "1";
+
+      # Claude API proxy via ccflare
+      ANTHROPIC_BASE_URL = "http://ccflare.hyades.io:8080";
     };
 
     launchctl = mkVarExports (
