@@ -29,13 +29,38 @@ let
     # (workspace symlinks aren't created, so cross-package imports fail)
     bunInstallFlags = "--frozen-lockfile";
 
-    # Compile the server entry point to a standalone binary
-    module = "apps/server/src/server.ts";
+    # Compile both server and TUI binaries
+    dontUseBunBuild = true;
+    dontUseBunInstall = true;
+    # Bun --compile appends bytecode after ELF data; strip destroys it
+    dontStrip = true;
 
-    # Build the React dashboard before compiling the server
-    # (server imports dashboard assets at compile time)
-    preBuild = ''
+    buildPhase = ''
+      runHook preBuild
       bun run build:dashboard
+      bun build apps/server/src/server.ts --compile --outfile ccflare-server --minify --sourcemap --bytecode
+      bun build apps/tui/src/main.ts --compile --outfile ccflare --target=bun
+      runHook postBuild
+    '';
+
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/bin
+
+      install -Dm755 ccflare-server $out/bin/ccflare-server
+      install -Dm755 ccflare $out/bin/ccflare
+
+      # Aliases: server/start -> ccflare-server, tui -> ccflare
+      ln -s ccflare-server $out/bin/server
+      ln -s ccflare-server $out/bin/start
+      ln -s ccflare $out/bin/tui
+
+      # Dashboard assets for NODE_PATH resolution at runtime
+      mkdir -p $out/bin/node_modules/@ccflare/dashboard-web
+      cp -r packages/dashboard-web/dist $out/bin/node_modules/@ccflare/dashboard-web/
+      cp packages/dashboard-web/package.json $out/bin/node_modules/@ccflare/dashboard-web/
+
+      runHook postInstall
     '';
   };
 in
@@ -71,7 +96,7 @@ in
       StateDirectory = "ccflare";
       StateDirectoryMode = "0700";
       WorkingDirectory = "/var/lib/ccflare";
-      ExecStart = "${ccflare}/bin/ccflare";
+      ExecStart = "${ccflare}/bin/ccflare-server";
     };
 
     environment = {
@@ -79,12 +104,17 @@ in
       ccflare_DB_PATH = "/var/lib/ccflare/ccflare.db";
       ccflare_CONFIG_PATH = "/var/lib/ccflare/ccflare.json";
       LOG_LEVEL = "INFO";
+      # Help Bun.resolveSync find dashboard assets in compiled binary
+      NODE_PATH = "${ccflare}/bin/node_modules";
     };
   };
 
-  # Ensure data directory exists
+  # Ensure data directory exists and symlink dashboard assets into working directory
+  # (compiled Bun binaries use /$bunfs/ for import.meta.path, so Bun.resolveSync
+  # falls back to CWD-based node_modules resolution for dashboard assets)
   systemd.tmpfiles.rules = [
     "d /var/lib/ccflare 0700 ccflare ccflare -"
+    "L+ /var/lib/ccflare/node_modules - - - - ${ccflare}/bin/node_modules"
   ];
 
   # Open firewall for HTTP API + dashboard
