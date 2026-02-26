@@ -12,7 +12,7 @@ git_folder=$(basename "$git_root")
 parent_folder=$(basename "$(dirname "$git_root")")
 printf '\033]0;Claude: %s/%s\007' "$parent_folder" "$git_folder"
 
-cmd="claude --dangerously-skip-permissions --yes"
+cmd="claude --dangerously-skip-permissions"
 
 if test -n "${TMUX:-}"; then
     exec $cmd
