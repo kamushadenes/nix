@@ -84,6 +84,7 @@ in
   nixpkgs.overlays = [
     overlays.lixOverlay
     inputs.nix-moltbot.overlays.default
+    inputs.bun2nix.overlays.default
   ];
 
   nix.package = pkgs.lixPackageSets.stable.lix;

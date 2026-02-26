@@ -39,6 +39,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    bun2nix = {
+      url = "github:nix-community/bun2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   };
 
   outputs =
@@ -51,6 +56,7 @@
       claudebox,
       nix-moltbot,
       nixos-generators,
+      bun2nix,
       ...
     }:
     let
@@ -336,6 +342,14 @@
           hardware = ./nixos/hardware/grafana.nix;
           role = "minimal";
           extraPersistPaths = [ "/var/lib/grafana" ];
+        };
+
+        # ccflare (LXC) - Claude API proxy with load balancing
+        ccflare = mkProxmoxHost {
+          machine = "ccflare";
+          hardware = ./nixos/hardware/ccflare.nix;
+          role = "minimal";
+          extraPersistPaths = [ "/var/lib/ccflare" ];
         };
 
         # Proxmox VM/LXC examples (uncomment after deploying image):

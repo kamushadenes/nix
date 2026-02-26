@@ -38,7 +38,7 @@ Create a new NixOS LXC container on Proxmox with impermanence, configured for th
 | Min Disk | 16GB |
 | Min RAM | 512MB |
 | Min Cores | 1 |
-| Storage Options | `cts` (default), `local-lvm` |
+| Storage Options | `ceph-block` (default), `local-lvm` |
 | Default VLAN | 6 |
 | IPv4 | DHCP |
 | Onboot | Yes |
@@ -102,7 +102,7 @@ Store selected node IP in `<proxmox_host>` variable for use in later phases.
 
 Ask: "Which storage pool for the LXC?"
 - Options:
-  - `cts` (Recommended)
+  - `ceph-block` (Recommended)
   - `local-lvm`
   - Other (specify)
 - Header: "Storage"
