@@ -97,6 +97,7 @@ in
       StateDirectoryMode = "0700";
       WorkingDirectory = "/var/lib/ccflare";
       ExecStart = "${ccflare}/bin/ccflare-server";
+      LimitNOFILE = 65536;
     };
 
     environment = {
@@ -116,6 +117,17 @@ in
     "d /var/lib/ccflare 0700 ccflare ccflare -"
     "L+ /var/lib/ccflare/node_modules - - - - ${ccflare}/bin/node_modules"
   ];
+
+  # TCP tuning for high throughput proxy
+  # Note: net.core.rmem_max/wmem_max must be set on the Proxmox host (not namespaced)
+  boot.kernel.sysctl = {
+    "net.core.somaxconn" = 65535;
+    "net.ipv4.tcp_max_syn_backlog" = 65535;
+    "net.ipv4.tcp_fin_timeout" = 15;
+    "net.ipv4.tcp_keepalive_time" = 300;
+    "net.ipv4.tcp_keepalive_probes" = 5;
+    "net.ipv4.tcp_keepalive_intvl" = 15;
+  };
 
   # Open firewall for HTTP API + dashboard
   networking.firewall.allowedTCPPorts = [ 8080 ];
