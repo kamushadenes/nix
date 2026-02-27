@@ -1,6 +1,6 @@
 # Machine configuration for prometheus LXC
 # Central Prometheus server scraping all monitoring targets
-{ config, lib, pkgs, private, ... }:
+{ config, lib, pkgs, packages, private, ... }:
 let
   # Derive all scrape targets from nodes.json
   nodesData = builtins.fromJSON (builtins.readFile "${private}/nodes.json");
@@ -24,6 +24,26 @@ in
   # Agenix identity paths for secret decryption (uses SSH host key)
   # lxc-management.nix adds the global LXC key via mkAfter
   age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
+
+  # PVE API credentials for the Go exporter
+  age.secrets."pve-config" = {
+    file = "${private}/nixos/secrets/prometheus/pve-config.age";
+  };
+
+  # Go-based PVE exporter (bigtcze/pve-exporter)
+  # Single instance scrapes entire cluster via PVE API
+  # Provides ZFS, disk SMART, and hardware sensor metrics not available from InfluxDB
+  systemd.services.pve-exporter = {
+    description = "Proxmox VE Exporter (Go)";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    serviceConfig = {
+      ExecStart = "${packages.pve-exporter-go}/bin/pve-exporter -config ${config.age.secrets."pve-config".path}";
+      Restart = "always";
+      RestartSec = 5;
+    };
+  };
 
   # Prometheus node_exporter for self-monitoring
   services.prometheus.exporters.node = {
@@ -57,6 +77,14 @@ in
         }) pveNodeNames;
       }
 
+      # PVE exporter (Go) - ZFS, disk SMART, and sensor metrics from Proxmox API
+      {
+        job_name = "pve";
+        static_configs = [{
+          targets = [ "localhost:9222" ];
+        }];
+      }
+
       # Cloudflared metrics from tunnel daemons
       {
         job_name = "cloudflared";
@@ -68,7 +96,7 @@ in
   };
 
   # Allow access to Prometheus UI/API and node_exporter
-  networking.firewall.allowedTCPPorts = [ 9090 9100 ];
+  networking.firewall.allowedTCPPorts = [ 9090 9100 9222 ];
 
   # Use systemd-networkd only (disable NetworkManager from base network.nix)
   networking.networkmanager.enable = lib.mkForce false;
