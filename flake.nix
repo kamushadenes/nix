@@ -344,12 +344,12 @@
           extraPersistPaths = [ "/var/lib/grafana" ];
         };
 
-        # ccflare (LXC) - Claude API proxy with load balancing
+        # ccflare (LXC) - Claude API proxy with load balancing (better-ccflare)
         ccflare = mkProxmoxHost {
           machine = "ccflare";
           hardware = ./nixos/hardware/ccflare.nix;
           role = "minimal";
-          extraPersistPaths = [ "/var/lib/ccflare" ];
+          extraPersistPaths = [ "/var/lib/ccflare" "/var/lib/acme" ];
         };
 
         # InfluxDB v2 (LXC) - time-series database for Proxmox native metrics

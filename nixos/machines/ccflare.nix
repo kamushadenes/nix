@@ -1,12 +1,13 @@
 # Machine configuration for ccflare LXC
-# ccflare - Claude API proxy with intelligent load balancing
+# better-ccflare - Claude API proxy with intelligent load balancing
+# https://github.com/tombii/better-ccflare
 { config, lib, pkgs, private, ... }:
 let
   ccflareSrc = pkgs.fetchFromGitHub {
-    owner = "snipeship";
-    repo = "ccflare";
-    rev = "688921203f5035e09740ad4f8208d222122d9ea9";
-    hash = "sha256-JDrk+BDGMI535JGTwZdf+iYAwHouLi9Yq+cRIxc/3Yk=";
+    owner = "tombii";
+    repo = "better-ccflare";
+    rev = "6edd7d34f776501d60c417f4c9d0216d02e5f961";
+    hash = "sha256-O9/f5VT9S1W21au8rMIWuiNChDpA4IdTYLDq8X5Oqj0=";
   };
 
   # Inject generated bun.nix (no source patching needed when running from source)
@@ -17,8 +18,8 @@ let
   '';
 
   ccflare = pkgs.bun2nix.mkDerivation {
-    pname = "ccflare";
-    version = "0.1.0";
+    pname = "better-ccflare";
+    version = "3.2.2";
     src = ccflareSrcWithBunNix;
 
     bunDeps = pkgs.bun2nix.fetchBunDeps {
@@ -30,13 +31,12 @@ let
     bunInstallFlags = "--frozen-lockfile";
 
     # Run from source (compiled binaries crash due to Worker+WASM limitations)
-    # https://github.com/snipeship/ccflare/issues/40
     dontUseBunBuild = true;
     dontUseBunInstall = true;
 
     buildPhase = ''
       runHook preBuild
-      bun run build:dashboard
+      bun run build
       runHook postBuild
     '';
 
@@ -52,27 +52,47 @@ let
       WRAPPER
       chmod +x $out/bin/ccflare-server
 
-      # TUI wrapper
+      # CLI wrapper
       cat > $out/bin/ccflare <<WRAPPER
       #!/usr/bin/env bash
-      exec ${pkgs.bun}/bin/bun run $out/lib/ccflare/apps/tui/src/main.ts "\$@"
+      exec ${pkgs.bun}/bin/bun run $out/lib/ccflare/apps/cli/src/main.ts "\$@"
       WRAPPER
       chmod +x $out/bin/ccflare
 
-      # Aliases: server/start -> ccflare-server, tui -> ccflare
+      # Aliases
       ln -s ccflare-server $out/bin/server
       ln -s ccflare-server $out/bin/start
-      ln -s ccflare $out/bin/tui
+      ln -s ccflare $out/bin/cli
 
       runHook postInstall
     '';
   };
+
+  certDir = config.security.acme.certs."ccflare.hyades.io".directory;
 in
 {
   imports = [ "${private}/nixos/lxc-management.nix" ];
 
   # Agenix identity paths for secret decryption
   age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
+
+  # Cloudflare DNS API token for ACME DNS-01 challenges
+  age.secrets."cloudflare-dns-token" = {
+    file = "${private}/nixos/secrets/cloudflare/cloudflare-dns-token.age";
+    owner = "acme";
+    group = "acme";
+  };
+
+  # Let's Encrypt with Cloudflare DNS-01 validation
+  security.acme = {
+    acceptTerms = true;
+    defaults.email = "henrique@kamus.me";
+    certs."ccflare.hyades.io" = {
+      dnsProvider = "cloudflare";
+      environmentFile = config.age.secrets."cloudflare-dns-token".path;
+      group = "ccflare";
+    };
+  };
 
   # Static user for the service
   users.users.ccflare = {
@@ -84,10 +104,10 @@ in
   };
   users.groups.ccflare = { };
 
-  # Systemd service for ccflare server
+  # Systemd service for better-ccflare server
   systemd.services.ccflare = {
-    description = "ccflare - Claude API Proxy";
-    after = [ "network-online.target" ];
+    description = "better-ccflare - Claude API Proxy";
+    after = [ "network-online.target" "acme-ccflare.hyades.io.service" ];
     wants = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
 
@@ -101,16 +121,23 @@ in
       StateDirectoryMode = "0700";
       WorkingDirectory = "${ccflare}/lib/ccflare";
       ExecStart = "${ccflare}/bin/ccflare-server";
+      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
       LimitNOFILE = 65536;
     };
 
     environment = {
-      PORT = "8080";
-      ccflare_DB_PATH = "/var/lib/ccflare/ccflare.db";
-      ccflare_CONFIG_PATH = "/var/lib/ccflare/ccflare.json";
+      PORT = "443";
+      BETTER_CCFLARE_HOST = "0.0.0.0";
+      BETTER_CCFLARE_DB_PATH = "/var/lib/ccflare/better-ccflare.db";
+      BETTER_CCFLARE_CONFIG_PATH = "/var/lib/ccflare/better-ccflare.json";
+      SSL_KEY_PATH = "${certDir}/key.pem";
+      SSL_CERT_PATH = "${certDir}/fullchain.pem";
       LOG_LEVEL = "INFO";
     };
   };
+
+  # Restart ccflare when certs are renewed
+  security.acme.certs."ccflare.hyades.io".reloadServices = [ "ccflare.service" ];
 
   # Ensure data directory exists
   systemd.tmpfiles.rules = [
@@ -128,8 +155,8 @@ in
     "net.ipv4.tcp_keepalive_intvl" = 15;
   };
 
-  # Open firewall for HTTP API + dashboard
-  networking.firewall.allowedTCPPorts = [ 8080 ];
+  # Open firewall for HTTPS
+  networking.firewall.allowedTCPPorts = [ 443 ];
 
   # Use systemd-networkd only (disable NetworkManager from base network.nix)
   networking.networkmanager.enable = lib.mkForce false;
