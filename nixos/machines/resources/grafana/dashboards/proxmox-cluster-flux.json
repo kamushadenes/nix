@@ -500,7 +500,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"cpu\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"cpu\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\", \"host\"])",
           "refId": "A"
         }
       ]
@@ -589,7 +589,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"memory\" and r._field == \"memused\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"memory\" and r._field == \"memused\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> set(key: \"_field\", value: \"Used\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
           "refId": "A"
         },
         {
@@ -597,7 +597,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"memory\" and r._field == \"memtotal\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"memory\" and r._field == \"memtotal\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> set(key: \"_field\", value: \"Total\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
           "refId": "B"
         }
       ]
@@ -686,7 +686,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"avg1\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"avg1\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> set(key: \"_field\", value: \"1 min\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
           "refId": "A"
         },
         {
@@ -694,7 +694,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"avg5\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"avg5\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> set(key: \"_field\", value: \"5 min\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
           "refId": "B"
         },
         {
@@ -702,7 +702,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"avg15\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"avg15\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> set(key: \"_field\", value: \"15 min\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
           "refId": "C"
         }
       ]
@@ -860,7 +860,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"wait\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"wait\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> set(key: \"_field\", value: \"IOWait\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
           "refId": "A"
         },
         {
@@ -868,7 +868,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"cpu\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _value: 1.0 - r._value, _field: \"idle\"}))",
+          "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cpustat\" and r._field == \"cpu\")\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _value: 1.0 - r._value, _field: \"Idle\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
           "refId": "B"
         }
       ]
@@ -1088,7 +1088,7 @@
                 "type": "influxdb",
                 "uid": "influxdb"
               },
-              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"qemu\" and r._field == \"cpu\")\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"qemu\" and r._field == \"cpu\")\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\", \"host\"])",
               "refId": "A"
             }
           ]
@@ -1177,7 +1177,7 @@
                 "type": "influxdb",
                 "uid": "influxdb"
               },
-              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"qemu\" and r._field == \"mem\")\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"qemu\" and r._field == \"mem\")\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\", \"host\"])",
               "refId": "A"
             }
           ]
@@ -1266,7 +1266,7 @@
                 "type": "influxdb",
                 "uid": "influxdb"
               },
-              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"qemu\" and (r._field == \"netin\" or r._field == \"netout\"))\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"qemu\" and (r._field == \"netin\" or r._field == \"netout\"))\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"netin\" then \"In\" else \"Out\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
               "refId": "A"
             }
           ]
@@ -1355,7 +1355,7 @@
                 "type": "influxdb",
                 "uid": "influxdb"
               },
-              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"qemu\" and (r._field == \"diskread\" or r._field == \"diskwrite\"))\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"qemu\" and (r._field == \"diskread\" or r._field == \"diskwrite\"))\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"diskread\" then \"Read\" else \"Write\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
               "refId": "A"
             }
           ]
@@ -1577,7 +1577,7 @@
                 "type": "influxdb",
                 "uid": "influxdb"
               },
-              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"lxc\" and r._field == \"cpu\")\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"lxc\" and r._field == \"cpu\")\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\", \"host\"])",
               "refId": "A"
             }
           ]
@@ -1666,7 +1666,7 @@
                 "type": "influxdb",
                 "uid": "influxdb"
               },
-              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"lxc\" and r._field == \"mem\")\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"lxc\" and r._field == \"mem\")\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\", \"host\"])",
               "refId": "A"
             }
           ]
@@ -1755,7 +1755,7 @@
                 "type": "influxdb",
                 "uid": "influxdb"
               },
-              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"lxc\" and (r._field == \"netin\" or r._field == \"netout\"))\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"lxc\" and (r._field == \"netin\" or r._field == \"netout\"))\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"netin\" then \"In\" else \"Out\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
               "refId": "A"
             }
           ]
@@ -1844,7 +1844,7 @@
                 "type": "influxdb",
                 "uid": "influxdb"
               },
-              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"lxc\" and (r._field == \"diskread\" or r._field == \"diskwrite\"))\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and r.object == \"lxc\" and (r._field == \"diskread\" or r._field == \"diskwrite\"))\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"diskread\" then \"Read\" else \"Write\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
               "refId": "A"
             }
           ]
@@ -1927,7 +1927,7 @@
                 "type": "influxdb",
                 "uid": "influxdb"
               },
-              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and (r._field == \"used\" or r._field == \"avail\"))\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> last()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({r with _value: float(v: 100) / (float(v: r.avail) + float(v: r.used)) * float(v: r.used), _field: \"used_pct\"}))\n  |> drop(columns: [\"avail\", \"used\"])",
+              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"system\" and (r._field == \"used\" or r._field == \"avail\"))\n  |> filter(fn: (r) => r[\"nodename\"] =~ /${server:regex}/)\n  |> last()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({r with _value: float(v: 100) / (float(v: r.avail) + float(v: r.used)) * float(v: r.used), _field: \"used_pct\"}))\n  |> drop(columns: [\"avail\", \"used\"])\n  |> keep(columns: [\"_time\", \"_value\", \"host\"])",
               "refId": "A"
             }
           ]
@@ -3402,7 +3402,7 @@
                 "type": "influxdb",
                 "uid": "influxdb"
               },
-              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nics\" and (r._field == \"netin\" or r._field == \"netout\"))\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
+              "query": "from(bucket: \"${Bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nics\" and (r._field == \"netin\" or r._field == \"netout\"))\n  |> filter(fn: (r) => r[\"host\"] =~ /^${server:regex}$/)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: if r._field == \"netin\" then \"In\" else \"Out\"}))\n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"host\"])",
               "refId": "A"
             }
           ]
