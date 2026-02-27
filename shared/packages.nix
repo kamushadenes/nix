@@ -106,32 +106,29 @@ let
     };
   };
 
-  # bigtcze/pve-exporter - Go-based Proxmox VE metrics exporter
-  pve-exporter-go = pkgs.stdenv.mkDerivation rec {
+  # kamushadenes/pve-exporter - Go-based Proxmox VE metrics exporter (fork with PVE API SMART)
+  pve-exporter-go = pkgs.buildGoModule rec {
     pname = "pve-exporter";
-    version = "1.12.0";
+    version = "1.13.0";
 
-    src = pkgs.fetchurl {
-      url = "https://github.com/bigtcze/pve-exporter/releases/download/v${version}/pve-exporter-linux-amd64";
-      hash = "sha256-6zrfICaZ0QGW0konCgYFspoaaAkWETE79JgEBSwctAU=";
+    src = pkgs.fetchFromGitHub {
+      owner = "kamushadenes";
+      repo = "pve-exporter";
+      rev = "c47c111793acb38a278ea89e72394ce02ad05d6b";
+      hash = "sha256-US+z67vtPF9MfcqVb4+fllJNm6RyRzv7M+UlHkY5Zuw=";
     };
 
-    nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+    vendorHash = "sha256-pi5Nj/FVvUGGXTVdin0JuaZQc8NPEqzjV1slO0pFvGE=";
 
-    dontUnpack = true;
+    doCheck = false;
 
-    installPhase = ''
-      mkdir -p $out/bin
-      cp $src $out/bin/pve-exporter
-      chmod +x $out/bin/pve-exporter
-    '';
+    ldflags = [ "-s" "-w" ];
 
     meta = {
       description = "Prometheus exporter for Proxmox VE";
-      homepage = "https://github.com/bigtcze/pve-exporter";
+      homepage = "https://github.com/kamushadenes/pve-exporter";
       license = lib.licenses.mit;
       mainProgram = "pve-exporter";
-      platforms = [ "x86_64-linux" ];
     };
   };
 

@@ -30,9 +30,9 @@ in
     file = "${private}/nixos/secrets/prometheus/pve-config.age";
   };
 
-  # Go-based PVE exporter (bigtcze/pve-exporter)
+  # Go-based PVE exporter (kamushadenes/pve-exporter fork)
   # Single instance scrapes entire cluster via PVE API
-  # Provides ZFS, disk SMART, and hardware sensor metrics not available from InfluxDB
+  # Provides ZFS, disk SMART, and disk I/O metrics not available from InfluxDB
   systemd.services.pve-exporter = {
     description = "Proxmox VE Exporter (Go)";
     wantedBy = [ "multi-user.target" ];
