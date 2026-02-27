@@ -69,6 +69,7 @@ let
   };
 
   certDir = config.security.acme.certs."ccflare.hyades.io".directory;
+  configDir = "/var/lib/ccflare/.config/better-ccflare";
 in
 {
   imports = [ "${private}/nixos/lxc-management.nix" ];
@@ -120,6 +121,13 @@ in
       StateDirectory = "ccflare";
       StateDirectoryMode = "0700";
       WorkingDirectory = "${ccflare}/lib/ccflare";
+      # Symlink ACME certs into the config dir (better-ccflare path validator
+      # only allows ~/.config/better-ccflare, cwd, and /tmp)
+      ExecStartPre = pkgs.writeShellScript "ccflare-link-certs" ''
+        mkdir -p ${configDir}
+        ln -sf ${certDir}/key.pem ${configDir}/ssl-key.pem
+        ln -sf ${certDir}/fullchain.pem ${configDir}/ssl-cert.pem
+      '';
       ExecStart = "${ccflare}/bin/ccflare-server";
       AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
       LimitNOFILE = 65536;
@@ -128,10 +136,8 @@ in
     environment = {
       PORT = "443";
       BETTER_CCFLARE_HOST = "0.0.0.0";
-      BETTER_CCFLARE_DB_PATH = "/var/lib/ccflare/better-ccflare.db";
-      BETTER_CCFLARE_CONFIG_PATH = "/var/lib/ccflare/better-ccflare.json";
-      SSL_KEY_PATH = "${certDir}/key.pem";
-      SSL_CERT_PATH = "${certDir}/fullchain.pem";
+      SSL_KEY_PATH = "${configDir}/ssl-key.pem";
+      SSL_CERT_PATH = "${configDir}/ssl-cert.pem";
       LOG_LEVEL = "INFO";
     };
   };
