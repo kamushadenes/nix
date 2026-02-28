@@ -190,8 +190,6 @@ When working with tools or services:
 ### Key Documentation URLs
 
 - **Moltbot**: https://docs.molt.bot/ - AI assistant gateway (Telegram, Discord, etc.)
-- **better-ccflare**: https://github.com/tombii/better-ccflare - Claude API proxy (fork of snipeship/ccflare)
-
 ## Cloudflare DNS Token (Global Secret)
 
 A global Cloudflare DNS API token is stored at `private/nixos/secrets/cloudflare/cloudflare-dns-token.age` for Let's Encrypt ACME DNS-01 challenges. The env file format is `CLOUDFLARE_DNS_API_TOKEN=<token>`.
@@ -200,8 +198,6 @@ A global Cloudflare DNS API token is stored at `private/nixos/secrets/cloudflare
 1. Add the machine's SSH host key to `private/nixos/secrets/cloudflare/secrets.nix`
 2. Re-encrypt: `cd private/nixos/secrets/cloudflare && agenix -r`
 3. In the machine's nix config, reference it via `age.secrets` and `security.acme`
-
-**ccflare LXC uses this** for `ccflare.hyades.io` TLS (native SSL via `SSL_KEY_PATH`/`SSL_CERT_PATH`). ACME certs persist at `/var/lib/acme`.
 
 ## Landing the Plane (Session Completion)
 
