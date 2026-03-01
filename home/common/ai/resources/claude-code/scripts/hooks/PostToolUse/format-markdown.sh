@@ -4,6 +4,11 @@
 
 cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
 
+# Load devbox environment if available (provides project-pinned tools like prettier, markdownlint)
+if [[ -f "devbox.json" ]] && command -v devbox &>/dev/null; then
+    eval "$(devbox shellenv 2>/dev/null)" 2>/dev/null || true
+fi
+
 # Extract file path from tool input
 file_path=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.file_path // empty')
 [[ -z "$file_path" || ! -f "$file_path" ]] && exit 0
