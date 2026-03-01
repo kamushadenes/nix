@@ -3,6 +3,11 @@
 
 cd "${CLAUDE_PROJECT_DIR:-.}"
 
+# Load devbox environment if available (provides project-pinned tools like golangci-lint)
+if [[ -f "devbox.json" ]] && command -v devbox &>/dev/null; then
+	eval "$(devbox shellenv 2>/dev/null)" 2>/dev/null || true
+fi
+
 if ! command -v just &>/dev/null; then
 	exit 0
 fi

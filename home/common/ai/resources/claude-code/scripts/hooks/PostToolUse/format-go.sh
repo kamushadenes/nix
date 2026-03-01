@@ -16,6 +16,4 @@ elif command -v gofmt &>/dev/null; then
     gofmt -w "$file_path" 2>/dev/null
 fi
 
-golangci-lint
-
 exit 0
