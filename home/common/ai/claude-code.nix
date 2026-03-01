@@ -121,6 +121,12 @@ in
         file = "${private}/home/common/ai/resources/claude/vanta-credentials.age";
         path = "${secretsDir}/iniciador-vanta-credentials";
       };
+
+      # Anthropic auth token - exported globally via ANTHROPIC_AUTH_TOKEN env var
+      "claude-anthropic-auth-token" = {
+        file = "${private}/home/common/ai/resources/claude/anthropic-auth-token.age";
+        path = "${secretsDir}/anthropic-auth-token";
+      };
     };
 
   #############################################################################
