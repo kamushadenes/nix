@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(gh pr:*), Bash(test:*), Task, AskUserQuestion, Skill
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git rev-parse:*), Bash(gh pr:*), Bash(test:*), Task, Skill
 description: Comprehensive code review using 9 specialized reviewer teammates
 ---
 
@@ -13,6 +13,8 @@ Run a comprehensive deep review using an Agent Team of 9 specialized reviewers t
    - "Uncommitted changes" - Review only uncommitted changes (git diff)
    - "Branch changes" - Review all changes on this branch vs main/master
    - "Entire codebase" - Review the full project
+
+   **Answer verification:** If AskUserQuestion returns empty or generic results (e.g., "User has answered your questions: ." with no selection), fall back to a plain-text numbered list and ask the user to type their choice.
 
 2. **Gather review context based on scope:**
 

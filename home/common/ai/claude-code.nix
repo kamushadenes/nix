@@ -155,6 +155,9 @@ in
       # Global permissions - auto-approved tools (imported from claude-code-permissions.nix)
       permissions = permissions;
 
+      # Default model
+      model = "claude-opus-4-6";
+
       # Always enable extended thinking for better reasoning
       enableExtendedThinking = true;
 
