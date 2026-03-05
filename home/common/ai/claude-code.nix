@@ -268,6 +268,17 @@ in
 
         # Run after file modifications - security scanning and auto-formatting
         PostToolUse = [
+          # Block empty AskUserQuestion responses (auto-answer bug workaround)
+          # https://github.com/anthropics/claude-code/issues/29733#issuecomment-3992271945
+          {
+            matcher = "AskUserQuestion";
+            hooks = [
+              {
+                type = "command";
+                command = "jq -e '.tool_input.answers | length == 0' > /dev/null 2>&1 && printf '{\"decision\":\"block\",\"reason\":\"The AskUserQuestion exited automatically without me having a chance to respond. Try again and if this happens again just ask using a normal prompt.\",\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"The AskUserQuestion exited automatically without me having a chance to respond. Try again and if this happens again just ask using a normal prompt.\"}}' || true";
+              }
+            ];
+          }
           {
             matcher = "Edit(*.tf)|Write(*.tf)|Update(*.tf)";
             hooks = [
