@@ -41,6 +41,8 @@
 
       theme = "${helpers.theme.variants.hyphen}"
 
+      cursor-style-blink = true
+
       minimum-contrast = 1.05
 
       window-padding-x = 20

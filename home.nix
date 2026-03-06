@@ -36,6 +36,7 @@ in
     inputs.agenix.homeManagerModules.default
   ] ++ roleModules;
 
+  home.sessionPath = [ "${config.home.homeDirectory}/.local/bin" ];
   home.stateVersion = "24.05";
   programs.home-manager.enable = true;
 

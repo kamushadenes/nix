@@ -232,6 +232,7 @@ let
       wrappersPath = lib.optionalString (!pkgs.stdenv.isDarwin) "/run/wrappers/bin";
     in
     ''
+      fish_add_path --move --prepend --path "$HOME/.local/bin"
       fish_add_path --move --prepend --path ${
         lib.concatMapStringsSep " " dquote (makeBinPathList osConfig.environment.profiles)
       }
