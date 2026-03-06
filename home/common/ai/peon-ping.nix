@@ -1,11 +1,10 @@
-# Peon-Ping — Warcraft III voice notifications for AI coding agents
+# Peon-Ping — voice notifications for AI coding agents
 #
-# Plays Peon voice lines ("Job's done!", "Work work...") when Claude Code
-# needs attention (task complete, error, permission request, etc.)
-#
-# Sound packs are installed declaratively via the HM module.
-# Claude Code hooks are set up by `peon setup claude` after rebuild.
+# Uses LCARS (Star Trek TNG) sound pack for session start and stop events.
+# Sound packs from the registry are installed via activation script.
 {
+  config,
+  lib,
   inputs,
   pkgs,
   ...
@@ -20,7 +19,7 @@
     installPacks = [ "peon" ];
 
     settings = {
-      default_pack = "peon";
+      default_pack = "lcars";
       volume = 0.5;
       enabled = true;
       desktop_notifications = true;
@@ -35,4 +34,19 @@
       };
     };
   };
+
+  # Replace nix store packs symlink with a real directory so registry packs can be installed
+  home.activation.peonPingRegistryPacks = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    PACKS_DIR="${config.home.homeDirectory}/.openpeon/packs"
+    if [ -L "$PACKS_DIR" ]; then
+      # Copy nix-managed packs to a real directory
+      STORE_TARGET="$(readlink "$PACKS_DIR")"
+      run rm "$PACKS_DIR"
+      run cp -rL "$STORE_TARGET" "$PACKS_DIR"
+      run chmod -R u+w "$PACKS_DIR"
+    fi
+    if ! [ -d "$PACKS_DIR/lcars" ]; then
+      run ${lib.getExe inputs.peon-ping.packages.${pkgs.system}.default} packs install lcars || true
+    fi
+  '';
 }
