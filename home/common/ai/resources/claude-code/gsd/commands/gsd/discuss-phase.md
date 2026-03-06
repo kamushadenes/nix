@@ -8,6 +8,7 @@ allowed-tools:
   - Bash
   - Glob
   - Grep
+  - AskUserQuestion
   - Task
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
@@ -28,8 +29,8 @@ Extract implementation decisions that downstream agents need — researcher and 
 </objective>
 
 <execution_context>
-@~/.claude/get-shit-done/workflows/discuss-phase.md
-@~/.claude/get-shit-done/templates/context.md
+@./.claude/get-shit-done/workflows/discuss-phase.md
+@./.claude/get-shit-done/templates/context.md
 </execution_context>
 
 <context>

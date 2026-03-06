@@ -5,6 +5,7 @@ allowed-tools:
   - Read
   - Bash
   - Write
+  - AskUserQuestion
   - SlashCommand
 ---
 
@@ -21,11 +22,11 @@ Routes to the resume-project workflow which handles:
   </objective>
 
 <execution_context>
-@~/.claude/get-shit-done/workflows/resume-project.md
+@./.claude/get-shit-done/workflows/resume-project.md
 </execution_context>
 
 <process>
-**Follow the resume-project workflow** from `@~/.claude/get-shit-done/workflows/resume-project.md`.
+**Follow the resume-project workflow** from `@./.claude/get-shit-done/workflows/resume-project.md`.
 
 The workflow handles all resumption logic including:
 

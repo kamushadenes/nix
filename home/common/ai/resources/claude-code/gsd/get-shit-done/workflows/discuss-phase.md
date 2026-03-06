@@ -113,7 +113,7 @@ Phase: "API documentation"
 Phase number from argument (required).
 
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init phase-op "${PHASE}")
+INIT=$(node "./.claude/get-shit-done/bin/gsd-tools.cjs" init phase-op "${PHASE}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -320,7 +320,7 @@ We'll clarify HOW to implement this.
 - options: Generate 3-4 phase-specific gray areas, each with:
   - "[Specific area]" (label) — concrete, not generic
   - [1-2 questions this covers + code context annotation] (description)
-  - If you have a recommendation, append "(Recommended)" to that option's label — but NEVER auto-select it. Always wait for user response.
+  - **Highlight the recommended choice with brief explanation why**
 
 **Prior decision annotations:** When a gray area was already decided in a prior phase, annotate it:
 ```
@@ -341,8 +341,6 @@ We'll clarify HOW to implement this.
 ```
 
 **Do NOT include a "skip" or "you decide" option.** User ran this command to discuss — give them real choices.
-
-**CRITICAL: Answer verification.** After the AskUserQuestion call returns, verify the result contains the user's actual selections (option labels). If the result is empty or generic (e.g., "User has answered your questions: ." with no selections listed), the tool failed. Do NOT assume the user selected all options or any specific options. Instead, present the gray areas as a numbered plain-text list and ask the user to type which numbers they want to discuss.
 
 **Examples by domain (with code context):**
 
@@ -380,14 +378,6 @@ For each selected area, conduct a focused discussion loop.
 
 Ask 4 questions per area before offering to continue or move on. Each answer often reveals the next question.
 
-**CRITICAL: Answer verification after every AskUserQuestion call.**
-After each AskUserQuestion call, verify the tool result contains the user's actual selection (the option label or free-text response). The result should name what the user picked.
-- If the result is empty, generic (e.g., just "User has answered your questions: ."), or doesn't contain explicit choices — the tool FAILED to collect input.
-- Do NOT assume, guess, or fabricate an answer. Do NOT pick the "(Recommended)" option on their behalf.
-- Instead, present the same options as a numbered plain-text list and ask the user to type their choice number or describe their preference.
-- Example fallback: "I couldn't capture your selection. Which do you prefer?\n1. Cards\n2. List\n3. Timeline\nType a number or describe what you'd like."
-- Only proceed once you have a confirmed, explicit user response.
-
 **For each area:**
 
 1. **Announce the area:**
@@ -398,7 +388,7 @@ After each AskUserQuestion call, verify the tool result contains the user's actu
 2. **Ask 4 questions using AskUserQuestion:**
    - header: "[Area]" (max 12 chars — abbreviate if needed)
    - question: Specific decision for this area
-   - options: 2-3 concrete choices (AskUserQuestion adds "Other" automatically). If you have a recommendation, append "(Recommended)" to that option's label — but NEVER auto-select or answer on behalf of the user. Always wait for their response.
+   - options: 2-3 concrete choices (AskUserQuestion adds "Other" automatically), with the recommended choice highlighted and brief explanation why
    - **Annotate options with code context** when relevant:
      ```
      "How should posts be displayed?"
@@ -574,7 +564,7 @@ Created: .planning/phases/${PADDED_PHASE}-${SLUG}/${PADDED_PHASE}-CONTEXT.md
 Commit phase context (uses `commit_docs` from init internally):
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs(${padded_phase}): capture phase context" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
+node "./.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs(${padded_phase}): capture phase context" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
 ```
 
 Confirm: "Committed: docs(${padded_phase}): capture phase context"
@@ -584,7 +574,7 @@ Confirm: "Committed: docs(${padded_phase}): capture phase context"
 Update STATE.md with session info:
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" state record-session \
+node "./.claude/get-shit-done/bin/gsd-tools.cjs" state record-session \
   --stopped-at "Phase ${PHASE} context gathered" \
   --resume-file "${phase_dir}/${padded_phase}-CONTEXT.md"
 ```
@@ -592,7 +582,7 @@ node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" state record-session \
 Commit STATE.md:
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs(state): record phase ${PHASE} context session" --files .planning/STATE.md
+node "./.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs(state): record phase ${PHASE} context session" --files .planning/STATE.md
 ```
 </step>
 
@@ -603,18 +593,18 @@ Check for auto-advance trigger:
 2. **Sync chain flag with intent** — if user invoked manually (no `--auto`), clear the ephemeral chain flag from any previous interrupted `--auto` chain. This does NOT touch `workflow.auto_advance` (the user's persistent settings preference):
    ```bash
    if [[ ! "$ARGUMENTS" =~ --auto ]]; then
-     node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-set workflow._auto_chain_active false 2>/dev/null
+     node "./.claude/get-shit-done/bin/gsd-tools.cjs" config-set workflow._auto_chain_active false 2>/dev/null
    fi
    ```
 3. Read both the chain flag and user preference:
    ```bash
-   AUTO_CHAIN=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
-   AUTO_CFG=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
+   AUTO_CHAIN=$(node "./.claude/get-shit-done/bin/gsd-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
+   AUTO_CFG=$(node "./.claude/get-shit-done/bin/gsd-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
    ```
 
 **If `--auto` flag present AND `AUTO_CHAIN` is not true:** Persist chain flag to config (handles direct `--auto` usage without new-project):
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-set workflow._auto_chain_active true
+node "./.claude/get-shit-done/bin/gsd-tools.cjs" config-set workflow._auto_chain_active true
 ```
 
 **If `--auto` flag present OR `AUTO_CHAIN` is true OR `AUTO_CFG` is true:**

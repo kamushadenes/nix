@@ -10,6 +10,7 @@ allowed-tools:
   - Grep
   - Bash
   - Task
+  - AskUserQuestion
 ---
 <objective>
 Execute small, ad-hoc tasks with GSD guarantees (atomic commits, STATE.md tracking).
@@ -29,7 +30,7 @@ Flags are composable: `--discuss --full` gives discussion + plan-checking + veri
 </objective>
 
 <execution_context>
-@~/.claude/get-shit-done/workflows/quick.md
+@./.claude/get-shit-done/workflows/quick.md
 </execution_context>
 
 <context>
@@ -39,6 +40,6 @@ Context files are resolved inside the workflow (`init quick`) and delegated via 
 </context>
 
 <process>
-Execute the quick workflow from @~/.claude/get-shit-done/workflows/quick.md end-to-end.
+Execute the quick workflow from @./.claude/get-shit-done/workflows/quick.md end-to-end.
 Preserve all workflow gates (validation, task description, planning, execution, state updates, commits).
 </process>

@@ -1,6 +1,6 @@
 ---
 description: Reapply local modifications after a GSD update
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 ---
 
 <purpose>
@@ -22,7 +22,7 @@ elif [ -d "$HOME/.opencode/gsd-local-patches" ]; then
 elif [ -d "$HOME/.gemini/gsd-local-patches" ]; then
   PATCHES_DIR="$HOME/.gemini/gsd-local-patches"
 else
-  PATCHES_DIR="$HOME/.claude/gsd-local-patches"
+  PATCHES_DIR="./.claude/gsd-local-patches"
 fi
 # Local install fallback — check all runtime directories
 if [ ! -d "$PATCHES_DIR" ]; then
