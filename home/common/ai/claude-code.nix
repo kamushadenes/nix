@@ -81,6 +81,11 @@ let
   secretsDir = "${config.home.homeDirectory}/.claude/secrets";
   secretSubstitutions = mcpServers.mkSecretSubstitutions secretsDir;
 
+  # Peon-ping hook helpers (Warcraft voice notifications)
+  peonCmd = "~/.openpeon/peon.sh";
+  peonHookSync = { type = "command"; command = peonCmd; timeout = 10; };
+  peonHookAsync = { type = "command"; command = peonCmd; timeout = 10; async = true; };
+
   defaultMcpConfigTemplate = mcpServers.mkMcpConfig [
     "deepwiki"
     "github"
@@ -205,6 +210,8 @@ in
               }
             ];
           }
+          # Peon-ping voice notification + /peon-ping-use command handler
+          { matcher = ""; hooks = [ peonHookAsync ]; }
         ];
 
         # Run at session start/resume/clear
@@ -238,6 +245,8 @@ in
               }
             ];
           }
+          # Peon-ping voice notification (sync so startup messages appear immediately)
+          { matcher = ""; hooks = [ peonHookSync ]; }
         ];
 
         # Run when Claude stops working
@@ -264,6 +273,8 @@ in
               }
             ];
           }
+          # Peon-ping voice notification ("Job's done!")
+          { matcher = ""; hooks = [ peonHookAsync ]; }
         ];
 
         # Run after file modifications - security scanning and auto-formatting
@@ -361,7 +372,16 @@ in
               }
             ];
           }
+          # Peon-ping error notification (Bash failures only)
+          { matcher = "Bash"; hooks = [ peonHookAsync ]; }
         ];
+
+        # Peon-ping notifications for session lifecycle events
+        SessionEnd = [ { matcher = ""; hooks = [ peonHookAsync ]; } ];
+        SubagentStart = [ { matcher = ""; hooks = [ peonHookAsync ]; } ];
+        Notification = [ { matcher = ""; hooks = [ peonHookAsync ]; } ];
+        PermissionRequest = [ { matcher = ""; hooks = [ peonHookAsync ]; } ];
+        PreCompact = [ { matcher = ""; hooks = [ peonHookAsync ]; } ];
 
         # Run when a teammate finishes and goes idle
         TeammateIdle = [

@@ -39,6 +39,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    peon-ping = {
+      url = "github:PeonPing/peon-ping";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   };
 
   outputs =
@@ -204,6 +209,7 @@
       hmModules = [
         agenix.homeManagerModules.default
         nix-moltbot.homeManagerModules.moltbot
+        inputs.peon-ping.homeManagerModules.default
       ];
 
       hmDefaults = {

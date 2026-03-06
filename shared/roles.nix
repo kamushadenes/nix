@@ -80,6 +80,7 @@ let
     ../home/common/ai/gemini-cli.nix
     ../home/common/ai/gsd.nix
     ../home/common/ai/orchestrator.nix
+    ../home/common/ai/peon-ping.nix
   ];
 
   # Development tools
