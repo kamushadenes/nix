@@ -210,8 +210,6 @@ in
               }
             ];
           }
-          # Peon-ping voice notification + /peon-ping-use command handler
-          { matcher = ""; hooks = [ peonHookAsync ]; }
         ];
 
         # Run at session start/resume/clear
@@ -372,16 +370,7 @@ in
               }
             ];
           }
-          # Peon-ping error notification (Bash failures only)
-          { matcher = "Bash"; hooks = [ peonHookAsync ]; }
         ];
-
-        # Peon-ping notifications for session lifecycle events
-        SessionEnd = [ { matcher = ""; hooks = [ peonHookAsync ]; } ];
-        SubagentStart = [ { matcher = ""; hooks = [ peonHookAsync ]; } ];
-        Notification = [ { matcher = ""; hooks = [ peonHookAsync ]; } ];
-        PermissionRequest = [ { matcher = ""; hooks = [ peonHookAsync ]; } ];
-        PreCompact = [ { matcher = ""; hooks = [ peonHookAsync ]; } ];
 
         # Run when a teammate finishes and goes idle
         TeammateIdle = [

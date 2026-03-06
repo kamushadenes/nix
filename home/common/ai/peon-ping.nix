@@ -27,10 +27,10 @@
       categories = {
         "session.start" = true;
         "task.complete" = true;
-        "task.error" = true;
+        "task.error" = false;
         "input.required" = true;
-        "resource.limit" = true;
-        "user.spam" = true;
+        "resource.limit" = false;
+        "user.spam" = false;
         "task.acknowledge" = false;
       };
     };
