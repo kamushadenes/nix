@@ -80,10 +80,10 @@ in
       # True color and Unicode support for Ghostty
       set -g default-terminal "tmux-256color"
       set -sa terminal-overrides ",xterm*:Tc"
-      set -sa terminal-overrides ",ghostty:Tc"
+      set -sa terminal-overrides ",*ghostty*:Tc"
       # Enable hyperlinks (clickable URLs) and clipboard (OSC 52)
       set -sa terminal-features ",xterm*:hyperlinks:clipboard"
-      set -sa terminal-features ",ghostty:hyperlinks:clipboard"
+      set -sa terminal-features ",*ghostty*:hyperlinks:clipboard"
 
       # Pane border styling (Catppuccin Macchiato colors)
       set -g pane-border-style "fg=#494d64"
