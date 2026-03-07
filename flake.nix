@@ -257,7 +257,7 @@
           role = "workstation";
           hardware = ./nixos/hardware/nixos.nix;
         };
-        aether = mkNixosHost {
+        aether = mkProxmoxHost {
           machine = "aether";
           role = "headless";
           hardware = ./nixos/hardware/aether.nix;

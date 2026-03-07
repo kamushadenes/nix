@@ -166,6 +166,9 @@ in
       # Always enable extended thinking for better reasoning
       enableExtendedThinking = true;
 
+      # Default thinking effort level
+      effortLevel = "high";
+
       # Agent Teams - native multi-instance coordination
       env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1";
       teammateMode = "auto"; # split panes in tmux, in-process otherwise
