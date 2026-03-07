@@ -40,6 +40,9 @@
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      Restart = "on-failure";
+      RestartSec = "10s";
+      RestartMaxDelaySec = "60s";
     };
     script = ''
       TOKEN=$(cat /run/agenix/waha-env | ${pkgs.gnugrep}/bin/grep -oP 'DOCKER_TOKEN=\K.*' || cat /run/agenix/docker-token)
