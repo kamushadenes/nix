@@ -144,7 +144,17 @@
             };
             platform = system;
           };
-          modules = nixosModules ++ (if persistence then [
+          modules = nixosModules ++ [
+            # Proxmox guests run inside private infrastructure — disable
+            # services that are redundant behind the host's network/firewall
+            ({ lib, ... }: {
+              services.fail2ban.enable = lib.mkForce false;
+              services.nextdns.enable = lib.mkForce false;
+              networking.firewall.enable = lib.mkForce false;
+              # Use infrastructure DNS directly (no local nextdns)
+              networking.nameservers = lib.mkForce [ "10.23.1.1" "1.1.1.1" ];
+            })
+          ] ++ (if persistence then [
             ./nixos/proxmox/persistence.nix
             ({ ... }: {
               proxmox.persistence.extraPaths = extraPersistPaths;
