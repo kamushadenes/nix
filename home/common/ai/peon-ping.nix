@@ -35,6 +35,15 @@
     };
   };
 
+  # Clean up real packs directory before home-manager links (it was replaced from symlink
+  # by peonPingRegistryPacks below, so home-manager would fail on next rebuild)
+  home.activation.peonPingCleanPacks = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+    PACKS_DIR="${config.home.homeDirectory}/.openpeon/packs"
+    if [ -d "$PACKS_DIR" ] && ! [ -L "$PACKS_DIR" ]; then
+      run rm -rf "$PACKS_DIR"
+    fi
+  '';
+
   # Replace nix store packs symlink with a real directory so registry packs can be installed
   home.activation.peonPingRegistryPacks = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     PACKS_DIR="${config.home.homeDirectory}/.openpeon/packs"
