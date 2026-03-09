@@ -82,11 +82,9 @@ let
   secretSubstitutions = mcpServers.mkSecretSubstitutions secretsDir;
 
   # Peon-ping hook helpers (Warcraft voice notifications)
-  peonCmd = "~/.openpeon/peon.sh";
-  peonHookSync = { type = "command"; command = peonCmd; timeout = 10; };
-  peonHookAsync = { type = "command"; command = peonCmd; timeout = 10; async = true; };
 
   defaultMcpConfigTemplate = mcpServers.mkMcpConfig [
+    "slack"
     "deepwiki"
     "github"
     "Ref"
@@ -246,8 +244,6 @@ in
               }
             ];
           }
-          # Peon-ping voice notification (sync so startup messages appear immediately)
-          { matcher = ""; hooks = [ peonHookSync ]; }
         ];
 
         # Run when Claude stops working
@@ -274,8 +270,6 @@ in
               }
             ];
           }
-          # Peon-ping voice notification ("Job's done!")
-          { matcher = ""; hooks = [ peonHookAsync ]; }
         ];
 
         # Run after file modifications - security scanning and auto-formatting

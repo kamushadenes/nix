@@ -35,6 +35,16 @@ let
   #############################################################################
 
   publicServers = {
+    # Slack MCP - Workspace messaging, search, channels
+    slack = {
+      transport = "http";
+      url = "https://mcp.slack.com/mcp";
+      oauth = {
+        clientId = "1601185624273.8899143856786";
+        callbackPort = 3118;
+      };
+    };
+
     # DeepWiki - GitHub repository documentation
     deepwiki = {
       transport = "http";
@@ -115,6 +125,7 @@ let
   #############################################################################
 
   publicEnabledServers = [
+    "slack"
     "deepwiki"
     "github"
     "Ref"
@@ -171,6 +182,7 @@ rec {
             url = server.url;
           }
           // lib.optionalAttrs (server ? headers) { inherit (server) headers; }
+          // lib.optionalAttrs (server ? oauth) { inherit (server) oauth; }
         else
           {
             type = "stdio";
