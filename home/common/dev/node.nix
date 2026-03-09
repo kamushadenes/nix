@@ -56,6 +56,10 @@ let
       license = licenses.mit;
     };
   };
+  # Playwriter - thin wrapper around npx (updates automatically)
+  playwriter = pkgs.writeShellScriptBin "playwriter" ''
+    exec npx -y playwriter@latest "$@"
+  '';
 in
 {
   home.packages = with pkgs;
@@ -64,6 +68,7 @@ in
       nodejs
       typescript
       yarn-berry
+      playwriter
     ]
     # TDD Guard installed via npm on Linux (homebrew cask on macOS)
     ++ lib.optionals (!stdenv.isDarwin) [
