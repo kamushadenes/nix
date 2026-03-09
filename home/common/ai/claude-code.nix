@@ -85,6 +85,7 @@ let
 
   defaultMcpConfigTemplate = mcpServers.mkMcpConfig [
     "slack"
+    "aikido"
     "deepwiki"
     "github"
     "Ref"
