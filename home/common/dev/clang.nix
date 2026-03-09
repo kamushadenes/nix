@@ -6,5 +6,6 @@
     cmake
     gnumake
     gnum4
+    pkg-config
   ];
 }
