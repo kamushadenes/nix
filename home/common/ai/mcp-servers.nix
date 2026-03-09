@@ -104,6 +104,16 @@ let
       ];
     };
 
+    # Playwriter - Control existing Chrome via Playwright
+    playwriter = {
+      transport = "stdio";
+      command = "npx";
+      args = [
+        "-y"
+        "playwriter@latest"
+      ];
+    };
+
     # Orchestrator MCP - Terminal automation
     orchestrator = {
       transport = "stdio";
@@ -129,6 +139,7 @@ let
     "deepwiki"
     "github"
     "Ref"
+    "playwriter"
     "orchestrator"
   ];
 

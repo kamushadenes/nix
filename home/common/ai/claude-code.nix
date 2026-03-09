@@ -88,6 +88,7 @@ let
     "deepwiki"
     "github"
     "Ref"
+    "playwriter"
     "orchestrator"
     "iniciador-vanta"
   ];
