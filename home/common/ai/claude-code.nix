@@ -257,7 +257,7 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/Stop/post-lint.sh";
-                timeout = 30000;
+                timeout = 60000;
               }
             ];
           }
