@@ -6,6 +6,14 @@
 
 set -euo pipefail
 
+# Read hook input (contains session_id)
+HOOK_INPUT=$(cat)
+SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
+
+if [[ -z "$SESSION_ID" ]]; then
+	exit 0
+fi
+
 cd "${CLAUDE_PROJECT_DIR:-.}"
 
 # Lintable file extensions
@@ -45,8 +53,7 @@ fi
 
 # --- Fingerprint cache ---
 
-project_hash=$(echo "$CLAUDE_PROJECT_DIR" | shasum -a 256 | cut -c1-12)
-cache_file="/tmp/claude-lint-cache-${project_hash}"
+cache_file="/tmp/claude-lint-cache-${SESSION_ID}"
 head_sha=$(git rev-parse HEAD 2>/dev/null || echo "none")
 fingerprint=$(echo "${head_sha}:${lintable}" | shasum -a 256 | cut -c1-40)
 
