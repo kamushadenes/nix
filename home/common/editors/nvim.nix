@@ -41,7 +41,7 @@ in
     ))
 
     # Misc
-    ast-grep
+    (pkgs-unstable.ast-grep.overrideAttrs { doCheck = false; })
 
     # nvim-staging
     (writeScriptBin "nvim-staging" ''

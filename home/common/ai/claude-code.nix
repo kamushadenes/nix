@@ -256,19 +256,8 @@ in
             hooks = [
               {
                 type = "command";
-                command = "~/.claude/hooks/Stop/debug-env.sh";
-              }
-              {
-                type = "command";
                 command = "~/.claude/hooks/Stop/post-lint.sh";
-              }
-              {
-                type = "command";
-                command = "~/.claude/hooks/Stop/session-cleanup.sh";
-              }
-              {
-                type = "command";
-                command = "echo \"Make sure to update AGENTS.md and README.md\"";
+                timeout = 30000;
               }
             ];
           }
@@ -312,6 +301,7 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-python.sh";
+                timeout = 15000;
               }
             ];
           }
@@ -322,6 +312,7 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-typescript.sh";
+                timeout = 15000;
               }
             ];
           }
@@ -332,6 +323,7 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-nix.sh";
+                timeout = 10000;
               }
             ];
           }
@@ -342,6 +334,7 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-markdown.sh";
+                timeout = 15000;
               }
             ];
           }
@@ -352,6 +345,7 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-go.sh";
+                timeout = 15000;
               }
             ];
           }
@@ -366,6 +360,7 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PostToolUseFailure/suggest-nix-shell.sh";
+                timeout = 10000;
               }
             ];
           }
@@ -491,15 +486,6 @@ in
       source = "${scriptsDir}/hooks/Stop/post-lint.sh";
       executable = true;
     };
-    ".claude/hooks/Stop/debug-env.sh" = {
-      source = "${scriptsDir}/hooks/Stop/debug-env.sh";
-      executable = true;
-    };
-    ".claude/hooks/Stop/session-cleanup.sh" = {
-      source = "${scriptsDir}/hooks/Stop/session-cleanup.sh";
-      executable = true;
-    };
-    # Note: ralph-loop.sh is provided by ralph-loop@claude-plugins-official plugin
 
     # SessionStart hooks
     ".claude/hooks/SessionStart/devbox-setup.sh" = {

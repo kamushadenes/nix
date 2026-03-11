@@ -15,7 +15,6 @@
     httpie
     hugo
     stuntman
-    pkgs-unstable.neofetch
     parallel-full
     pkgs-unstable.ripgrep-all
     pkgs-unstable.fabric-ai
