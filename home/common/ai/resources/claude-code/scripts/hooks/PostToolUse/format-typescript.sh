@@ -8,7 +8,7 @@ if [[ -f "devbox.json" ]] && command -v devbox &>/dev/null; then
 fi
 
 file_path=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.file_path // empty')
-[[ -z "$file_path" || ! -f "$file_path" ]] && exit 0
+[[ -z "$file_path" || "$file_path" == *$'\n'* || ! -f "$file_path" ]] && exit 0
 [[ "$file_path" != *.ts && "$file_path" != *.tsx ]] && exit 0
 command -v prettier &>/dev/null && prettier --write "$file_path" 2>/dev/null
 exit 0

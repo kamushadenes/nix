@@ -11,7 +11,7 @@ fi
 
 # Extract file path from tool input
 file_path=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.file_path // empty')
-[[ -z "$file_path" || ! -f "$file_path" ]] && exit 0
+[[ -z "$file_path" || "$file_path" == *$'\n'* || ! -f "$file_path" ]] && exit 0
 [[ "$file_path" != *.go ]] && exit 0
 
 # Prefer goimports (handles imports + formatting), fallback to gofmt

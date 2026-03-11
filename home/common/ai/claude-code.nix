@@ -186,17 +186,13 @@ in
               }
             ];
           }
-          # Block destructive git/filesystem commands and enforce worktree workflow
+          # Block destructive git/filesystem commands
           {
             matcher = "Bash";
             hooks = [
               {
                 type = "command";
                 command = "~/.claude/hooks/PreToolUse/git-safety-guard.py";
-              }
-              {
-                type = "command";
-                command = "~/.claude/hooks/PreToolUse/suggest-modern-tools.py";
               }
             ];
           }
@@ -349,6 +345,17 @@ in
               }
             ];
           }
+          # Fix non-portable bash shebangs (#!/bin/bash -> #!/usr/bin/env bash)
+          {
+            matcher = "Edit(*.sh)|Write(*.sh)|Update(*.sh)";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PostToolUse/fix-bash-shebang.sh";
+                timeout = 5000;
+              }
+            ];
+          }
         ];
 
         # Run after tool failures
@@ -366,18 +373,7 @@ in
           }
         ];
 
-        # Run when a teammate finishes and goes idle
-        TeammateIdle = [
-          {
-            matcher = "";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/TeammateIdle/quality-gate.sh";
-              }
-            ];
-          }
-        ];
+        TeammateIdle = [];
 
         # Run when a task is being marked complete
         TaskCompleted = [
@@ -493,22 +489,15 @@ in
       executable = true;
     };
 
-    # PreToolUse hooks (additional)
-    ".claude/hooks/PreToolUse/suggest-modern-tools.py" = {
-      source = "${scriptsDir}/hooks/PreToolUse/suggest-modern-tools.py";
+    # PostToolUse hooks (additional)
+    ".claude/hooks/PostToolUse/fix-bash-shebang.sh" = {
+      source = "${scriptsDir}/hooks/PostToolUse/fix-bash-shebang.sh";
       executable = true;
     };
 
-    # PostToolUse hooks (additional)
     # Suggest nix-shell for command not found (PostToolUseFailure)
     ".claude/hooks/PostToolUseFailure/suggest-nix-shell.sh" = {
       source = "${scriptsDir}/hooks/PostToolUseFailure/suggest-nix-shell.sh";
-      executable = true;
-    };
-
-    # TeammateIdle hooks
-    ".claude/hooks/TeammateIdle/quality-gate.sh" = {
-      source = "${scriptsDir}/hooks/TeammateIdle/quality-gate.sh";
       executable = true;
     };
 

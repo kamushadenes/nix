@@ -53,7 +53,7 @@ fi
 
 # --- Fingerprint cache ---
 
-cache_file="/tmp/claude-lint-cache-${SESSION_ID}"
+cache_file="${TMPDIR:-/tmp}/claude-lint-cache-${SESSION_ID}"
 head_sha=$(git rev-parse HEAD 2>/dev/null || echo "none")
 fingerprint=$(echo "${head_sha}:${lintable}" | shasum -a 256 | cut -c1-40)
 
@@ -75,7 +75,7 @@ else
 	lint_cmd="lint"
 fi
 
-output=$(just $lint_cmd 2>&1)
+output=$(just "$lint_cmd" 2>&1)
 exit_code=$?
 
 if [ $exit_code -ne 0 ]; then
