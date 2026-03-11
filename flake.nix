@@ -17,8 +17,8 @@
     };
 
     agenix = {
-      url = "github:kamushadenes/ragenix";
-      inputs.nixpkgs.follows = "nixpkgs_2505";
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     claudebox = {
@@ -217,7 +217,7 @@
       ];
 
       hmModules = [
-        agenix.homeManagerModules.default
+        ./shared/age-home.nix # patched agenix HM module: fixes stale generation crash loop
         nix-moltbot.homeManagerModules.moltbot
         inputs.peon-ping.homeManagerModules.default
       ];

@@ -31,10 +31,7 @@ in
     inherit pkgs-unstable;
   };
 
-  imports = [
-    # Agenix home-manager module (always needed)
-    inputs.agenix.homeManagerModules.default
-  ] ++ roleModules;
+  imports = roleModules;
 
   home.sessionPath = [ "${config.home.homeDirectory}/.local/bin" ];
   home.stateVersion = "24.05";
