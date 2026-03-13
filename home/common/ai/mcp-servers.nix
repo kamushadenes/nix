@@ -51,16 +51,6 @@ let
       url = "https://mcp.deepwiki.com/mcp";
     };
 
-    # GitHub MCP - Repository management, issues, PRs, code search
-    github = {
-      transport = "stdio";
-      command = "github-mcp-server";
-      args = [ "stdio" ];
-      env = {
-        GITHUB_PERSONAL_ACCESS_TOKEN = "@GITHUB_PAT@";
-      };
-    };
-
     # Ref - Documentation search (requires API key)
     Ref = {
       transport = "http";
@@ -151,7 +141,6 @@ let
     "slack"
     "aikido"
     "deepwiki"
-    "github"
     "Ref"
     "playwriter"
     "orchestrator"
@@ -163,7 +152,6 @@ let
 
   publicSecretPlaceholders = [
     "@AIKIDO_API_KEY@"
-    "@GITHUB_PAT@"
     "@REF_API_KEY@"
     "@TFE_TOKEN@"
     "@OPENROUTER_API_KEY@"
@@ -172,7 +160,6 @@ let
   # Secret files (relative to private submodule)
   publicSecretFiles = {
     "@AIKIDO_API_KEY@" = "home/common/ai/resources/claude/aikido-api-key.age";
-    "@GITHUB_PAT@" = "home/common/ai/resources/claude/github-pat.age";
     "@REF_API_KEY@" = "home/common/ai/resources/claude/ref-api-key.age";
     "@TFE_TOKEN@" = "home/common/ai/resources/claude/tfe-token.age";
     "@OPENROUTER_API_KEY@" = "home/common/ai/resources/claude/openrouter-api-key.age";

@@ -104,7 +104,6 @@ in
     nodePackages.prettier # Markdown/TypeScript formatting
     # markdownlint-cli is installed in emacs.nix
     ruff # Python formatting
-    github-mcp-server # GitHub MCP server binary
     packages.ccusage # Claude Code usage analysis (avoids CPU-intensive npx calls)
     claudebox # Sandboxed Claude Code execution
   ];

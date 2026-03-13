@@ -117,10 +117,7 @@
     "Bash(git fetch:*)"
     "Bash(git pull:*)"
     "Bash(git clone:*)"
-    "Bash(gh pr:*)"
-    "Bash(gh run:*)"
-    "Bash(gh release:*)"
-    "Bash(gh issue:*)"
+    "Bash(gh:*)"
 
     # Terraform / Terragrunt
     "Bash(terraform plan:*)"
@@ -230,9 +227,6 @@
     "mcp__terraform__search_providers"
     "mcp__terraform__get_provider_details"
     "mcp__terraform__get_provider_capabilities"
-
-    # MCP: GitHub
-    "mcp__github__list_issues"
 
     # MCP: IDE
     "mcp__ide__getDiagnostics"

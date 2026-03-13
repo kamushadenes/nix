@@ -1,7 +1,7 @@
 ---
 name: next-task-worker
 description: Autonomous task completion worker. Handles full workflow from task claim to PR creation.
-tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch, mcp__github__*
+tools: Read, Grep, Glob, Bash, Edit, Write, MCPSearch
 model: sonnet
 permissionMode: acceptEdits
 skills:
