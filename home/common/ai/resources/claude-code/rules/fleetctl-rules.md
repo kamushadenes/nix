@@ -1,7 +1,9 @@
 ---
 paths:
-  - "**/*fleet*.yml"
-  - "**/*fleet*.yaml"
+  - "**/*.src.yml"
+  - "**/gitops.sh"
+  - "**/*.mobileconfig"
+  - "**/software-manifest.yml"
   - "**/*fleet*.tf"
 ---
 
