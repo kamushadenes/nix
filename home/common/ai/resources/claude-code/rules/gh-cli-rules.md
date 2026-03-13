@@ -1,8 +1,6 @@
 # GitHub CLI (gh) Rules
 
-## Prefer gh over GitHub MCP
-
-Always use `gh` CLI instead of GitHub MCP tools (`mcp__github__*`). The `gh` CLI is faster, more reliable, and already authenticated.
+Use `gh` for all GitHub operations. It is already authenticated.
 
 ## Common Operations
 
