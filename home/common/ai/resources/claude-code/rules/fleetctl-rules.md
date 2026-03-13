@@ -1,6 +1,11 @@
-# FleetDM CLI (fleetctl) Rules
+---
+paths:
+  - "**/*fleet*.yml"
+  - "**/*fleet*.yaml"
+  - "**/*fleet*.tf"
+---
 
-**Applies when**: repository contains files with "fleet" in their names.
+# FleetDM CLI (fleetctl) Rules
 
 Use `fleetctl` for all Fleet operations. It is already authenticated.
 
