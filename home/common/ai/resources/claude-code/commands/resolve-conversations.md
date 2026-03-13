@@ -7,11 +7,8 @@ argument-hint: [PR-URL-or-number]
 ## Context
 
 - Repo: !`gh repo view --json owner,name --jq '.owner.login + "/" + .name' 2>/dev/null || echo "unknown"`
+- Default branch: !`gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null || echo "main"`
 - Current branch PR: !`gh pr view --json number,url,headRefName 2>/dev/null || echo "no-pr"`
-
-## Unresolved Threads Preview
-
-**Note**: `gh pr view` does not support `reviewThreads` field. Use the GraphQL query in Step 2 to fetch unresolved threads.
 
 ## Your Task
 
@@ -76,103 +73,64 @@ gh api graphql -f query="$query" -f owner=OWNER -f repo=REPO -F pr=NUMBER
 **Filter client-side**: GitHub's `reviewThreads` doesn't support server-side filtering. Use `jq` to filter:
 
 ```bash
-# Filter for unresolved threads with a file path
 | jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false and .path != null)]'
 ```
 
-### Step 2.5: Validate Feedback with Critic
+### Step 3: Validate Feedback with Critic
 
-Before processing threads individually, batch-evaluate all feedback using the suggestion-critic agent:
+Before processing threads individually, batch-evaluate all feedback using the suggestion-critic Task:
 
-```python
-# Get PR changed files for scope checking
-changed_files = git diff --name-only origin/main...HEAD
+```
+Task(
+  subagent_type="suggestion-critic",
+  prompt="""Evaluate these PR review feedback threads.
 
-critic = Task(
-    subagent_type="suggestion-critic",
-    prompt=f"""Evaluate these PR review feedback threads:
+PR: PR_NUMBER on REPO
+Changed files: CHANGED_FILES (from git diff --name-only origin/DEFAULT_BRANCH...HEAD)
 
-PR: {pr_number} on {repo}
-Changed files in PR:
-{changed_files}
+Threads:
+UNRESOLVED_THREADS_JSON
 
-Threads to evaluate:
-{unresolved_threads_json}
+For each thread, categorize as:
+1. **VALID** - Correct feedback, should be fixed with code changes. Include suggested fix approach.
+2. **INVALID** - Incorrect, doesn't apply, or would introduce bugs. Include explanation to reply with.
+3. **OUTDATED** - Code already changed, line removed, or issue already addressed. Include explanation.
 
-For each thread, determine:
-1. **VALID** - Feedback is correct and should be addressed with code changes
-2. **INVALID** - Feedback is incorrect, doesn't apply, or would introduce bugs
-3. **OUTDATED** - Code already changed, line removed, or issue already addressed
-
-Return categorized threads with:
-- Thread ID
-- Category (VALID/INVALID/OUTDATED)
-- Reasoning for the evaluation
-- For VALID: suggested fix approach
-- For INVALID/OUTDATED: explanation to reply with""",
-    description="Evaluating PR feedback"
+Return: thread ID, category, reasoning.
+Final response under 2000 characters. List outcomes, not process.""",
+  description="Evaluating PR feedback"
 )
 ```
 
-Use the critic's categorization to guide Step 3 processing:
-- **VALID threads**: Proceed with code fixes
-- **INVALID threads**: Reply with critic's explanation, then resolve
-- **OUTDATED threads**: Reply noting outdated context, then resolve
+### Step 4: Process Threads by Category
 
-### Step 3: For Each Unresolved Thread
+Use the critic's categorization to guide processing.
 
-1. **Show the feedback**: Display the file, line, and reviewer comment(s)
-2. **Read the file**: Use Read tool to understand the context around the mentioned line
-3. **Critically evaluate the comment**: Before making any changes, assess whether the feedback is actually valid:
-   - Is the reviewer's understanding of the code correct?
-   - Does the suggested change actually improve the code?
-   - Is the feedback based on outdated context or a misreading?
-   - Would implementing it introduce bugs or regressions?
-
-4. **If the comment is OUTDATED** (code already changed, line no longer exists, or issue already addressed):
-   - Reply to the thread noting it's outdated:
-     ```bash
-     mutation=$(cat <<'EOF'
-     mutation($threadId: ID!, $body: String!) {
-       addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
-         comment { id }
-       }
-     }
-     EOF
-     )
-     gh api graphql -f query="$mutation" -f threadId=THREAD_ID -f body="This feedback appears to be outdated - [explain why: code changed, line removed, etc.]"
-     ```
-   - Then resolve the thread (Step 5)
-
-5. **If the comment is INVALID** (incorrect understanding, would introduce bugs, or doesn't apply):
-   - Reply to the thread explaining why the feedback doesn't apply:
-     ```bash
-     mutation=$(cat <<'EOF'
-     mutation($threadId: ID!, $body: String!) {
-       addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
-         comment { id }
-       }
-     }
-     EOF
-     )
-     gh api graphql -f query="$mutation" -f threadId=THREAD_ID -f body="EXPLANATION"
-     ```
-   - Then resolve the thread (Step 5)
-   - **Do NOT make code changes for invalid feedback**
-
-7. **If the comment is VALID**:
-   - Fix the code using Edit tool to address the feedback
-   - Track the thread ID for resolution in Step 5
-
-### Step 4: Commit and Push
-
-After fixing all issues:
+#### Reply Mutation (used for INVALID and OUTDATED threads)
 
 ```bash
-# Use the commit skill for proper commit workflow
+mutation=$(cat <<'EOF'
+mutation($threadId: ID!, $body: String!) {
+  addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
+    comment { id }
+  }
+}
+EOF
+)
+gh api graphql -f query="$mutation" -f threadId=THREAD_ID -f body="EXPLANATION"
 ```
 
-Use `Skill(skill="commit")` with a message summarizing the review feedback addressed.
+#### For each thread:
+
+1. **VALID**: Read the file, fix the code using Edit tool, track thread ID for resolution
+2. **INVALID**: Reply explaining why the feedback doesn't apply (use reply mutation above), then resolve
+3. **OUTDATED**: Reply noting the outdated context (use reply mutation above), then resolve
+
+If the critic's verdict seems wrong after reading the actual code, override it with your own judgment.
+
+### Step 5: Commit and Push
+
+After fixing all issues, use `Skill(skill="commit")` with a message summarizing the review feedback addressed.
 
 Then push:
 
@@ -180,9 +138,9 @@ Then push:
 git push
 ```
 
-### Step 5: Resolve Threads
+### Step 6: Resolve Threads
 
-For each thread ID that was fixed:
+For each thread that was fixed, replied to, or is outdated:
 
 ```bash
 mutation=$(cat <<'EOF'
@@ -196,7 +154,7 @@ EOF
 gh api graphql -f query="$mutation" -f threadId=THREAD_ID
 ```
 
-### Step 6: Report
+### Step 7: Report
 
 Summarize:
 - **Fixed**: Threads where code was changed to address valid feedback
@@ -204,6 +162,4 @@ Summarize:
 - **Outdated**: Threads where the code had already changed or feedback no longer applies
 - **Skipped**: Threads that require discussion or clarification (explain why)
 
-For each category, list:
-- File and line reference
-- Brief description of action taken or reason for dismissal
+For each category, list file/line reference and brief description of action taken.
