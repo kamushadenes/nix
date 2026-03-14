@@ -12,13 +12,14 @@ git_folder=$(basename "$git_root")
 parent_folder=$(basename "$(dirname "$git_root")")
 printf '\033]0;Claude: %s/%s\007' "$parent_folder" "$git_folder"
 
-cmd="claude --dangerously-skip-permissions"
+session_name="$parent_folder/$git_folder"
+cmd="claude --dangerously-skip-permissions --name $session_name"
 
 if test -n "${TMUX:-}"; then
     exec $cmd
 else
     git_folder_norm=$(_c_normalize "$git_folder")
     parent_folder_norm=$(_c_normalize "$parent_folder")
-    session_name="claude-$parent_folder_norm-$git_folder_norm-$(date +%s)"
-    exec tmux new-session -s "$session_name" "$cmd"
+    tmux_session="claude-$parent_folder_norm-$git_folder_norm-$(date +%s)"
+    exec tmux new-session -s "$tmux_session" "$cmd"
 fi
