@@ -26,7 +26,7 @@ let
       "/home/kamushadenes/Dropbox/Projects";
 
   # Hub configuration
-  hubHost = "aether";
+  hubHost = "mutagen";
   hubPath = "/home/kamushadenes/Dropbox/Projects";
 
   # This machine is the hub (doesn't need sync sessions to itself)
@@ -81,15 +81,15 @@ ${lib.concatMapStrings (p: "            - \"${p}\"\n") ignorePatterns}
     # Ensure daemon is running
     mutagen daemon start 2>/dev/null; or true
 
-    # Create sessions for each project (if they don't exist)
+    # Create sessions for each project
     ${lib.concatMapStrings (project: ''
-    if not mutagen sync list 2>/dev/null | grep -q "Name: ${project}"
-      echo "Creating session for ${project}..."
-      mutagen sync create \
-        "${projectsPath}/${project}" \
-        "${hubHost}:${hubPath}/${project}" \
-        --name="${project}"
-    end
+    # Terminate existing session if present (handles hub migration)
+    mutagen sync terminate ${project} 2>/dev/null; or true
+    echo "Creating session for ${project}..."
+    mutagen sync create \
+      "${projectsPath}/${project}" \
+      "${hubHost}:${hubPath}/${project}" \
+      --name="${project}"
     '') projects}
   '';
 in

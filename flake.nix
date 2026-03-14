@@ -362,6 +362,13 @@
           extraPersistPaths = [ "/var/lib/influxdb2" ];
         };
 
+        # Mutagen hub (LXC) - NFS-mounts TrueNAS Dropbox, serves as sync hub
+        mutagen = mkProxmoxHost {
+          machine = "mutagen";
+          hardware = ./nixos/hardware/mutagen.nix;
+          role = "minimal";
+        };
+
         # Proxmox VM/LXC examples (uncomment after deploying image):
         #
         # 1. Build images: rebuild --proxmox

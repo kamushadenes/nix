@@ -1,11 +1,11 @@
-# Hardware configuration for aether LXC
-# Proxmox LXC container - full dev environment (headless role)
+# Hardware configuration for mutagen LXC
+# Proxmox LXC container - Mutagen sync hub with NFS-mounted TrueNAS Dropbox
 { config, lib, pkgs, modulesPath, ... }:
 
 {
   imports = [
     (modulesPath + "/virtualisation/proxmox-lxc.nix")
-    ../machines/aether.nix
+    ../machines/mutagen.nix
   ];
 
   boot.isContainer = true;
@@ -15,6 +15,6 @@
   systemd.services."autovt@".enable = false;
   systemd.services.console-getty.enable = true;
 
-  networking.hostName = "aether";
+  networking.hostName = "mutagen";
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
