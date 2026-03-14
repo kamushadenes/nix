@@ -43,6 +43,7 @@ let
     rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.sh";
     flushdns = builtins.readFile "${resourcesDir}/flushdns.sh";
     help = builtins.readFile "${resourcesDir}/help.sh";
+    private = builtins.readFile "${resourcesDir}/private.sh";
   };
 
   # Read script files - fish versions (use fish syntax: set, $argv, end)
@@ -52,6 +53,7 @@ let
     rgaFzf = builtins.readFile "${resourcesDir}/rga-fzf.fish";
     flushdns = builtins.readFile "${resourcesDir}/flushdns.sh"; # Simple command, works in fish
     help = builtins.readFile "${resourcesDir}/help.fish";
+    private = builtins.readFile "${resourcesDir}/private.fish";
     # Fish-only (uses fish-specific array slicing syntax)
     addGoBuildTags = builtins.readFile "${resourcesDir}/add-go-build-tags.fish";
   };
@@ -148,6 +150,17 @@ in
         };
 
         rga-fzf.body = fishScripts.rgaFzf;
+
+        private = {
+          description = "Toggle private mode (disables shell and atuin history)";
+          body = fishScripts.private;
+        };
+
+        p = {
+          description = "Toggle private mode (alias for private)";
+          wraps = "private";
+          body = fishScripts.private;
+        };
       }
 
       (lib.mkIf pkgs.stdenv.isDarwin {
@@ -187,6 +200,8 @@ in
       mkcd() { ${bashScripts.mkcd} }
       ca() { ${bashScripts.claudeAttach} }
       rga-fzf() { ${bashScripts.rgaFzf} }
+      private() { ${bashScripts.private} }
+      p() { ${bashScripts.private} }
     '';
 
     flushdns = lib.optionalString pkgs.stdenv.isDarwin ''

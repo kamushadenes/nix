@@ -25,6 +25,7 @@
           "$username"
           "$hostname"
           "$directory"
+          "$env_var_PRIVATE_MODE"
           "$character"
         ];
 
@@ -45,6 +46,12 @@
           success_symbol = "[❯](peach)";
           error_symbol = "[[✗](red) ❯](peach)";
           vimcmd_symbol = "[❮](subtext1)";
+        };
+
+        env_var.PRIVATE_MODE = {
+          format = "[$symbol private]($style) ";
+          symbol = "";
+          style = "bold red";
         };
 
         cobol = {
