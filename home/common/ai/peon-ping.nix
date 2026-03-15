@@ -10,11 +10,11 @@
   ...
 }:
 {
-  home.packages = [ inputs.peon-ping.packages.${pkgs.system}.default ];
+  home.packages = [ inputs.peon-ping.packages.${pkgs.stdenv.hostPlatform.system}.default ];
 
   programs.peon-ping = {
     enable = true;
-    package = inputs.peon-ping.packages.${pkgs.system}.default;
+    package = inputs.peon-ping.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
     installPacks = [ "peon" ];
 
@@ -55,7 +55,7 @@
       run chmod -R u+w "$PACKS_DIR"
     fi
     if ! [ -d "$PACKS_DIR/lcars" ]; then
-      run ${lib.getExe inputs.peon-ping.packages.${pkgs.system}.default} packs install lcars || true
+      run ${lib.getExe inputs.peon-ping.packages.${pkgs.stdenv.hostPlatform.system}.default} packs install lcars || true
     fi
   '';
 }
