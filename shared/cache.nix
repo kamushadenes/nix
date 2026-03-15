@@ -1,4 +1,13 @@
-{ lib, ... }:
+{ lib, pkgs, config, ... }:
+let
+  uploadToCache = pkgs.writeShellScript "upload-to-cache" ''
+    set -eu
+    set -f
+    export IFS=' '
+    echo "Uploading to NCPS:" $OUT_PATHS
+    exec ${config.nix.package}/bin/nix copy --to 'http://ncps.hyades.io:8501' $OUT_PATHS
+  '';
+in
 {
   nix = {
     settings = {
@@ -20,6 +29,7 @@
       trusted-users = [
         "kamushadenes"
       ];
+      post-build-hook = uploadToCache;
     };
   };
 }

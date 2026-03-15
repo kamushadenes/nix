@@ -37,6 +37,7 @@
         "--cache-hostname=ncps.hyades.io"
         "--cache-data-path=/storage"
         "--cache-database-url=sqlite:/storage/var/ncps/db/db.sqlite"
+        "--cache-allow-put-verb=true"
         "--upstream-cache=https://cache.nixos.org"
         "--upstream-cache=https://nix-community.cachix.org"
         "--upstream-public-key=cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
