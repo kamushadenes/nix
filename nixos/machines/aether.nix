@@ -3,6 +3,8 @@
 { config, lib, pkgs, private, ... }:
 
 {
+  boot.supportedFilesystems = [ "nfs" ];
+
   fileSystems."/home/kamushadenes/Dropbox" = {
     device = "10.23.23.14:/mnt/HDD/Dropbox";
     fsType = "nfs";
