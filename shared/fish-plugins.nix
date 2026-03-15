@@ -17,8 +17,8 @@ in
     src = fetchFromGitHub {
       owner = "kamushadenes";
       repo = "fish-evalcache";
-      rev = "5b84bf49524c8adc37cc52d1bb7aaeb687d09c3d";
-      hash = "sha256-zrkTX1FP9biysaUnhcChCTDQ6wP5z7jV2vzVA0k5VdM=";
+      rev = "bfd33a8ab935e103b16dc32a94314f8b586b25d0";
+      hash = "sha256-wumbSvYlhq6hGOTpmXfx3JKkceVa9kbyXpS8gmwk+a4=";
     };
   };
   fish-async-prompt = {
