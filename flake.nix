@@ -310,7 +310,7 @@
           machine = "ncps";
           hardware = ./nixos/hardware/ncps.nix;
           role = "minimal";
-          extraPersistPaths = [ "/var/lib/docker" ]; # Cache on NFS, only Docker state local
+          extraPersistPaths = [ "/var/lib/docker" "/var/lib/acme" ];
         };
 
         # WAHA WhatsApp HTTP API (LXC)

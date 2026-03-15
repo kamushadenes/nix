@@ -1,11 +1,15 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 let
   uploadToCache = pkgs.writeShellScript "upload-to-cache" ''
-    set -eu
     set -f
     export IFS=' '
     echo "Uploading to NCPS:" $OUT_PATHS
-    exec ${config.nix.package}/bin/nix copy --to 'http://ncps.hyades.io:8501' $OUT_PATHS
+    ${config.nix.package}/bin/nix copy --to 'https://ncps.hyades.io' $OUT_PATHS || true
   '';
 in
 {
@@ -14,7 +18,7 @@ in
       connect-timeout = 5;
       fallback = true;
       substituters = [
-        "http://ncps.hyades.io:8501"
+        "https://ncps.hyades.io"
         "https://nix-community.cachix.org"
         "https://cache.nixos.org"
       ];
@@ -24,7 +28,7 @@ in
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       ];
       trusted-substituters = [
-        "http://ncps.hyades.io:8501"
+        "https://ncps.hyades.io"
       ];
       trusted-users = [
         "kamushadenes"
