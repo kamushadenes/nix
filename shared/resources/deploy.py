@@ -576,14 +576,15 @@ async def boost_lxc_resources(node: Node, prefix: str = "") -> tuple[int, int, i
         return None
     vmid = int(output)
 
-    # Get current memory and cores
-    rc, output = await pve_ssh(pve_host, f"pct config {vmid} | awk '/^memory:/ {{print $2}} /^cores:/ {{print $2}}'")
-    if rc != 0 or not output:
-        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Could not read config for VMID {vmid}")
+    # Get current memory and cores (separate queries to avoid output order issues)
+    rc, mem_out = await pve_ssh(pve_host, f"pct config {vmid} | awk '/^memory:/ {{print $2}}'")
+    if rc != 0 or not mem_out:
+        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Could not read memory for VMID {vmid}")
         return None
-    lines = output.split("\n")
-    orig_mem = int(lines[0])
-    orig_cores = int(lines[1]) if len(lines) > 1 else 1
+    orig_mem = int(mem_out)
+
+    rc, cores_out = await pve_ssh(pve_host, f"pct config {vmid} | awk '/^cores:/ {{print $2}}'")
+    orig_cores = int(cores_out) if rc == 0 and cores_out else 1
 
     new_mem = orig_mem + REBUILD_RAM_BOOST
     new_cores = orig_cores + REBUILD_CPU_BOOST
