@@ -11,7 +11,7 @@
   fileSystems."/home/kamushadenes/Dropbox" = {
     device = "10.23.23.14:/mnt/HDD/Dropbox";
     fsType = "nfs";
-    options = [ "defaults" "_netdev" "x-systemd.automount" ];
+    options = [ "defaults" "_netdev" ];
   };
 
   # Path compatibility for Darwin-style paths
