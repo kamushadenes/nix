@@ -365,10 +365,13 @@ def build_remote_command(node: Node, target_host: str) -> list[str]:
     if REMOTE_BUILD:
         # SSH into the remote and run nixos-rebuild there directly.
         # The remote fetches from its own configured caches (ncps, cache.nixos.org).
+        # Use GIT_SSH_COMMAND to bypass IdentitiesOnly in remote's ssh_config,
+        # allowing the forwarded agent to authenticate to GitHub.
+        git_ssh = "GIT_SSH_COMMAND='ssh -o IdentitiesOnly=no'"
         remote_cmd = (
             "cd ~/.config/nix/config"
-            " && git pull --rebase -q"
-            " && git submodule update --init -q"
+            f" && {git_ssh} git pull --rebase -q"
+            f" && {git_ssh} git submodule update --init -q"
             f" && sudo nixos-rebuild switch --fast --impure --flake .#{node.name}"
         )
         cmd = ["ssh", "-A", "-o", "StrictHostKeyChecking=accept-new"]
