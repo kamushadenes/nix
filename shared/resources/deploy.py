@@ -61,8 +61,9 @@ PVE_NODES = {
     "pve3": "10.23.5.12",
 }
 
-# Extra RAM (MiB) added to LXC containers during rebuild
-REBUILD_RAM_BOOST = 4096
+# Extra resources added to LXC containers during rebuild
+REBUILD_RAM_BOOST = 4096  # MiB
+REBUILD_CPU_BOOST = 2     # cores
 
 
 def find_tailscale_binary() -> str | None:
@@ -550,13 +551,13 @@ async def pve_ssh(pve_host: str, command: str) -> tuple[int, str]:
     return proc.returncode, stdout.decode().strip()
 
 
-async def boost_lxc_ram(node: Node, prefix: str = "") -> tuple[int, int] | None:
-    """Temporarily increase LXC RAM for rebuild.
+async def boost_lxc_resources(node: Node, prefix: str = "") -> tuple[int, int, int] | None:
+    """Temporarily increase LXC RAM and CPU for rebuild.
 
     SSHes to the PVE host, looks up VMID by container name,
-    and adds REBUILD_RAM_BOOST MiB to the current allocation.
+    and adds REBUILD_RAM_BOOST MiB and REBUILD_CPU_BOOST cores.
 
-    Returns (vmid, original_memory_mib) on success, None on failure.
+    Returns (vmid, original_memory_mib, original_cores) on success, None on failure.
     """
     if not node.pve_node:
         return None
@@ -575,26 +576,29 @@ async def boost_lxc_ram(node: Node, prefix: str = "") -> tuple[int, int] | None:
         return None
     vmid = int(output)
 
-    # Get current memory
-    rc, output = await pve_ssh(pve_host, f"pct config {vmid} | awk '/^memory:/ {{print $2}}'")
+    # Get current memory and cores
+    rc, output = await pve_ssh(pve_host, f"pct config {vmid} | awk '/^memory:/ {{print $2}} /^cores:/ {{print $2}}'")
     if rc != 0 or not output:
-        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Could not read memory for VMID {vmid}")
+        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Could not read config for VMID {vmid}")
         return None
-    orig_mem = int(output)
+    lines = output.split("\n")
+    orig_mem = int(lines[0])
+    orig_cores = int(lines[1]) if len(lines) > 1 else 1
 
     new_mem = orig_mem + REBUILD_RAM_BOOST
-    print(f"{BLUE}[ * ]{NC} {log_prefix}Boosting RAM: {orig_mem} -> {new_mem} MiB (VMID {vmid} on {node.pve_node})")
+    new_cores = orig_cores + REBUILD_CPU_BOOST
+    print(f"{BLUE}[ * ]{NC} {log_prefix}Boosting resources: {orig_mem}MiB/{orig_cores}c -> {new_mem}MiB/{new_cores}c (VMID {vmid} on {node.pve_node})")
 
-    rc, _ = await pve_ssh(pve_host, f"pct set {vmid} -memory {new_mem}")
+    rc, _ = await pve_ssh(pve_host, f"pct set {vmid} -memory {new_mem} -cores {new_cores}")
     if rc != 0:
-        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Failed to boost RAM")
+        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Failed to boost resources")
         return None
 
-    return vmid, orig_mem
+    return vmid, orig_mem, orig_cores
 
 
-async def restore_lxc_ram(node: Node, vmid: int, original_memory: int, prefix: str = "") -> None:
-    """Restore LXC RAM to original value after rebuild."""
+async def restore_lxc_resources(node: Node, vmid: int, original_memory: int, original_cores: int, prefix: str = "") -> None:
+    """Restore LXC RAM and CPU to original values after rebuild."""
     if not node.pve_node:
         return
 
@@ -603,11 +607,11 @@ async def restore_lxc_ram(node: Node, vmid: int, original_memory: int, prefix: s
         return
 
     log_prefix = f"[{node.name}] " if prefix else ""
-    print(f"{BLUE}[ * ]{NC} {log_prefix}Restoring RAM to {original_memory} MiB")
+    print(f"{BLUE}[ * ]{NC} {log_prefix}Restoring resources to {original_memory}MiB/{original_cores}c")
 
-    rc, _ = await pve_ssh(pve_host, f"pct set {vmid} -memory {original_memory}")
+    rc, _ = await pve_ssh(pve_host, f"pct set {vmid} -memory {original_memory} -cores {original_cores}")
     if rc != 0:
-        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Failed to restore RAM — manual fix: pct set {vmid} -memory {original_memory}")
+        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Failed to restore resources — manual fix: pct set {vmid} -memory {original_memory} -cores {original_cores}")
 
 
 async def check_ssh_connection(target_host: str) -> tuple[bool, str]:
@@ -695,8 +699,8 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
 
         env = get_nix_ssh_env(node.ssh_port)
 
-        # Boost LXC RAM before deployment, restore after (success or failure)
-        ram_info = await boost_lxc_ram(node, prefix)
+        # Boost LXC resources before deployment, restore after (success or failure)
+        resource_info = await boost_lxc_resources(node, prefix)
         try:
             if VERBOSE:
                 # Stream output in real-time
@@ -720,9 +724,9 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
                 output = stdout.decode()
                 success = proc.returncode == 0
         finally:
-            if ram_info:
-                vmid, orig_mem = ram_info
-                await restore_lxc_ram(node, vmid, orig_mem, prefix)
+            if resource_info:
+                vmid, orig_mem, orig_cores = resource_info
+                await restore_lxc_resources(node, vmid, orig_mem, orig_cores, prefix)
 
         if success:
             print(f"{GREEN}[ ✓ ]{NC} {log_prefix}{node.name} - deployment successful")
