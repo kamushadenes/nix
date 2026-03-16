@@ -171,6 +171,10 @@ in
 
       # Agent Teams - native multi-instance coordination
       env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1";
+
+      # direnv support for non-interactive Bash tool invocations
+      # https://github.com/anthropics/claude-code/issues/2110
+      env.BASH_ENV = "${config.home.homeDirectory}/.claude/scripts/direnv-bash-env.sh";
       teammateMode = "auto"; # split panes in tmux, in-process otherwise
 
       # Hooks - commands that run at various points in Claude Code's lifecycle
@@ -456,6 +460,12 @@ in
     # Statusline script - executable bash script for custom status display
     ".claude/statusline-command.sh" = {
       source = "${scriptsDir}/statusline.sh";
+      executable = true;
+    };
+
+    # direnv BASH_ENV script for non-interactive shells (Claude Code Bash tool)
+    ".claude/scripts/direnv-bash-env.sh" = {
+      source = "${scriptsDir}/direnv-bash-env.sh";
       executable = true;
     };
 
