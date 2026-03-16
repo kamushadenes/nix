@@ -65,6 +65,7 @@
       image = "devlikeapro/waha-plus:gows";
       autoStart = true;
       ports = [ "3000:3000" ];
+      extraOptions = [ "--dns=10.23.23.1" "--dns=1.1.1.1" ];
       volumes = [
         "/var/lib/waha/sessions:/app/.sessions"
         "/var/lib/waha/media:/app/.media"

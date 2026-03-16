@@ -152,7 +152,7 @@
               services.nextdns.enable = lib.mkForce false;
               networking.firewall.enable = lib.mkForce false;
               # Use infrastructure DNS directly (no local nextdns)
-              networking.nameservers = lib.mkForce [ "10.23.1.1" "1.1.1.1" ];
+              networking.nameservers = lib.mkForce [ "10.23.23.1" "1.1.1.1" ];
             })
           ] ++ (if persistence then [
             ./nixos/proxmox/persistence.nix

@@ -49,7 +49,7 @@
   fileSystems."/mnt/ncps" = {
     device = "10.23.23.14:/mnt/HDD/Cache/ncps";
     fsType = "nfs";
-    options = [ "defaults" "_netdev" ];
+    options = [ "defaults" "_netdev" "x-systemd.automount" ];
   };
 
   # Enable Docker for ncps container
@@ -65,6 +65,7 @@
       image = "kalbasit/ncps:latest";
       autoStart = true;
       ports = [ "127.0.0.1:8501:8501" ];
+      extraOptions = [ "--dns=10.23.23.1" "--dns=1.1.1.1" ];
       volumes = [
         "/mnt/ncps:/storage"
       ];
