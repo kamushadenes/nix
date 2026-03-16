@@ -25,6 +25,7 @@ import asyncio
 import ipaddress
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -52,6 +53,16 @@ NC = "\033[0m"  # No Color / Reset
 
 # Tailscale CGNAT range: 100.64.0.0/10 (100.64.0.0 - 100.127.255.255)
 TAILSCALE_CGNAT = ipaddress.ip_network("100.64.0.0/10")
+
+# Proxmox VE node -> management IP (SSH as root for pct commands)
+PVE_NODES = {
+    "pve1": "10.23.5.10",
+    "pve2": "10.23.5.11",
+    "pve3": "10.23.5.12",
+}
+
+# Extra RAM (MiB) added to LXC containers during rebuild
+REBUILD_RAM_BOOST = 4096
 
 
 def find_tailscale_binary() -> str | None:
@@ -150,6 +161,7 @@ class Node:
     build_host: str
     ssh_port: int  # SSH port (default: 22)
     user: str | None = None  # SSH user override (prepended to target_hosts)
+    pve_node: str | None = None  # Proxmox VE node (e.g., "pve1") for LXC RAM boost
 
 
 def load_node_config() -> dict:
@@ -182,6 +194,7 @@ def load_node_config() -> dict:
             "buildHost": cfg.get("buildHost", name),
             "sshPort": cfg.get("sshPort", 22),
             "user": user,
+            "pveNode": cfg.get("pveNode"),
         }
 
     return {"nodes": nodes}
@@ -208,6 +221,7 @@ def get_nodes(tailscale_up: bool = True) -> dict[str, Node]:
             build_host=cfg["buildHost"],
             ssh_port=cfg.get("sshPort", 22),
             user=cfg.get("user"),
+            pve_node=cfg.get("pveNode"),
         )
         for name, cfg in node_config["nodes"].items()
     }
@@ -515,6 +529,87 @@ async def cleanup_remote(target_host: str) -> bool:
         return False
 
 
+def get_pve_container_name(node_name: str) -> str:
+    """Derive Proxmox container name from node name.
+
+    Daemon LXCs use -pveN suffix in nix config but not on Proxmox.
+    E.g., cloudflared-pve1 -> cloudflared
+    """
+    return re.sub(r"-pve\d+$", "", node_name)
+
+
+async def pve_ssh(pve_host: str, command: str) -> tuple[int, str]:
+    """Run a command on a PVE host via SSH. Returns (returncode, stdout)."""
+    proc = await asyncio.create_subprocess_exec(
+        "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
+        f"root@{pve_host}", command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, _ = await proc.communicate()
+    return proc.returncode, stdout.decode().strip()
+
+
+async def boost_lxc_ram(node: Node, prefix: str = "") -> tuple[int, int] | None:
+    """Temporarily increase LXC RAM for rebuild.
+
+    SSHes to the PVE host, looks up VMID by container name,
+    and adds REBUILD_RAM_BOOST MiB to the current allocation.
+
+    Returns (vmid, original_memory_mib) on success, None on failure.
+    """
+    if not node.pve_node:
+        return None
+
+    pve_host = PVE_NODES.get(node.pve_node)
+    if not pve_host:
+        return None
+
+    log_prefix = f"[{node.name}] " if prefix else ""
+    container_name = get_pve_container_name(node.name)
+
+    # Look up VMID by container name
+    rc, output = await pve_ssh(pve_host, f"pct list | awk '$NF == \"{container_name}\" {{print $1}}'")
+    if rc != 0 or not output:
+        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Could not find VMID for {container_name} on {node.pve_node}")
+        return None
+    vmid = int(output)
+
+    # Get current memory
+    rc, output = await pve_ssh(pve_host, f"pct config {vmid} | awk '/^memory:/ {{print $2}}'")
+    if rc != 0 or not output:
+        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Could not read memory for VMID {vmid}")
+        return None
+    orig_mem = int(output)
+
+    new_mem = orig_mem + REBUILD_RAM_BOOST
+    print(f"{BLUE}[ * ]{NC} {log_prefix}Boosting RAM: {orig_mem} -> {new_mem} MiB (VMID {vmid} on {node.pve_node})")
+
+    rc, _ = await pve_ssh(pve_host, f"pct set {vmid} -memory {new_mem}")
+    if rc != 0:
+        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Failed to boost RAM")
+        return None
+
+    return vmid, orig_mem
+
+
+async def restore_lxc_ram(node: Node, vmid: int, original_memory: int, prefix: str = "") -> None:
+    """Restore LXC RAM to original value after rebuild."""
+    if not node.pve_node:
+        return
+
+    pve_host = PVE_NODES.get(node.pve_node)
+    if not pve_host:
+        return
+
+    log_prefix = f"[{node.name}] " if prefix else ""
+    print(f"{BLUE}[ * ]{NC} {log_prefix}Restoring RAM to {original_memory} MiB")
+
+    rc, _ = await pve_ssh(pve_host, f"pct set {vmid} -memory {original_memory}")
+    if rc != 0:
+        print(f"{YELLOW}[ ! ]{NC} {log_prefix}Failed to restore RAM — manual fix: pct set {vmid} -memory {original_memory}")
+
+
 async def check_ssh_connection(target_host: str) -> tuple[bool, str]:
     """
     Quick SSH connection check to verify host is reachable.
@@ -544,6 +639,7 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
 
     Only falls back to the next host on connection errors.
     Deployment failures (build errors, etc.) are returned immediately.
+    For LXC containers with pve_node set, temporarily boosts RAM during rebuild.
 
     Args:
         node: The node to deploy to
@@ -599,27 +695,34 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
 
         env = get_nix_ssh_env(node.ssh_port)
 
-        if VERBOSE:
-            # Stream output in real-time
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=None,  # Inherit stdout
-                stderr=None,  # Inherit stderr
-                env=env,
-            )
-            await proc.wait()
-            output = ""
-            success = proc.returncode == 0
-        else:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
-                env=env,
-            )
-            stdout, _ = await proc.communicate()
-            output = stdout.decode()
-            success = proc.returncode == 0
+        # Boost LXC RAM before deployment, restore after (success or failure)
+        ram_info = await boost_lxc_ram(node, prefix)
+        try:
+            if VERBOSE:
+                # Stream output in real-time
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=None,  # Inherit stdout
+                    stderr=None,  # Inherit stderr
+                    env=env,
+                )
+                await proc.wait()
+                output = ""
+                success = proc.returncode == 0
+            else:
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                    env=env,
+                )
+                stdout, _ = await proc.communicate()
+                output = stdout.decode()
+                success = proc.returncode == 0
+        finally:
+            if ram_info:
+                vmid, orig_mem = ram_info
+                await restore_lxc_ram(node, vmid, orig_mem, prefix)
 
         if success:
             print(f"{GREEN}[ ✓ ]{NC} {log_prefix}{node.name} - deployment successful")
