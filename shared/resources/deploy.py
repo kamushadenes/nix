@@ -5,7 +5,8 @@ Nix deployment tool with parallel execution and tag-based filtering.
 Usage:
     rebuild              # Local rebuild (current machine)
     rebuild aether       # Deploy to single target
-    rebuild -vL cloudflared  # LXC deploy: verbose + local build (builds locally, pushes to remote)
+    rebuild -vL cloudflared  # Build locally, push closure to remote via SSH
+    rebuild -vR aether       # SSH into remote and build there (no local pre-build)
     rebuild @headless    # Deploy to all nodes with @headless tag
     rebuild @nixos       # Deploy to all NixOS machines
     rebuild @darwin      # Deploy to all Darwin machines
@@ -354,33 +355,33 @@ def build_local_command(node: Node) -> list[str]:
     return ["nh", nh_type, "switch", "--impure", "-H", node.name, FLAKE_PATH]
 
 
-def build_remote_command(node: Node, target_host: str) -> list[str]:
-    """Build the command for remote deployment using nixos-rebuild.
+def build_remote_ssh_command(node: Node, target_host: str) -> list[str]:
+    """Build SSH command to run nixos-rebuild on the remote directly.
 
-    Default: builds on the remote host itself (--build-host).
-    With -L/--local-build: builds locally and pushes to target_host.
-    With -R/--remote-build: SSHes in and runs nixos-rebuild on the remote
-      directly, so it fetches from its own caches.
+    The remote fetches from its own configured caches (ncps, cache.nixos.org).
+    Uses agent forwarding + GIT_SSH_COMMAND to bypass IdentitiesOnly in
+    remote's ssh_config for git pull.
     """
-    if REMOTE_BUILD:
-        # SSH into the remote and run nixos-rebuild there directly.
-        # The remote fetches from its own configured caches (ncps, cache.nixos.org).
-        # Use GIT_SSH_COMMAND to bypass IdentitiesOnly in remote's ssh_config,
-        # allowing the forwarded agent to authenticate to GitHub.
-        git_ssh = "GIT_SSH_COMMAND='ssh -o IdentitiesOnly=no'"
-        remote_cmd = (
-            "cd ~/.config/nix/config"
-            f" && {git_ssh} git pull --rebase -q"
-            f" && {git_ssh} git submodule update --init -q"
-            f" && sudo nixos-rebuild switch --fast --impure --flake .#{node.name}"
-        )
-        cmd = ["ssh", "-A", "-o", "StrictHostKeyChecking=accept-new"]
-        if node.ssh_port != 22:
-            cmd.extend(["-p", str(node.ssh_port)])
-        cmd.extend([target_host, remote_cmd])
-        return cmd
+    git_ssh = "GIT_SSH_COMMAND='ssh -o IdentitiesOnly=no'"
+    remote_cmd = (
+        "cd ~/.config/nix/config"
+        f" && {git_ssh} git pull --rebase -q"
+        f" && {git_ssh} git submodule update --init -q"
+        f" && sudo nixos-rebuild switch --fast --impure --flake .#{node.name}"
+    )
+    cmd = ["ssh", "-A", "-o", "StrictHostKeyChecking=accept-new"]
+    if node.ssh_port != 22:
+        cmd.extend(["-p", str(node.ssh_port)])
+    cmd.extend([target_host, remote_cmd])
+    return cmd
 
-    cmd = [
+
+def build_local_push_command(node: Node, target_host: str) -> list[str]:
+    """Build command to build locally and push to remote via nixos-rebuild.
+
+    With -L: builds locally and copies closure to target via SSH.
+    """
+    return [
         "nix",
         "shell",
         "nixpkgs#nixos-rebuild",
@@ -395,9 +396,45 @@ def build_remote_command(node: Node, target_host: str) -> list[str]:
         target_host,
         "--use-remote-sudo",
     ]
-    if not LOCAL_BUILD:
-        cmd.extend(["--build-host", target_host])
-    return cmd
+
+
+async def prebuild_locally(node: Node, prefix: str = "") -> bool:
+    """Build the system toplevel locally to populate the cache.
+
+    The post-build-hook uploads to NCPS, so after this the remote
+    can fetch everything from cache instead of having it pushed.
+
+    Returns True if the build succeeded.
+    """
+    log_prefix = f"[{node.name}] " if prefix else ""
+    print(f"{BLUE}[ * ]{NC} {log_prefix}Pre-building locally (populating cache)...")
+
+    cmd = [
+        "nix", "build",
+        f"{FLAKE_PATH}#nixosConfigurations.{node.name}.config.system.build.toplevel",
+        "--impure", "--no-link",
+    ]
+
+    if VERBOSE:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=None, stderr=None,
+        )
+        await proc.wait()
+        return proc.returncode == 0
+    else:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        stdout, _ = await proc.communicate()
+        if proc.returncode != 0:
+            output = stdout.decode()
+            print(f"{RED}[ ✗ ]{NC} {log_prefix}Local pre-build failed")
+            lines = output.strip().split("\n")
+            for line in lines[-5:]:
+                print(f"    {line}")
+        return proc.returncode == 0
 
 
 # Global flags
@@ -547,7 +584,19 @@ async def try_remote_hosts(node: Node, prefix: str = "") -> tuple[str, bool, str
             f"{BLUE}[ * ]{NC} {log_prefix}Deploying to {BOLD}{node.name}{NC}{host_info}..."
         )
 
-        cmd = build_remote_command(node, target_host)
+        # Default mode: pre-build locally (populates cache), then remote fetches from cache
+        # -L mode: build locally and push closure via SSH
+        # -R mode: remote builds and fetches from cache (no local build)
+        if LOCAL_BUILD:
+            cmd = build_local_push_command(node, target_host)
+        elif REMOTE_BUILD:
+            cmd = build_remote_ssh_command(node, target_host)
+        else:
+            # Default: pre-build locally, then SSH in to activate from cache
+            if not await prebuild_locally(node, prefix):
+                return node.name, False, "Local pre-build failed"
+            cmd = build_remote_ssh_command(node, target_host)
+
         env = get_nix_ssh_env(node.ssh_port)
 
         if VERBOSE:
@@ -960,13 +1009,13 @@ def main() -> None:
         "-L",
         "--local-build",
         action="store_true",
-        help="Build locally and push to remote (default: build on remote host itself)",
+        help="Build locally and push closure to remote via SSH",
     )
     parser.add_argument(
         "-R",
         "--remote-build",
         action="store_true",
-        help="SSH into remote and build there directly (fetches from remote's own caches)",
+        help="SSH into remote and build there directly (no local pre-build)",
     )
     args = parser.parse_args()
 
@@ -1033,12 +1082,23 @@ def main() -> None:
                 print(f"    cmd: {' '.join(cmd)}")
             else:
                 hosts_str = " -> ".join(node.target_hosts)
-                method = f"remote ({hosts_str})"
+                if LOCAL_BUILD:
+                    mode = "local-build+push"
+                elif REMOTE_BUILD:
+                    mode = "remote-build"
+                else:
+                    mode = "prebuild+remote-activate"
+                method = f"{mode} ({hosts_str})"
                 print(f"  {node.name} ({node.type}, {method})")
                 for i, host in enumerate(node.target_hosts):
-                    cmd = build_remote_command(node, host)
-                    prefix = "    cmd" if len(node.target_hosts) == 1 else f"    [{i+1}]"
-                    print(f"{prefix}: {' '.join(cmd)}")
+                    if LOCAL_BUILD:
+                        cmd = build_local_push_command(node, host)
+                    else:
+                        cmd = build_remote_ssh_command(node, host)
+                    pfx = "    cmd" if len(node.target_hosts) == 1 else f"    [{i+1}]"
+                    print(f"{pfx}: {' '.join(cmd)}")
+                if not LOCAL_BUILD and not REMOTE_BUILD:
+                    print(f"    pre: nix build {FLAKE_PATH}#nixosConfigurations.{node.name}.config.system.build.toplevel --impure --no-link")
         return
 
     # Execute deployment
