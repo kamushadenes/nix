@@ -161,7 +161,7 @@ in
       permissions = permissions;
 
       # Default model
-      model = "opus[1m]";
+      model = "opus";
 
       # Always enable extended thinking for better reasoning
       enableExtendedThinking = true;
