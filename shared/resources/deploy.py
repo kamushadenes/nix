@@ -5,7 +5,7 @@ Nix deployment tool with parallel execution and tag-based filtering.
 Usage:
     rebuild              # Local rebuild (current machine)
     rebuild aether       # Deploy to single target
-    rebuild -vL cloudflared  # LXC deploy: verbose + local build (recommended)
+    rebuild -vL cloudflared  # LXC deploy: verbose + local build (builds locally, pushes to remote)
     rebuild @headless    # Deploy to all nodes with @headless tag
     rebuild @nixos       # Deploy to all NixOS machines
     rebuild @darwin      # Deploy to all Darwin machines
@@ -357,10 +357,10 @@ def build_local_command(node: Node) -> list[str]:
 def build_remote_command(node: Node, target_host: str) -> list[str]:
     """Build the command for remote deployment using nixos-rebuild.
 
-    Builds locally (no --build-host) and pushes to target_host.
-    This is faster for LXCs with limited resources.
+    Default: builds on the remote host itself (--build-host).
+    With -L/--local-build: builds locally and pushes to target_host.
     """
-    return [
+    cmd = [
         "nix",
         "shell",
         "nixpkgs#nixos-rebuild",
@@ -375,6 +375,9 @@ def build_remote_command(node: Node, target_host: str) -> list[str]:
         target_host,
         "--use-remote-sudo",
     ]
+    if not LOCAL_BUILD:
+        cmd.extend(["--build-host", target_host])
+    return cmd
 
 
 # Global flags
@@ -936,7 +939,7 @@ def main() -> None:
         "-L",
         "--local-build",
         action="store_true",
-        help="Build locally and push to remote (recommended for LXCs with limited resources)",
+        help="Build locally and push to remote (default: build on remote host itself)",
     )
     args = parser.parse_args()
 
