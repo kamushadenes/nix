@@ -153,6 +153,9 @@
               networking.firewall.enable = lib.mkForce false;
               # Use infrastructure DNS directly (no local nextdns)
               networking.nameservers = lib.mkForce [ "10.23.23.1" "1.1.1.1" ];
+              # LXC can't create network namespaces — relaxed sandbox allows
+              # fixed-output derivations (source fetches) to access the network
+              nix.settings.sandbox = "relaxed";
             })
           ] ++ (if persistence then [
             ./nixos/proxmox/persistence.nix
