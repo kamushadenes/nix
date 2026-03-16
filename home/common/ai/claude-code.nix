@@ -105,6 +105,7 @@ in
     # markdownlint-cli is installed in emacs.nix
     ruff # Python formatting
     packages.ccusage # Claude Code usage analysis (avoids CPU-intensive npx calls)
+    packages.rtk # Token-optimized CLI proxy (60-90% savings on dev commands)
     claudebox # Sandboxed Claude Code execution
   ];
 
@@ -160,7 +161,7 @@ in
       permissions = permissions;
 
       # Default model
-      model = "claude-opus-4-6";
+      model = "opus[1m]";
 
       # Always enable extended thinking for better reasoning
       enableExtendedThinking = true;
@@ -192,6 +193,16 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PreToolUse/git-safety-guard.py";
+              }
+            ];
+          }
+          # RTK auto-rewrite: transparently prefix commands with rtk for token savings
+          {
+            matcher = "Bash";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PreToolUse/rtk-rewrite.sh";
               }
             ];
           }
@@ -451,6 +462,15 @@ in
     # PreToolUse hooks
     ".claude/hooks/PreToolUse/git-safety-guard.py" = {
       source = "${scriptsDir}/hooks/PreToolUse/git-safety-guard.py";
+      executable = true;
+    };
+
+    # RTK awareness instructions for Claude Code
+    ".claude/RTK.md".source = "${resourcesDir}/RTK.md";
+
+    # RTK PreToolUse hook - rewrites commands to use rtk for token savings
+    ".claude/hooks/PreToolUse/rtk-rewrite.sh" = {
+      source = "${scriptsDir}/hooks/PreToolUse/rtk-rewrite.sh";
       executable = true;
     };
 

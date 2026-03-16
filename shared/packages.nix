@@ -135,6 +135,54 @@ let
     };
   };
 
+  # RTK (Rust Token Killer) - Token-optimized CLI proxy for Claude Code (60-90% savings)
+  # Pre-built binary from GitHub releases (not in nixpkgs)
+  rtk =
+    let
+      version = "0.30.0";
+      sources = {
+        "aarch64-darwin" = {
+          url = "https://github.com/rtk-ai/rtk/releases/download/v${version}/rtk-aarch64-apple-darwin.tar.gz";
+          hash = "sha256-DHpHxtZfS/IiIXD4JeLJ+59ZEJrJzhaonJvNwPZgZJk=";
+        };
+        "x86_64-darwin" = {
+          url = "https://github.com/rtk-ai/rtk/releases/download/v${version}/rtk-x86_64-apple-darwin.tar.gz";
+          hash = "sha256-2GTis/pvuMD09/fkpvd7bZA7LPNTM/YGXJbTrEipkdE=";
+        };
+        "x86_64-linux" = {
+          url = "https://github.com/rtk-ai/rtk/releases/download/v${version}/rtk-x86_64-unknown-linux-musl.tar.gz";
+          hash = "sha256-S8nzQIQrkUi9fpNI4qGqnM7Rs50csnJoc3bvk0aqLs4=";
+        };
+        "aarch64-linux" = {
+          url = "https://github.com/rtk-ai/rtk/releases/download/v${version}/rtk-aarch64-unknown-linux-gnu.tar.gz";
+          hash = "sha256-tF0J1VWop3gLYwb4FHVeZymmDqTfqHbv+8bv65q1b8o=";
+        };
+      };
+      src = pkgs.fetchurl sources.${pkgs.stdenv.hostPlatform.system};
+    in
+    pkgs.stdenv.mkDerivation {
+      pname = "rtk";
+      inherit version;
+      inherit src;
+
+      unpackPhase = ''
+        tar -xzf $src
+      '';
+
+      installPhase = ''
+        mkdir -p $out/bin
+        cp rtk $out/bin/rtk
+        chmod +x $out/bin/rtk
+      '';
+
+      meta = {
+        description = "Token-optimized CLI proxy for LLM coding agents";
+        homepage = "https://github.com/rtk-ai/rtk";
+        license = lib.licenses.mit;
+        mainProgram = "rtk";
+      };
+    };
+
   # Script to prepare a remote machine for this nix configuration
   # Copies age key, SSH key, creates nix.conf, clones repos, and provides activation instructions
   nix-remote-setup = pkgs.writeScriptBin "nix-remote-setup" ''
@@ -256,6 +304,7 @@ in
     lazyworktree
     worktrunk
     ccusage
+    rtk
     pve-exporter-go
     nix-remote-setup
     ;
