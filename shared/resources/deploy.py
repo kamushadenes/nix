@@ -359,7 +359,24 @@ def build_remote_command(node: Node, target_host: str) -> list[str]:
 
     Default: builds on the remote host itself (--build-host).
     With -L/--local-build: builds locally and pushes to target_host.
+    With -R/--remote-build: SSHes in and runs nixos-rebuild on the remote
+      directly, so it fetches from its own caches.
     """
+    if REMOTE_BUILD:
+        # SSH into the remote and run nixos-rebuild there directly.
+        # The remote fetches from its own configured caches (ncps, cache.nixos.org).
+        remote_cmd = (
+            "cd ~/.config/nix/config"
+            " && git pull --rebase -q"
+            " && git submodule update --init -q"
+            f" && sudo nixos-rebuild switch --fast --impure --flake .#{node.name}"
+        )
+        cmd = ["ssh", "-o", "StrictHostKeyChecking=accept-new"]
+        if node.ssh_port != 22:
+            cmd.extend(["-p", str(node.ssh_port)])
+        cmd.extend([target_host, remote_cmd])
+        return cmd
+
     cmd = [
         "nix",
         "shell",
@@ -383,6 +400,7 @@ def build_remote_command(node: Node, target_host: str) -> list[str]:
 # Global flags
 VERBOSE = False
 LOCAL_BUILD = False
+REMOTE_BUILD = False
 
 
 def get_nix_ssh_env(ssh_port: int) -> dict[str, str]:
@@ -941,12 +959,19 @@ def main() -> None:
         action="store_true",
         help="Build locally and push to remote (default: build on remote host itself)",
     )
+    parser.add_argument(
+        "-R",
+        "--remote-build",
+        action="store_true",
+        help="SSH into remote and build there directly (fetches from remote's own caches)",
+    )
     args = parser.parse_args()
 
     # Set global flags
-    global VERBOSE, LOCAL_BUILD
+    global VERBOSE, LOCAL_BUILD, REMOTE_BUILD
     VERBOSE = args.verbose
     LOCAL_BUILD = args.local_build
+    REMOTE_BUILD = args.remote_build
 
     # Check Tailscale connection status
     tailscale_up = is_tailscale_connected()
