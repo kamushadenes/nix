@@ -371,7 +371,7 @@ def build_remote_command(node: Node, target_host: str) -> list[str]:
             " && git submodule update --init -q"
             f" && sudo nixos-rebuild switch --fast --impure --flake .#{node.name}"
         )
-        cmd = ["ssh", "-o", "StrictHostKeyChecking=accept-new"]
+        cmd = ["ssh", "-A", "-o", "StrictHostKeyChecking=accept-new"]
         if node.ssh_port != 22:
             cmd.extend(["-p", str(node.ssh_port)])
         cmd.extend([target_host, remote_cmd])
