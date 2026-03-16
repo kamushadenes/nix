@@ -13,6 +13,7 @@ This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS sys
 - Proxmox LXCs: `atuin`, `mqtt`, `cloudflared` (x86_64-linux, minimal role)
 
 **Proxmox Hosts:**
+
 - `pve1`: 10.23.5.10 (SSH as root for LXC management via `pct` commands)
 
 ## Moltbot (AI Assistant Gateway)
@@ -20,16 +21,19 @@ This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS sys
 Moltbot is deployed as a Proxmox LXC container providing AI assistant capabilities via Telegram.
 
 **Configuration Files:**
+
 - **NixOS config:** `nixos/machines/moltbot.nix` - systemd service, secrets, tmpfiles
 - **Runtime config:** `private/nixos/machines/resources/moltbot/moltbot.json` - channels, agents, models (private)
 - **Secrets:** `private/nixos/secrets/moltbot/*.age` - API keys, tokens
 
 **Key Locations on LXC:**
+
 - Config: `/var/lib/moltbot/.moltbot/moltbot.json`
 - Workspace: `/var/lib/moltbot/workspace`
 - Auth profiles: `/var/lib/moltbot/.moltbot/agents/main/agent/auth-profiles.json`
 
 **Deployment:**
+
 ```bash
 rebuild -vL moltbot  # Build locally and deploy to LXC
 ```
@@ -58,15 +62,19 @@ darwin-rebuild switch --flake ~/.config/nix/config/ --impure
 ```
 
 **IMPORTANT: Cache timeout errors require rebuild retry.** If `rebuild` fails with:
+
 ```
-error: unable to download 'http://ncps.hyades.io:8501/...': Connection timed out
+error: unable to download 'https://ncps.hyades.io/...': Connection timed out
 ```
+
 This is NOT benign - the build was interrupted and packages may not be installed. Run `rebuild` again until it completes without cache errors.
 
 **IMPORTANT: Use `-vL` flags for LXC deployments.** When deploying to Proxmox LXCs, always use both flags:
+
 ```bash
 rebuild -vL cloudflared  # Build locally (-L), stream output (-v)
 ```
+
 - `-v` / `--verbose`: Streams output in real-time (prevents timeouts)
 - `-L` / `--local-build`: Builds locally and pushes to remote (faster, no need to copy age/ssh keys to LXC)
 
@@ -121,7 +129,7 @@ flake.nix              # Entry point - defines inputs and machine configurations
 
 **Secrets:** Age-encrypted files in `private/` submodule, identity at `~/.age/age.pem`. Secrets mount to temp directories (DARWIN_USER_TEMP_DIR or XDG_RUNTIME_DIR).
 
-**Distributed builds:** Three machines share builds via ssh-ng protocol with custom cache at `ncps.hyades.io:8501`.
+**Distributed builds:** Three machines share builds via ssh-ng protocol with custom cache at `ncps.hyades.io`.
 
 **File synchronization:** Uses Mutagen with hub-and-spoke topology. `aether` serves as the central hub, and spoke machines (Darwin and other NixOS) sync project folders bidirectionally. Managed via `home/common/sync/mutagen.nix`. Run `mutagen-setup` on spoke machines to create sync sessions.
 
@@ -183,6 +191,7 @@ The `private/` directory is a git submodule. Due to nix flakes not including sub
 **NEVER guess or assume configuration formats, API structures, or tool behaviors.** Always consult official documentation before implementing.
 
 When working with tools or services:
+
 1. **Find the documentation first** - Don't invent config formats
 2. **Verify the expected format** - Check docs or existing working examples
 3. **If docs are unavailable** - Ask the user before proceeding with assumptions
@@ -190,11 +199,13 @@ When working with tools or services:
 ### Key Documentation URLs
 
 - **Moltbot**: https://docs.molt.bot/ - AI assistant gateway (Telegram, Discord, etc.)
+
 ## Cloudflare DNS Token (Global Secret)
 
 A global Cloudflare DNS API token is stored at `private/nixos/secrets/cloudflare/cloudflare-dns-token.age` for Let's Encrypt ACME DNS-01 challenges. The env file format is `CLOUDFLARE_DNS_API_TOKEN=<token>`.
 
 **Adding a new machine as consumer:**
+
 1. Add the machine's SSH host key to `private/nixos/secrets/cloudflare/secrets.nix`
 2. Re-encrypt: `cd private/nixos/secrets/cloudflare && agenix -r`
 3. In the machine's nix config, reference it via `age.secrets` and `security.acme`
@@ -219,6 +230,7 @@ A global Cloudflare DNS API token is stored at `private/nixos/secrets/cloudflare
 7. **Hand off** - Provide context for next session
 
 **CRITICAL RULES:**
+
 - Work is NOT complete until `git push` succeeds
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
