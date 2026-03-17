@@ -30,23 +30,23 @@ if test "$use_opencode" = true; then
 	cmd="opencode"
 
 	if test -n "${TMUX:-}"; then
-		exec $cmd
+		exec $cmd "$@"
 	else
 		git_folder_norm=$(_c_normalize "$git_folder")
 		parent_folder_norm=$(_c_normalize "$parent_folder")
 		tmux_session="opencode-$parent_folder_norm-$git_folder_norm-$(date +%s)"
-		exec tmux new-session -s "$tmux_session" "$cmd"
+		exec tmux new-session -s "$tmux_session" "$cmd $*"
 	fi
 else
 	printf '\033]0;Claude: %s/%s\007' "$parent_folder" "$git_folder"
 	cmd="claude --dangerously-skip-permissions --name $session_name"
 
 	if test -n "${TMUX:-}"; then
-		exec $cmd
+		exec $cmd "$@"
 	else
 		git_folder_norm=$(_c_normalize "$git_folder")
 		parent_folder_norm=$(_c_normalize "$parent_folder")
 		tmux_session="claude-$parent_folder_norm-$git_folder_norm-$(date +%s)"
-		exec tmux new-session -s "$tmux_session" "$cmd"
+		exec tmux new-session -s "$tmux_session" "$cmd $*"
 	fi
 fi

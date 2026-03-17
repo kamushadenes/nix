@@ -102,6 +102,10 @@ let
 
       # Anthropic auth token (decrypted by agenix via claude-code.nix; empty on machines without claude-code)
       ANTHROPIC_AUTH_TOKEN = "$(cat ${config.home.homeDirectory}/.claude/secrets/anthropic-auth-token 2>/dev/null)";
+
+      # OpenCode experimental features
+      OPENCODE_EXPERIMENTAL_LSP_TOOL = "true";
+      OPENCODE_ENABLE_EXA = "1";
     };
 
     launchctl = mkVarExports (
