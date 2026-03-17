@@ -119,24 +119,29 @@ let
   # oh-my-opencode plugin configuration
   omoConfig = {
     "$schema" =
-      "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/dev/assets/oh-my-opencode.schema.json";
+      "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json";
     agents = {
       sisyphus = {
         model = "anthropic/claude-opus-4-6";
         variant = "max";
+      };
+      hephaestus = {
+        model = "opencode/gpt-5.3-codex";
+        variant = "medium";
       };
       oracle = {
         model = "github-copilot/gpt-5.4";
         variant = "high";
       };
       librarian = {
-        model = "anthropic/claude-sonnet-4-5";
+        model = "opencode/glm-4.7-free";
       };
       explore = {
         model = "anthropic/claude-haiku-4-5";
       };
       multimodal-looker = {
-        model = "google/gemini-3-flash-preview";
+        model = "opencode/gpt-5.4";
+        variant = "medium";
       };
       prometheus = {
         model = "anthropic/claude-opus-4-6";
@@ -160,8 +165,12 @@ let
         variant = "high";
       };
       ultrabrain = {
-        model = "google/gemini-3.1-pro-preview";
-        variant = "high";
+        model = "opencode/gpt-5.3-codex";
+        variant = "xhigh";
+      };
+      deep = {
+        model = "opencode/gpt-5.3-codex";
+        variant = "medium";
       };
       artistry = {
         model = "google/gemini-3.1-pro-preview";
@@ -218,6 +227,12 @@ in
 
     # oh-my-opencode plugin configuration
     ".config/opencode/oh-my-opencode.json".text = builtins.toJSON omoConfig;
+
+    # TUI configuration (theme)
+    ".config/opencode/tui.json".text = builtins.toJSON {
+      "$schema" = "https://opencode.ai/tui.json";
+      theme = "catppuccin-macchiato";
+    };
 
   }
   # Rules - auto-discovered from rulesDir
