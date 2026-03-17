@@ -124,6 +124,7 @@ let
     plugin = [
       "oh-my-opencode"
       "cc-safety-net"
+      "@simonwjackson/opencode-direnv"
     ];
   };
 
