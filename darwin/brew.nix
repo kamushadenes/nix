@@ -16,6 +16,7 @@
   # Formulas
   homebrew.brews = [
     "claude-code"
+    "opencode"
     "gettext"
     "fish"
     "caarlos0/tap/xdg-open-svc" # Remote URL opening over SSH

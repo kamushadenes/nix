@@ -5,6 +5,7 @@
 # - Claude Code: JSON with type/url/command
 # - Codex CLI: TOML with command (uses mcp-remote for HTTP)
 # - Gemini CLI: JSON with httpUrl/command
+# - OpenCode: JSON with type (local/remote), command array
 #
 # Each server is defined in a normalized format with:
 # - transport: "http" | "stdio"
@@ -258,6 +259,29 @@ rec {
           }
           // lib.optionalAttrs (server ? env) { inherit (server) env; }
           // lib.optionalAttrs (server ? timeout) { inherit (server) timeout; }
+      ) servers
+    );
+
+  # Transform to OpenCode format (JSON with type/command array)
+  toOpenCode =
+    serverNames:
+    lib.filterAttrs (n: _: builtins.elem n serverNames) (
+      lib.mapAttrs (
+        name: server:
+        if server.transport == "http" then
+          {
+            type = "remote";
+            url = server.url;
+            enabled = true;
+          }
+          // lib.optionalAttrs (server ? headers) { inherit (server) headers; }
+        else
+          {
+            type = "local";
+            command = [ server.command ] ++ (server.args or [ ]);
+            enabled = true;
+          }
+          // lib.optionalAttrs (server ? env) { environment = server.env; }
       ) servers
     );
 
