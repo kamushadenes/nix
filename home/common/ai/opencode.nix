@@ -121,7 +121,10 @@ let
       };
     };
     provider = privateProviders;
-    plugin = [ "oh-my-opencode" ];
+    plugin = [
+      "oh-my-opencode"
+      "cc-safety-net"
+    ];
   };
 
   # oh-my-opencode plugin configuration

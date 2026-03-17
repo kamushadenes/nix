@@ -193,16 +193,7 @@ in
               }
             ];
           }
-          # Block destructive git/filesystem commands
-          {
-            matcher = "Bash";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/PreToolUse/git-safety-guard.py";
-              }
-            ];
-          }
+
         ];
 
         # Run on every user prompt submission
@@ -437,6 +428,9 @@ in
         #"superpowers@superpowers-marketplace" = true;
         "secrets-scanner@agent-security" = true;
         "worktrunk@worktrunk" = true;
+
+        # Safety Net (kenryu42/cc-marketplace) - blocks destructive git/fs commands
+        "safety-net@cc-marketplace" = true;
       };
     };
   };
@@ -459,12 +453,6 @@ in
     # direnv BASH_ENV script for non-interactive shells (Claude Code Bash tool)
     ".claude/scripts/direnv-bash-env.sh" = {
       source = "${scriptsDir}/direnv-bash-env.sh";
-      executable = true;
-    };
-
-    # PreToolUse hooks
-    ".claude/hooks/PreToolUse/git-safety-guard.py" = {
-      source = "${scriptsDir}/hooks/PreToolUse/git-safety-guard.py";
       executable = true;
     };
 
