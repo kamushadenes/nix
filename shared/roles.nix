@@ -80,7 +80,6 @@ let
     ../home/common/ai/gemini-cli.nix
     ../home/common/ai/gsd.nix
     ../home/common/ai/opencode.nix
-    ../home/common/ai/gsd-opencode.nix
     ../home/common/ai/orchestrator.nix
     ../home/common/ai/peon-ping.nix
   ];
@@ -165,16 +164,43 @@ let
 in
 {
   # Export module groups for documentation/debugging
-  inherit base ai dev editors infra utils sync media guiShell macos linuxDesktop linuxCli;
-  inherit coreMinimal minimalCore fullCore shellMinimal shellAll security linuxMinimal;
+  inherit
+    base
+    ai
+    dev
+    editors
+    infra
+    utils
+    sync
+    media
+    guiShell
+    macos
+    linuxDesktop
+    linuxCli
+    ;
+  inherit
+    coreMinimal
+    minimalCore
+    fullCore
+    shellMinimal
+    shellAll
+    security
+    linuxMinimal
+    ;
 
   # Compose modules based on role and platform
   # platform should be "darwin" or "linux"
   mkRoleModules =
     { role, platform }:
     let
-      isDarwin = platform == "darwin" || lib.hasPrefix "aarch64-darwin" platform || lib.hasPrefix "x86_64-darwin" platform;
-      isLinux = platform == "linux" || lib.hasPrefix "x86_64-linux" platform || lib.hasPrefix "aarch64-linux" platform;
+      isDarwin =
+        platform == "darwin"
+        || lib.hasPrefix "aarch64-darwin" platform
+        || lib.hasPrefix "x86_64-darwin" platform;
+      isLinux =
+        platform == "linux"
+        || lib.hasPrefix "x86_64-linux" platform
+        || lib.hasPrefix "aarch64-linux" platform;
 
       groups = {
         # Full workstation with all GUI apps
@@ -192,25 +218,14 @@ in
           ++ lib.optionals isLinux (linuxDesktop ++ linuxCli);
 
         # Headless server - CLI only, no GUI apps
-        headless =
-          base
-          ++ ai
-          ++ dev
-          ++ editors
-          ++ infra
-          ++ utils
-          ++ sync
-          ++ lib.optionals isLinux linuxCli;
+        headless = base ++ ai ++ dev ++ editors ++ infra ++ utils ++ sync ++ lib.optionals isLinux linuxCli;
 
         # Minimal - familiar shell environment only
         # For service containers and simple machines
         # Includes: shells (fish/bash/zsh), starship, tmux, essential CLI tools (rg, fd, bat, eza, fzf, nh)
         # Excludes: agenix, fonts, git, SSH client config, security tools, dev tools
         # Excludes: heavy CLI tools (atuin, broot, yazi, dust, difftastic, etc.)
-        minimal =
-          coreMinimal
-          ++ shellMinimal
-          ++ lib.optionals isLinux linuxMinimal;
+        minimal = coreMinimal ++ shellMinimal ++ lib.optionals isLinux linuxMinimal;
       };
     in
     groups.${role} or (throw "Unknown role: ${role}. Valid roles: workstation, headless, minimal");

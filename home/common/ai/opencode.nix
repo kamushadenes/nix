@@ -62,25 +62,7 @@ let
       webfetch = "allow";
       websearch = "allow";
       bash = {
-        "*" = "ask";
-        "git *" = "allow";
-        "gh *" = "allow";
-        "go *" = "allow";
-        "nix *" = "allow";
-        "nixfmt *" = "allow";
-        "rg *" = "allow";
-        "fd *" = "allow";
-        "just *" = "allow";
-        "terraform *" = "allow";
-        "curl *" = "allow";
-        "jq *" = "allow";
-        "rebuild *" = "allow";
-        "cat *" = "allow";
-        "ls *" = "allow";
-        "test *" = "allow";
-        "sort *" = "allow";
-        "head *" = "allow";
-        "tail *" = "allow";
+        "*" = "allow";
       };
     };
     formatter = {
@@ -131,7 +113,74 @@ let
         extensions = [ ".md" ];
       };
     };
-    plugin = [ ];
+    plugin = [ "oh-my-opencode" ];
+  };
+
+  # oh-my-opencode plugin configuration
+  omoConfig = {
+    "$schema" =
+      "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/dev/assets/oh-my-opencode.schema.json";
+    agents = {
+      sisyphus = {
+        model = "anthropic/claude-opus-4-6";
+        variant = "max";
+      };
+      oracle = {
+        model = "github-copilot/gpt-5.4";
+        variant = "high";
+      };
+      librarian = {
+        model = "anthropic/claude-sonnet-4-5";
+      };
+      explore = {
+        model = "anthropic/claude-haiku-4-5";
+      };
+      multimodal-looker = {
+        model = "google/gemini-3-flash-preview";
+      };
+      prometheus = {
+        model = "anthropic/claude-opus-4-6";
+        variant = "max";
+      };
+      metis = {
+        model = "anthropic/claude-opus-4-6";
+        variant = "max";
+      };
+      momus = {
+        model = "github-copilot/gpt-5.4";
+        variant = "xhigh";
+      };
+      atlas = {
+        model = "anthropic/claude-sonnet-4-5";
+      };
+    };
+    categories = {
+      visual-engineering = {
+        model = "google/gemini-3.1-pro-preview";
+        variant = "high";
+      };
+      ultrabrain = {
+        model = "google/gemini-3.1-pro-preview";
+        variant = "high";
+      };
+      artistry = {
+        model = "google/gemini-3.1-pro-preview";
+        variant = "high";
+      };
+      quick = {
+        model = "anthropic/claude-haiku-4-5";
+      };
+      unspecified-low = {
+        model = "anthropic/claude-sonnet-4-5";
+      };
+      unspecified-high = {
+        model = "github-copilot/gpt-5.4";
+        variant = "high";
+      };
+      writing = {
+        model = "google/gemini-3-flash-preview";
+      };
+    };
   };
 
   # Secrets configuration
@@ -163,37 +212,34 @@ in
   #############################################################################
   # OpenCode Configuration
   #############################################################################
+  home.file = {
+    # JSON template with @PLACEHOLDER@ values - secrets substituted at activation
+    ".config/opencode/config.json.template".text = configTemplate;
 
-  home.file =
-    {
-      # JSON template with @PLACEHOLDER@ values - secrets substituted at activation
-      ".config/opencode/config.json.template".text = configTemplate;
+    # oh-my-opencode plugin configuration
+    ".config/opencode/oh-my-opencode.json".text = builtins.toJSON omoConfig;
 
-      # Global AGENTS.md - workflow instructions for OpenCode
-    }
-    // lib.optionalAttrs (builtins.pathExists "${resourcesDir}/OPENCODE.md") {
-      ".config/opencode/AGENTS.md".source = "${resourcesDir}/OPENCODE.md";
-    }
-    # Rules - auto-discovered from rulesDir
-    // lib.mapAttrs' (name: _: {
-      name = ".config/opencode/rules/${name}";
-      value.source = "${rulesDir}/${name}";
-    }) ruleFiles
-    # Plugins - auto-discovered from pluginsDir
-    // lib.mapAttrs' (name: _: {
-      name = ".config/opencode/plugins/${name}";
-      value.source = "${pluginsDir}/${name}";
-    }) pluginFiles
-    # Agents - auto-discovered from agentsDir
-    // lib.mapAttrs' (name: _: {
-      name = ".config/opencode/agents/${name}";
-      value.source = "${agentsDir}/${name}";
-    }) agentFiles
-    # Commands - auto-discovered from commandsDir
-    // lib.mapAttrs' (name: _: {
-      name = ".config/opencode/commands/${name}";
-      value.source = "${commandsDir}/${name}";
-    }) commandFiles;
+  }
+  # Rules - auto-discovered from rulesDir
+  // lib.mapAttrs' (name: _: {
+    name = ".config/opencode/rules/${name}";
+    value.source = "${rulesDir}/${name}";
+  }) ruleFiles
+  # Plugins - auto-discovered from pluginsDir
+  // lib.mapAttrs' (name: _: {
+    name = ".config/opencode/plugins/${name}";
+    value.source = "${pluginsDir}/${name}";
+  }) pluginFiles
+  # Agents - auto-discovered from agentsDir
+  // lib.mapAttrs' (name: _: {
+    name = ".config/opencode/agents/${name}";
+    value.source = "${agentsDir}/${name}";
+  }) agentFiles
+  # Commands - auto-discovered from commandsDir
+  // lib.mapAttrs' (name: _: {
+    name = ".config/opencode/commands/${name}";
+    value.source = "${commandsDir}/${name}";
+  }) commandFiles;
 
   #############################################################################
   # Secret Substitution and Config Activation

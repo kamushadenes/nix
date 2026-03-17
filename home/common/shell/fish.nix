@@ -11,10 +11,14 @@
 {
   home.sessionVariables = helpers.globalVariables.base;
 
-  home.packages = with pkgs;
+  home.packages =
+    with pkgs;
     [
       # Claude Code workspace manager - standalone bash script with multi-account support
       (writeScriptBin "c" shellCommon.standaloneScripts.c)
+
+      # OpenCode wrapper - launches opencode via c --opencode
+      (writeScriptBin "co" shellCommon.standaloneScripts.co)
 
       # Rebuild script - unified bash script for local and remote deployments
       (writeScriptBin "rebuild" shellCommon.standaloneScripts.rebuild)

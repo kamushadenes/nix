@@ -14,9 +14,7 @@ let
 
   # SSH keys to be loaded (only if agenix is enabled)
   sshKeys =
-    if config.age.secrets ? "id_ed25519.age"
-    then [ config.age.secrets."id_ed25519.age".path ]
-    else [ ];
+    if config.age.secrets ? "id_ed25519.age" then [ config.age.secrets."id_ed25519.age".path ] else [ ];
 
   # Cache key paths for rebuild function
   cacheKeyPath = "$HOME/.config/nix/config/private/cache-priv-key.pem";
@@ -34,7 +32,11 @@ let
   };
 
   # Helper to apply substitutions to a string
-  applySubst = subst: str: builtins.foldl' (s: name: builtins.replaceStrings [ name ] [ subst.${name} ] s) str (builtins.attrNames subst);
+  applySubst =
+    subst: str:
+    builtins.foldl' (s: name: builtins.replaceStrings [ name ] [ subst.${name} ] s) str (
+      builtins.attrNames subst
+    );
 
   # Read script files - bash/zsh versions (use POSIX syntax where possible)
   bashScripts = {
@@ -63,6 +65,11 @@ let
   standaloneScripts = {
     # Claude Code wrapper - opens claude inside tmux, bypassing permissions
     c = builtins.readFile "${resourcesDir}/claude-tmux.sh";
+    # OpenCode wrapper - calls c --opencode
+    co = ''
+      #!/usr/bin/env bash
+      exec c --opencode "$@"
+    '';
     # Rebuild script - Python deployment tool with parallel execution and tag-based filtering
     rebuild = applySubst deploySubst (builtins.readFile ./resources/deploy.py);
     # LXC machine registration script - adds machines to lxc-management secrets
@@ -102,7 +109,13 @@ let
 
 in
 {
-  inherit sshKeys pathAdditions ghosttyResourcesDir hasPackage standaloneScripts;
+  inherit
+    sshKeys
+    pathAdditions
+    ghosttyResourcesDir
+    hasPackage
+    standaloneScripts
+    ;
 
   # Common aliases (shell-agnostic)
   aliases = lib.mkMerge [
@@ -177,7 +190,9 @@ in
       let
         bashToFish = str: builtins.replaceStrings [ "\${" "}" ] [ "$" "" ] str;
       in
-      lib.concatMapStringsSep "\n" (key: "test -f ${bashToFish key} && ssh-add -q ${bashToFish key}") sshKeys;
+      lib.concatMapStringsSep "\n" (
+        key: "test -f ${bashToFish key} && ssh-add -q ${bashToFish key}"
+      ) sshKeys;
 
     pathSetup = mkPathSetup pathFormatters.fish;
 
