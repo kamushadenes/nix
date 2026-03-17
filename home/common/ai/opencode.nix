@@ -125,6 +125,7 @@ let
       "oh-my-opencode"
       "cc-safety-net"
       "@simonwjackson/opencode-direnv"
+      "envsitter-guard"
     ];
   };
 
