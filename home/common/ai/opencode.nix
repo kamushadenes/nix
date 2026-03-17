@@ -55,8 +55,8 @@ let
   # OpenCode config as Nix attrset
   opencodeConfig = {
     "$schema" = "https://opencode.ai/config.json";
-    model = "anthropic/claude-opus-4-6";
-    small_model = "anthropic/claude-haiku-4-5";
+    model = "ccflare/claude-opus-4-6"; # was: anthropic/claude-opus-4-6
+    small_model = "ccflare/claude-haiku-4-5"; # was: anthropic/claude-haiku-4-5
     instructions = [ "~/.config/opencode/rules/*.md" ];
     mcp = mcpServers.toOpenCode enabledServers;
     permission = {
@@ -130,7 +130,7 @@ let
       "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json";
     agents = {
       sisyphus = {
-        model = "anthropic/claude-opus-4-6";
+        model = "ccflare/claude-opus-4-6"; # was: anthropic/claude-opus-4-6
         variant = "max";
       };
       hephaestus = {
@@ -145,18 +145,18 @@ let
         model = "opencode/glm-4.7-free";
       };
       explore = {
-        model = "anthropic/claude-haiku-4-5";
+        model = "ccflare/claude-haiku-4-5"; # was: anthropic/claude-haiku-4-5
       };
       multimodal-looker = {
         model = "opencode/gpt-5.4";
         variant = "medium";
       };
       prometheus = {
-        model = "anthropic/claude-opus-4-6";
+        model = "ccflare/claude-opus-4-6"; # was: anthropic/claude-opus-4-6
         variant = "max";
       };
       metis = {
-        model = "anthropic/claude-opus-4-6";
+        model = "ccflare/claude-opus-4-6"; # was: anthropic/claude-opus-4-6
         variant = "max";
       };
       momus = {
@@ -164,7 +164,7 @@ let
         variant = "xhigh";
       };
       atlas = {
-        model = "anthropic/claude-sonnet-4-5";
+        model = "ccflare/claude-sonnet-4-5"; # was: anthropic/claude-sonnet-4-5
       };
     };
     categories = {
@@ -185,10 +185,10 @@ let
         variant = "high";
       };
       quick = {
-        model = "anthropic/claude-haiku-4-5";
+        model = "ccflare/claude-haiku-4-5"; # was: anthropic/claude-haiku-4-5
       };
       unspecified-low = {
-        model = "anthropic/claude-sonnet-4-5";
+        model = "ccflare/claude-sonnet-4-5"; # was: anthropic/claude-sonnet-4-5
       };
       unspecified-high = {
         model = "github-copilot/gpt-5.4";
