@@ -43,7 +43,9 @@ let
   # Read agent files from the agents directory (including subdirectories)
   agentEntries = builtins.readDir agentsDir;
   # Top-level .md files
-  agentFiles = lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".md" name) agentEntries;
+  agentFiles = lib.filterAttrs (
+    name: type: type == "regular" && lib.hasSuffix ".md" name
+  ) agentEntries;
   # Subdirectories (like _templates, _references)
   agentSubdirs = lib.filterAttrs (name: type: type == "directory") agentEntries;
   # Recursively collect files from subdirectories
@@ -70,7 +72,9 @@ let
 
   # Read command files from the commands directory
   commandEntries = builtins.readDir commandsDir;
-  commandFiles = lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".md" name) commandEntries;
+  commandFiles = lib.filterAttrs (
+    name: type: type == "regular" && lib.hasSuffix ".md" name
+  ) commandEntries;
   commandsConfig = lib.mapAttrs' (name: _: {
     # Remove .md extension for command name
     name = lib.removeSuffix ".md" name;
@@ -105,7 +109,6 @@ in
     # markdownlint-cli is installed in emacs.nix
     ruff # Python formatting
     packages.ccusage # Claude Code usage analysis (avoids CPU-intensive npx calls)
-    packages.rtk # Token-optimized CLI proxy (60-90% savings on dev commands)
     claudebox # Sandboxed Claude Code execution
   ];
 
@@ -197,16 +200,6 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PreToolUse/git-safety-guard.py";
-              }
-            ];
-          }
-          # RTK auto-rewrite: transparently prefix commands with rtk for token savings
-          {
-            matcher = "Bash";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/PreToolUse/rtk-rewrite.sh";
               }
             ];
           }
@@ -387,7 +380,7 @@ in
           }
         ];
 
-        TeammateIdle = [];
+        TeammateIdle = [ ];
 
         # Run when a task is being marked complete
         TaskCompleted = [
@@ -472,15 +465,6 @@ in
     # PreToolUse hooks
     ".claude/hooks/PreToolUse/git-safety-guard.py" = {
       source = "${scriptsDir}/hooks/PreToolUse/git-safety-guard.py";
-      executable = true;
-    };
-
-    # RTK awareness instructions for Claude Code
-    ".claude/RTK.md".source = "${resourcesDir}/RTK.md";
-
-    # RTK PreToolUse hook - rewrites commands to use rtk for token savings
-    ".claude/hooks/PreToolUse/rtk-rewrite.sh" = {
-      source = "${scriptsDir}/hooks/PreToolUse/rtk-rewrite.sh";
       executable = true;
     };
 
