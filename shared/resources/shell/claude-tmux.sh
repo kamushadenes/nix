@@ -27,7 +27,6 @@ session_name="$parent_folder/$git_folder"
 
 if test "$use_opencode" = true; then
 	printf '\033]0;OpenCode: %s/%s\007' "$parent_folder" "$git_folder"
-	export ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL}/v1"
 	cmd="opencode"
 
 	if test -n "${TMUX:-}"; then
