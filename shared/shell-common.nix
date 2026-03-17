@@ -126,8 +126,6 @@ in
     {
       unlock-gpg = "rm -f ~/.gnupg/public-keys.d/pubring.db.lock";
       renice-baldur = "sudo renice -n -20 -p $(pgrep -f Baldur)";
-      # Unlock aether's LUKS encryption via initrd SSH
-      aether-unlock = "ssh aether-initrd cryptsetup-askpass";
     }
     (lib.mkIf config.programs.bat.enable {
       cat = "bat -p";
