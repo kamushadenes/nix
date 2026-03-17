@@ -126,6 +126,7 @@ let
       "cc-safety-net"
       "@simonwjackson/opencode-direnv"
       "envsitter-guard"
+      "opentmux"
     ];
   };
 
