@@ -1,13 +1,54 @@
 # AI Agent Configurations
 
-Nix configurations for AI CLI tools (Claude Code, Codex CLI, Gemini CLI).
+Nix configurations for AI CLI tools (Claude Code, OpenCode, Codex CLI, Gemini
+CLI).
 
-## Orchestrator MCP Tools
+## Resource Architecture
 
-The orchestrator MCP server (`scripts/orchestrator-mcp-server.py`) provides:
+Shared resources live in `resources/agents/`, tool-specific resources in
+`resources/<tool>/`.
 
-- `tmux_*` - Terminal window automation
-- `notify` - Desktop notifications
+```
+resources/
+├── agents/              # Shared across all AI tools
+│   ├── rules/           # 17 global rules → deployed to ~/.claude/rules/ and ~/.config/opencode/rules/
+│   └── skills/          # 19 skills → deployed to ~/.agents/skills/ (agentskills.io standard)
+├── claude-code/         # Claude Code-specific
+│   ├── agents/          # CC-specific agents (subagents, team teammates)
+│   ├── commands/        # CC-specific slash commands
+│   ├── config/          # CC-specific config files
+│   ├── gsd/             # Get Shit Done framework
+│   ├── memory/          # Memory files
+│   └── scripts/         # Hooks (PreToolUse, PostToolUse, etc.)
+├── opencode/            # OpenCode-specific
+│   ├── agents/          # OC-specific agents
+│   ├── commands/        # OC-specific slash commands
+│   └── plugins/         # OC-specific plugins
+├── codex/               # OpenAI Codex-specific
+└── gemini/              # Gemini CLI-specific
+```
+
+### Deployment Paths
+
+| Resource      | Source                            | Deployed to                    |
+| ------------- | --------------------------------- | ------------------------------ |
+| Skills        | `resources/agents/skills/`        | `~/.agents/skills/`            |
+| Rules (CC)    | `resources/agents/rules/`         | `~/.claude/rules/`             |
+| Rules (OC)    | `resources/agents/rules/`         | `~/.config/opencode/rules/`    |
+| Commands (CC) | `resources/claude-code/commands/` | `~/.claude/commands/`          |
+| Commands (OC) | `resources/opencode/commands/`    | `~/.config/opencode/commands/` |
+
+### Key Design Decisions
+
+- **Skills use the `.agents` standard**
+  ([agentskills.io](https://agentskills.io)) — discovered by Claude Code,
+  OpenCode, Cursor, Gemini CLI, and 30+ agents
+- **Rules are global** — single source in `resources/agents/rules/`, deployed to
+  each tool's expected path
+- **Commands stay tool-specific** — no cross-agent standard exists for slash
+  commands
+- **`OPENCODE_DISABLE_CLAUDE_CODE=1`** is set to prevent OpenCode from also
+  scanning `~/.claude/` (avoids duplicate skill/rule loading)
 
 ---
 
@@ -15,79 +56,28 @@ The orchestrator MCP server (`scripts/orchestrator-mcp-server.py`) provides:
 
 ### Core Principles (All Types)
 
-**Context is precious.** The context window is shared with system prompt, conversation, tools, and user requests. Every token must justify its cost.
+**Context is precious.** The context window is shared with system prompt,
+conversation, tools, and user requests. Every token must justify its cost.
 
-**Claude is already smart.** Only add information Claude doesn't have: domain-specific procedures, company knowledge, exact tool syntax, or guardrails for fragile operations.
-
-**Prefer examples over explanations.** A well-chosen example teaches faster than paragraphs of description.
+**Prefer examples over explanations.** A well-chosen example teaches faster than
+paragraphs of description.
 
 **Match freedom to fragility:**
+
 - **High freedom** (text guidance): When multiple valid approaches exist
 - **Medium freedom** (pseudocode/templates): When a preferred pattern exists
-- **Low freedom** (exact scripts): When operations are fragile or consistency is critical
+- **Low freedom** (exact scripts): When operations are fragile or consistency is
+  critical
 
 ---
 
-### Commands (`resources/claude-code/commands/`)
+### Skills (`resources/agents/skills/`)
 
-Commands are user-invocable slash commands (e.g., `/commit`, `/deep-review`).
-
-**File format:**
-```markdown
----
-allowed-tools: Bash(git:*), Read, Task  # Tools the command can use
-description: One-line description       # Shown in /help
----
-
-## Context (optional)
-- Current state: !`git status`  # Shell expansion for dynamic context
-
-## Your task
-[Instructions for Claude]
-```
-
-**Patterns:**
-
-1. **Simple automation** - Few tools, direct action:
-   ```markdown
-   ---
-   allowed-tools: Bash(git add:*), Bash(git commit:*)
-   description: Create a git commit
-   ---
-   Based on the above changes, create a single git commit.
-   Do not use any other tools or send any other text.
-   ```
-
-2. **Multi-step workflow** - User choices, conditional logic:
-   ```markdown
-   ## Steps
-   1. **Ask user** using AskUserQuestion:
-      - Option A: ...
-      - Option B: ...
-   2. **If option A**: [steps]
-   3. **If option B**: [steps]
-   ```
-
-3. **Agent delegation** - Complex tasks via Task tool:
-   ```markdown
-   Use the **Task tool** with `subagent_type='general-purpose'` to:
-   1. [Step]
-   2. [Step]
-   ```
-
-**Best practices:**
-- Use `!`backticks`` for shell expansion to inject dynamic context
-- Restrict tools to minimum needed via `allowed-tools`
-- End with clear output format or "do not send any other text"
-- For complex commands, delegate to agents via Task tool
-
----
-
-### Skills (`resources/claude-code/skills/`)
-
-Skills provide specialized knowledge and workflows. Use the `skill-creator` skill for guided creation.
+Skills follow the [Agent Skills Standard](https://agentskills.io) — a portable
+format supported by 30+ agents.
 
 **Directory structure:**
+
 ```
 skill-name/
 ├── SKILL.md           # Required: metadata + instructions
@@ -97,6 +87,7 @@ skill-name/
 ```
 
 **SKILL.md format:**
+
 ```markdown
 ---
 name: skill-name
@@ -108,262 +99,106 @@ description: What it does. Use when [specific triggers]. (1-2 sentences)
 [Core instructions - under 500 lines]
 
 ## Advanced Features
+
 - **Topic A**: See [references/topic-a.md]
 - **Topic B**: See [references/topic-b.md]
 ```
 
-**Key patterns:**
-
-1. **Progressive disclosure** - Keep SKILL.md lean, reference files for details:
-   ```markdown
-   ## Quick Start
-   [Essential workflow]
-
-   ## Details
-   - Concurrency: See `references/concurrency.md`
-   - Testing: See `references/testing.md`
-   ```
-
-2. **Domain organization** - Split by variant:
-   ```
-   references/
-   ├── aws.md     # Only loaded for AWS work
-   ├── gcp.md     # Only loaded for GCP work
-   └── azure.md   # Only loaded for Azure work
-   ```
-
-3. **MUST DO / MUST NOT** - Clear guardrails:
-   ```markdown
-   ## MUST DO
-   - Format with `gofmt`
-   - Handle all errors explicitly
-
-   ## MUST NOT
-   - Ignore errors with bare `_`
-   - Use `panic()` for error handling
-   ```
-
 **Best practices:**
-- Description is the trigger mechanism - be comprehensive
+
+- Description is the trigger mechanism — be comprehensive
 - Move detailed content to `references/` to avoid bloating context
-- Include scripts for repetitive code that would be rewritten each time
-- No README, CHANGELOG, or auxiliary docs - only what the agent needs
+- Keep SKILL.md under 500 lines
+- No README, CHANGELOG, or auxiliary docs — only what the agent needs
 
 ---
 
-### Agents (`resources/claude-code/agents/`)
+### Rules (`resources/agents/rules/`)
 
-Agents are specialized subagents invoked via Task tool, or used as Agent Team teammates.
-
-**File format:**
-```markdown
----
-name: agent-name
-description: Brief description. Use [when/triggers].
-tools: Read, Grep, Glob, Bash
-model: opus  # or sonnet, haiku
----
-
-> **References**: Link to templates/references
-
-## Domain Prompt
-[What to analyze and how]
-
-## Methodology
-1. Step one
-2. Step two
-
-## Report Format
-[Expected output structure]
-```
-
-**Agent types:**
-
-1. **Direct analyzer** - Reads code and produces findings:
-   ```markdown
-   ## Domain Prompt
-   Review this code for:
-   1. Issue type A
-   2. Issue type B
-
-   Provide findings with:
-   - Severity
-   - File:line references
-   - Fix recommendations
-   ```
-
-2. **Team teammate** - Participates in Agent Teams, can discuss with other teammates:
-   ```markdown
-   ## Domain Prompt
-   [Analysis focus]
-
-   When running as a teammate, share findings with other reviewers
-   and challenge their conclusions.
-   ```
-
-**Best practices:**
-- Reference shared templates (`_templates/`) for common patterns
-- Include severity levels and report format
-- Scoped feedback: only review what changed, no unrelated suggestions
-
----
-
-### Rules (`resources/claude-code/rules/`)
-
-Rules are always-loaded instructions that shape Claude's behavior.
+Rules are always-loaded instructions deployed to all agents. They shape behavior
+globally.
 
 **Characteristics:**
+
 - Short (under 50 lines ideal)
 - Imperative statements
 - No elaboration beyond essentials
+- Optional `paths:` frontmatter for conditional loading (e.g., `paths: **/*.go`)
 
-**Good rule structure:**
+**Example with conditional path:**
+
 ```markdown
-# Domain Rules
+---
+paths: **/*.tf
+---
 
-## Section
-- Rule one
-- Rule two
+# Terraform Development Rules
 
-## Another Section
-- Rule three
+- Always check latest provider version before specifying version constraints
+- Never guess resource argument names — consult official docs first
 ```
 
-**Examples:**
-
-1. **Workflow rules** - Process guidance:
-   ```markdown
-   ## Planning Mode
-   - Shift+Tab enters plan mode
-   - Exit before making changes
-   - Run `/plan-to-tasks` after completing plan
-   ```
-
-2. **Tool rules** - When/how to use tools:
-   ```markdown
-   ## When to Use Teams
-   **Use when:**
-   - 2+ independent tasks needing full sessions
-   - Tasks benefit from cross-discussion
-
-   **Don't use when:**
-   - Simple tasks
-   - Already confident in approach
-   ```
-
-3. **Constraint rules** - Hard limits:
-   ```markdown
-   ## Commit Messages
-   - Use conventional commit format
-   - Keep messages concise
-   ```
-
 **Best practices:**
-- Rules are always in context - every line costs tokens
-- Use tables for structured information
-- Bullet points for quick scanning
+
+- Rules are always in context — every line costs tokens
+- Use bullet points for quick scanning
 - No examples unless absolutely necessary (use skills for that)
+
+---
+
+### Commands (tool-specific)
+
+Commands are slash commands. No cross-agent standard exists, so they live in
+tool-specific directories.
+
+- Claude Code: `resources/claude-code/commands/`
+- OpenCode: `resources/opencode/commands/`
+
+---
+
+### Agents (tool-specific)
+
+Agents are specialized subagents. They live in tool-specific directories.
+
+- Claude Code: `resources/claude-code/agents/`
+- OpenCode: `resources/opencode/agents/`
 
 ---
 
 ### Hooks (`resources/claude-code/scripts/hooks/`)
 
-Hooks are scripts that run at specific events.
+Hooks are Claude Code-specific scripts that run at lifecycle events.
 
 **Hook types:**
-- `PreToolUse/` - Before tool execution (can block)
-- `PostToolUse/` - After tool execution
-- `SessionStart/` - When a session begins
-- `Stop/` - When session ends
-- `TeammateIdle/` - When a teammate finishes and goes idle
-- `TaskCompleted/` - When a task is marked complete
 
-**PreToolUse pattern (blocking):**
-```python
-#!/usr/bin/env python3
-import json
-import sys
-
-input_data = json.load(sys.stdin)
-tool_name = input_data.get("tool_name", "")
-tool_input = input_data.get("tool_input") or {}
-command = tool_input.get("command", "")
-
-if should_block(command):
-    output = {
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "deny",
-            "permissionDecisionReason": "Reason for blocking"
-        }
-    }
-    print(json.dumps(output))
-    sys.exit(0)
-
-# Allow: exit with no output
-sys.exit(0)
-```
-
-**PostToolUse pattern (formatting):**
-```bash
-#!/usr/bin/env bash
-# Format files after Write/Edit
-
-tool_name="$TOOL_NAME"
-file_path="$FILE_PATH"
-
-if [[ "$tool_name" =~ ^(Write|Edit)$ ]] && [[ "$file_path" == *.go ]]; then
-    gofmt -w "$file_path"
-fi
-```
-
-**Best practices:**
-- Exit 0 with JSON output to block, exit 0 with no output to allow
-- Use allowlists for safe patterns before blocklists
-- Include clear reasons in denial messages
-- PostToolUse hooks should be idempotent
+- `PreToolUse/` — Before tool execution (can block)
+- `PostToolUse/` — After tool execution
+- `SessionStart/` — When a session begins
+- `Stop/` — When session ends
 
 ---
 
 ### Context Efficiency
 
-For detailed token optimization patterns, see `skills/skill-creator/references/context-efficiency.md`.
+For detailed token optimization patterns, see
+`skills/skill-creator/references/context-efficiency.md`.
 
-**Key budgets:**
-| Component | Target |
-|-----------|--------|
-| Rules | ~500 tokens (always loaded) |
-| Agent body | 400-600 tokens |
-| Skill SKILL.md | ~500 tokens |
-| References | ~300 tokens each |
-
-**Shared templates:** `agents/_templates/` for common patterns, `agents/_references/` for domain knowledge.
-
----
-
-## Quick Reference
-
-| Type    | Location                        | Trigger              | Context Load |
-| ------- | ------------------------------- | -------------------- | ------------ |
-| Command | `commands/`                     | `/command-name`      | On invoke    |
-| Skill   | `skills/*/SKILL.md`             | Auto (via desc)      | On match     |
-| Agent   | `agents/`                       | Task tool            | On spawn     |
-| Rule    | `rules/`                        | Always               | Always       |
-| Hook    | `scripts/hooks/{Pre,Post,SessionStart,Stop,TeammateIdle,TaskCompleted}` | Tool/event lifecycle | N/A          |
+**Key budgets:** | Component | Target | |-|-| | Rules | ~500 tokens (always
+loaded) | | Skill SKILL.md | ~500 tokens | | References | ~300 tokens each |
 
 ---
 
 ## Nix Registration (Required)
 
-**All new resources must be registered in Nix** to be deployed. After creating any command, skill, agent, rule, or hook:
+**All new resources must be registered in Nix** to be deployed:
 
-1. **Commands, Agents, Rules**: Register in `claude-code.nix`
-2. **Skills**: Register in `orchestrator.nix`
-3. **Hooks**: Register in `claude-code.nix` under the appropriate hook type
+1. **Skills**: Auto-discovered from `resources/agents/skills/` by
+   `orchestrator.nix`
+2. **Rules**: Auto-discovered from `resources/agents/rules/` by
+   `claude-code.nix` and `opencode.nix`
+3. **Commands, Agents**: Auto-discovered from tool-specific dirs by each tool's
+   `.nix` module
+4. **Hooks**: Register in `claude-code.nix` under the appropriate hook type
 
-Example skill registration in `orchestrator.nix`:
-```nix
-".claude/skills/my-skill/SKILL.md".source = "${skillsDir}/my-skill/SKILL.md";
-```
-
-Without Nix registration, resources won't be symlinked to `~/.claude/` and won't be available.
+New files must be committed before Nix can see them (flakes only track
+git-tracked files).

@@ -1,16 +1,20 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository.
 
 ## Overview
 
-This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS systems with home-manager for user-level configuration. It uses agenix for secrets management with age encryption.
+This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS
+systems with home-manager for user-level configuration. It uses agenix for
+secrets management with age encryption.
 
 **Machines:**
 
 - Darwin: `studio`, `macbook-m3-pro`, `w-henrique` (all aarch64-darwin)
 - NixOS: `nixos`, `aether` (x86_64-linux)
-- Proxmox LXCs: `atuin`, `mqtt`, `cloudflared` (x86_64-linux, minimal role)
+- Proxmox LXCs: `atuin`, `mqtt`, `cloudflared`, `moltbot` (x86_64-linux, minimal
+  role)
 
 **Proxmox Hosts:**
 
@@ -18,19 +22,23 @@ This is a Nix flake configuration managing multiple Darwin (macOS) and NixOS sys
 
 ## Moltbot (AI Assistant Gateway)
 
-Moltbot is deployed as a Proxmox LXC container providing AI assistant capabilities via Telegram.
+Moltbot is deployed as a Proxmox LXC container providing AI assistant
+capabilities via Telegram.
 
 **Configuration Files:**
 
-- **NixOS config:** `nixos/machines/moltbot.nix` - systemd service, secrets, tmpfiles
-- **Runtime config:** `private/nixos/machines/resources/moltbot/moltbot.json` - channels, agents, models (private)
+- **NixOS config:** `nixos/machines/moltbot.nix` - systemd service, secrets,
+  tmpfiles
+- **Runtime config:** `private/nixos/machines/resources/moltbot/moltbot.json` -
+  channels, agents, models (private)
 - **Secrets:** `private/nixos/secrets/moltbot/*.age` - API keys, tokens
 
 **Key Locations on LXC:**
 
 - Config: `/var/lib/moltbot/.moltbot/moltbot.json`
 - Workspace: `/var/lib/moltbot/workspace`
-- Auth profiles: `/var/lib/moltbot/.moltbot/agents/main/agent/auth-profiles.json`
+- Auth profiles:
+  `/var/lib/moltbot/.moltbot/agents/main/agent/auth-profiles.json`
 
 **Deployment:**
 
@@ -39,6 +47,33 @@ rebuild -vL moltbot  # Build locally and deploy to LXC
 ```
 
 **Documentation:** https://docs.molt.bot/
+
+## OpenChamber (Remote AI IDE)
+
+OpenChamber runs as a Docker container on aether, providing a web-based OpenCode
+interface.
+
+**Configuration:** `nixos/machines/aether.nix`
+
+**Container setup:**
+
+- Listens on `127.0.0.1:3000` only
+- Runs as uid 1000 (kamushadenes)
+- `/Users -> /home` symlink baked into image (macOS path compatibility)
+
+**Mounted volumes:**
+
+- `~/.config/opencode` — OpenCode config (symlinks resolve via `/nix/store`
+  mount)
+- `~/.agents` — Skills (agentskills.io standard)
+- `~/.local/share/opencode` — Auth, DB, state
+- `~/.local/state/opencode` — KV, model, prompt history
+- `~/Dropbox` — NFS-mounted Dropbox
+- `/nix/store` (ro) — Resolves home-manager symlinks
+- `/run/user/1000` (ro) — Resolves agenix secret symlinks
+- SSH keys from agenix (symlinked via entrypoint wrapper)
+
+**Rebuild:** `rebuild -vL aether`
 
 ## Commands
 
@@ -61,22 +96,26 @@ sudo nixos-rebuild switch --flake ~/.config/nix/config/ --impure
 darwin-rebuild switch --flake ~/.config/nix/config/ --impure
 ```
 
-**IMPORTANT: Cache timeout errors require rebuild retry.** If `rebuild` fails with:
+**IMPORTANT: Cache timeout errors require rebuild retry.** If `rebuild` fails
+with:
 
 ```
 error: unable to download 'https://ncps.hyades.io/...': Connection timed out
 ```
 
-This is NOT benign - the build was interrupted and packages may not be installed. Run `rebuild` again until it completes without cache errors.
+This is NOT benign - the build was interrupted and packages may not be
+installed. Run `rebuild` again until it completes without cache errors.
 
-**IMPORTANT: Use `-vL` flags for LXC deployments.** When deploying to Proxmox LXCs, always use both flags:
+**IMPORTANT: Use `-vL` flags for LXC deployments.** When deploying to Proxmox
+LXCs, always use both flags:
 
 ```bash
 rebuild -vL cloudflared  # Build locally (-L), stream output (-v)
 ```
 
 - `-v` / `--verbose`: Streams output in real-time (prevents timeouts)
-- `-L` / `--local-build`: Builds locally and pushes to remote (faster, no need to copy age/ssh keys to LXC)
+- `-L` / `--local-build`: Builds locally and pushes to remote (faster, no need
+  to copy age/ssh keys to LXC)
 
 ## Architecture
 
@@ -100,7 +139,7 @@ flake.nix              # Entry point - defines inputs and machine configurations
 │
 ├── home/
 │   ├── common/        # Cross-platform home-manager modules
-│   │   ├── ai/        # AI agents (claude-code, codex-cli, gemini-cli, orchestrator, mcp-servers)
+│   │   ├── ai/        # AI agents (claude-code, opencode, codex-cli, gemini-cli, mcp-servers)
 │   │   ├── core/      # git, nix, agenix, fonts
 │   │   ├── dev/       # go, node, python, java, clang, clojure, android, embedded, lazygit, worktrunk
 │   │   ├── editors/   # nvim, emacs, vscode
@@ -118,38 +157,53 @@ flake.nix              # Entry point - defines inputs and machine configurations
 
 ## Key Patterns
 
-**Module specialArgs:** Each configuration receives `machine`, `shared`, `pkgs-unstable`, `inputs`, `platform`, and `private` parameters for per-machine customization.
+**Module specialArgs:** Each configuration receives `machine`, `shared`,
+`pkgs-unstable`, `inputs`, `platform`, and `private` parameters for per-machine
+customization.
 
 **Helpers (`shared/helpers.nix`):**
 
 - `globalVariables.base` - Environment variables (EDITOR, DOOMDIR, NH_FLAKE)
-- `globalVariables.launchctl` / `globalVariables.shell` - Platform-specific variable exports
+- `globalVariables.launchctl` / `globalVariables.shell` - Platform-specific
+  variable exports
 - `mkConditionalGithubIncludes` - Git config per GitHub organization
 - `mkAgenixPathSubst` - Secrets path substitution
 
-**Secrets:** Age-encrypted files in `private/` submodule, identity at `~/.age/age.pem`. Secrets mount to temp directories (DARWIN_USER_TEMP_DIR or XDG_RUNTIME_DIR).
+**Secrets:** Age-encrypted files in `private/` submodule, identity at
+`~/.age/age.pem`. Secrets mount to temp directories (DARWIN_USER_TEMP_DIR or
+XDG_RUNTIME_DIR).
 
-**Distributed builds:** Three machines share builds via ssh-ng protocol with custom cache at `ncps.hyades.io`.
+**Distributed builds:** Three machines share builds via ssh-ng protocol with
+custom cache at `ncps.hyades.io`.
 
-**File synchronization:** Uses Mutagen with hub-and-spoke topology. `aether` serves as the central hub, and spoke machines (Darwin and other NixOS) sync project folders bidirectionally. Managed via `home/common/sync/mutagen.nix`. Run `mutagen-setup` on spoke machines to create sync sessions.
+**File synchronization:** Uses Mutagen with hub-and-spoke topology. `aether`
+serves as the central hub, and spoke machines (Darwin and other NixOS) sync
+project folders bidirectionally. Managed via `home/common/sync/mutagen.nix`. Run
+`mutagen-setup` on spoke machines to create sync sessions.
 
 ## Important: Git and Nix Flakes
 
-**New files must be committed before Nix can see them.** Nix flakes only evaluate files tracked by git. When adding new files:
+**New files must be committed before Nix can see them.** Nix flakes only
+evaluate files tracked by git. When adding new files:
 
 1. Stage and commit new files before running `nix flake check` or `rebuild`
 2. Modified existing files work without committing
-3. The `private/` submodule requires separate commits - commit there first, then update the submodule reference in the main repo
+3. The `private/` submodule requires separate commits - commit there first, then
+   update the submodule reference in the main repo
 
 ## Private Submodule Access
 
-The `private/` directory is a git submodule. Due to nix flakes not including submodule contents when copying to the nix store, we use `builtins.fetchGit` with `submodules = true` to access private files.
+The `private/` directory is a git submodule. Due to nix flakes not including
+submodule contents when copying to the nix store, we use `builtins.fetchGit`
+with `submodules = true` to access private files.
 
 **Key Points:**
 
 - The `private` variable is passed through `specialArgs` to all modules
-- Modules must add `private` to their function parameters: `{ config, pkgs, private, ... }:`
-- Reference private files using `"${private}/relative/path"` (NOT symlinks like `./resources/...`)
+- Modules must add `private` to their function parameters:
+  `{ config, pkgs, private, ... }:`
+- Reference private files using `"${private}/relative/path"` (NOT symlinks like
+  `./resources/...`)
 - Rebuilds require `--impure` flag (the `rebuild` alias handles this)
 
 **Example - Referencing a private secret file:**
@@ -182,13 +236,15 @@ The `private/` directory is a git submodule. Due to nix flakes not including sub
 
 - Modules are self-contained and grouped by functionality
 - Static files go in `resources/` subdirectories within their module
-- Private/sensitive configs use the `private` variable (NOT symlinks) - see "Private Submodule Access" section
+- Private/sensitive configs use the `private` variable (NOT symlinks) - see
+  "Private Submodule Access" section
 - Uses Lix (alternative Nix implementation) from stable package sets
 - Primary shell is Fish; primary editor is Neovim (unstable channel)
 
 ## CRITICAL: Never Guess - Always Consult Documentation
 
-**NEVER guess or assume configuration formats, API structures, or tool behaviors.** Always consult official documentation before implementing.
+**NEVER guess or assume configuration formats, API structures, or tool
+behaviors.** Always consult official documentation before implementing.
 
 When working with tools or services:
 
@@ -198,25 +254,33 @@ When working with tools or services:
 
 ### Key Documentation URLs
 
-- **Moltbot**: https://docs.molt.bot/ - AI assistant gateway (Telegram, Discord, etc.)
+- **Moltbot**: https://docs.molt.bot/ - AI assistant gateway (Telegram, Discord,
+  etc.)
 
 ## Cloudflare DNS Token (Global Secret)
 
-A global Cloudflare DNS API token is stored at `private/nixos/secrets/cloudflare/cloudflare-dns-token.age` for Let's Encrypt ACME DNS-01 challenges. The env file format is `CLOUDFLARE_DNS_API_TOKEN=<token>`.
+A global Cloudflare DNS API token is stored at
+`private/nixos/secrets/cloudflare/cloudflare-dns-token.age` for Let's Encrypt
+ACME DNS-01 challenges. The env file format is
+`CLOUDFLARE_DNS_API_TOKEN=<token>`.
 
 **Adding a new machine as consumer:**
 
-1. Add the machine's SSH host key to `private/nixos/secrets/cloudflare/secrets.nix`
+1. Add the machine's SSH host key to
+   `private/nixos/secrets/cloudflare/secrets.nix`
 2. Re-encrypt: `cd private/nixos/secrets/cloudflare && agenix -r`
-3. In the machine's nix config, reference it via `age.secrets` and `security.acme`
+3. In the machine's nix config, reference it via `age.secrets` and
+   `security.acme`
 
 ## Landing the Plane (Session Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT
+complete until `git push` succeeds.
 
 **MANDATORY WORKFLOW:**
 
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
+1. **File issues for remaining work** - Create issues for anything that needs
+   follow-up
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
 4. **PUSH TO REMOTE** - This is MANDATORY:
