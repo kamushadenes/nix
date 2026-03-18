@@ -106,6 +106,9 @@ let
       # OpenCode experimental features
       OPENCODE_EXPERIMENTAL_LSP_TOOL = "true";
       OPENCODE_ENABLE_EXA = "1";
+
+      # Disable OpenCode's Claude Code compatibility (we use ~/.agents/ instead)
+      OPENCODE_DISABLE_CLAUDE_CODE = "1";
     };
 
     launchctl = mkVarExports (

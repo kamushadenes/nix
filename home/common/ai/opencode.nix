@@ -22,12 +22,12 @@ let
     "deepwiki"
     "Ref"
     "playwriter"
-    "orchestrator"
   ];
 
   # Resource directories
   resourcesDir = ./resources/opencode;
-  rulesDir = "${resourcesDir}/rules";
+  sharedDir = ./resources/agents;
+  sharedRulesDir = "${sharedDir}/rules";
   pluginsDir = "${resourcesDir}/plugins";
   agentsDir = "${resourcesDir}/agents";
   commandsDir = "${resourcesDir}/commands";
@@ -40,7 +40,7 @@ let
     else
       { };
 
-  ruleFiles = discoverFiles rulesDir;
+  sharedRuleFiles = discoverFiles sharedRulesDir;
   pluginFiles = discoverFiles pluginsDir;
   agentFiles = discoverFiles agentsDir;
   commandFiles = discoverFiles commandsDir;
@@ -249,11 +249,11 @@ in
     };
 
   }
-  # Rules - auto-discovered from rulesDir
+  # Rules - from shared resources/agents/ (all OC rules are now global)
   // lib.mapAttrs' (name: _: {
     name = ".config/opencode/rules/${name}";
-    value.source = "${rulesDir}/${name}";
-  }) ruleFiles
+    value.source = "${sharedRulesDir}/${name}";
+  }) sharedRuleFiles
   # Plugins - auto-discovered from pluginsDir
   // lib.mapAttrs' (name: _: {
     name = ".config/opencode/plugins/${name}";

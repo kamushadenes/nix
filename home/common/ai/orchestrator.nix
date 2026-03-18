@@ -1,8 +1,8 @@
-# Orchestrator MCP Server configuration
+# Agent Skills deployment
 #
-# Provides:
-# - MCP server for terminal automation (tmux_* tools) and notifications
-# - Auto-discovered skills from resources/claude-code/skills/
+# Auto-discovers skills from resources/agents/skills/ and deploys
+# to ~/.agents/skills/ (agentskills.io standard).
+# Discovered by Claude Code, OpenCode, Cursor, Gemini CLI, and 30+ agents.
 {
   config,
   lib,
@@ -11,9 +11,8 @@
 }:
 let
   # Resource directories
-  resourcesDir = ./resources/claude-code;
-  scriptsDir = "${resourcesDir}/scripts";
-  skillsDir = "${resourcesDir}/skills";
+  sharedDir = ./resources/agents;
+  skillsDir = "${sharedDir}/skills";
 
   # Auto-discover all skill directories (excluding _shared)
   skillEntries = builtins.readDir skillsDir;
@@ -54,31 +53,23 @@ let
     }) files
   ) { } (builtins.attrNames skillDirs);
 
-  # Convert skill files to home.file entries
-  skillFileEntries = lib.mapAttrs' (name: sourcePath: {
-    name = ".claude/skills/${name}";
-    value =
-      if lib.hasSuffix ".py" name || lib.hasSuffix ".sh" name then
-        {
-          source = sourcePath;
-          executable = true;
-        }
-      else
-        { source = sourcePath; };
-  }) skillFiles;
+  # Convert skill files to home.file entries for a given prefix
+  mkSkillEntries =
+    prefix:
+    lib.mapAttrs' (name: sourcePath: {
+      name = "${prefix}/${name}";
+      value =
+        if lib.hasSuffix ".py" name || lib.hasSuffix ".sh" name then
+          {
+            source = sourcePath;
+            executable = true;
+          }
+        else
+          { source = sourcePath; };
+    }) skillFiles;
+
+  agentsSkillEntries = mkSkillEntries ".agents/skills";
 in
 {
-  #############################################################################
-  # Orchestrator Files
-  #############################################################################
-
-  home.file =
-    {
-      # Orchestrator MCP server - terminal automation
-      ".config/orchestrator-mcp/server.py" = {
-        source = "${scriptsDir}/orchestrator-mcp-server.py";
-        executable = true;
-      };
-    }
-    // skillFileEntries;
+  home.file = agentsSkillEntries;
 }

@@ -21,7 +21,6 @@ let
     "repomix"
     "godoc"
     "terraform"
-    "orchestrator"
   ];
 
   # MCP server configurations in Gemini format

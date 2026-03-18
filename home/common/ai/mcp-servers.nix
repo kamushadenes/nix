@@ -15,7 +15,12 @@
 # - args: Command arguments (for stdio transport)
 # - env: Environment variables (for stdio transport)
 # - timeout: Timeout in milliseconds
-{ config, lib, pkgs ? null, private ? null }:
+{
+  config,
+  lib,
+  pkgs ? null,
+  private ? null,
+}:
 let
   homeDir = config.home.homeDirectory;
 
@@ -118,18 +123,6 @@ let
       ];
     };
 
-    # Orchestrator MCP - Terminal automation
-    orchestrator = {
-      transport = "stdio";
-      command = "uvx";
-      args = [
-        "--with"
-        "fastmcp"
-        "python"
-        "${homeDir}/.config/orchestrator-mcp/server.py"
-      ];
-    };
-
     # Note: clickup and vanta moved to private/home/common/ai/mcp-servers-private.nix
     # as iniciador-clickup and iniciador-vanta (workspace-scoped)
   };
@@ -144,7 +137,6 @@ let
     "deepwiki"
     "Ref"
     "playwriter"
-    "orchestrator"
   ];
 
   #############################################################################

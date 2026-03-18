@@ -62,11 +62,13 @@
       # Fetch private submodule from local path with submodules enabled
       # Uses HOME env var for portability (requires --impure flag)
       # Uses ref="main" instead of allRefs=true to avoid exposing entire git history
-      private = builtins.fetchGit {
-        url = "file://${builtins.getEnv "HOME"}/.config/nix/config";
-        submodules = true;
-        ref = "main";
-      } + "/private";
+      private =
+        builtins.fetchGit {
+          url = "file://${builtins.getEnv "HOME"}/.config/nix/config";
+          submodules = true;
+          ref = "main";
+        }
+        + "/private";
 
       # Proxmox cluster nodes for daemon LXCs and pct commands
       # Maps node name -> Proxmox host IP (for SSH access as root)
@@ -87,7 +89,13 @@
         darwin.lib.darwinSystem {
           inherit system;
           specialArgs = {
-            inherit inputs machine shared private role;
+            inherit
+              inputs
+              machine
+              shared
+              private
+              role
+              ;
             claudebox = claudebox.packages.${system}.default;
             pkgs-unstable = import nixpkgs-unstable {
               inherit system;
@@ -110,7 +118,14 @@
         nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = {
-            inherit inputs machine shared private hardware role;
+            inherit
+              inputs
+              machine
+              shared
+              private
+              hardware
+              role
+              ;
             claudebox = claudebox.packages.${system}.default;
             pkgs-unstable = import nixpkgs-unstable {
               inherit system;
@@ -136,7 +151,14 @@
         nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = {
-            inherit inputs machine shared private hardware role;
+            inherit
+              inputs
+              machine
+              shared
+              private
+              hardware
+              role
+              ;
             claudebox = claudebox.packages.${system}.default;
             pkgs-unstable = import nixpkgs-unstable {
               inherit system;
@@ -144,50 +166,95 @@
             };
             platform = system;
           };
-          modules = nixosModules ++ [
-            # Proxmox guests run inside private infrastructure — disable
-            # services that are redundant behind the host's network/firewall
-            ({ lib, ... }: {
-              services.fail2ban.enable = lib.mkForce false;
-              services.nextdns.enable = lib.mkForce false;
-              networking.firewall.enable = lib.mkForce false;
-              # Use infrastructure DNS directly (no local nextdns)
-              networking.nameservers = lib.mkForce [ "10.23.23.1" "1.1.1.1" ];
-              # LXC can't create network namespaces — relaxed sandbox allows
-              # fixed-output derivations (source fetches) to access the network
-              nix.settings.sandbox = "relaxed";
-            })
-          ] ++ (if persistence then [
-            ./nixos/proxmox/persistence.nix
-            ({ ... }: {
-              proxmox.persistence.extraPaths = extraPersistPaths;
-            })
-          ] else []);
+          modules =
+            nixosModules
+            ++ [
+              # Proxmox guests run inside private infrastructure — disable
+              # services that are redundant behind the host's network/firewall
+              (
+                { lib, ... }:
+                {
+                  services.fail2ban.enable = lib.mkForce false;
+                  services.nextdns.enable = lib.mkForce false;
+                  networking.firewall.enable = lib.mkForce false;
+                  # Use infrastructure DNS directly (no local nextdns)
+                  networking.nameservers = lib.mkForce [
+                    "10.23.23.1"
+                    "1.1.1.1"
+                  ];
+                  # LXC can't create network namespaces — relaxed sandbox allows
+                  # fixed-output derivations (source fetches) to access the network
+                  nix.settings.sandbox = "relaxed";
+                }
+              )
+            ]
+            ++ (
+              if persistence then
+                [
+                  ./nixos/proxmox/persistence.nix
+                  (
+                    { ... }:
+                    {
+                      proxmox.persistence.extraPaths = extraPersistPaths;
+                    }
+                  )
+                ]
+              else
+                [ ]
+            );
         };
 
       # Helper to create daemon LXCs that run on all Proxmox nodes
       # Generates: { daemon-pve1 = ...; daemon-pve2 = ...; daemon-pve3 = ...; }
-      mkDaemonLXCs = { name, hardware, role ? "minimal", extraPersistPaths ? [] }:
-        builtins.listToAttrs (map (node: {
-          name = "${name}-${node}";
-          value = mkProxmoxHost {
-            machine = "${name}-${node}";
-            hardware = hardware node;  # Function that takes node name
-            inherit role extraPersistPaths;
-          };
-        }) (builtins.attrNames pveNodes));
+      mkDaemonLXCs =
+        {
+          name,
+          hardware,
+          role ? "minimal",
+          extraPersistPaths ? [ ],
+        }:
+        builtins.listToAttrs (
+          map (node: {
+            name = "${name}-${node}";
+            value = mkProxmoxHost {
+              machine = "${name}-${node}";
+              hardware = hardware node; # Function that takes node name
+              inherit role extraPersistPaths;
+            };
+          }) (builtins.attrNames pveNodes)
+        );
 
       darwinModules = [
         ./darwin.nix
         agenix.darwinModules.default
         home-manager.darwinModules.home-manager
         (
-          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, role, claudebox, ... }:
+          {
+            pkgs,
+            pkgs-unstable,
+            config,
+            inputs,
+            machine,
+            platform,
+            shared,
+            role,
+            claudebox,
+            ...
+          }:
           {
             home-manager = pkgs.lib.mkMerge [
               {
                 extraSpecialArgs = {
-                  inherit inputs pkgs-unstable machine platform shared private role claudebox;
+                  inherit
+                    inputs
+                    pkgs-unstable
+                    machine
+                    platform
+                    shared
+                    private
+                    role
+                    claudebox
+                    ;
                 };
               }
               hmDefaults
@@ -203,12 +270,33 @@
         agenix.nixosModules.default
         home-manager.nixosModules.home-manager
         (
-          { pkgs, pkgs-unstable, config, inputs, machine, platform, shared, private, role, claudebox, ... }:
+          {
+            pkgs,
+            pkgs-unstable,
+            config,
+            inputs,
+            machine,
+            platform,
+            shared,
+            private,
+            role,
+            claudebox,
+            ...
+          }:
           {
             home-manager = pkgs.lib.mkMerge [
               {
                 extraSpecialArgs = {
-                  inherit inputs pkgs-unstable machine platform shared private role claudebox;
+                  inherit
+                    inputs
+                    pkgs-unstable
+                    machine
+                    platform
+                    shared
+                    private
+                    role
+                    claudebox
+                    ;
                 };
               }
               hmDefaults
@@ -274,6 +362,10 @@
           machine = "aether";
           role = "headless";
           hardware = ./nixos/hardware/aether.nix;
+          extraPersistPaths = [
+            "/var/lib/docker"
+            "/var/lib/openchamber"
+          ];
         };
 
         # Atuin shell history sync server (LXC)
@@ -305,7 +397,10 @@
           machine = "esphome";
           hardware = ./nixos/hardware/esphome.nix;
           role = "minimal";
-          extraPersistPaths = [ "/var/lib/esphome" "/var/lib/docker" ];
+          extraPersistPaths = [
+            "/var/lib/esphome"
+            "/var/lib/docker"
+          ];
         };
 
         # Nix Cache Proxy Server (ncps) - local binary cache with NFS storage
@@ -313,7 +408,10 @@
           machine = "ncps";
           hardware = ./nixos/hardware/ncps.nix;
           role = "minimal";
-          extraPersistPaths = [ "/var/lib/docker" "/var/lib/acme" ];
+          extraPersistPaths = [
+            "/var/lib/docker"
+            "/var/lib/acme"
+          ];
         };
 
         # WAHA WhatsApp HTTP API (LXC)
@@ -321,7 +419,10 @@
           machine = "waha";
           hardware = ./nixos/hardware/waha.nix;
           role = "minimal";
-          extraPersistPaths = [ "/var/lib/waha" "/var/lib/docker" ];
+          extraPersistPaths = [
+            "/var/lib/waha"
+            "/var/lib/docker"
+          ];
         };
 
         # Home Assistant (LXC) - native NixOS service, not Docker
@@ -387,20 +488,23 @@
         # };
         #
         # 5. Deploy: rebuild my-postgres-vm
-      } // (mkDaemonLXCs {
+      }
+      // (mkDaemonLXCs {
         # Cloudflare Tunnel daemon - runs on all Proxmox nodes for HA
         # All instances share the same tunnel token (they're connectors to the same tunnel)
         name = "cloudflared";
         hardware = node: ./nixos/hardware/cloudflared-${node}.nix;
         # No extraPersistPaths - token-based tunnels have no persistent state
-      }) // (mkDaemonLXCs {
+      })
+      // (mkDaemonLXCs {
         # Tailscale subnet router daemon - runs on all Proxmox nodes for HA
         # Unlike cloudflared, each node has its OWN state (unique machine identity)
         # pve2/pve3: Create LXCs and auth before deploying (see hardware config TODOs)
         name = "tailscale";
         hardware = node: ./nixos/hardware/tailscale-${node}.nix;
         extraPersistPaths = [ "/var/lib/tailscale" ];
-      }) // (mkDaemonLXCs {
+      })
+      // (mkDaemonLXCs {
         # Prometheus exporters daemon - node_exporter + ipmi_exporter on each Proxmox node
         # Stateless metric exporters scraped by the central Prometheus server
         name = "prom-exporter";

@@ -25,13 +25,14 @@ let
 
   # Resource directories
   resourcesDir = ./resources/claude-code;
+  sharedDir = ./resources/agents;
   scriptsDir = "${resourcesDir}/scripts";
-  rulesDir = "${resourcesDir}/rules";
+  rulesDir = "${sharedDir}/rules";
   memoryDir = "${resourcesDir}/memory";
   commandsDir = "${resourcesDir}/commands";
   agentsDir = "${resourcesDir}/agents";
 
-  # Read rule files from the rules directory
+  # Read rule files from shared directory (all rules are now global)
   ruleFiles = builtins.attrNames (builtins.readDir rulesDir);
   rulesConfig = lib.listToAttrs (
     map (name: {
@@ -94,7 +95,6 @@ let
     "github"
     "Ref"
     "playwriter"
-    "orchestrator"
     "iniciador-vanta"
   ];
 
@@ -511,7 +511,7 @@ in
     # Markdownlint configuration
     ".claude/config/markdownlint.jsonc".source = "${resourcesDir}/config/markdownlint.jsonc";
 
-    # Note: Orchestrator MCP server, CLI, and skills are now in orchestrator.nix
+    # Note: Skills are deployed via orchestrator.nix to ~/.agents/skills/
     # Note: Agents are auto-discovered below via lib.mapAttrs'
   }
   // lib.mapAttrs' (name: content: {

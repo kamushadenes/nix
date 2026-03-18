@@ -231,17 +231,6 @@
     # MCP: IDE
     "mcp__ide__getDiagnostics"
 
-    # MCP: Orchestrator - tmux
-    "mcp__orchestrator__tmux_new_window"
-    "mcp__orchestrator__tmux_send"
-    "mcp__orchestrator__tmux_wait_idle"
-    "mcp__orchestrator__tmux_capture"
-    "mcp__orchestrator__tmux_list"
-    "mcp__orchestrator__tmux_select"
-    "mcp__orchestrator__tmux_kill"
-    "mcp__orchestrator__tmux_interrupt"
-    "mcp__orchestrator__notify"
-
     # MCP: Claude-in-Chrome browser automation
     "mcp__claude-in-chrome__javascript_tool"
     "mcp__claude-in-chrome__read_page"
