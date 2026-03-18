@@ -127,6 +127,8 @@ let
       "@simonwjackson/opencode-direnv"
       "envsitter-guard"
       "opentmux"
+      "opencode-vibeguard"
+      "opencode-wakatime"
     ];
   };
 
