@@ -190,19 +190,6 @@ in
     }
   ];
 
-  # Use persistent SSH host keys (survives ephemeral root rebuilds)
-  services.openssh.hostKeys = [
-    {
-      path = "/nix/persist/etc/ssh/ssh_host_ed25519_key";
-      type = "ed25519";
-    }
-    {
-      path = "/nix/persist/etc/ssh/ssh_host_rsa_key";
-      type = "rsa";
-      bits = 4096;
-    }
-  ];
-
   # Use systemd-networkd only (disable NetworkManager from base network.nix)
   networking.networkmanager.enable = lib.mkForce false;
 }
