@@ -80,8 +80,8 @@ in
       cd "$REPO_DIR"
       docker build -t "${openchamberImage}-base" .
 
-      # Add /Users -> /home symlink for macOS path compatibility
-      printf 'FROM ${openchamberImage}-base\nUSER root\nRUN ln -sfn /home /Users\nUSER openchamber\n' \
+      # Rename user to kamushadenes, add /Users -> /home symlink for macOS path compatibility
+      printf 'FROM ${openchamberImage}-base\nUSER root\nRUN sed -i "s/openchamber/kamushadenes/g" /etc/passwd /etc/group 2>/dev/null; mv /home/openchamber /home/kamushadenes; ln -sfn /home/kamushadenes /home/openchamber; ln -sfn /home /Users\nUSER kamushadenes\n' \
         | docker build -t "${openchamberImage}" -t openchamber:latest -
     '';
   };
@@ -96,21 +96,21 @@ in
       entrypoint = "/bin/sh";
       cmd = [
         "-c"
-        "ln -sf /run/user/1000/agenix/id_ed25519.age /home/openchamber/.ssh/id_ed25519 && ln -sf /run/user/1000/agenix/id_ed25519.pub.age /home/openchamber/.ssh/id_ed25519.pub && exec /app/openchamber-entrypoint.sh"
+        "ln -sf /run/user/1000/agenix/id_ed25519.age /home/kamushadenes/.ssh/id_ed25519 && ln -sf /run/user/1000/agenix/id_ed25519.pub.age /home/kamushadenes/.ssh/id_ed25519.pub && exec /app/openchamber-entrypoint.sh"
       ];
       ports = [ "127.0.0.1:${toString openchamberPort}:3000" ];
       volumes = [
-        "${homeDir}/.config/openchamber:/home/openchamber/.config/openchamber"
-        "${homeDir}/.local/share/opencode:/home/openchamber/.local/share/opencode"
-        "${homeDir}/.local/state/opencode:/home/openchamber/.local/state/opencode"
-        "${homeDir}/.config/opencode:/home/openchamber/.config/opencode"
-        "${homeDir}/.agents:/home/openchamber/.agents"
+        "${homeDir}/.config/openchamber:/home/kamushadenes/.config/openchamber"
+        "${homeDir}/.local/share/opencode:/home/kamushadenes/.local/share/opencode"
+        "${homeDir}/.local/state/opencode:/home/kamushadenes/.local/state/opencode"
+        "${homeDir}/.config/opencode:/home/kamushadenes/.config/opencode"
+        "${homeDir}/.agents:/home/kamushadenes/.agents"
         # Nix store (read-only) — home-manager config files are symlinks into /nix/store
         "/nix/store:/nix/store:ro"
         # Agenix runtime secrets — /run/user/1000/agenix is a symlink to agenix.d/N/
         # Mount the parent so the full symlink chain resolves
         "/run/user/1000:/run/user/1000:ro"
-        "${homeDir}/Dropbox:/home/openchamber/Dropbox"
+        "${homeDir}/Dropbox:/home/kamushadenes/Dropbox"
       ];
       environment = {
         # UI_PASSWORD = ""; # Set via agenix if authentication is desired

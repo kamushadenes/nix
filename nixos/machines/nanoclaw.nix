@@ -163,10 +163,9 @@ in
     '';
   };
 
-  # Ensure data directories exist
+  # Ensure data directory exists (don't create /app — git clone does that)
   systemd.tmpfiles.rules = [
     "d ${nanoclaw-home} 0700 nanoclaw nanoclaw -"
-    "d ${nanoclaw-home}/app 0700 nanoclaw nanoclaw -"
   ];
 
   # Use systemd-networkd only (disable NetworkManager from base network.nix)
