@@ -108,7 +108,9 @@ in
       set -euo pipefail
 
       echo "Cloning NanoClaw..."
-      ${pkgs.git}/bin/git clone https://github.com/qwibitai/nanoclaw.git ${nanoclaw-app}
+      ${pkgs.git}/bin/git clone https://github.com/kamushadenes/nanoclaw.git ${nanoclaw-app}
+      cd ${nanoclaw-app}
+      ${pkgs.git}/bin/git remote add upstream https://github.com/qwibitai/nanoclaw.git
 
       echo "Installing dependencies..."
       cd ${nanoclaw-app}
