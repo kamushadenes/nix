@@ -34,6 +34,7 @@ let
 
   # Ignore patterns for sync
   ignorePatterns = [
+    ".git"
     "node_modules"
     "__pycache__"
     ".pytest_cache"
@@ -64,16 +65,16 @@ let
 
   # Generate mutagen.yml content
   mutagenYaml = pkgs.writeText "mutagen.yml" ''
-    sync:
-      defaults:
-        mode: two-way-safe
-        ignore:
-          vcs: false
-          paths:
-${lib.concatMapStrings (p: "            - \"${p}\"\n") ignorePatterns}
-        permissions:
-          defaultFileMode: 0644
-          defaultDirectoryMode: 0755
+        sync:
+          defaults:
+            mode: two-way-safe
+            ignore:
+              vcs: false
+              paths:
+    ${lib.concatMapStrings (p: "            - \"${p}\"\n") ignorePatterns}
+            permissions:
+              defaultFileMode: 0644
+              defaultDirectoryMode: 0755
   '';
 
   # Shell function to create sync sessions
@@ -83,13 +84,13 @@ ${lib.concatMapStrings (p: "            - \"${p}\"\n") ignorePatterns}
 
     # Create sessions for each project
     ${lib.concatMapStrings (project: ''
-    # Terminate existing session if present (handles hub migration)
-    mutagen sync terminate ${project} 2>/dev/null; or true
-    echo "Creating session for ${project}..."
-    mutagen sync create \
-      "${projectsPath}/${project}" \
-      "${hubHost}:${hubPath}/${project}" \
-      --name="${project}"
+      # Terminate existing session if present (handles hub migration)
+      mutagen sync terminate ${project} 2>/dev/null; or true
+      echo "Creating session for ${project}..."
+      mutagen sync create \
+        "${projectsPath}/${project}" \
+        "${hubHost}:${hubPath}/${project}" \
+        --name="${project}"
     '') projects}
   '';
 in
