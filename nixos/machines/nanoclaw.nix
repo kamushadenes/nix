@@ -19,6 +19,7 @@
   config,
   lib,
   pkgs,
+  pkgs-unstable,
   private,
   ...
 }:
@@ -69,6 +70,8 @@ in
     python3
     gnumake
     gcc
+    # Claude Code for interactive NanoClaw setup (/setup, /add-whatsapp, /add-telegram)
+    pkgs-unstable.claude-code
   ];
 
   # Oneshot service to clone and build NanoClaw on first boot
