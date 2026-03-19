@@ -168,6 +168,24 @@ in
     "d ${nanoclaw-home} 0700 nanoclaw nanoclaw -"
   ];
 
+  # SSH authorized keys for root (headless role doesn't import minimal.nix)
+  users.users.root.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGqdVyJjYEVc0TfIAEa0OBtqSJJ6bVH1MQcuFnSG0ePp henrique.goncalves@henrique.goncalves"
+  ];
+
+  # Use persistent SSH host keys (survives ephemeral root rebuilds)
+  services.openssh.hostKeys = [
+    {
+      path = "/nix/persist/etc/ssh/ssh_host_ed25519_key";
+      type = "ed25519";
+    }
+    {
+      path = "/nix/persist/etc/ssh/ssh_host_rsa_key";
+      type = "rsa";
+      bits = 4096;
+    }
+  ];
+
   # Use systemd-networkd only (disable NetworkManager from base network.nix)
   networking.networkmanager.enable = lib.mkForce false;
 }
