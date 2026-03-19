@@ -13,8 +13,8 @@ secrets management with age encryption.
 
 - Darwin: `studio`, `macbook-m3-pro`, `w-henrique` (all aarch64-darwin)
 - NixOS: `nixos`, `aether` (x86_64-linux)
-- Proxmox LXCs: `atuin`, `mqtt`, `cloudflared`, `moltbot` (x86_64-linux, minimal
-  role)
+- Proxmox LXCs: `atuin`, `mqtt`, `cloudflared`, `moltbot`, `nanoclaw`
+  (x86_64-linux, minimal role)
 
 **Proxmox Hosts:**
 
@@ -47,6 +47,41 @@ rebuild -vL moltbot  # Build locally and deploy to LXC
 ```
 
 **Documentation:** https://docs.molt.bot/
+
+## NanoClaw (Personal AI Agent)
+
+NanoClaw is deployed as a Proxmox LXC container providing a personal AI agent
+for WhatsApp and Telegram via Claude agents in Docker containers.
+
+**Configuration Files:**
+
+- **NixOS config:** `nixos/machines/nanoclaw.nix` - systemd service, Docker,
+  secrets
+- **Hardware config:** `nixos/hardware/nanoclaw.nix` - LXC boilerplate
+- **Secrets:** `private/nixos/secrets/nanoclaw/*.age` - API keys
+
+**Key Locations on LXC:**
+
+- App: `/var/lib/nanoclaw/app` (git clone of qwibitai/nanoclaw)
+- Data: `/var/lib/nanoclaw` (SQLite DB, group memories, sessions)
+- Docker: agent containers spawned via Docker
+
+**Deployment:**
+
+```bash
+rebuild -vL nanoclaw  # Build locally and deploy to LXC
+```
+
+**Initial Setup (after first deploy):**
+
+```bash
+ssh nanoclaw
+sudo -u nanoclaw -i
+cd /var/lib/nanoclaw/app
+claude          # then run /setup, /add-whatsapp, /add-telegram
+```
+
+**Documentation:** https://nanoclaw.dev/
 
 ## OpenChamber (Remote AI IDE)
 

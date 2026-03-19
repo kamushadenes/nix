@@ -442,6 +442,19 @@
           extraPersistPaths = [ "/var/lib/moltbot" ];
         };
 
+        # NanoClaw (LXC) - Personal AI agent for WhatsApp/Telegram
+        # Uses headless role (not minimal) because NanoClaw requires Claude Code
+        # for setup (/setup, /add-whatsapp, /add-telegram) and ongoing customization
+        nanoclaw = mkProxmoxHost {
+          machine = "nanoclaw";
+          hardware = ./nixos/hardware/nanoclaw.nix;
+          role = "headless";
+          extraPersistPaths = [
+            "/var/lib/nanoclaw"
+            "/var/lib/docker"
+          ];
+        };
+
         # Prometheus server (LXC) - central metrics collection
         prometheus = mkProxmoxHost {
           machine = "prometheus";
