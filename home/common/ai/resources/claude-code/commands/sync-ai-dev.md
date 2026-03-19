@@ -1,11 +1,12 @@
 # /sync-ai-dev - Sync AI resources to ai-dev repository
 
-Sync resources from the Nix configuration to the standalone ai-dev repository for team use.
+Sync resources from the Nix configuration to the standalone ai-dev repository
+for team use.
 
 ## Behavior
 
 1. Check that ai-dev repo exists at `~/Dropbox/Projects/Iniciador/ai-dev`
-2. Copy resources (agents, commands, rules, skills, hooks, orchestrator)
+2. Copy resources (agents, commands, rules, skills, hooks)
 3. Show git diff of changes
 4. Prompt for commit message
 5. Commit and push to origin
@@ -116,8 +117,7 @@ export ENABLE_TOOL_SEARCH="true"
 
 # Enable LSP tools in Claude Code
 
-export ENABLE_LSP_TOOLS="1"
-EOF
+export ENABLE_LSP_TOOLS="1" EOF
 
 # Generate Claude environment variables for fish
 
@@ -133,8 +133,7 @@ set -gx ENABLE_TOOL_SEARCH "true"
 
 # Enable LSP tools in Claude Code
 
-set -gx ENABLE_LSP_TOOLS "1"
-EOF
+set -gx ENABLE_LSP_TOOLS "1" EOF
 
 ````
 

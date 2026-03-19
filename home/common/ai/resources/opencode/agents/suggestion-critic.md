@@ -1,12 +1,13 @@
 ---
-name: suggestion-critic
 description:
   Validates findings from review agents. Use as final filter before task
   creation to remove false positives, unnecessary suggestions, and out-of-scope
   items.
-tools: Read, Grep, Glob
-model: opus
-permissionMode: dontAsk
+model: anthropic/claude-opus-4-6
+mode: subagent
+tools:
+  write: false
+  edit: false
 ---
 
 > **Severity:** Use levels from `_templates/severity-levels.md`
@@ -74,10 +75,10 @@ Questions:
 
 Respond: KEEP (with adjusted severity if needed) or REJECT (with reason)"""
 
-# Spawn subagents for consensus
-Task(subagent_type="oracle", prompt=prompt)
-Task(category="ultrabrain", prompt=prompt)
-Task(category="deep", prompt=prompt)
+# Spawn all 3 for consensus
+task(subagent_type="oracle", prompt=prompt)
+task(category="ultrabrain", prompt=prompt)
+task(category="deep", prompt=prompt)
 ```
 
 Majority vote determines outcome.
