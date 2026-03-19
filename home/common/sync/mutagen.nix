@@ -35,6 +35,7 @@ let
   # Ignore patterns for sync
   ignorePatterns = [
     ".git"
+    ".devbox"
     "node_modules"
     "__pycache__"
     ".pytest_cache"
