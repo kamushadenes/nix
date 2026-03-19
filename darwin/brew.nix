@@ -1,6 +1,10 @@
 { config, ... }:
 
 {
+  # Install from API instead of cloning homebrew-core (saves ~4GB disk)
+  # https://github.com/orgs/Homebrew/discussions/2435
+  environment.variables.HOMEBREW_INSTALL_FROM_API = "1";
+
   # Homebrew
   homebrew.enable = false;
   homebrew.user = config.users.users.homebrew.name;

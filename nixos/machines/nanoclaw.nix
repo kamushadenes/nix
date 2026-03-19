@@ -142,8 +142,9 @@ in
 
     serviceConfig = {
       Type = "simple";
-      Restart = "on-failure";
-      RestartSec = "10s";
+      Restart = "always";
+      RestartSec = "5s";
+      KillMode = "process";
       User = "nanoclaw";
       Group = "nanoclaw";
       StateDirectory = "nanoclaw";
@@ -151,6 +152,13 @@ in
       WorkingDirectory = nanoclaw-app;
       # Allow spawning Docker containers
       SupplementaryGroups = [ "docker" ];
+      # Log to files (NanoClaw verify expects logs/ directory)
+      StandardOutput = "append:${nanoclaw-app}/logs/nanoclaw.log";
+      StandardError = "append:${nanoclaw-app}/logs/nanoclaw.error.log";
+    };
+
+    environment = {
+      HOME = nanoclaw-home;
     };
 
     path = [
@@ -162,6 +170,7 @@ in
     ];
 
     script = ''
+      mkdir -p ${nanoclaw-app}/logs
       export ANTHROPIC_API_KEY=$(cat ${config.age.secrets."nanoclaw-anthropic-key".path})
 
       exec ${nodejs}/bin/node dist/index.js

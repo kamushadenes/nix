@@ -88,6 +88,10 @@ let
       # Work around https://github.com/Homebrew/brew/issues/13219
       HOMEBREW_SSH_CONFIG_PATH = "${config.xdg.configHome}/ssh/brew_config";
 
+      # Install from API instead of cloning homebrew-core (saves ~4GB disk)
+      # https://github.com/orgs/Homebrew/discussions/2435
+      HOMEBREW_INSTALL_FROM_API = "1";
+
       # Work around https://github.com/sharkdp/bat/issues/2578
       LESSUTFCHARDEF = "E000-F8FF:p,F0000-FFFFD:p,100000-10FFFD:p";
 
