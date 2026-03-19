@@ -44,15 +44,16 @@ in
     };
   };
 
-  # Create nanoclaw user (DynamicUser doesn't work with bind mounts)
+  # Create nanoclaw user — needs linger for user-level systemd
   users.users.nanoclaw = {
-    isSystemUser = true;
+    isNormalUser = true;
     group = "nanoclaw";
     home = nanoclaw-home;
     shell = pkgs.bash;
     createHome = true;
     # nanoclaw needs Docker access for spawning agent containers
     extraGroups = [ "docker" ];
+    linger = true;
   };
   users.groups.nanoclaw = { };
 
@@ -123,51 +124,38 @@ in
     '';
   };
 
-  # Main NanoClaw service
-  systemd.services.nanoclaw = {
-    description = "NanoClaw - Personal AI Agent";
-    after = [
-      "network-online.target"
-      "docker.service"
-      "nanoclaw-setup.service"
-    ];
-    wants = [ "network-online.target" ];
-    requires = [ "docker.service" ];
-    wantedBy = [ "multi-user.target" ];
+  # Main NanoClaw service — user-level so `systemctl --user restart nanoclaw` works
+  systemd.user.services.nanoclaw = {
+    description = "NanoClaw Personal Assistant";
+    after = [ "network.target" ];
+    wantedBy = [ "default.target" ];
 
     unitConfig = {
-      # Don't start if app hasn't been set up yet
       ConditionPathExists = "${nanoclaw-app}/dist/index.js";
     };
 
     serviceConfig = {
       Type = "simple";
       Restart = "always";
-      RestartSec = "5s";
+      RestartSec = "5";
       KillMode = "process";
-      User = "nanoclaw";
-      Group = "nanoclaw";
-      StateDirectory = "nanoclaw";
-      StateDirectoryMode = "0700";
       WorkingDirectory = nanoclaw-app;
-      # Allow spawning Docker containers
-      SupplementaryGroups = [ "docker" ];
-      # Log to files (NanoClaw verify expects logs/ directory)
       StandardOutput = "append:${nanoclaw-app}/logs/nanoclaw.log";
       StandardError = "append:${nanoclaw-app}/logs/nanoclaw.error.log";
     };
 
     environment = {
       HOME = nanoclaw-home;
+      PATH = lib.mkForce (
+        lib.makeBinPath [
+          nodejs
+          pkgs.git
+          pkgs.docker
+          pkgs.bash
+          pkgs.coreutils
+        ]
+      );
     };
-
-    path = [
-      nodejs
-      pkgs.git
-      pkgs.docker
-      pkgs.bash
-      pkgs.coreutils
-    ];
 
     script = ''
       mkdir -p ${nanoclaw-app}/logs
