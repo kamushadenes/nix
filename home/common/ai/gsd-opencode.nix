@@ -65,7 +65,6 @@ in
     // hookEntries
     // {
       ".config/opencode/gsd-file-manifest.json".source = "${gsdDir}/gsd-file-manifest.json";
-      ".config/opencode/package.json".source = "${gsdDir}/package.json";
 
       # Update script
       ".config/opencode/scripts/gsd-update.sh" = {
