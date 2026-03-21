@@ -78,7 +78,8 @@ let
     ../home/common/ai/claude-code.nix
     ../home/common/ai/codex-cli.nix
     ../home/common/ai/gemini-cli.nix
-    ../home/common/ai/gsd.nix
+    ../home/common/ai/gsd-claude.nix
+    ../home/common/ai/gsd-opencode.nix
     ../home/common/ai/opencode.nix
     ../home/common/ai/orchestrator.nix
     ../home/common/ai/peon-ping.nix
