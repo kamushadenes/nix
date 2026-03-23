@@ -18,6 +18,7 @@ let
 
   # MCP servers to include for OpenCode
   enabledServers = [
+    "slack"
     "aikido"
     "deepwiki"
     "Ref"

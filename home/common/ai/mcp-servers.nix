@@ -41,13 +41,19 @@ let
   #############################################################################
 
   publicServers = {
-    # Slack MCP - Workspace messaging, search, channels
+    # Slack MCP - korotovsky/slack-mcp-server (stdio, xoxb + xoxp tokens)
     slack = {
-      transport = "http";
-      url = "https://mcp.slack.com/mcp";
-      oauth = {
-        clientId = "1601185624273.8899143856786";
-        callbackPort = 3118;
+      transport = "stdio";
+      command = "npx";
+      args = [
+        "-y"
+        "slack-mcp-server@latest"
+        "--transport"
+        "stdio"
+      ];
+      env = {
+        SLACK_MCP_XOXB_TOKEN = "@SLACK_MCP_XOXB_TOKEN@";
+        SLACK_MCP_XOXP_TOKEN = "@SLACK_MCP_XOXP_TOKEN@";
       };
     };
 
@@ -148,6 +154,8 @@ let
     "@REF_API_KEY@"
     "@TFE_TOKEN@"
     "@OPENROUTER_API_KEY@"
+    "@SLACK_MCP_XOXB_TOKEN@"
+    "@SLACK_MCP_XOXP_TOKEN@"
   ];
 
   # Secret files (relative to private submodule)
@@ -156,6 +164,8 @@ let
     "@REF_API_KEY@" = "home/common/ai/resources/claude/ref-api-key.age";
     "@TFE_TOKEN@" = "home/common/ai/resources/claude/tfe-token.age";
     "@OPENROUTER_API_KEY@" = "home/common/ai/resources/claude/openrouter-api-key.age";
+    "@SLACK_MCP_XOXB_TOKEN@" = "home/common/ai/resources/claude/slack-bot-token.age";
+    "@SLACK_MCP_XOXP_TOKEN@" = "home/common/ai/resources/claude/slack-user-token.age";
   };
 in
 rec {
@@ -267,6 +277,9 @@ rec {
             enabled = true;
           }
           // lib.optionalAttrs (server ? headers) { inherit (server) headers; }
+          // lib.optionalAttrs (server ? oauth) {
+            oauth = lib.filterAttrs (k: _: builtins.elem k [ "clientId" "clientSecret" "scope" ]) server.oauth;
+          }
         else
           {
             type = "local";
