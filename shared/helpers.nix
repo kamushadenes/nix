@@ -109,6 +109,7 @@ let
 
       # OpenCode experimental features
       OPENCODE_EXPERIMENTAL_LSP_TOOL = "true";
+      OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX = "64000";
       OPENCODE_ENABLE_EXA = "1";
 
       # Disable OpenCode's Claude Code compatibility (we use ~/.agents/ instead)

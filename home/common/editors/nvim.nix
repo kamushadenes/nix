@@ -37,6 +37,17 @@ in
       ps: with ps; [
         collection-fontsrecommended
         collection-xetex
+        # Compliance evidence PDF report packages
+        xurl # Break long URLs/URIs/ARNs at any character
+        microtype # Improved line breaking, prevents text overflow
+        enumitem # Fine-grained control over list spacing
+        lastpage # "Page X of Y" in footers
+        ragged2e # Better ragged-right text (long strings wrap cleanly)
+        adjustbox # Scale/clip overflowing table content
+        caption # Better table/figure caption formatting
+        float # Precise float placement ([H] option)
+        setspace # Line spacing control for dense reports
+        parskip # Paragraph spacing without indentation
       ]
     ))
 

@@ -126,6 +126,38 @@
         ''
         ''
           [[on-window-detected]]
+          if.app-id="com.apple.systempreferences"
+          run = ["layout floating"]
+        ''
+        ''
+          [[on-window-detected]]
+          if.app-id="com.apple.finder"
+          run = ["layout floating"]
+        ''
+        ''
+          [[on-window-detected]]
+          if.app-id="com.1password.1password"
+          run = ["layout floating"]
+        ''
+        ''
+          [[on-window-detected]]
+          if.app-id="com.apple.LocalAuthentication.UIAgent"
+          run = ["layout floating"]
+        ''
+        ''
+          [[on-window-detected]]
+          if.app-id="io.kopia.ui"
+          run = ["layout floating"]
+        ''
+        ''
+          [[on-window-detected]]
+          if.app-id="company.thebrowser.Browser"
+          run = [
+            "move-node-to-workspace 1",
+          ]
+        ''
+        ''
+          [[on-window-detected]]
           if.app-id="com.tinyspeck.slackmacgap"
           run = [
             "move-node-to-workspace 2",
