@@ -16,7 +16,9 @@ high availability.
 
 All LXC containers use an ephemeral tmpfs root with bind-mounted persistence
 from `/nix/persist` to ensure data survives reboots while keeping the system
-state clean.
+state clean. See
+[Architecture > Proxmox Architecture](./architecture.md#proxmox-architecture)
+for the full persistence model.
 
 ## Table of Contents
 

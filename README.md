@@ -25,6 +25,7 @@ Enjoy!
 - [Proxmox Infrastructure](#proxmox-infrastructure)
 - [Key Patterns](#key-patterns)
 - [Private Submodule](#private-submodule)
+- [Documentation](#documentation)
 - [Troubleshooting](#troubleshooting)
 
 ## Machine Inventory
@@ -517,6 +518,19 @@ lxc-add-machine <machine-name> <ssh-target>
 
 This fetches the machine's SSH host key, adds it to the secrets recipients, and
 re-encrypts.
+
+## Documentation
+
+For deeper reference material, see the [docs/](docs/) directory:
+
+- [Architecture](docs/architecture.md) — Data flow, module layers, Proxmox
+  persistence model
+- [Module Reference](docs/modules.md) — Complete catalog of all system and
+  home-manager modules
+- [Service Reference](docs/services.md) — Ports, secrets, and health checks for
+  every service
+- [Operations Runbook](docs/operations.md) — Step-by-step procedures for common
+  tasks
 
 ## Troubleshooting
 

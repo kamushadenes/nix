@@ -1,23 +1,25 @@
 # Documentation
 
-This directory contains the technical documentation for the Nix flake
-configuration.
+Technical documentation for this Nix flake configuration.
 
-## Table of Contents
+## Pages
 
-- [Architecture Overview](./architecture.md) — System design, role system, and
-  persistence model.
-- [Service Reference](./services.md) — Detailed reference for all Proxmox LXC
-  services and NixOS machines.
-- [Module Reference](./modules.md) — (Planned) Documentation for system and
-  home-manager modules.
-- [Operations Guide](./operations.md) — (Planned) Deployment, maintenance, and
-  troubleshooting procedures.
+| Document                              | Description                                                                               |
+| ------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [Architecture](./architecture.md)     | Data flow, layers, specialArgs, Proxmox persistence model, secrets, binary cache          |
+| [Module Reference](./modules.md)      | Complete catalog of all 90+ modules across home-manager, Darwin, NixOS, and shared layers |
+| [Service Reference](./services.md)    | Every Proxmox LXC service and NixOS machine: ports, secrets, persistence, health checks   |
+| [Operations Runbook](./operations.md) | Step-by-step procedures for deployment, machine provisioning, secrets, troubleshooting    |
 
-## Project Identity
+## Quick Links
 
-- **Project**: Nix flake configuration managing 26 systems across macOS, NixOS,
-  and Proxmox LXC containers.
-- **Language/Framework**: Nix, home-manager, nix-darwin, agenix.
-- **Repo**:
-  [git@github.com:kamushadenes/nix.git](git@github.com:kamushadenes/nix.git)
+- **Add a new LXC**:
+  [Operations > Adding a New Proxmox LXC Container](./operations.md#adding-a-new-proxmox-lxc-container)
+- **Add a new module**:
+  [Modules > Adding a New Module](./modules.md#adding-a-new-module)
+- **Understand the role system**:
+  [Architecture > Home-Manager Layer](./architecture.md#home-manager-layer)
+- **Check service ports**:
+  [Services > Summary Table](./services.md#summary-table)
+- **Troubleshoot a failed rebuild**:
+  [Operations > Troubleshooting](./operations.md#troubleshooting-procedures)
