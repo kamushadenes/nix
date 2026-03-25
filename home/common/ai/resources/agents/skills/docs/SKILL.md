@@ -16,6 +16,21 @@ description:
 Generate production-grade project documentation. For README-only changes, use
 the `readme` skill directly.
 
+## Orchestrator Principle
+
+**You are the orchestrator. You must NEVER write or edit documentation files
+directly.** All file creation, updates, and fixes must be delegated to agents
+via `task()`. Your job is to:
+
+1. Explore and audit the codebase
+2. Build the documentation plan
+3. Delegate writing, verification, and fixes to agents
+4. Collect results and coordinate across agents
+5. Report outcomes to the user
+
+The only files you interact with directly are for _reading_ during exploration
+and audit. Every write goes through a delegated task.
+
 ## Workflow
 
 ### Step 1: Explore the Codebase
@@ -74,7 +89,7 @@ files:
 
 | Repo file               | Why in repo                                       |
 | ----------------------- | ------------------------------------------------- |
-| `README.md`             | Landing page (updated via `readme` skill, Step 7) |
+| `README.md`             | Landing page (updated via `readme` skill, Step 8) |
 | `CONTRIBUTING.md`       | Shown by GitHub on PR creation                    |
 | `CHANGELOG.md`          | Versioned with code, tied to tags                 |
 | `docs/adr/`             | Versioned with the decisions they document        |
@@ -162,25 +177,88 @@ reference template to follow. Fire all simultaneously.
 
 Collect all results before verification.
 
-### Step 6: Verify Consistency
+### Step 6: Verify Statements Against Codebase
 
-Read every generated page and check:
+Every factual claim in every doc page must be verified against the actual
+codebase. This catches hallucinated commands, wrong paths, stale config keys,
+and invented behavior.
 
-- **Terminology**: Same concept uses the same name everywhere; terms match the
-  codebase
-- **Cross-references**: All links resolve; no broken refs; wiki links use
-  correct page names
-- **Accuracy**: Commands, paths, and config values match the codebase; no
-  contradictions between pages
-- **Completeness**: Every page thorough; no orphan pages; navigation includes
-  all pages
-- **Cleanup**: No references to removed pages; no dead links to deleted
-  sections; navigation updated to reflect removals
-- **Style**: Consistent heading levels, code block hints, table formatting
+**Create a todo item per doc page** for tracking. Then delegate one verification
+agent per page in parallel:
 
-Fix issues in-place. Final pass to confirm no new issues introduced.
+```
+task(
+  category="quick",
+  load_skills=[],
+  run_in_background=true,
+  description="Verify <page-name> claims",
+  prompt="
+    TASK: Verify every factual statement in <file-path> against the codebase.
+    EXPECTED OUTCOME: All claims verified or fixed in-place.
+    REQUIRED TOOLS: Read, Grep, Glob, Edit
+    MUST DO:
+    - Read the doc file
+    - For EACH factual claim, verify it by searching the codebase:
+      • Commands and CLI flags → find the script/config that defines them
+      • File paths → confirm they exist
+      • Config keys/values → find the actual config definition
+      • API endpoints/signatures → find the handler/route
+      • Architecture claims → find the referenced modules/files
+      • Behavior descriptions → find the implementing code
+    - Fix incorrect statements in-place (edit the file)
+    - If a claim cannot be verified (no matching code), flag it with
+      a <!-- UNVERIFIED: reason --> HTML comment
+    - Report: number of claims checked, fixed, and unverifiable
+    MUST NOT:
+    - Rewrite prose or change style — only fix factual errors
+    - Remove content — only correct it
+    - Skip any verifiable claim
+    CONTEXT: [include project brief and relevant source directories]
+  "
+)
+```
 
-### Step 7: Update README.md via `readme` Skill
+Fire all verification agents simultaneously. Collect all results. Mark each todo
+item complete as agents finish.
+
+If any agent reports fixes, do a quick read of those files to confirm the fixes
+are coherent.
+
+### Step 7: Verify Cross-Page Consistency
+
+After statement verification, delegate a consistency check across all pages:
+
+```
+task(
+  category="quick",
+  load_skills=[],
+  run_in_background=false,
+  description="Check cross-page consistency",
+  prompt="
+    TASK: Verify consistency across all documentation pages.
+    EXPECTED OUTCOME: All cross-page issues found and fixed.
+    REQUIRED TOOLS: Read, Grep, Edit
+    MUST DO:
+    - Read every doc page listed below
+    - Check for:
+      • Terminology: same concept uses the same name everywhere
+      • Cross-references: all links resolve; no broken refs
+      • Contradictions: no conflicting statements between pages
+      • Completeness: no orphan pages; navigation includes all pages
+      • Cleanup: no references to removed pages or dead links
+      • Style: consistent heading levels, code block hints, formatting
+    - Fix all issues found in-place
+    MUST NOT:
+    - Rewrite content beyond fixing inconsistencies
+    - Change factual claims (those were verified in Step 6)
+    CONTEXT:
+    - Pages: [list all doc file paths]
+    - Destination: [repo docs/ | GitHub Wiki]
+  "
+)
+```
+
+### Step 8: Update README.md via `readme` Skill
 
 **Mandatory final step.** Delegate a README update to the `readme` skill:
 
@@ -275,8 +353,12 @@ See [references/github-wiki.md].
 - After removals: clean up all cross-references and navigation that pointed to
   removed content
 - Get user approval on the documentation plan before writing
-- Write pages in parallel using agents with a shared project brief
-- Verify cross-page consistency after writing; fix issues found
+- Delegate ALL file writes to agents — the orchestrator never writes files
+- Write pages in parallel using writing agents with a shared project brief
+- After writing, verify every factual statement per page via parallel agents
+  (Step 6)
+- Create a todo per doc page for verification tracking
+- Verify cross-page consistency after statement verification (Step 7)
 - Always run the `readme` skill as the final step to update README.md
 - In wiki mode: create/update repo-side files (CONTRIBUTING.md, CHANGELOG.md,
   ADRs) alongside wiki pages
@@ -284,6 +366,8 @@ See [references/github-wiki.md].
 
 ## MUST NOT
 
+- Write, edit, or create documentation files directly — always delegate via
+  `task()`
 - Guess at configuration, commands, or architecture — verify from code
 - Rewrite docs that already accurately reflect the codebase
 - Delete pages or sections without user confirmation
@@ -293,5 +377,6 @@ See [references/github-wiki.md].
 - Document features that don't exist in the codebase
 - Leave stale commands, paths, or removed features in existing docs
 - Edit README.md directly — always delegate to the `readme` skill
-- Skip consistency verification
+- Skip statement verification (Step 6) or consistency verification (Step 7)
 - Write pages sequentially when they can be parallelized
+- Skip verification todos — every page must have a tracked verification item
