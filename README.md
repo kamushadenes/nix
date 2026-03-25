@@ -1,6 +1,6 @@
 # Nix Configuration
 
-A Nix flake managing **26 systems** across macOS, NixOS, and Proxmox LXC
+A Nix flake managing **27 systems** across macOS, NixOS, and Proxmox LXC
 containers with home-manager for user-level configuration, agenix for secrets
 management, and a role-based module composition system.
 
@@ -378,7 +378,7 @@ Where `base = fullCore + shellAll + security`.
 
 ### Cluster
 
-Three Proxmox nodes (pve1, pve2, pve3) running a total of 21 LXC containers.
+Three Proxmox nodes (pve1, pve2, pve3) running a total of 22 LXC containers.
 
 ### Persistence Model
 
@@ -531,6 +531,8 @@ For deeper reference material, see the [docs/](docs/) directory:
   every service
 - [Operations Runbook](docs/operations.md) — Step-by-step procedures for common
   tasks
+- [Contributing Guide](CONTRIBUTING.md) — Prerequisites, workflow, code style
+- [Changelog](CHANGELOG.md) — Major milestones and notable changes
 
 ## Troubleshooting
 

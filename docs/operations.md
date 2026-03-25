@@ -1,7 +1,7 @@
 # Operations Runbook
 
 This document provides comprehensive, step-by-step procedures for managing and
-maintaining the Nix configuration across all 26 systems. It serves as the
+maintaining the Nix configuration across all 27 systems. It serves as the
 definitive reference for daily operations, machine provisioning, secrets
 management, and troubleshooting.
 
