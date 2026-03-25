@@ -131,26 +131,23 @@ mkProxmoxHost =
 The configuration follows a structured data flow from the flake entry point down
 to individual role modules.
 
-### ASCII Diagram
+### Data Flow Diagram
 
-```text
-flake.nix
-   │
-   ├─> private (builtins.fetchGit with submodules = true)
-   │
-   ├─> specialArgs (inputs, machine, shared, private, role, platform, pkgs-unstable, claudebox)
-   │     │
-   │     ├─> darwin.nix / nixos.nix (System Layer)
-   │     │     │
-   │     │     └─> home-manager (home.nix)
-   │     │           │
-   │     │           └─> shared/roles.nix (Role Modules)
-   │     │                 │
-   │     │                 ├─> workstation
-   │     │                 ├─> headless
-   │     │                 └─> minimal
-   │
-   └─> shared/helpers.nix (Utilities)
+```mermaid
+graph TD
+    Flake[flake.nix] --> Private["private/ (builtins.fetchGit)"]
+    Flake --> SpecialArgs[specialArgs]
+    Flake --> Helpers["shared/helpers.nix (Utilities)"]
+
+    SpecialArgs --> System["darwin.nix / nixos.nix<br/>(System Layer)"]
+    System --> HM["home-manager (home.nix)"]
+    HM --> Roles["shared/roles.nix"]
+
+    Roles --> Workstation[workstation]
+    Roles --> Headless[headless]
+    Roles --> Minimal[minimal]
+
+    SpecialArgs -.- |"inputs, machine, shared,<br/>private, role, platform,<br/>pkgs-unstable, claudebox"| System
 ```
 
 ### Private Submodule Access

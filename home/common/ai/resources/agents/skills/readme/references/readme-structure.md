@@ -73,7 +73,7 @@ Configure the following variables:
 Go deep here. Include:
 
 - **Directory structure** with descriptions for each top-level directory
-- **Request lifecycle** or data flow diagram (ASCII art)
+- **Request lifecycle** or data flow diagram (mermaid)
 - **Key components** with brief explanations
 - **Database schema** for the most important tables/models
 
@@ -89,8 +89,9 @@ Database migrations └── config/ # Configuration files \`\`\`
 
 ### Data Flow
 
-\`\`\` Request → Router → Middleware → Handler → Service → Repository → Database
-↓ Response ← Handler ← Service ← \`\`\`
+\`\`\`mermaid graph LR Request --> Router --> Middleware --> Handler --> Service
+--> Repository --> Database Database --> Repository --> Service --> Handler -->
+Response \`\`\`
 ```
 
 ## 6. Environment Variables

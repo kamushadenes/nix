@@ -15,10 +15,9 @@ Structure for a comprehensive architecture doc:
 
 ## High-Level Architecture
 
-\`\`\` [ASCII diagram showing major components and their relationships]
-
-Client App │ ▼ API Gateway ──► Auth Service │ ├──► Service A ──► Database A │
-└──► Service B ──► Database B │ └──► Message Queue ──► Worker \`\`\`
+\`\`\`mermaid graph TD Client[Client App] --> Gateway[API Gateway] Gateway -->
+Auth[Auth Service] Gateway --> A[Service A] --> DBA[(Database A)] Gateway -->
+B[Service B] --> DBB[(Database B)] B --> MQ[Message Queue] --> Worker \`\`\`
 
 ## Components
 
@@ -156,7 +155,7 @@ context. Be specific — reference actual components, metrics, or constraints.]
 ## Tips
 
 - Extract architecture from actual code structure, don't invent it
-- Use ASCII diagrams — they render everywhere and diff well
+- Use mermaid diagrams (`\`\`\`mermaid` blocks) for all visual representations
 - Keep component descriptions focused on boundaries and contracts
 - ADRs should capture the decision context at the time, not be updated
   retroactively

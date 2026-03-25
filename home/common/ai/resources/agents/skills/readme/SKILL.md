@@ -79,14 +79,33 @@ See [references/readme-structure.md] for the full section-by-section template.
 
 ## Writing Principles
 
+### Readability First
+
+A README is often the first thing someone reads. It should build understanding
+progressively: start with what the project does, then how to use it, then how it
+works. A reader who stops at any point should have gained something useful.
+
+- **Lead with context** — open each section explaining _why_ before _what_
+- **Build progressively** — simple to complex, overview to detail. Never
+  overwhelm the reader with everything at once
+- **One idea per paragraph** — dense blocks lose readers. Break them up
+- **Assume fresh machine** — the reader has never seen this codebase
+- **Explain the why** — not just "run this command"
+
+### Technical Quality
+
 - **Be absurdly thorough** — when in doubt, include it
 - **Code blocks liberally** — every command must be copy-pasteable
 - **Show example output** — when helpful
-- **Explain the why** — not just "run this command"
-- **Assume fresh machine** — reader has never seen this codebase
-- **Tables for reference** — env vars, scripts, options
 - **Keep current** — use the project's actual package manager and tools
+
+### Formatting
+
+- **Tables for reference** — env vars, scripts, options
 - **TOC** — for READMEs over ~200 lines
+- **Mermaid for diagrams** — always use ` ```mermaid ` fenced code blocks for
+  architecture diagrams, data flows, and component relationships. Never use
+  ASCII art for diagrams
 
 ## MUST DO
 

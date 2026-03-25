@@ -214,14 +214,37 @@ See [references/github-wiki.md].
 
 ## Writing Principles
 
+### Readability First
+
+Documentation should be a pleasant reading experience, not a wall of facts.
+Build knowledge progressively: start with the big picture, then layer in detail
+so the reader is never overwhelmed.
+
+- **Lead with context** — open each section with a sentence explaining _why_
+  this matters before diving into _what_
+- **Build progressively** — introduce concepts from simple to complex. A reader
+  who stops halfway should still walk away with useful understanding
+- **One idea per paragraph** — dense paragraphs with multiple concepts lose
+  readers. Break them up
+- **Transitions matter** — connect sections so the document flows like a
+  narrative, not a reference dump
+- **Explain the why** — rationale and trade-offs, not just what
+
+### Technical Quality
+
 - **Ground in code** — verify every claim against source files
 - **Code blocks liberally** — every command and config must be copy-pasteable
 - **Real examples** — actual project names, paths, patterns; no placeholders
-- **Explain the why** — rationale and trade-offs, not just what
 - **Keep current** — actual tools, versions, and conventions
+- **Be extensive** — thorough and self-contained, not brief overviews
+
+### Formatting
+
 - **Structure for scanning** — headers, tables, bullet points
 - **TOC** — for documents over 150 lines
-- **Be extensive** — thorough and self-contained, not brief overviews
+- **Mermaid for diagrams** — always use ` ```mermaid ` fenced code blocks for
+  architecture diagrams, data flows, and component relationships. Never use
+  ASCII art for diagrams
 
 ## Output Locations
 
