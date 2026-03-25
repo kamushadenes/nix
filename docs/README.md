@@ -4,12 +4,12 @@ Technical documentation for this Nix flake configuration.
 
 ## Pages
 
-| Document                              | Description                                                                               |
-| ------------------------------------- | ----------------------------------------------------------------------------------------- |
-| [Architecture](./architecture.md)     | Data flow, layers, specialArgs, Proxmox persistence model, secrets, binary cache          |
-| [Module Reference](./modules.md)      | Complete catalog of all 90+ modules across home-manager, Darwin, NixOS, and shared layers |
-| [Service Reference](./services.md)    | Every Proxmox LXC service and NixOS machine: ports, secrets, persistence, health checks   |
-| [Operations Runbook](./operations.md) | Step-by-step procedures for deployment, machine provisioning, secrets, troubleshooting    |
+| Document                              | Description                                                                                |
+| ------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [Architecture](./architecture.md)     | Data flow, layers, specialArgs, Proxmox persistence model, secrets, binary cache           |
+| [Module Reference](./modules.md)      | Complete catalog of all 110+ modules across home-manager, Darwin, NixOS, and shared layers |
+| [Service Reference](./services.md)    | Every Proxmox LXC service and NixOS machine: ports, secrets, persistence, health checks    |
+| [Operations Runbook](./operations.md) | Step-by-step procedures for deployment, machine provisioning, secrets, troubleshooting     |
 
 ## Quick Links
 

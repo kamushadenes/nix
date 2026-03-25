@@ -122,7 +122,8 @@ specialized development environments.
   management. It is designed to work seamlessly with AI agent workflows.
 - `mcphub.nix`: Configures the MCP Hub for managing multiple Model Context
   Protocol servers. It provides a central point for server discovery and
-  configuration.
+  configuration. **Note**: Not included in default role composition — import
+  manually when needed.
 - `dev.nix`: A meta-module that groups common development utilities. It installs
   a collection of tools used across different programming languages.
 
@@ -137,7 +138,8 @@ environment.
 - `emacs.nix`: Sets up Emacs with the Doom Emacs configuration. It provides a
   fast and modular Emacs environment tailored for developers.
 - `vscode.nix`: Manages VS Code settings and extensions. It allows for a
-  consistent editor experience even when using a GUI-based editor.
+  consistent editor experience even when using a GUI-based editor. **Note**: Not
+  included in default role composition — import manually when needed.
 
 ### Infrastructure (home/common/infra/)
 

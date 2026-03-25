@@ -1,7 +1,7 @@
 # System Architecture
 
 This document provides a comprehensive deep-dive into the architecture of this
-Nix flake configuration. It manages 26 systems across macOS, NixOS, and Proxmox
+Nix flake configuration. It manages 27 systems across macOS, NixOS, and Proxmox
 LXC containers using a role-based module composition system, ephemeral root
 filesystems, and a private secrets management flow.
 
@@ -30,6 +30,7 @@ The configuration uses several key inputs to manage the system state:
 ```nix
 inputs = {
   nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-25.11-darwin";
+  nixpkgs_2505.url = "github:nixos/nixpkgs/nixpkgs-25.05-darwin";
   nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
   darwin = {
@@ -47,12 +48,37 @@ inputs = {
     inputs.nixpkgs.follows = "nixpkgs";
   };
 
+  claudebox = {
+    url = "github:kamushadenes/claudebox";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+
+  nix-moltbot = {
+    url = "github:kamushadenes/nix-moltbot";
+    inputs.nixpkgs.follows = "nixpkgs";
+    inputs.home-manager.follows = "home-manager";
+  };
+
   nixos-generators = {
     url = "github:nix-community/nixos-generators";
     inputs.nixpkgs.follows = "nixpkgs";
   };
+
+  peon-ping = {
+    url = "github:PeonPing/peon-ping";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
 };
 ```
+
+- **nixpkgs_2505**: Pinned 25.05 channel for packages that need a specific older
+  version.
+- **claudebox**: Fork of numtide/claudebox with macOS `~/.claude` write
+  permission fix. Provides sandboxed Claude Code execution.
+- **nix-moltbot**: Moltbot home-manager module for AI assistant gateway
+  configuration.
+- **peon-ping**: Voice notification system for AI coding agent events (session
+  starts, completions).
 
 ### Factory Functions
 
