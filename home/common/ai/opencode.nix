@@ -123,7 +123,7 @@ let
     };
     provider = privateProviders;
     plugin = [
-      "oh-my-opencode"
+      "oh-my-opencode@3.13.1"
       "cc-safety-net"
       "@simonwjackson/opencode-direnv"
       "envsitter-guard"
@@ -133,7 +133,7 @@ let
     ];
   };
 
-  # oh-my-opencode plugin configuration
+  # oh-my-opencode plugin configuration (v3.13.1)
   omoConfig = {
     "$schema" =
       "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json";
@@ -146,15 +146,18 @@ let
         model = "opencode/gpt-5.3-codex";
         variant = "medium";
       };
+      sisyphus-junior = {
+        model = "anthropic/claude-sonnet-4-6";
+      };
       oracle = {
         model = "github-copilot/gpt-5.4";
         variant = "high";
       };
       librarian = {
-        model = "opencode/glm-4.7-free";
+        model = "opencode/minimax-m2.5-free";
       };
       explore = {
-        model = "anthropic/claude-haiku-4-5";
+        model = "github-copilot/grok-code-fast-1";
       };
       multimodal-looker = {
         model = "opencode/gpt-5.4";
@@ -173,16 +176,16 @@ let
         variant = "xhigh";
       };
       atlas = {
-        model = "anthropic/claude-sonnet-4-5";
+        model = "anthropic/claude-sonnet-4-6";
       };
     };
     categories = {
       visual-engineering = {
-        model = "google/gemini-3.1-pro-preview";
+        model = "google/gemini-3.1-pro";
         variant = "high";
       };
       ultrabrain = {
-        model = "opencode/gpt-5.3-codex";
+        model = "opencode/gpt-5.4";
         variant = "xhigh";
       };
       deep = {
@@ -190,21 +193,21 @@ let
         variant = "medium";
       };
       artistry = {
-        model = "google/gemini-3.1-pro-preview";
+        model = "google/gemini-3.1-pro";
         variant = "high";
       };
       quick = {
-        model = "anthropic/claude-haiku-4-5";
+        model = "github-copilot/gpt-5.4-mini";
       };
       unspecified-low = {
-        model = "anthropic/claude-sonnet-4-5";
+        model = "anthropic/claude-sonnet-4-6";
       };
       unspecified-high = {
-        model = "github-copilot/gpt-5.4";
-        variant = "high";
+        model = "anthropic/claude-opus-4-6";
+        variant = "max";
       };
       writing = {
-        model = "google/gemini-3-flash-preview";
+        model = "google/gemini-3-flash";
       };
     };
   };
