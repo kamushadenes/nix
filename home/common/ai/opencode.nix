@@ -140,6 +140,7 @@ let
     agents = {
       sisyphus = {
         model = "anthropic/claude-opus-4-6";
+        variant = "max";
       };
       hephaestus = {
         model = "opencode/gpt-5.3-codex";
@@ -164,9 +165,11 @@ let
       };
       prometheus = {
         model = "anthropic/claude-opus-4-6";
+        variant = "max";
       };
       metis = {
         model = "anthropic/claude-opus-4-6";
+        variant = "max";
       };
       momus = {
         model = "github-copilot/gpt-5.4";
@@ -201,6 +204,7 @@ let
       };
       unspecified-high = {
         model = "anthropic/claude-opus-4-6";
+        variant = "max";
       };
       writing = {
         model = "google/gemini-3-flash";
