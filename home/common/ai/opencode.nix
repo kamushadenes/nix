@@ -56,8 +56,8 @@ let
   # OpenCode config as Nix attrset
   opencodeConfig = {
     "$schema" = "https://opencode.ai/config.json";
-    model = "anthropic/claude-opus-4-6";
-    small_model = "anthropic/claude-haiku-4-5";
+    model = "github-copilot/claude-opus-4-6";
+    small_model = "github-copilot/claude-haiku-4-5";
     instructions = [ "~/.config/opencode/rules/*.md" ];
     mcp = mcpServers.toOpenCode enabledServers;
     permission = {
@@ -139,7 +139,7 @@ let
       "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json";
     agents = {
       sisyphus = {
-        model = "anthropic/claude-opus-4-6";
+        model = "github-copilot/claude-opus-4-6";
         variant = "max";
       };
       hephaestus = {
@@ -147,7 +147,7 @@ let
         variant = "medium";
       };
       sisyphus-junior = {
-        model = "anthropic/claude-sonnet-4-6";
+        model = "github-copilot/claude-sonnet-4-6";
       };
       oracle = {
         model = "github-copilot/gpt-5.4";
@@ -164,11 +164,11 @@ let
         variant = "medium";
       };
       prometheus = {
-        model = "anthropic/claude-opus-4-6";
+        model = "github-copilot/claude-opus-4-6";
         variant = "max";
       };
       metis = {
-        model = "anthropic/claude-opus-4-6";
+        model = "github-copilot/claude-opus-4-6";
         variant = "max";
       };
       momus = {
@@ -176,7 +176,7 @@ let
         variant = "xhigh";
       };
       atlas = {
-        model = "anthropic/claude-sonnet-4-6";
+        model = "github-copilot/claude-sonnet-4-6";
       };
     };
     categories = {
@@ -200,10 +200,10 @@ let
         model = "github-copilot/gpt-5.4-mini";
       };
       unspecified-low = {
-        model = "anthropic/claude-sonnet-4-6";
+        model = "github-copilot/claude-sonnet-4-6";
       };
       unspecified-high = {
-        model = "anthropic/claude-opus-4-6";
+        model = "github-copilot/claude-opus-4-6";
         variant = "max";
       };
       writing = {
