@@ -18,6 +18,7 @@
     pkgs-unstable.devbox
     nix-search-cli
     nix-tree
+    nixd
     nixpkgs-fmt
     nurl
     pkgs-unstable.nh
