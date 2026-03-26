@@ -14,12 +14,28 @@ date-based sections rather than semantic versioning.
 - Mutagen hub-and-spoke file synchronization with dedicated LXC hub.
 - Comprehensive project documentation suite and automated README generation.
 - Aikido security scanning and Playwriter MCP servers for AI agents.
+- nixd language server for Nix LSP support in editors.
+- oh-my-opencode v3.13.1 with expanded model and agent configurations.
+- `/readme` and `/docs` slash commands for AI agent documentation generation.
 
 ### Changed
 
 - Switched to direct NFS mounts for Mutagen and Aether dev environments.
 - Boosted CPU and RAM resources during LXC rebuilds for faster deployments.
 - Migrated Aether dev environment to a Proxmox LXC container.
+- Routed Claude models through ccflare proxy after fixing billing header in
+  better-ccflare fork.
+- Switched explore and small_model agents from Grok/Haiku to MiniMax M2.5 for
+  better quality at zero cost.
+- Ported Claude Code agents and commands to OpenCode environment.
+- Switched Slack MCP to korotovsky/slack-mcp-server.
+
+### Fixed
+
+- better-ccflare proxy returning 400 for Sonnet/Opus models (missing billing
+  header injection for OAuth accounts).
+- Tmux session handling for AI agent shell sessions (SIGINT trapping, explicit
+  bash for default-shell).
 
 ## 2026-02
 
