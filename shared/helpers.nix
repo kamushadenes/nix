@@ -101,12 +101,6 @@ let
       # Claude Code LSP tools
       ENABLE_LSP_TOOLS = "1";
 
-      # Claude API proxy
-      ANTHROPIC_BASE_URL = "https://ccflare.ai.inic.dev";
-
-      # Anthropic auth token (decrypted by agenix via claude-code.nix; empty on machines without claude-code)
-      ANTHROPIC_AUTH_TOKEN = "$(cat ${config.home.homeDirectory}/.claude/secrets/anthropic-auth-token 2>/dev/null)";
-
       # OpenCode experimental features
       OPENCODE_EXPERIMENTAL_LSP_TOOL = "true";
       OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX = "64000";
@@ -114,6 +108,9 @@ let
 
       # Disable OpenCode's Claude Code compatibility (we use ~/.agents/ instead)
       OPENCODE_DISABLE_CLAUDE_CODE = "1";
+
+      # Enable 1M context window for Anthropic models
+      ANTHROPIC_ENABLE_1M_CONTEXT = "true";
     };
 
     launchctl = mkVarExports (
