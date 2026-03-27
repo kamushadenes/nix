@@ -248,10 +248,18 @@ in
     # oh-my-opencode plugin configuration
     ".config/opencode/oh-my-opencode.json".text = builtins.toJSON omoConfig;
 
-    # TUI configuration (theme)
+    # TUI configuration (theme + keybinds aligned with Claude Code)
     ".config/opencode/tui.json".text = builtins.toJSON {
       "$schema" = "https://opencode.ai/tui.json";
       theme = "catppuccin-macchiato";
+      keybinds = {
+        # Align with Claude Code muscle memory
+        editor_open = "ctrl+g"; # CC: ctrl+g opens external editor
+        status_view = "ctrl+t"; # CC: ctrl+t toggles task list
+        # Remap displaced defaults
+        variant_cycle = "<leader>v"; # was ctrl+t, displaced by status_view
+        messages_first = "home"; # was ctrl+g,home — ctrl+g now opens editor
+      };
     };
 
   }
