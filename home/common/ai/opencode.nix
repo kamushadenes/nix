@@ -266,8 +266,12 @@ in
         # Align with Claude Code muscle memory
         editor_open = "ctrl+g"; # CC: ctrl+g opens external editor
         status_view = "ctrl+t"; # CC: ctrl+t toggles task list
-        agent_list = "shift+down"; # CC: shift+down opens running agents
+        session_child_first = "shift+down"; # CC: shift+down opens subtasks
         # Remap displaced defaults
+        input_select_down = "ctrl+shift+down"; # was shift+down, displaced by session_child_first
+        input_select_up = "ctrl+shift+up"; # symmetric remap
+        input_select_left = "ctrl+shift+left"; # symmetric remap
+        input_select_right = "ctrl+shift+right"; # symmetric remap
         variant_cycle = "<leader>v"; # was ctrl+t, displaced by status_view
         messages_first = "home"; # was ctrl+g,home — ctrl+g now opens editor
       };
