@@ -12,7 +12,7 @@ Default: `balanced` if not set or config missing.
 
 ## Lookup Table
 
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/references/model-profiles.md
+@$HOME/.config/opencode/get-shit-done/references/model-profiles.md
 
 Look up the agent in the table for the resolved profile. Pass the model parameter to Task calls:
 

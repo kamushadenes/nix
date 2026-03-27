@@ -216,7 +216,7 @@ get-shit-done/
 
 **New Workflow:**
 - Implementation: `get-shit-done/workflows/{name}.md`
-- Usage: Reference from command with `@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/{name}.md`
+- Usage: Reference from command with `@$HOME/.config/opencode/get-shit-done/workflows/{name}.md`
 
 **New Reference Document:**
 - Implementation: `get-shit-done/references/{name}.md`
@@ -229,12 +229,12 @@ get-shit-done/
 ## Special Directories
 
 **get-shit-done/**
-- Purpose: Resources installed to /private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/
+- Purpose: Resources installed to $HOME/.config/opencode/
 - Source: Copied by bin/install.js during installation
 - Committed: Yes (source of truth)
 
 **commands/**
-- Purpose: Slash commands installed to /private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/commands/
+- Purpose: Slash commands installed to $HOME/.config/opencode/commands/
 - Source: Copied by bin/install.js during installation
 - Committed: Yes (source of truth)
 

@@ -14,7 +14,7 @@ Read project state to determine current position:
 
 ```bash
 # Get state snapshot
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" state json 2>/dev/null || echo "{}"
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" state json 2>/dev/null || echo "{}"
 ```
 
 Also read:

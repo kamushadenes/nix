@@ -11,6 +11,7 @@ Spawned by:
 - `/gsd-plan-phase` orchestrator (standard phase planning)
 - `/gsd-plan-phase --gaps` orchestrator (gap closure from verification failures)
 - `/gsd-plan-phase` in revision mode (updating plans based on checker feedback)
+- `/gsd-plan-phase --reviews` orchestrator (replanning with cross-AI review feedback)
 
 Your job: Produce PLAN.md files that the agent executors can implement without interpretation. Plans are prompts, not documents that become prompts.
 
@@ -421,8 +422,8 @@ Output: [Artifacts created]
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/execute-plan.md
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/templates/summary.md
+@$HOME/.config/opencode/get-shit-done/workflows/execute-plan.md
+@$HOME/.config/opencode/get-shit-done/templates/summary.md
 </execution_context>
 
 <context>
@@ -926,7 +927,7 @@ Group by plan, dimension, severity.
 ### Step 6: Commit
 
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" commit "fix($PHASE): revise plans based on checker feedback" --files .planning/phases/$PHASE-*/$PHASE-*-PLAN.md
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "fix($PHASE): revise plans based on checker feedback" --files .planning/phases/$PHASE-*/$PHASE-*-PLAN.md
 ```
 
 ### Step 7: Return Revision Summary
@@ -959,13 +960,57 @@ node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.o
 
 </revision_mode>
 
+<reviews_mode>
+
+## Planning from Cross-AI Review Feedback
+
+Triggered when orchestrator sets Mode to `reviews`. Replanning from scratch with REVIEWS.md feedback as additional context.
+
+**Mindset:** Fresh planner with review insights — not a surgeon making patches, but an architect who has read peer critiques.
+
+### Step 1: Load REVIEWS.md
+Read the reviews file from `<files_to_read>`. Parse:
+- Per-reviewer feedback (strengths, concerns, suggestions)
+- Consensus Summary (agreed concerns = highest priority to address)
+- Divergent Views (investigate, make a judgment call)
+
+### Step 2: Categorize Feedback
+Group review feedback into:
+- **Must address**: HIGH severity consensus concerns
+- **Should address**: MEDIUM severity concerns from 2+ reviewers
+- **Consider**: Individual reviewer suggestions, LOW severity items
+
+### Step 3: Plan Fresh with Review Context
+Create new plans following the standard planning process, but with review feedback as additional constraints:
+- Each HIGH severity consensus concern MUST have a task that addresses it
+- MEDIUM concerns should be addressed where feasible without over-engineering
+- Note in task actions: "Addresses review concern: {concern}" for traceability
+
+### Step 4: Return
+Use standard PLANNING COMPLETE return format, adding a reviews section:
+
+```markdown
+### Review Feedback Addressed
+
+| Concern | Severity | How Addressed |
+|---------|----------|---------------|
+| {concern} | HIGH | Plan {N}, Task {M}: {how} |
+
+### Review Feedback Deferred
+| Concern | Reason |
+|---------|--------|
+| {concern} | {why — out of scope, disagree, etc.} |
+```
+
+</reviews_mode>
+
 <execution_flow>
 
 <step name="load_project_state" priority="first">
 Load planning context:
 
 ```bash
-INIT=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" init plan-phase "${PHASE}")
+INIT=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" init plan-phase "${PHASE}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -1022,7 +1067,7 @@ Apply discovery level protocol (see discovery_levels section).
 
 **Step 1 — Generate digest index:**
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" history-digest
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" history-digest
 ```
 
 **Step 2 — Select relevant phases (typically 2-4):**
@@ -1150,7 +1195,7 @@ Include all frontmatter fields.
 Validate each created PLAN.md using gsd-tools:
 
 ```bash
-VALID=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" frontmatter validate "$PLAN_PATH" --schema plan)
+VALID=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" frontmatter validate "$PLAN_PATH" --schema plan)
 ```
 
 Returns JSON: `{ valid, missing, present, schema }`
@@ -1163,7 +1208,7 @@ Required plan frontmatter fields:
 Also validate plan structure:
 
 ```bash
-STRUCTURE=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" verify plan-structure "$PLAN_PATH")
+STRUCTURE=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" verify plan-structure "$PLAN_PATH")
 ```
 
 Returns JSON: `{ valid, errors, warnings, task_count, tasks }`
@@ -1200,7 +1245,7 @@ Plans:
 
 <step name="git_commit">
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs($PHASE): create phase plan" --files .planning/phases/$PHASE-*/$PHASE-*-PLAN.md .planning/ROADMAP.md
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs($PHASE): create phase plan" --files .planning/phases/$PHASE-*/$PHASE-*-PLAN.md .planning/ROADMAP.md
 ```
 </step>
 

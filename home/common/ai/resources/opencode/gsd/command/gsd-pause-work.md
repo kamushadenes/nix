@@ -18,7 +18,7 @@ Routes to the pause-work workflow which handles:
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/pause-work.md
+@$HOME/.config/opencode/get-shit-done/workflows/pause-work.md
 </execution_context>
 
 <context>
@@ -26,7 +26,7 @@ State and phase progress are gathered in-workflow with targeted reads.
 </context>
 
 <process>
-**Follow the pause-work workflow** from `@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/pause-work.md`.
+**Follow the pause-work workflow** from `@$HOME/.config/opencode/get-shit-done/workflows/pause-work.md`.
 
 The workflow handles all logic including:
 1. Phase directory detection

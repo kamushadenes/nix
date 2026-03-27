@@ -25,7 +25,7 @@ fi
 **Run health validation:**
 
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" validate health $REPAIR_FLAG
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" validate health $REPAIR_FLAG
 ```
 
 Parse JSON output:
@@ -112,7 +112,7 @@ If yes, re-run with --repair flag and display results.
 Re-run health check without --repair to confirm issues are resolved:
 
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" validate health
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" validate health
 ```
 
 Report final status.
@@ -166,13 +166,13 @@ When `--repair` is active, detect and clean up:
 
 ```bash
 # Check for stale task directories (older than 24 hours)
-TASKS_DIR="/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/tasks"
+TASKS_DIR="$HOME/.config/opencode/tasks"
 if [ -d "$TASKS_DIR" ]; then
-  STALE_COUNT=$(find "$TASKS_DIR" -maxdepth 1 -type d -mtime +1 2>/dev/null | wc -l)
+  STALE_COUNT=$( (find "$TASKS_DIR" -maxdepth 1 -type d -mtime +1 2>/dev/null || true) | wc -l )
   if [ "$STALE_COUNT" -gt 0 ]; then
-    echo "⚠️  Found $STALE_COUNT stale task directories in /private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/tasks/"
+    echo "⚠️  Found $STALE_COUNT stale task directories in $HOME/.config/opencode/tasks/"
     echo "   These are leftover from crashed subagent sessions."
-    echo "   Run: rm -rf /private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/tasks/*  (safe — only affects dead sessions)"
+    echo "   Run: rm -rf $HOME/.config/opencode/tasks/*  (safe — only affects dead sessions)"
   fi
 fi
 ```

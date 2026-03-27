@@ -25,6 +25,12 @@ cp "$tmpdir/.claude/gsd-file-manifest.json" "$NIX_CONFIG_GSD/gsd-file-manifest.j
 # Remove any .bak files
 find "$NIX_CONFIG_GSD" -name "*.bak" -delete
 
+# Fix hardcoded temp dir paths — installer bakes absolute paths of the install
+# directory into all markdown/js files. Replace with $HOME-based deploy target.
+echo "Fixing hardcoded temp dir paths..."
+find "$NIX_CONFIG_GSD" \( -name "*.md" -o -name "*.js" -o -name "*.json" -o -name "*.cjs" \) \
+	-exec sed -i '' "s|${tmpdir}/.claude/|\$HOME/.claude/|g" {} +
+
 # Show version
 version=$(cat "$NIX_CONFIG_GSD/get-shit-done/VERSION")
 echo ""

@@ -600,7 +600,7 @@ Some things can't be verified programmatically. Flag these for human testing:
 
 For automation-first checkpoint patterns, server lifecycle management, CLI installation handling, and error recovery protocols, see:
 
-**@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/references/checkpoints.md** → `<automation_reference>` section
+**@$HOME/.config/opencode/get-shit-done/references/checkpoints.md** → `<automation_reference>` section
 
 Key principles:
 - the agent sets up verification environment BEFORE presenting checkpoints

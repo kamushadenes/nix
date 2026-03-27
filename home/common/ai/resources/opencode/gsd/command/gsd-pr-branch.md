@@ -16,9 +16,9 @@ changes that are irrelevant to code review.
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/pr-branch.md
+@$HOME/.config/opencode/get-shit-done/workflows/pr-branch.md
 </execution_context>
 
 <process>
-Execute the pr-branch workflow from @/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/pr-branch.md end-to-end.
+Execute the pr-branch workflow from @$HOME/.config/opencode/get-shit-done/workflows/pr-branch.md end-to-end.
 </process>

@@ -16,7 +16,7 @@ Output: Conversational output only (no file creation) - ends with "What do you t
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/list-phase-assumptions.md
+@$HOME/.config/opencode/get-shit-done/workflows/list-phase-assumptions.md
 </execution_context>
 
 <context>

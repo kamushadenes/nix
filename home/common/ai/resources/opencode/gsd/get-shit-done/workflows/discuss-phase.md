@@ -132,8 +132,9 @@ Text mode applies to ALL workflows in the session, not just discuss-phase.
 Phase number from argument (required).
 
 ```bash
-INIT=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" init phase-op "${PHASE}")
+INIT=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" init phase-op "${PHASE}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
+AGENT_SKILLS_ADVISOR=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" agent-skills gsd-advisor 2>/dev/null)
 ```
 
 Parse JSON for: `commit_docs`, `phase_found`, `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `padded_phase`, `has_research`, `has_context`, `has_plans`, `has_verification`, `plan_count`, `roadmap_exists`, `planning_exists`.
@@ -142,7 +143,7 @@ Parse JSON for: `commit_docs`, `phase_found`, `phase_dir`, `phase_number`, `phas
 ```
 Phase [X] not found in roadmap.
 
-Use /gsd-progress to see available phases.
+Use /gsd-progress ${GSD_WS} to see available phases.
 ```
 Exit workflow.
 
@@ -160,7 +161,7 @@ Exit workflow.
 Check if CONTEXT.md already exists using `has_context` from init.
 
 ```bash
-ls ${phase_dir}/*-CONTEXT.md 2>/dev/null
+ls ${phase_dir}/*-CONTEXT.md 2>/dev/null || true
 ```
 
 **If exists:**
@@ -189,7 +190,7 @@ Check `has_plans` and `plan_count` from init. **If `has_plans` is true:**
 - header: "Plans exist"
 - question: "Phase [X] already has {plan_count} plan(s) created without user context. Your decisions here won't affect existing plans unless you replan."
 - options:
-  - "Continue and replan after" — Capture context, then run /gsd-plan-phase {X} to replan
+  - "Continue and replan after" — Capture context, then run /gsd-plan-phase {X} ${GSD_WS} to replan
   - "View existing plans" — Show plans before deciding
   - "Cancel" — Skip discuss-phase
 
@@ -206,9 +207,9 @@ Read project-level and prior phase context to avoid re-asking decided questions 
 **Step 1: Read project-level files**
 ```bash
 # Core project files
-cat .planning/PROJECT.md 2>/dev/null
-cat .planning/REQUIREMENTS.md 2>/dev/null
-cat .planning/STATE.md 2>/dev/null
+cat .planning/PROJECT.md 2>/dev/null || true
+cat .planning/REQUIREMENTS.md 2>/dev/null || true
+cat .planning/STATE.md 2>/dev/null || true
 ```
 
 Extract from these:
@@ -219,7 +220,7 @@ Extract from these:
 **Step 2: Read all prior CONTEXT.md files**
 ```bash
 # Find all CONTEXT.md files from phases before current
-find .planning/phases -name "*-CONTEXT.md" 2>/dev/null | sort
+(find .planning/phases -name "*-CONTEXT.md" 2>/dev/null || true) | sort
 ```
 
 For each CONTEXT.md where phase number < current phase:
@@ -259,7 +260,7 @@ Check if any pending todos are relevant to this phase's scope. Surfaces backlog 
 
 **Load and match todos:**
 ```bash
-TODO_MATCHES=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" todo match-phase "${PHASE_NUMBER}")
+TODO_MATCHES=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" todo match-phase "${PHASE_NUMBER}")
 ```
 
 Parse JSON for: `todo_count`, `matches[]` (each with `file`, `title`, `area`, `score`, `reasons`).
@@ -300,7 +301,7 @@ Lightweight scan of existing code to inform gray area identification and discuss
 
 **Step 1: Check for existing codebase maps**
 ```bash
-ls .planning/codebase/*.md 2>/dev/null
+ls .planning/codebase/*.md 2>/dev/null || true
 ```
 
 **If codebase maps exist:** Read the most relevant ones (CONVENTIONS.md, STRUCTURE.md, STACK.md based on phase type). Extract:
@@ -316,12 +317,12 @@ Extract key terms from the phase goal (e.g., "feed" → "post", "card", "list"; 
 
 ```bash
 # Find files related to phase goal terms
-grep -rl "{term1}\|{term2}" src/ app/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" 2>/dev/null | head -10
+grep -rl "{term1}\|{term2}" src/ app/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" 2>/dev/null | head -10 || true
 
 # Find existing components/hooks
-ls src/components/ 2>/dev/null
-ls src/hooks/ 2>/dev/null
-ls src/lib/ src/utils/ 2>/dev/null
+ls src/components/ 2>/dev/null || true
+ls src/hooks/ 2>/dev/null || true
+ls src/lib/ src/utils/ 2>/dev/null || true
 ```
 
 Read the 3-5 most relevant files to understand existing patterns.
@@ -368,7 +369,7 @@ Check if advisor mode should activate:
 
 1. Check for USER-PROFILE.md:
    ```bash
-   PROFILE_PATH="/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/USER-PROFILE.md"
+   PROFILE_PATH="$HOME/.config/opencode/get-shit-done/USER-PROFILE.md"
    ```
    ADVISOR_MODE = file exists at PROFILE_PATH → true, otherwise → false
 
@@ -384,7 +385,7 @@ Check if advisor mode should activate:
 
 3. Resolve model for advisor agents:
    ```bash
-   ADVISOR_MODEL=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" resolve-model gsd-advisor-researcher --raw)
+   ADVISOR_MODEL=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" resolve-model gsd-advisor-researcher --raw)
    ```
 
 If ADVISOR_MODE is false, skip all advisor-specific steps — workflow proceeds with existing conversational flow unchanged.
@@ -491,14 +492,15 @@ After user selects gray areas in present_gray_areas, spawn parallel research age
 2. For EACH user-selected gray area, spawn a Task() in parallel:
 
    Task(
-     prompt="First, read @/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/agents/gsd-advisor-researcher.md for your role and instructions.
+     prompt="First, read @$HOME/.config/opencode/agents/gsd-advisor-researcher.md for your role and instructions.
 
      <gray_area>{area_name}: {area_description from gray area identification}</gray_area>
      <phase_context>{phase_goal and description from ROADMAP.md}</phase_context>
      <project_context>{project name and brief description from PROJECT.md}</project_context>
      <calibration_tier>{resolved calibration tier: full_maturity | standard | minimal_decisive}</calibration_tier>
 
-     Research this gray area and return a structured comparison table with rationale.",
+     Research this gray area and return a structured comparison table with rationale.
+     ${AGENT_SKILLS_ADVISOR}",
      subagent_type="general",
      model="{ADVISOR_MODEL}",
      description="Research: {area_name}"
@@ -570,7 +572,7 @@ Track deferred ideas internally.
 
 For each selected area, conduct a focused discussion loop.
 
-**Research-before-questions mode:** Check if `research_questions` is enabled in config (from init context or `.planning/config.json`). When enabled, before presenting questions for each area:
+**Research-before-questions mode:** Check if `workflow.research_before_questions` is enabled in config (from init context or `.planning/config.json`). When enabled, before presenting questions for each area:
 1. Do a brief web search for best practices related to the area topic
 2. Summarize the top findings in 2-3 bullet points
 3. Present the research alongside the question so the user can make a more informed decision
@@ -871,15 +873,15 @@ Created: .planning/phases/${PADDED_PHASE}-${SLUG}/${PADDED_PHASE}-CONTEXT.md
 
 **Phase ${PHASE}: [Name]** — [Goal from ROADMAP.md]
 
-`/gsd-plan-phase ${PHASE}`
+`/gsd-plan-phase ${PHASE} ${GSD_WS}`
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- `/gsd-plan-phase ${PHASE} --skip-research` — plan without research
-- `/gsd-ui-phase ${PHASE}` — generate UI design contract before planning (if phase has frontend work)
+- `/gsd-plan-phase ${PHASE} --skip-research ${GSD_WS}` — plan without research
+- `/gsd-ui-phase ${PHASE} ${GSD_WS}` — generate UI design contract before planning (if phase has frontend work)
 - Review/edit CONTEXT.md before continuing
 
 ---
@@ -934,7 +936,7 @@ Write file.
 Commit phase context and discussion log:
 
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs(${padded_phase}): capture phase context" --files "${phase_dir}/${padded_phase}-CONTEXT.md" "${phase_dir}/${padded_phase}-DISCUSSION-LOG.md"
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs(${padded_phase}): capture phase context" --files "${phase_dir}/${padded_phase}-CONTEXT.md" "${phase_dir}/${padded_phase}-DISCUSSION-LOG.md"
 ```
 
 Confirm: "Committed: docs(${padded_phase}): capture phase context"
@@ -944,7 +946,7 @@ Confirm: "Committed: docs(${padded_phase}): capture phase context"
 Update STATE.md with session info:
 
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" state record-session \
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" state record-session \
   --stopped-at "Phase ${PHASE} context gathered" \
   --resume-file "${phase_dir}/${padded_phase}-CONTEXT.md"
 ```
@@ -952,7 +954,7 @@ node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.o
 Commit STATE.md:
 
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs(state): record phase ${PHASE} context session" --files .planning/STATE.md
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs(state): record phase ${PHASE} context session" --files .planning/STATE.md
 ```
 </step>
 
@@ -963,18 +965,18 @@ Check for auto-advance trigger:
 2. **Sync chain flag with intent** — if user invoked manually (no `--auto`), clear the ephemeral chain flag from any previous interrupted `--auto` chain. This does NOT touch `workflow.auto_advance` (the user's persistent settings preference):
    ```bash
    if [[ ! "$ARGUMENTS" =~ --auto ]]; then
-     node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" config-set workflow._auto_chain_active false 2>/dev/null
+     node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" config-set workflow._auto_chain_active false 2>/dev/null
    fi
    ```
 3. Read both the chain flag and user preference:
    ```bash
-   AUTO_CHAIN=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
-   AUTO_CFG=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
+   AUTO_CHAIN=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
+   AUTO_CFG=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
    ```
 
 **If `--auto` flag present AND `AUTO_CHAIN` is not true:** Persist chain flag to config (handles direct `--auto` usage without new-project):
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" config-set workflow._auto_chain_active true
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" config-set workflow._auto_chain_active true
 ```
 
 **If `--auto` flag present OR `AUTO_CHAIN` is true OR `AUTO_CFG` is true:**
@@ -990,7 +992,7 @@ Context captured. Launching plan-phase...
 
 Launch plan-phase using the Skill tool to avoid nested Task sessions (which cause runtime freezes due to deep agent nesting — see #686):
 ```
-Skill(skill="gsd:plan-phase", args="${PHASE} --auto")
+Skill(skill="gsd-plan-phase", args="${PHASE} --auto ${GSD_WS}")
 ```
 
 This keeps the auto-advance chain flat — discuss, plan, and execute all run at the same nesting level rather than spawning increasingly deep Task agents.
@@ -1004,23 +1006,23 @@ This keeps the auto-advance chain flat — discuss, plan, and execute all run at
 
   Auto-advance pipeline finished: discuss → plan → execute
 
-  Next: /gsd-discuss-phase ${NEXT_PHASE} --auto
+  Next: /gsd-discuss-phase ${NEXT_PHASE} --auto ${GSD_WS}
   <sub>/clear first → fresh context window</sub>
   ```
 - **PLANNING COMPLETE** → Planning done, execution didn't complete:
   ```
   Auto-advance partial: Planning complete, execution did not finish.
-  Continue: /gsd-execute-phase ${PHASE}
+  Continue: /gsd-execute-phase ${PHASE} ${GSD_WS}
   ```
 - **PLANNING INCONCLUSIVE / CHECKPOINT** → Stop chain:
   ```
   Auto-advance stopped: Planning needs input.
-  Continue: /gsd-plan-phase ${PHASE}
+  Continue: /gsd-plan-phase ${PHASE} ${GSD_WS}
   ```
 - **GAPS FOUND** → Stop chain:
   ```
   Auto-advance stopped: Gaps found during execution.
-  Continue: /gsd-plan-phase ${PHASE} --gaps
+  Continue: /gsd-plan-phase ${PHASE} --gaps ${GSD_WS}
   ```
 
 **If neither `--auto` nor config enabled:**

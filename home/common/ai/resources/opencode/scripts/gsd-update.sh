@@ -26,6 +26,18 @@ cp "$tmpdir/.opencode/package.json" "$NIX_CONFIG_GSD/package.json"
 # Remove any .bak files
 find "$NIX_CONFIG_GSD" -name "*.bak" -delete
 
+# Fix hardcoded temp dir paths — installer bakes absolute paths of the install
+# directory into all markdown/js files. Replace with $HOME-based deploy target.
+echo "Fixing hardcoded temp dir paths..."
+find "$NIX_CONFIG_GSD" \( -name "*.md" -o -name "*.js" -o -name "*.json" -o -name "*.cjs" \) \
+	-exec sed -i '' "s|${tmpdir}/.opencode/|\$HOME/.config/opencode/|g" {} +
+
+# Fix command naming — installer uses Claude Code's colon convention (gsd:quick)
+# but OpenCode commands use hyphens (gsd-quick).
+echo "Fixing command naming (gsd: → gsd-)..."
+find "$NIX_CONFIG_GSD" \( -name "*.md" -o -name "*.js" -o -name "*.json" -o -name "*.cjs" \) \
+	-exec sed -i '' 's|gsd:|gsd-|g' {} +
+
 # Show version
 version=$(cat "$NIX_CONFIG_GSD/get-shit-done/VERSION")
 echo ""

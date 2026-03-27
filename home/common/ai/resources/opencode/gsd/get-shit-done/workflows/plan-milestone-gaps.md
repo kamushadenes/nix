@@ -12,7 +12,7 @@ Read all files referenced by the invoking prompt's execution_context before star
 
 ```bash
 # Find the most recent audit file
-ls -t .planning/v*-MILESTONE-AUDIT.md 2>/dev/null | head -1
+(ls -t .planning/v*-MILESTONE-AUDIT.md 2>/dev/null || true) | head -1
 ```
 
 Parse YAML frontmatter to extract structured gaps:
@@ -65,8 +65,7 @@ Gap: Flow "View dashboard" broken at data fetch
 Find highest existing phase:
 ```bash
 # Get sorted phase list, extract last one
-PHASES=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" phases list)
-HIGHEST=$(printf '%s\n' "$PHASES" | jq -r '.directories[-1]')
+HIGHEST=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" phases list --pick directories[-1])
 ```
 
 New phases continue from there:
@@ -147,7 +146,7 @@ mkdir -p ".planning/phases/{NN}-{name}"
 ## 9. Commit Roadmap and Requirements Update
 
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs(roadmap): add gap closure phases {N}-{M}" --files .planning/ROADMAP.md .planning/REQUIREMENTS.md
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs(roadmap): add gap closure phases {N}-{M}" --files .planning/ROADMAP.md .planning/REQUIREMENTS.md
 ```
 
 ## 10. Offer Next Steps

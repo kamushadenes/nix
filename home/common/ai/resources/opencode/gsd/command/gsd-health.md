@@ -12,10 +12,10 @@ Validate `.planning/` directory integrity and report actionable issues. Checks f
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/health.md
+@$HOME/.config/opencode/get-shit-done/workflows/health.md
 </execution_context>
 
 <process>
-Execute the health workflow from @/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/health.md end-to-end.
+Execute the health workflow from @$HOME/.config/opencode/get-shit-done/workflows/health.md end-to-end.
 Parse --repair flag from arguments and pass to workflow.
 </process>

@@ -12,10 +12,10 @@ Output ONLY the reference content below. Do NOT add:
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/help.md
+@$HOME/.config/opencode/get-shit-done/workflows/help.md
 </execution_context>
 
 <process>
-Output the complete GSD command reference from @/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/help.md.
+Output the complete GSD command reference from @$HOME/.config/opencode/get-shit-done/workflows/help.md.
 Display the reference content directly — no additions or modifications.
 </process>

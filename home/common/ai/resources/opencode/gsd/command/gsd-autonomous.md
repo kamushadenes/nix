@@ -24,8 +24,8 @@ Uses ROADMAP.md phase discovery and Skill() flat invocations for each phase comm
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/autonomous.md
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/references/ui-brand.md
+@$HOME/.config/opencode/get-shit-done/workflows/autonomous.md
+@$HOME/.config/opencode/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -35,6 +35,6 @@ Project context, phase list, and state are resolved inside the workflow using in
 </context>
 
 <process>
-Execute the autonomous workflow from @/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/autonomous.md end-to-end.
+Execute the autonomous workflow from @$HOME/.config/opencode/get-shit-done/workflows/autonomous.md end-to-end.
 Preserve all workflow gates (phase discovery, per-phase execution, blocker handling, progress display).
 </process>

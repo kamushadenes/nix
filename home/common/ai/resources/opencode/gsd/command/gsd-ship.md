@@ -16,7 +16,7 @@ Closes the plan → execute → verify → ship loop.
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/ship.md
+@$HOME/.config/opencode/get-shit-done/workflows/ship.md
 </execution_context>
 
-Execute the ship workflow from @/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/ship.md end-to-end.
+Execute the ship workflow from @$HOME/.config/opencode/get-shit-done/workflows/ship.md end-to-end.

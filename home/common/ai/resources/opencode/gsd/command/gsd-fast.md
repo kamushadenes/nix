@@ -21,9 +21,9 @@ you could describe in one sentence and execute in under 2 minutes.
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/fast.md
+@$HOME/.config/opencode/get-shit-done/workflows/fast.md
 </execution_context>
 
 <process>
-Execute the fast workflow from @/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/fast.md end-to-end.
+Execute the fast workflow from @$HOME/.config/opencode/get-shit-done/workflows/fast.md end-to-end.
 </process>

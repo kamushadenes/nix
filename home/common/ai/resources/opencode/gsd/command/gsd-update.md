@@ -18,11 +18,11 @@ Routes to the update workflow which handles:
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/update.md
+@$HOME/.config/opencode/get-shit-done/workflows/update.md
 </execution_context>
 
 <process>
-**Follow the update workflow** from `@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/update.md`.
+**Follow the update workflow** from `@$HOME/.config/opencode/get-shit-done/workflows/update.md`.
 
 The workflow handles all logic including:
 1. Installed version detection (local/global)

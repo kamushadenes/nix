@@ -24,7 +24,7 @@ Output: Test files committed with message `test(phase-{N}): add unit and E2E tes
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/add-tests.md
+@$HOME/.config/opencode/get-shit-done/workflows/add-tests.md
 </execution_context>
 
 <context>
@@ -35,6 +35,6 @@ Phase: $ARGUMENTS
 </context>
 
 <process>
-Execute the add-tests workflow from @/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/add-tests.md end-to-end.
+Execute the add-tests workflow from @$HOME/.config/opencode/get-shit-done/workflows/add-tests.md end-to-end.
 Preserve all workflow gates (classification approval, test plan approval, RED-GREEN verification, gap reporting).
 </process>

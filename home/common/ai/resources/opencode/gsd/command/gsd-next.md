@@ -15,9 +15,9 @@ Designed for rapid multi-project workflows where remembering which phase/step yo
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/next.md
+@$HOME/.config/opencode/get-shit-done/workflows/next.md
 </execution_context>
 
 <process>
-Execute the next workflow from @/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/next.md end-to-end.
+Execute the next workflow from @$HOME/.config/opencode/get-shit-done/workflows/next.md end-to-end.
 </process>

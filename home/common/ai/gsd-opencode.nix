@@ -56,6 +56,39 @@ let
   commandEntries = lib.mapAttrs' (mkFileEntry "command") commandFiles;
   coreEntries = lib.mapAttrs' (mkFileEntry "get-shit-done") coreFiles;
   hookEntries = lib.mapAttrs' (mkFileEntry "hooks") hookFiles;
+
+  # OpenCode's skill tool only discovers ~/.agents/skills/, not ~/.config/opencode/command/.
+  # GSD workflows chain commands via Skill(skill="gsd-plan-phase") which uses the skill tool.
+  # Generate minimal skill wrappers that bridge to the actual command files.
+  commandDirEntries = builtins.readDir "${gsdDir}/command";
+  realSkillNames = builtins.attrNames (
+    lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./resources/agents/skills)
+  );
+  gsdCommandNames = builtins.filter (
+    name:
+    lib.hasPrefix "gsd-" name
+    && lib.hasSuffix ".md" name
+    && !builtins.elem (lib.removeSuffix ".md" name) realSkillNames
+  ) (builtins.attrNames commandDirEntries);
+
+  mkSkillWrapper =
+    cmdFileName:
+    let
+      skillName = lib.removeSuffix ".md" cmdFileName;
+    in
+    {
+      name = ".agents/skills/${skillName}/SKILL.md";
+      value.text = ''
+        ---
+        name: ${skillName}
+        description: GSD command ${skillName}. Loaded by GSD workflow chains.
+        ---
+
+        Read and follow the full instructions at `$HOME/.config/opencode/command/${cmdFileName}`.
+      '';
+    };
+
+  skillWrapperEntries = builtins.listToAttrs (map mkSkillWrapper gsdCommandNames);
 in
 {
   home.file =
@@ -63,10 +96,10 @@ in
     // commandEntries
     // coreEntries
     // hookEntries
+    // skillWrapperEntries
     // {
       ".config/opencode/gsd-file-manifest.json".source = "${gsdDir}/gsd-file-manifest.json";
 
-      # Update script
       ".config/opencode/scripts/gsd-update.sh" = {
         source = "${scriptsDir}/gsd-update.sh";
         executable = true;

@@ -98,7 +98,7 @@ Always include current year. Use multiple query variations. Mark WebSearch-only 
 Check `brave_search` from orchestrator context. If `true`, use Brave Search for higher quality results:
 
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" websearch "your query" --limit 10
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" websearch "your query" --limit 10
 ```
 
 **Options:**

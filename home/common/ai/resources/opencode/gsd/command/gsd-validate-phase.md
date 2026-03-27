@@ -21,7 +21,7 @@ Output: updated VALIDATION.md + generated test files.
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/validate-phase.md
+@$HOME/.config/opencode/get-shit-done/workflows/validate-phase.md
 </execution_context>
 
 <context>
@@ -29,6 +29,6 @@ Phase: $ARGUMENTS — optional, defaults to last completed phase.
 </context>
 
 <process>
-Execute @/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/validate-phase.md.
+Execute @$HOME/.config/opencode/get-shit-done/workflows/validate-phase.md.
 Preserve all workflow gates.
 </process>

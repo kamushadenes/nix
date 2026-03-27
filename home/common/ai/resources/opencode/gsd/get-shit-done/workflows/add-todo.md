@@ -12,7 +12,7 @@ Read all files referenced by the invoking prompt's execution_context before star
 Load todo context:
 
 ```bash
-INIT=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" init todos)
+INIT=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" init todos)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -63,7 +63,7 @@ Use existing area from step 2 if similar match exists.
 <step name="check_duplicates">
 ```bash
 # Search for key words from title in existing todos
-grep -l -i "[key words from title]" .planning/todos/pending/*.md 2>/dev/null
+grep -l -i "[key words from title]" .planning/todos/pending/*.md 2>/dev/null || true
 ```
 
 If potential duplicate found:
@@ -84,7 +84,7 @@ Use values from init context: `timestamp` and `date` are already available.
 
 Generate slug for the title:
 ```bash
-slug=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" generate-slug "$title" --raw)
+slug=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" generate-slug "$title" --raw)
 ```
 
 Write to `.planning/todos/pending/${date}-${slug}.md`:
@@ -119,7 +119,7 @@ If `.planning/STATE.md` exists:
 Commit the todo and any updated state:
 
 ```bash
-node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs: capture todo - [title]" --files .planning/todos/pending/[filename] .planning/STATE.md
+node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs: capture todo - [title]" --files .planning/todos/pending/[filename] .planning/STATE.md
 ```
 
 Tool respects `commit_docs` config and gitignore automatically.

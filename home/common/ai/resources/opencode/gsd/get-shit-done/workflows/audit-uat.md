@@ -8,7 +8,7 @@ Cross-phase audit of all UAT and verification files. Finds every outstanding ite
 Run the CLI audit:
 
 ```bash
-AUDIT=$(node "/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/bin/gsd-tools.cjs" audit-uat --raw)
+AUDIT=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" audit-uat --raw)
 ```
 
 Parse JSON for `results` array and `summary` object.

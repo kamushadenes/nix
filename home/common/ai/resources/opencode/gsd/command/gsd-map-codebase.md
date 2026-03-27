@@ -19,7 +19,7 @@ Output: .planning/codebase/ folder with 7 structured documents about the codebas
 </objective>
 
 <execution_context>
-@/private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.F0tnwPm72m/.opencode/get-shit-done/workflows/map-codebase.md
+@$HOME/.config/opencode/get-shit-done/workflows/map-codebase.md
 </execution_context>
 
 <context>
