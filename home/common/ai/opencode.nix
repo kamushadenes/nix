@@ -266,6 +266,7 @@ in
         # Align with Claude Code muscle memory
         editor_open = "ctrl+g"; # CC: ctrl+g opens external editor
         status_view = "ctrl+t"; # CC: ctrl+t toggles task list
+        agent_list = "shift+down"; # CC: shift+down opens running agents
         # Remap displaced defaults
         variant_cycle = "<leader>v"; # was ctrl+t, displaced by status_view
         messages_first = "home"; # was ctrl+g,home — ctrl+g now opens editor

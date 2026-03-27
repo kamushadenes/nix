@@ -89,6 +89,7 @@ let
     "${config.home.homeDirectory}/.config/composer/vendor/bin"
     "${config.home.homeDirectory}/.orbstack/bin"
     "${config.home.homeDirectory}/go/bin"
+    "${config.home.homeDirectory}/.opencode/bin"
   ];
 
   # Factory for generating path setup commands per shell
