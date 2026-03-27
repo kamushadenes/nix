@@ -130,7 +130,6 @@ let
       "opentmux"
       "opencode-vibeguard"
       "opencode-wakatime"
-      "@altalt-org/opencode-anthropic-multi-auth"
     ];
   };
 
