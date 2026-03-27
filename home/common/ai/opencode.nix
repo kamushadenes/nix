@@ -152,7 +152,7 @@ let
         variant = "max";
       };
       hephaestus = {
-        model = "opencode/gpt-5.3-codex";
+        model = "github-copilot/gpt-5.3-codex";
         variant = "medium";
       };
       sisyphus-junior = {
@@ -169,7 +169,7 @@ let
         model = "opencode/minimax-m2.5-free";
       };
       multimodal-looker = {
-        model = "opencode/gpt-5.4";
+        model = "github-copilot/gpt-5.4";
         variant = "medium";
       };
       prometheus = {
@@ -194,11 +194,11 @@ let
         variant = "high";
       };
       ultrabrain = {
-        model = "opencode/gpt-5.4";
+        model = "github-copilot/gpt-5.4";
         variant = "xhigh";
       };
       deep = {
-        model = "opencode/gpt-5.3-codex";
+        model = "github-copilot/gpt-5.3-codex";
         variant = "medium";
       };
       artistry = {
