@@ -137,6 +137,15 @@ let
   omoConfig = {
     "$schema" =
       "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json";
+    lsp = {
+      templ = {
+        command = [
+          "templ"
+          "lsp"
+        ];
+        extensions = [ ".templ" ];
+      };
+    };
     agents = {
       sisyphus = {
         model = "anthropic/claude-opus-4-6";
