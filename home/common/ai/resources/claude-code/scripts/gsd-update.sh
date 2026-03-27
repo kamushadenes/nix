@@ -16,10 +16,15 @@ echo ""
 echo "Syncing files to nix config..."
 
 # Sync each category (delete removed files, add new ones)
-rsync -a --delete "$tmpdir/.claude/agents/gsd-"* "$NIX_CONFIG_GSD/agents/"
+# Agents and hooks use glob (can't --delete the whole dir — non-GSD files live there too).
+find "$NIX_CONFIG_GSD/agents" -name "gsd-*.md" -delete 2>/dev/null || true
+cp "$tmpdir/.claude/agents/gsd-"*.md "$NIX_CONFIG_GSD/agents/"
+
 rsync -a --delete "$tmpdir/.claude/commands/gsd/" "$NIX_CONFIG_GSD/commands/gsd/"
 rsync -a --delete "$tmpdir/.claude/get-shit-done/" "$NIX_CONFIG_GSD/get-shit-done/"
-rsync -a --delete "$tmpdir/.claude/hooks/gsd-"* "$NIX_CONFIG_GSD/hooks/"
+
+find "$NIX_CONFIG_GSD/hooks" -name "gsd-*" -delete 2>/dev/null || true
+cp "$tmpdir/.claude/hooks/gsd-"* "$NIX_CONFIG_GSD/hooks/"
 cp "$tmpdir/.claude/gsd-file-manifest.json" "$NIX_CONFIG_GSD/gsd-file-manifest.json"
 
 # Remove any .bak files

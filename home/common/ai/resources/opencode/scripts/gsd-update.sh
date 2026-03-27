@@ -16,10 +16,16 @@ echo ""
 echo "Syncing files to nix config..."
 
 # Sync each category (delete removed files, add new ones)
-rsync -a --delete "$tmpdir/.opencode/agents/gsd-"* "$NIX_CONFIG_GSD/agents/"
+# Agents and hooks use glob (can't --delete the whole dir — non-GSD files live there too).
+# Remove stale gsd-* files first, then copy fresh ones.
+find "$NIX_CONFIG_GSD/agents" -name "gsd-*.md" -delete 2>/dev/null || true
+cp "$tmpdir/.opencode/agents/gsd-"*.md "$NIX_CONFIG_GSD/agents/"
+
 rsync -a --delete "$tmpdir/.opencode/command/" "$NIX_CONFIG_GSD/command/"
 rsync -a --delete "$tmpdir/.opencode/get-shit-done/" "$NIX_CONFIG_GSD/get-shit-done/"
-rsync -a --delete "$tmpdir/.opencode/hooks/gsd-"* "$NIX_CONFIG_GSD/hooks/"
+
+find "$NIX_CONFIG_GSD/hooks" -name "gsd-*" -delete 2>/dev/null || true
+cp "$tmpdir/.opencode/hooks/gsd-"* "$NIX_CONFIG_GSD/hooks/"
 cp "$tmpdir/.opencode/gsd-file-manifest.json" "$NIX_CONFIG_GSD/gsd-file-manifest.json"
 cp "$tmpdir/.opencode/package.json" "$NIX_CONFIG_GSD/package.json"
 
