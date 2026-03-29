@@ -146,6 +146,16 @@
             "set -U async_prompt_functions fish_right_prompt"
           ]
         ))
+
+        # Override fish-async-prompt cleanup to bypass safe-rm.
+        # The plugin uses bare `rm` which gets intercepted by safe-rm,
+        # moving temp files to trash instead of deleting them on shell exit.
+        # Using `command rm` calls the real rm binary directly.
+        ''
+          function __async_prompt_tmpdir_cleanup --on-event fish_exit
+              command rm -rf "$__async_prompt_tmpdir"
+          end
+        ''
       ];
 
       loginShellInit = helpers.fishProfilesPath;
