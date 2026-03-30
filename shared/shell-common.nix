@@ -205,7 +205,7 @@ in
           set -x GHOSTTY_RESOURCES_DIR "${ghosttyResourcesDir}"
       end
 
-      _evalcache cat "$GHOSTTY_RESOURCES_DIR"/shell-integration/fish/vendor_conf.d/ghostty-shell-integration.fish
+      builtin source "$GHOSTTY_RESOURCES_DIR"/shell-integration/fish/vendor_conf.d/ghostty-shell-integration.fish 2>/dev/null
     '';
 
     homebrewInit = lib.optionalString pkgs.stdenv.isDarwin "_evalcache ${osConfig.homebrew.brewPrefix}/brew shellenv";
