@@ -129,6 +129,25 @@ let
       ];
     };
 
+    # Exa - AI-powered web search
+    exa = {
+      transport = "http";
+      url = "https://mcp.exa.ai/mcp";
+    };
+
+    # Firecrawl - Web scraping and crawling
+    firecrawl-mcp = {
+      transport = "stdio";
+      command = "npx";
+      args = [
+        "-y"
+        "firecrawl-mcp"
+      ];
+      env = {
+        FIRECRAWL_API_KEY = "@FIRECRAWL_API_KEY@";
+      };
+    };
+
     # Note: clickup and vanta moved to private/home/common/ai/mcp-servers-private.nix
     # as iniciador-clickup and iniciador-vanta (workspace-scoped)
   };
@@ -156,6 +175,7 @@ let
     "@OPENROUTER_API_KEY@"
     "@SLACK_MCP_XOXB_TOKEN@"
     "@SLACK_MCP_XOXP_TOKEN@"
+    "@FIRECRAWL_API_KEY@"
   ];
 
   # Secret files (relative to private submodule)
@@ -166,6 +186,7 @@ let
     "@OPENROUTER_API_KEY@" = "home/common/ai/resources/claude/openrouter-api-key.age";
     "@SLACK_MCP_XOXB_TOKEN@" = "home/common/ai/resources/claude/slack-bot-token.age";
     "@SLACK_MCP_XOXP_TOKEN@" = "home/common/ai/resources/claude/slack-user-token.age";
+    "@FIRECRAWL_API_KEY@" = "home/common/ai/resources/claude/firecrawl-api-key.age";
   };
 in
 rec {
@@ -278,7 +299,14 @@ rec {
           }
           // lib.optionalAttrs (server ? headers) { inherit (server) headers; }
           // lib.optionalAttrs (server ? oauth) {
-            oauth = lib.filterAttrs (k: _: builtins.elem k [ "clientId" "clientSecret" "scope" ]) server.oauth;
+            oauth = lib.filterAttrs (
+              k: _:
+              builtins.elem k [
+                "clientId"
+                "clientSecret"
+                "scope"
+              ]
+            ) server.oauth;
           }
         else
           {
