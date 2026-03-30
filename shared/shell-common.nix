@@ -90,6 +90,9 @@ let
     "${config.home.homeDirectory}/.orbstack/bin"
     "${config.home.homeDirectory}/go/bin"
     "${config.home.homeDirectory}/.opencode/bin"
+  ]
+  ++ lib.optionals pkgs.stdenv.isDarwin [
+    "/Applications/cmux.app/Contents/Resources/bin"
   ];
 
   # Factory for generating path setup commands per shell

@@ -29,7 +29,7 @@ if test "$use_opencode" = true; then
 	printf '\033]0;OpenCode: %s/%s\007' "$parent_folder" "$git_folder"
 
 	if test -n "${CMUX_WORKSPACE_ID:-}" && test -n "${CMUX_SURFACE_ID:-}"; then
-		exec /Applications/cmux.app/Contents/Resources/bin/cmux omo "$@"
+		exec cmux omo "$@"
 	fi
 
 	cmd="opencode"
