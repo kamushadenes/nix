@@ -132,7 +132,6 @@ let
       "opencode-vibeguard"
       "opencode-wakatime"
       "opencode-claude-auth"
-      "opencode-notify"
     ];
   };
 
