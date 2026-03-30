@@ -141,6 +141,11 @@ error: unable to download 'https://ncps.hyades.io/...': Connection timed out
 This is NOT benign - the build was interrupted and packages may not be
 installed. Run `rebuild` again until it completes without cache errors.
 
+**IMPORTANT: `Could not write domain` errors during rebuild.** If `rebuild`
+fails with `Could not write domain <any domain>`, the terminal running the
+command is missing **Full Disk Access** in System Settings → Privacy & Security
+→ Full Disk Access. Grant it to the terminal app and retry.
+
 **IMPORTANT: Use `-vL` flags for LXC deployments.** When deploying to Proxmox
 LXCs, always use both flags:
 
