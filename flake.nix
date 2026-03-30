@@ -39,11 +39,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    peon-ping = {
-      url = "github:PeonPing/peon-ping";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
   };
 
   outputs =
@@ -310,7 +305,6 @@
       hmModules = [
         ./shared/age-home.nix # patched agenix HM module: fixes stale generation crash loop
         nix-moltbot.homeManagerModules.moltbot
-        inputs.peon-ping.homeManagerModules.default
       ];
 
       hmDefaults = {

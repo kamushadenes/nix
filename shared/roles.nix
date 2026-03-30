@@ -82,7 +82,6 @@ let
     ../home/common/ai/gsd-opencode.nix
     ../home/common/ai/opencode.nix
     ../home/common/ai/orchestrator.nix
-    ../home/common/ai/peon-ping.nix
   ];
 
   # Development tools
