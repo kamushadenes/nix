@@ -92,9 +92,9 @@ let
     "slack"
     "aikido"
     "deepwiki"
-    "github"
     "Ref"
     "playwriter"
+    "firecrawl-mcp"
     "iniciador-vanta"
   ];
 
@@ -182,44 +182,12 @@ in
 
       # Hooks - commands that run at various points in Claude Code's lifecycle
       hooks = {
-        # Run before file modifications - TDD guard ensures tests exist
-        PreToolUse = [
-          {
-            matcher = "Write|Edit|MultiEdit|TodoWrite|Update";
-            hooks = [
-              {
-                type = "command";
-                command = "tdd-guard";
-              }
-            ];
-          }
+        PreToolUse = [ ];
 
-        ];
-
-        # Run on every user prompt submission
-        UserPromptSubmit = [
-          {
-            matcher = "";
-            hooks = [
-              {
-                type = "command";
-                command = "tdd-guard";
-              }
-            ];
-          }
-        ];
+        UserPromptSubmit = [ ];
 
         # Run at session start/resume/clear
         SessionStart = [
-          {
-            matcher = "startup|resume|clear";
-            hooks = [
-              {
-                type = "command";
-                command = "tdd-guard";
-              }
-            ];
-          }
           # Web-only: Install devbox and initialize direnv when devbox.json exists
           {
             matcher = "startup";
@@ -257,37 +225,8 @@ in
           }
         ];
 
-        # Run after file modifications - security scanning and auto-formatting
+        # Run after file modifications - auto-formatting
         PostToolUse = [
-          # Block empty AskUserQuestion responses (auto-answer bug workaround)
-          # https://github.com/anthropics/claude-code/issues/29733#issuecomment-3992271945
-          {
-            matcher = "AskUserQuestion";
-            hooks = [
-              {
-                type = "command";
-                command = "jq -e '.tool_input.answers | length == 0' > /dev/null 2>&1 && printf '{\"decision\":\"block\",\"reason\":\"The AskUserQuestion exited automatically without me having a chance to respond. Try again and if this happens again just ask using a normal prompt.\",\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"The AskUserQuestion exited automatically without me having a chance to respond. Try again and if this happens again just ask using a normal prompt.\"}}' || true";
-              }
-            ];
-          }
-          {
-            matcher = "Edit(*.tf)|Write(*.tf)|Update(*.tf)";
-            hooks = [
-              {
-                type = "command";
-                command = ".claude/hooks/trivy-tf.sh";
-              }
-            ];
-          }
-          {
-            matcher = "Edit(*.hcl)|Write(*.hcl)|Update(*.hcl)";
-            hooks = [
-              {
-                type = "command";
-                command = ".claude/hooks/trivy-tf.sh";
-              }
-            ];
-          }
           # Auto-format Python files
           {
             matcher = "Edit(*.py)|Write(*.py)|Update(*.py)";
@@ -343,17 +282,6 @@ in
               }
             ];
           }
-          # Fix non-portable bash shebangs (#!/bin/bash -> #!/usr/bin/env bash)
-          {
-            matcher = "Edit(*.sh)|Write(*.sh)|Update(*.sh)";
-            hooks = [
-              {
-                type = "command";
-                command = "~/.claude/hooks/PostToolUse/fix-bash-shebang.sh";
-                timeout = 5000;
-              }
-            ];
-          }
         ];
 
         # Run after tool failures
@@ -385,12 +313,6 @@ in
             ];
           }
         ];
-      };
-
-      # Custom status line command
-      statusLine = {
-        type = "command";
-        command = "bash ${config.home.homeDirectory}/.claude/statusline-command.sh";
       };
 
       # Enabled plugins from various marketplaces
@@ -444,12 +366,6 @@ in
     # MCP template with @PLACEHOLDER@ values - secrets substituted at activation
     ".claude/mcp-servers.json.template".text = defaultMcpConfigTemplate;
 
-    # Statusline script - executable bash script for custom status display
-    ".claude/statusline-command.sh" = {
-      source = "${scriptsDir}/statusline.sh";
-      executable = true;
-    };
-
     # direnv BASH_ENV script for non-interactive shells (Claude Code Bash tool)
     ".claude/scripts/direnv-bash-env.sh" = {
       source = "${scriptsDir}/direnv-bash-env.sh";
@@ -487,12 +403,6 @@ in
     # SessionStart hooks
     ".claude/hooks/SessionStart/devbox-setup.sh" = {
       source = "${scriptsDir}/hooks/SessionStart/devbox-setup.sh";
-      executable = true;
-    };
-
-    # PostToolUse hooks (additional)
-    ".claude/hooks/PostToolUse/fix-bash-shebang.sh" = {
-      source = "${scriptsDir}/hooks/PostToolUse/fix-bash-shebang.sh";
       executable = true;
     };
 

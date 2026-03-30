@@ -24,6 +24,7 @@ let
     "Ref"
     "playwriter"
     "firecrawl-mcp"
+    "iniciador-vanta"
   ];
 
   # Resource directories
@@ -242,11 +243,19 @@ in
   # Agenix Secrets
   #############################################################################
 
-  age.secrets = mcpServers.mkAgenixSecrets {
-    prefix = "opencode";
-    secretsDir = secretsDir;
-    inherit private;
-  };
+  age.secrets =
+    mcpServers.mkAgenixSecrets {
+      prefix = "opencode";
+      secretsDir = secretsDir;
+      inherit private;
+    }
+    // {
+      # Iniciador Vanta credentials - needs file path, not substituted content
+      "opencode-iniciador-vanta-credentials" = {
+        file = "${private}/home/common/ai/resources/claude/vanta-credentials.age";
+        path = "${secretsDir}/iniciador-vanta-credentials";
+      };
+    };
 
   #############################################################################
   # OpenCode Configuration

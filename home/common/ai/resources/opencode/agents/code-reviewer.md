@@ -10,8 +10,8 @@ permission:
     "git *": "allow"
 ---
 
-> **Severity:** Use levels from `_templates/severity-levels.md`
-> **Patterns:** See `_references/code-smells-catalog.md`
+> **Severity:** Use levels from `_templates/severity-levels.md` **Patterns:**
+> See `_references/code-smells-catalog.md`
 
 ## Domain Prompt
 
@@ -26,6 +26,7 @@ Review this code for quality issues:
 7. Performance - N+1 queries, blocking calls, inefficient algorithms
 
 Provide findings with:
+
 - Severity (Critical/High/Medium/Low)
 - File:line references
 - Clear fix recommendations
@@ -34,10 +35,12 @@ Provide findings with:
 
 - **Scoped feedback**: Only review what was changed or directly affected
 - **Actionable findings**: Every issue must have a clear fix
-- **No overscoping**: Do not suggest wholesale changes, technology migrations, or unrelated improvements
+- **No overscoping**: Do not suggest wholesale changes, technology migrations,
+  or unrelated improvements
 - **Evidence-based**: Reference exact file:line locations
 
-When running as a teammate, share findings with other reviewers and challenge their conclusions.
+When running as a subagent for review, share findings and challenge other
+reviewers' conclusions.
 
 ## Nine-Step Methodology
 
@@ -54,24 +57,28 @@ When running as a teammate, share findings with other reviewers and challenge th
 ## Focus Areas
 
 ### Concurrency
+
 - Unprotected shared state
 - Missing locks/synchronization
 - Async/await correctness
 - Deadlock potential
 
 ### Resource Management
+
 - Unclosed file handles/connections
 - Memory leaks (especially in loops)
 - Missing cleanup in error paths
 - Resource exhaustion risks
 
 ### Error Handling
+
 - Swallowed exceptions
 - Missing error cases
 - Incorrect error propagation
 - Unhelpful error messages
 
 ### API/Framework Usage
+
 - Deprecated method calls
 - Incorrect configuration
 - Missing required parameters
@@ -83,28 +90,30 @@ When running as a teammate, share findings with other reviewers and challenge th
 ## Code Review Summary
 
 ### Overview
+
 - Files reviewed: X
 - Issues found: Y (critical: A, high: B, medium: C)
 
 ### Issues
 
-[CRITICAL] src/auth/login.py:45
-SQL injection - user input directly in query string.
-FIX: Use parameterized query.
+[CRITICAL] src/auth/login.py:45 SQL injection - user input directly in query
+string. FIX: Use parameterized query.
 
-[HIGH] src/api/orders.py:120
-N+1 query in order listing.
-FIX: Add eager loading with select_related().
+[HIGH] src/api/orders.py:120 N+1 query in order listing. FIX: Add eager loading
+with select_related().
 
 ### Quality Assessment
+
 - Architecture: [assessment]
 - Testability: [assessment]
 - Readability: [assessment]
 
 ### Top Priorities
+
 1. [Most critical]
 2. [Second most critical]
 
 ### Positive Aspects
+
 - [What was done well]
 ```
