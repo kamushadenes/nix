@@ -43,7 +43,6 @@ let
       { };
 
   sharedRuleFiles = discoverFiles sharedRulesDir;
-  pluginFiles = discoverFiles pluginsDir;
   agentFiles = discoverFiles agentsDir;
   commandFiles = discoverFiles commandsDir;
 
@@ -284,11 +283,13 @@ in
     name = ".config/opencode/rules/${name}";
     value.source = "${sharedRulesDir}/${name}";
   }) sharedRuleFiles
-  # Plugins - auto-discovered from pluginsDir
-  // lib.mapAttrs' (name: _: {
-    name = ".config/opencode/plugins/${name}";
-    value.source = "${pluginsDir}/${name}";
-  }) pluginFiles
+  # Plugins - recursive directory deployment (supports multi-file plugins)
+  // {
+    ".config/opencode/plugins" = {
+      source = pluginsDir;
+      recursive = true;
+    };
+  }
   # Agents - auto-discovered from agentsDir
   // lib.mapAttrs' (name: _: {
     name = ".config/opencode/agents/${name}";
@@ -310,4 +311,12 @@ in
       secretsDir = secretsDir;
     }
   );
+
+  # Install npm dependencies for local plugins (opencode-notify needs these)
+  home.activation.opencodePluginDeps = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    OPENCODE_DIR="${config.home.homeDirectory}/.config/opencode"
+    if ! [ -d "$OPENCODE_DIR/node_modules/node-notifier" ] || ! [ -d "$OPENCODE_DIR/node_modules/detect-terminal" ]; then
+      run ${lib.getExe pkgs.bun} install --cwd "$OPENCODE_DIR" node-notifier detect-terminal 2>/dev/null || true
+    fi
+  '';
 }
