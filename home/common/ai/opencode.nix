@@ -299,11 +299,26 @@ in
       recursive = true;
     };
   }
-  # Agents - auto-discovered from agentsDir
+  # Agents - auto-discovered from agentsDir (flat .md files)
   // lib.mapAttrs' (name: _: {
     name = ".config/opencode/agents/${name}";
     value.source = "${agentsDir}/${name}";
   }) agentFiles
+  # Agent subdirectories (_references, _templates) - recursive deployment
+  //
+    lib.mapAttrs'
+      (name: _: {
+        name = ".config/opencode/agents/${name}";
+        value = {
+          source = "${agentsDir}/${name}";
+          recursive = true;
+        };
+      })
+      (
+        lib.filterAttrs (name: type: type == "directory" && lib.hasPrefix "_" name) (
+          if builtins.pathExists agentsDir then builtins.readDir agentsDir else { }
+        )
+      )
   # Commands - auto-discovered from commandsDir
   // lib.mapAttrs' (name: _: {
     name = ".config/opencode/commands/${name}";
