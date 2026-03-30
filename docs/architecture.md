@@ -64,10 +64,6 @@ inputs = {
     inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  peon-ping = {
-    url = "github:PeonPing/peon-ping";
-    inputs.nixpkgs.follows = "nixpkgs";
-  };
 };
 ```
 
@@ -77,8 +73,6 @@ inputs = {
   permission fix. Provides sandboxed Claude Code execution.
 - **nix-moltbot**: Moltbot home-manager module for AI assistant gateway
   configuration.
-- **peon-ping**: Voice notification system for AI coding agent events (session
-  starts, completions).
 
 ### Factory Functions
 
@@ -201,7 +195,7 @@ The system layer handles platform-specific configurations for macOS and NixOS.
 
 ### Darwin (macOS)
 
-The `darwin.nix` file imports 24 modules that configure everything from Homebrew
+The `darwin.nix` file imports 25 modules that configure everything from Homebrew
 and the Dock to security settings and window management.
 
 ```nix
