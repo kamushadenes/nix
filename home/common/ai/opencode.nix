@@ -23,7 +23,6 @@ let
     "deepwiki"
     "Ref"
     "playwriter"
-    "exa"
     "firecrawl-mcp"
   ];
 

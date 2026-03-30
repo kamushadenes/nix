@@ -129,12 +129,6 @@ let
       ];
     };
 
-    # Exa - AI-powered web search
-    exa = {
-      transport = "http";
-      url = "https://mcp.exa.ai/mcp";
-    };
-
     # Firecrawl - Web scraping and crawling
     firecrawl-mcp = {
       transport = "stdio";
