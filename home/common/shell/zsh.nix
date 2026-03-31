@@ -16,7 +16,7 @@
 
     sessionVariables = helpers.globalVariables.base;
 
-    shellAliases = shellCommon.aliases;
+    shellAliases = lib.mkMerge [ config.home.shellAliases shellCommon.aliases ];
 
     # Use initContent with mkBefore/mkAfter for proper ordering
     initContent = lib.mkMerge [

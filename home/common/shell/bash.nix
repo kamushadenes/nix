@@ -22,7 +22,7 @@
 
     sessionVariables = helpers.globalVariables.base;
 
-    shellAliases = shellCommon.aliases;
+    shellAliases = lib.mkMerge [ config.home.shellAliases shellCommon.aliases ];
 
     initExtra = lib.mkMerge [
       # Functions from shell-common

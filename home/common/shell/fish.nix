@@ -160,7 +160,7 @@
 
       loginShellInit = helpers.fishProfilesPath;
 
-      shellAliases = shellCommon.aliases;
+      shellAliases = lib.mkMerge [ config.home.shellAliases shellCommon.aliases ];
     };
   };
 }
