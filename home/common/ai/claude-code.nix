@@ -349,7 +349,7 @@ in
         #"fullstack-dev-skills@fullstack-dev-skills" = true;
         #"superpowers@superpowers-marketplace" = true;
         "secrets-scanner@agent-security" = true;
-        "worktrunk@worktrunk" = true;
+        "claude-code-wakatime@wakatime" = true;
 
         # Safety Net (kenryu42/cc-marketplace) - blocks destructive git/fs commands
         "safety-net@cc-marketplace" = true;
