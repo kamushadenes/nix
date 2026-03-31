@@ -22,6 +22,7 @@
     tesseract
     qpdf
     pkgs-unstable.ncdu
+    pkgs-unstable.wishlist
   ];
 
   programs.topgrade = {
