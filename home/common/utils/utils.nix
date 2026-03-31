@@ -24,9 +24,6 @@
     pkgs-unstable.ncdu
     pkgs-unstable.wishlist
   ];
-
-  home.shellAliases.w = "wishlist";
-
   programs.topgrade = {
     enable = true;
     settings = {

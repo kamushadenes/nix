@@ -3,6 +3,7 @@
   config,
   lib,
   pkgs,
+  pkgs-unstable,
   osConfig,
   private,
   packages,
@@ -147,6 +148,7 @@ in
     (lib.mkIf (hasPackage pkgs.doggo) { dig = "doggo"; })
     (lib.mkIf (hasPackage pkgs.gping) { ping = "gping"; })
     (lib.mkIf (hasPackage pkgs.viddy) { watch = "viddy"; })
+    (lib.mkIf (hasPackage pkgs-unstable.wishlist) { w = "wishlist"; })
   ];
 
   # Fish-specific definitions
