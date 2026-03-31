@@ -60,6 +60,10 @@ let
   playwriter = pkgs.writeShellScriptBin "playwriter" ''
     exec npx -y playwriter@latest "$@"
   '';
+  # CCS - Claude Code Switch: universal AI profile manager
+  ccs = pkgs.writeShellScriptBin "ccs" ''
+    exec npx -y @kaitranntt/ccs@latest "$@"
+  '';
 in
 {
   home.packages = with pkgs;
@@ -69,6 +73,7 @@ in
       typescript
       yarn-berry
       playwriter
+      ccs
     ]
     # TDD Guard installed via npm on Linux (homebrew cask on macOS)
     ++ lib.optionals (!stdenv.isDarwin) [
