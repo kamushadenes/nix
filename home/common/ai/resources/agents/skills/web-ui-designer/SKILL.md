@@ -152,10 +152,11 @@ Every page follows: **Page title + filters > Summary cards > Charts > Detail tab
 For Go (Templ), Python (Jinja), Ruby (ERB), or similar:
 
 1. **CSS**: Ship a single `app.css` with tokens + Tailwind utilities
-2. **JS**: Minimal — chart library + progressive enhancement (Unpoly, htmx, Alpine)
+2. **JS**: Minimal — chart library + Unpoly + Alpine.js for interactivity
 3. **Components**: Template partials/components, not JS components
-4. **Polling**: Use library-native polling (Unpoly `up-poll`, htmx `hx-trigger="every 5s"`)
-5. **SPA navigation**: Unpoly `up-follow`/`up-target` or htmx `hx-boost`
+4. **Polling**: Unpoly `up-poll` with `up-source` for live-updating fragments
+5. **SPA navigation**: Unpoly `up-follow`/`up-target` for seamless page transitions
+6. **Modals/drawers**: Unpoly layers (`up-layer="new drawer"`) — no custom JS needed
 
 See [references/server-rendered.md](references/server-rendered.md) for framework-specific patterns.
 

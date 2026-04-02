@@ -95,28 +95,31 @@ func handleHealthFragment(w http.ResponseWriter, r *http.Request) {
 </a>
 ```
 
-## htmx Alternative
-
-### SPA Navigation
-
-```html
-<a href="/dashboard/analytics" hx-get="/dashboard/analytics"
-   hx-target=".main-content" hx-push-url="true">Analytics</a>
-```
-
-### Live Polling
-
-```html
-<div hx-get="/api/health-fragment" hx-trigger="every 5s"
-     hx-swap="innerHTML">
-</div>
-```
-
 ### Inline Editing
 
 ```html
-<span hx-get="/accounts/1/edit" hx-trigger="click"
-      hx-target="this" hx-swap="outerHTML">Account Name</span>
+<a href="/accounts/1/edit" up-target=".account-name" up-layer="new popup">
+  Edit
+</a>
+```
+
+### Transitions
+
+```html
+<!-- Animate content swaps -->
+<main class="main-content" up-main>
+  { children... }
+</main>
+
+<!-- Custom transition classes -->
+<a href="/page" up-follow up-transition="cross-fade">Link</a>
+```
+
+### Hungry Elements (Auto-Update Multiple Fragments)
+
+```html
+<!-- Sidebar notification count updates alongside main content -->
+<span id="notif-count" up-hungry>3</span>
 ```
 
 ## Alpine.js for Client-Side Logic
@@ -186,7 +189,7 @@ npx tailwindcss -i input.css -o static/app.css --minify
 For Go projects shipping a single binary with embedded UI:
 
 1. CSS: Tailwind output in `static/app.css` (built at compile time)
-2. JS: Vendor libs (chart library, Unpoly/htmx) in `static/vendor.js`
+2. JS: Vendor libs (chart library, Unpoly) in `static/vendor.js`
 3. Fonts: Subset and embed, or use system font stack
 4. Icons: Inline SVG in templates (no icon font files)
 5. Images: SVG preferred, raster only if needed
