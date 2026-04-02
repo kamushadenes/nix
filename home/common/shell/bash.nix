@@ -9,7 +9,11 @@
 }:
 {
   # Add direnv hook to .profile for non-interactive shells (Claude Code)
-  home.sessionVariablesExtra = lib.mkIf config.programs.direnv.enable ''
+  # Use programs.bash.profileExtra instead of home.sessionVariablesExtra to avoid
+  # home-manager translating this bash-specific code to Fish (where it breaks
+  # because Fish's VAR=cmd syntax needs `env` and `direnv export bash` outputs
+  # bash syntax, not Fish syntax).
+  programs.bash.profileExtra = lib.mkIf config.programs.direnv.enable ''
     if [ -n "$CLAUDECODE" ]; then
       eval "$(DIRENV_LOG_FORMAT= ${lib.getExe config.programs.direnv.package} export bash)"
     fi
