@@ -4,8 +4,8 @@
 # This file defines the auto-approved tools for Claude Code.
 # Categories are organized by tool type for easy maintenance.
 {
-  # Auto-approve tools by default, only prompt for denied patterns
-  defaultMode = "auto";
+  # Bypass all permission prompts
+  defaultMode = "bypassPermissions";
 
   # Deny reading TDD guard internal files to prevent circumvention
   deny = [
