@@ -1,11 +1,36 @@
 ---
 name: web-ui-designer
-description: Design and implement web UIs with a design-system-first approach. Use when building dashboards, admin panels, landing pages, or any web frontend — especially server-rendered stacks (Templ, Go templates, Jinja, ERB) with Tailwind CSS. Covers design tokens, dark/light themes, responsive layouts, chart/data visualization, component architecture, and progressive enhancement. Also use when redesigning existing UIs or adding new pages/views to an existing web app.
+description: Design and implement web UIs with a design-system-first approach. Use when building dashboards, admin panels, landing pages, or any web frontend. Covers design tokens, dark/light themes, responsive layouts, chart/data visualization, component architecture, and progressive enhancement. Works with any server-rendered stack (Go/Templ, Python/Jinja, Ruby/ERB, Node/EJS) or client-rendered framework (React, Vue, Svelte). Also use when redesigning existing UIs or adding new pages/views to an existing web app.
 ---
 
 # Web UI Designer
 
 Design-system-first approach to web UI implementation. Every visual decision flows from centralized tokens — never scatter styles across components.
+
+## Tech Stack Selection
+
+Before building, determine the rendering approach:
+
+1. **Check existing codebase** — look for existing templates, component files, `package.json`, `go.mod`, `requirements.txt`, `Gemfile`, or similar. If the project already has a frontend stack, use it.
+2. **If no existing stack**, ask the user what they prefer. Suggest options based on the detected backend language:
+
+| Backend | Server-Rendered Options | Client-Rendered Options |
+|-|-|-|
+| Go | Templ or html/template + Unpoly or HTMX | — |
+| Python | Jinja2 + HTMX or Unpoly | React/Vue/Svelte via separate frontend |
+| Ruby | ERB/Slim + HTMX or Turbo | React/Vue via separate frontend |
+| Node/TS | EJS/Handlebars + HTMX | React/Next, Vue/Nuxt, Svelte/Kit |
+| Rust | Askama/Tera + HTMX | Leptos, Yew |
+| Any (static) | Plain HTML + Alpine.js | — |
+
+3. **Load reference files** for the chosen technologies. Only read what's needed:
+
+- **Progressive enhancement**: [references/unpoly.md](references/unpoly.md) or [references/htmx.md](references/htmx.md)
+- **Client-side interactivity**: [references/alpine.md](references/alpine.md)
+- **Go templating + binary embedding**: [references/go-templ.md](references/go-templ.md)
+- **Tailwind CSS setup**: [references/tailwind.md](references/tailwind.md)
+- **Chart configurations**: [references/chart-patterns.md](references/chart-patterns.md)
+- **SEO (public-facing pages)**: [references/seo.md](references/seo.md)
 
 ## Design System Foundation
 
@@ -36,6 +61,8 @@ Before writing any component, establish CSS custom properties:
   /* Effects */
   --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.3);
   --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.4);
+  --shadow-glow: 0 0 40px hsl(var(--accent) / 0.15);
+  --gradient-primary: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent-hover)));
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
@@ -43,33 +70,47 @@ Before writing any component, establish CSS custom properties:
 }
 ```
 
+For light mode, provide a matching set with inverted surface/text values:
+
+```css
+:root.light, :root:not(.dark) {
+  --bg-primary: 0 0% 100%;
+  --bg-secondary: 210 40% 96%;
+  --text-primary: 222 47% 11%;
+  --text-secondary: 215 20% 35%;
+  --text-muted: 215 16% 53%;
+  /* accents and effects typically stay the same */
+}
+```
+
+**Watch for dark/light pitfalls**: white text on white backgrounds (or dark text on dark backgrounds) when switching modes. Test both.
+
 ### 2. Never Hardcode Colors in Components
 
 ```html
 <!-- BAD: hardcoded -->
 <div class="bg-gray-900 text-white">
+<div class="shadow-[0_0_40px_rgba(0,120,255,0.3)]">
 
 <!-- GOOD: token-driven -->
-<div class="bg-[hsl(var(--bg-secondary))] text-[hsl(var(--text-primary))]">
+<div class="bg-surface-secondary text-content-primary">
+<div style="box-shadow: var(--shadow-glow)">
 ```
 
-For Tailwind, extend the config to map tokens:
+For Tailwind, extend the config to map tokens — see [references/tailwind.md](references/tailwind.md).
 
-```js
-// tailwind.config.js
-colors: {
-  surface: {
-    primary: 'hsl(var(--bg-primary))',
-    secondary: 'hsl(var(--bg-secondary))',
-    tertiary: 'hsl(var(--bg-tertiary))',
-  },
-  content: {
-    primary: 'hsl(var(--text-primary))',
-    secondary: 'hsl(var(--text-secondary))',
-    muted: 'hsl(var(--text-muted))',
-  }
-}
+### 3. Component Variants
+
+Define visual variants through the design system, not inline overrides:
+
+```css
+/* Define in your CSS / design system */
+.btn-primary { background: hsl(var(--accent)); color: hsl(var(--text-primary)); }
+.btn-ghost { background: transparent; color: hsl(var(--text-secondary)); border: 1px solid hsl(var(--text-muted) / 0.2); }
+.btn-danger { background: hsl(var(--danger)); color: hsl(var(--text-primary)); }
 ```
+
+Use framework-specific variant patterns (CVA for React, template classes for server-rendered) rather than ad-hoc Tailwind class strings scattered across components.
 
 ## Component Patterns
 
@@ -120,9 +161,7 @@ colors: {
 4. **Responsive**: charts resize with container, hide labels on small screens
 5. **Animations**: subtle 300ms ease-in-out on load, no flashy transitions
 
-### Chart Configurations
-
-See [references/chart-patterns.md](references/chart-patterns.md) for specific chart configs (time-series, bar, donut, stacked area, heatmap).
+See [references/chart-patterns.md](references/chart-patterns.md) for specific chart configs.
 
 ## Layout Patterns
 
@@ -146,19 +185,6 @@ See [references/chart-patterns.md](references/chart-patterns.md) for specific ch
 ### Page Hierarchy
 
 Every page follows: **Page title + filters > Summary cards > Charts > Detail table/list**
-
-## Server-Rendered Stack Guide
-
-For Go (Templ), Python (Jinja), Ruby (ERB), or similar:
-
-1. **CSS**: Ship a single `app.css` with tokens + Tailwind utilities
-2. **JS**: Minimal — chart library + Unpoly + Alpine.js for interactivity
-3. **Components**: Template partials/components, not JS components
-4. **Polling**: Unpoly `up-poll` with `up-source` for live-updating fragments
-5. **SPA navigation**: Unpoly `up-follow`/`up-target` for seamless page transitions
-6. **Modals/drawers**: Unpoly layers (`up-layer="new drawer"`) — no custom JS needed
-
-See [references/server-rendered.md](references/server-rendered.md) for framework-specific patterns.
 
 ## Responsive Design
 
