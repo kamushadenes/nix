@@ -17,6 +17,5 @@
     "orbstack"
     "rapidapi"
     #"godot"
-    "tdd-guard"
   ];
 }

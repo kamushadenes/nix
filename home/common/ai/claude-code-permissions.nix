@@ -7,10 +7,7 @@
   # Bypass all permission prompts
   defaultMode = "bypassPermissions";
 
-  # Deny reading TDD guard internal files to prevent circumvention
-  deny = [
-    "Read(.claude/tdd-guard/**)"
-  ];
+  deny = [];
 
   allow = [
     # Core tools
@@ -209,7 +206,6 @@
 
     # Misc read-only tools
     "Bash(hcloud server-type:*)"
-    "Bash(tdd-guard-go:*)"
     "Bash(launchctl list:*)"
     "Bash(sqlite3:*)"
     "Bash(openssl x509:*)"
