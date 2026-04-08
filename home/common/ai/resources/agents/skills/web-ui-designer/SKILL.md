@@ -32,6 +32,16 @@ Before building, determine the rendering approach:
 - **Chart configurations**: [references/chart-patterns.md](references/chart-patterns.md)
 - **SEO (public-facing pages)**: [references/seo.md](references/seo.md)
 
+## Project Theme
+
+If the project belongs to a known product, load its theme reference **before** designing anything. The theme overrides the generic tokens below — use the theme's colors, typography, spacing, and components as the source of truth.
+
+| Project | Theme Reference | Detection |
+|-|-|-|
+| Iniciador | [references/iniciador-theme.md](references/iniciador-theme.md) | Repo org is `Iniciador/` or `Iniciador-de-Pagamentos/`, or `ini-` CSS tokens present, or user mentions Iniciador |
+
+When a theme is loaded, skip the generic "Define Tokens First" section below — the theme already provides the complete token set.
+
 ## Design System Foundation
 
 ### 1. Define Tokens First
