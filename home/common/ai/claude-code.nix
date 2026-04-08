@@ -109,6 +109,7 @@ in
     # markdownlint-cli is installed in emacs.nix
     ruff # Python formatting
     packages.ccusage # Claude Code usage analysis (avoids CPU-intensive npx calls)
+    packages.rtk # Token-optimized CLI proxy (60-90% savings on dev commands)
     claudebox # Sandboxed Claude Code execution
   ];
 
@@ -182,7 +183,18 @@ in
 
       # Hooks - commands that run at various points in Claude Code's lifecycle
       hooks = {
-        PreToolUse = [ ];
+        PreToolUse = [
+          # RTK auto-rewrite: transparently prefix commands with rtk for token savings
+          {
+            matcher = "Bash";
+            hooks = [
+              {
+                type = "command";
+                command = "~/.claude/hooks/PreToolUse/rtk-rewrite.sh";
+              }
+            ];
+          }
+        ];
 
         UserPromptSubmit = [ ];
 
@@ -368,6 +380,12 @@ in
     # direnv BASH_ENV script for non-interactive shells (Claude Code Bash tool)
     ".claude/scripts/direnv-bash-env.sh" = {
       source = "${scriptsDir}/direnv-bash-env.sh";
+      executable = true;
+    };
+
+    # PreToolUse hooks
+    ".claude/hooks/PreToolUse/rtk-rewrite.sh" = {
+      source = "${scriptsDir}/hooks/PreToolUse/rtk-rewrite.sh";
       executable = true;
     };
 
