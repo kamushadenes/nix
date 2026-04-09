@@ -8,9 +8,9 @@ This workflow wires Phase 1 (session pipeline) and Phase 2 (profiling engine) in
 Read all files referenced by the invoking prompt's execution_context before starting.
 
 Key references:
-- @$HOME/.config/opencode/get-shit-done/references/ui-brand.md (display patterns)
-- @$HOME/.config/opencode/get-shit-done/agents/gsd-user-profiler.md (profiler agent definition)
-- @$HOME/.config/opencode/get-shit-done/references/user-profiling.md (profiling reference doc)
+- @/private$HOME/.config/opencode/get-shit-done/references/ui-brand.md (display patterns)
+- @/private$HOME/.config/opencode/get-shit-done/agents/gsd-user-profiler.md (profiler agent definition)
+- @/private$HOME/.config/opencode/get-shit-done/references/user-profiling.md (profiling reference doc)
 </required_reading>
 
 <process>
@@ -24,7 +24,7 @@ Parse flags from $ARGUMENTS:
 Check for existing profile:
 
 ```bash
-PROFILE_PATH="$HOME/.config/opencode/get-shit-done/USER-PROFILE.md"
+PROFILE_PATH="/private$HOME/.config/opencode/get-shit-done/USER-PROFILE.md"
 [ -f "$PROFILE_PATH" ] && echo "EXISTS" || echo "NOT_FOUND"
 ```
 
@@ -46,7 +46,7 @@ If "Cancel": Display "No changes made." and exit.
 
 Backup existing profile:
 ```bash
-cp "$HOME/.config/opencode/get-shit-done/USER-PROFILE.md" "$HOME/.config/opencode/get-shit-done/USER-PROFILE.backup.md"
+cp "/private$HOME/.config/opencode/get-shit-done/USER-PROFILE.md" "/private$HOME/.config/opencode/get-shit-done/USER-PROFILE.backup.md"
 ```
 
 Display: "Re-analyzing your sessions to update your profile."
@@ -90,7 +90,7 @@ Your recent Claude Code sessions, looking for patterns in these
 
 ✓ Reads session files locally (read-only, nothing modified)
 ✓ Analyzes message patterns (not content meaning)
-✓ Stores profile at $HOME/.config/opencode/get-shit-done/USER-PROFILE.md
+✓ Stores profile at /private$HOME/.config/opencode/get-shit-done/USER-PROFILE.md
 ✗ Nothing is sent to external services
 ✗ Sensitive content (API keys, passwords) is automatically excluded
 ```
@@ -128,7 +128,7 @@ Display: "◆ Scanning sessions..."
 
 Run session scan:
 ```bash
-SCAN_RESULT=$(node $HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs scan-sessions --json 2>/dev/null)
+SCAN_RESULT=$(node /private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs scan-sessions --json 2>/dev/null)
 ```
 
 Parse the JSON output to get session count and project count.
@@ -148,7 +148,7 @@ Display: "◆ Sampling messages..."
 
 Run profile sampling:
 ```bash
-SAMPLE_RESULT=$(node $HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs profile-sample --json 2>/dev/null)
+SAMPLE_RESULT=$(node /private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs profile-sample --json 2>/dev/null)
 ```
 
 Parse the JSON output to get the temp directory path and message count.
@@ -161,13 +161,13 @@ Display: "◆ Analyzing patterns..."
 
 Use the Task tool to spawn the `gsd-user-profiler` agent. Provide it with:
 - The sampled JSONL file path from profile-sample output
-- The user-profiling reference doc at `$HOME/.config/opencode/get-shit-done/references/user-profiling.md`
+- The user-profiling reference doc at `/private$HOME/.config/opencode/get-shit-done/references/user-profiling.md`
 
 The agent prompt should follow this structure:
 ```
 Read the profiling reference document and the sampled session messages, then analyze the developer's behavioral patterns across all 8 dimensions.
 
-Reference: @$HOME/.config/opencode/get-shit-done/references/user-profiling.md
+Reference: @/private$HOME/.config/opencode/get-shit-done/references/user-profiling.md
 Session data: @{temp_dir}/profile-sample.jsonl
 
 Analyze these messages and return your analysis in the <analysis> JSON format specified in the reference document.
@@ -199,7 +199,7 @@ Display: "Using questionnaire to build your profile."
 
 **Get questions:**
 ```bash
-QUESTIONS=$(node $HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs profile-questionnaire --json 2>/dev/null)
+QUESTIONS=$(node /private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs profile-questionnaire --json 2>/dev/null)
 ```
 
 Parse the questions JSON. It contains 8 questions, one per dimension.
@@ -222,7 +222,7 @@ Write the answers JSON to `$ANSWERS_PATH`.
 
 **Convert answers to analysis:**
 ```bash
-ANALYSIS_RESULT=$(node $HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs profile-questionnaire --answers "$ANSWERS_PATH" --json 2>/dev/null)
+ANALYSIS_RESULT=$(node /private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs profile-questionnaire --answers "$ANSWERS_PATH" --json 2>/dev/null)
 ```
 
 Parse the analysis JSON from the result.
@@ -269,10 +269,10 @@ Write updated analysis JSON back to `$ANALYSIS_PATH`.
 Display: "◆ Writing profile..."
 
 ```bash
-node $HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs write-profile --input "$ANALYSIS_PATH" --json 2>/dev/null
+node /private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs write-profile --input "$ANALYSIS_PATH" --json 2>/dev/null
 ```
 
-Display: "✓ Profile written to $HOME/.config/opencode/get-shit-done/USER-PROFILE.md"
+Display: "✓ Profile written to /private$HOME/.config/opencode/get-shit-done/USER-PROFILE.md"
 
 ---
 
@@ -335,9 +335,9 @@ Use question with multiSelect:
 - options (ALL pre-selected by default):
   - "/gsd-dev-preferences command file" -- "Load your preferences in any session"
   - "AGENTS.md profile section" -- "Add profile to this project's AGENTS.md"
-  - "Global AGENTS.md" -- "Add profile to $HOME/.config/opencode/AGENTS.md for all projects"
+  - "Global AGENTS.md" -- "Add profile to /private$HOME/.config/opencode/AGENTS.md for all projects"
 
-**If no artifacts selected:** Display "No artifacts generated. Your profile is saved at $HOME/.config/opencode/get-shit-done/USER-PROFILE.md" and jump to step 10.
+**If no artifacts selected:** Display "No artifacts generated. Your profile is saved at /private$HOME/.config/opencode/get-shit-done/USER-PROFILE.md" and jump to step 10.
 
 ---
 
@@ -348,15 +348,15 @@ Generate selected artifacts sequentially (file I/O is fast, no benefit from para
 **For /gsd-dev-preferences (if selected):**
 
 ```bash
-node $HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs generate-dev-preferences --analysis "$ANALYSIS_PATH" --json 2>/dev/null
+node /private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs generate-dev-preferences --analysis "$ANALYSIS_PATH" --json 2>/dev/null
 ```
 
-Display: "✓ Generated /gsd-dev-preferences at $HOME/.config/opencode/commands/gsd/dev-preferences.md"
+Display: "✓ Generated /gsd-dev-preferences at /private$HOME/.config/opencode/commands/gsd/dev-preferences.md"
 
 **For AGENTS.md profile section (if selected):**
 
 ```bash
-node $HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs generate-claude-profile --analysis "$ANALYSIS_PATH" --json 2>/dev/null
+node /private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs generate-claude-profile --analysis "$ANALYSIS_PATH" --json 2>/dev/null
 ```
 
 Display: "✓ Added profile section to AGENTS.md"
@@ -364,10 +364,10 @@ Display: "✓ Added profile section to AGENTS.md"
 **For Global AGENTS.md (if selected):**
 
 ```bash
-node $HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs generate-claude-profile --analysis "$ANALYSIS_PATH" --global --json 2>/dev/null
+node /private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs generate-claude-profile --analysis "$ANALYSIS_PATH" --global --json 2>/dev/null
 ```
 
-Display: "✓ Added profile section to $HOME/.config/opencode/AGENTS.md"
+Display: "✓ Added profile section to /private$HOME/.config/opencode/AGENTS.md"
 
 **Error handling:** If any gsd-tools.cjs call fails, display the error message and use question to offer "Retry" or "Skip this artifact". On retry, re-run the command. On skip, continue to next artifact.
 
@@ -381,7 +381,7 @@ Read both old backup and new analysis to compare dimension ratings/confidence.
 
 Read the backed-up profile:
 ```bash
-BACKUP_PATH="$HOME/.config/opencode/get-shit-done/USER-PROFILE.backup.md"
+BACKUP_PATH="/private$HOME/.config/opencode/get-shit-done/USER-PROFILE.backup.md"
 ```
 
 Compare each dimension's rating and confidence between old and new. Display diff table showing only changed dimensions:
@@ -404,15 +404,15 @@ If nothing changed: Display "No changes detected -- your profile is already up t
  GSD > PROFILE COMPLETE ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Your profile:    $HOME/.config/opencode/get-shit-done/USER-PROFILE.md
+Your profile:    /private$HOME/.config/opencode/get-shit-done/USER-PROFILE.md
 ```
 
 Then list paths for each generated artifact:
 ```
 Artifacts:
-  ✓ /gsd-dev-preferences   $HOME/.config/opencode/commands/gsd/dev-preferences.md
+  ✓ /gsd-dev-preferences   /private$HOME/.config/opencode/commands/gsd/dev-preferences.md
   ✓ AGENTS.md section       ./AGENTS.md
-  ✓ Global AGENTS.md        $HOME/.config/opencode/AGENTS.md
+  ✓ Global AGENTS.md        /private$HOME/.config/opencode/AGENTS.md
 ```
 
 (Only show artifacts that were actually generated.)

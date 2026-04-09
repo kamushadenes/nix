@@ -1,6 +1,6 @@
 ---
 description: Request cross-AI peer review of phase plans from external AI CLIs
-argument-hint: "--phase N [--gemini] [--claude] [--codex] [--all]"
+argument-hint: "--phase N [--gemini] [--claude] [--codex] [--opencode] [--all]"
 tools:
   read: true
   write: true
@@ -10,7 +10,7 @@ tools:
 ---
 
 <objective>
-Invoke external AI CLIs (Gemini, the agent, Codex) to independently review phase plans.
+Invoke external AI CLIs (Gemini, the agent, Codex, OpenCode) to independently review phase plans.
 Produces a structured REVIEWS.md with per-reviewer feedback that can be fed back into
 planning via /gsd-plan-phase --reviews.
 
@@ -18,7 +18,7 @@ planning via /gsd-plan-phase --reviews.
 </objective>
 
 <execution_context>
-@$HOME/.config/opencode/get-shit-done/workflows/review.md
+@/private$HOME/.config/opencode/get-shit-done/workflows/review.md
 </execution_context>
 
 <context>
@@ -28,9 +28,10 @@ Phase number: extracted from $ARGUMENTS (required)
 - `--gemini` — Include Gemini CLI review
 - `--claude` — Include the agent CLI review (uses separate session)
 - `--codex` — Include Codex CLI review
+- `--opencode` — Include OpenCode review (uses model from user's OpenCode config)
 - `--all` — Include all available CLIs
 </context>
 
 <process>
-Execute the review workflow from @$HOME/.config/opencode/get-shit-done/workflows/review.md end-to-end.
+Execute the review workflow from @/private$HOME/.config/opencode/get-shit-done/workflows/review.md end-to-end.
 </process>

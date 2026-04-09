@@ -1,6 +1,6 @@
 ---
-description: Gather phase context through adaptive questioning before planning. Use --auto to skip interactive questions (the agent picks recommended defaults).
-argument-hint: "<phase> [--auto] [--batch] [--analyze] [--text]"
+description: Gather phase context through adaptive questioning before planning. Use --auto to skip interactive questions (the agent picks recommended defaults). Use --chain for interactive discuss followed by automatic plan+execute. Use --power for bulk question generation into a file-based UI (answer at your own pace).
+argument-hint: "<phase> [--auto] [--chain] [--batch] [--analyze] [--text] [--power]"
 tools:
   read: true
   write: true
@@ -28,10 +28,15 @@ Extract implementation decisions that downstream agents need — researcher and 
 </objective>
 
 <execution_context>
-@$HOME/.config/opencode/get-shit-done/workflows/discuss-phase.md
-@$HOME/.config/opencode/get-shit-done/workflows/discuss-phase-assumptions.md
-@$HOME/.config/opencode/get-shit-done/templates/context.md
+@/private$HOME/.config/opencode/get-shit-done/workflows/discuss-phase.md
+@/private$HOME/.config/opencode/get-shit-done/workflows/discuss-phase-assumptions.md
+@/private$HOME/.config/opencode/get-shit-done/workflows/discuss-phase-power.md
+@/private$HOME/.config/opencode/get-shit-done/templates/context.md
 </execution_context>
+
+<runtime_note>
+**Copilot (VS Code):** Use `vscode_askquestions` wherever this workflow calls `question`. They are equivalent — `vscode_askquestions` is the VS Code Copilot implementation of the same interactive question API.
+</runtime_note>
 
 <context>
 Phase number: $ARGUMENTS (required)
@@ -42,12 +47,12 @@ Context files are resolved in-workflow using `init phase-op` and roadmap/state t
 <process>
 **Mode routing:**
 ```bash
-DISCUSS_MODE=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" config-get workflow.discuss_mode 2>/dev/null || echo "discuss")
+DISCUSS_MODE=$(node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" config-get workflow.discuss_mode 2>/dev/null || echo "discuss")
 ```
 
-If `DISCUSS_MODE` is `"assumptions"`: Read and execute @$HOME/.config/opencode/get-shit-done/workflows/discuss-phase-assumptions.md end-to-end.
+If `DISCUSS_MODE` is `"assumptions"`: Read and execute @/private$HOME/.config/opencode/get-shit-done/workflows/discuss-phase-assumptions.md end-to-end.
 
-If `DISCUSS_MODE` is `"discuss"` (or unset, or any other value): Read and execute @$HOME/.config/opencode/get-shit-done/workflows/discuss-phase.md end-to-end.
+If `DISCUSS_MODE` is `"discuss"` (or unset, or any other value): Read and execute @/private$HOME/.config/opencode/get-shit-done/workflows/discuss-phase.md end-to-end.
 
 **MANDATORY:** The execution_context files listed above ARE the instructions. Read the workflow file BEFORE taking any action. The objective and success_criteria sections in this command file are summaries — the workflow file contains the complete step-by-step process with all required behaviors, config checks, and interaction patterns. Do not improvise from the summary.
 </process>

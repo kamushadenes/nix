@@ -8,6 +8,10 @@ tools:
   task: true
   question: true
 ---
+<runtime_note>
+**Copilot (VS Code):** Use `vscode_askquestions` wherever this workflow calls `question`. They are equivalent — `vscode_askquestions` is the VS Code Copilot implementation of the same interactive question API.
+</runtime_note>
+
 <context>
 **Flags:**
 - `--auto` — Automatic mode. After config questions, runs research → requirements → roadmap without further interaction. Expects idea document via @ reference.
@@ -28,14 +32,14 @@ Initialize a new project through unified flow: questioning → research (optiona
 </objective>
 
 <execution_context>
-@$HOME/.config/opencode/get-shit-done/workflows/new-project.md
-@$HOME/.config/opencode/get-shit-done/references/questioning.md
-@$HOME/.config/opencode/get-shit-done/references/ui-brand.md
-@$HOME/.config/opencode/get-shit-done/templates/project.md
-@$HOME/.config/opencode/get-shit-done/templates/requirements.md
+@/private$HOME/.config/opencode/get-shit-done/workflows/new-project.md
+@/private$HOME/.config/opencode/get-shit-done/references/questioning.md
+@/private$HOME/.config/opencode/get-shit-done/references/ui-brand.md
+@/private$HOME/.config/opencode/get-shit-done/templates/project.md
+@/private$HOME/.config/opencode/get-shit-done/templates/requirements.md
 </execution_context>
 
 <process>
-Execute the new-project workflow from @$HOME/.config/opencode/get-shit-done/workflows/new-project.md end-to-end.
+Execute the new-project workflow from @/private$HOME/.config/opencode/get-shit-done/workflows/new-project.md end-to-end.
 Preserve all workflow gates (validation, approvals, commits, routing).
 </process>

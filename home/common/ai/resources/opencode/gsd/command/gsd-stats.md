@@ -9,9 +9,9 @@ Display comprehensive project statistics including phase progress, plan executio
 </objective>
 
 <execution_context>
-@$HOME/.config/opencode/get-shit-done/workflows/stats.md
+@/private$HOME/.config/opencode/get-shit-done/workflows/stats.md
 </execution_context>
 
 <process>
-Execute the stats workflow from @$HOME/.config/opencode/get-shit-done/workflows/stats.md end-to-end.
+Execute the stats workflow from @/private$HOME/.config/opencode/get-shit-done/workflows/stats.md end-to-end.
 </process>

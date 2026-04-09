@@ -33,11 +33,11 @@ Create a physical workspace directory containing copies of specified git repos (
 </objective>
 
 <execution_context>
-@$HOME/.config/opencode/get-shit-done/workflows/new-workspace.md
-@$HOME/.config/opencode/get-shit-done/references/ui-brand.md
+@/private$HOME/.config/opencode/get-shit-done/workflows/new-workspace.md
+@/private$HOME/.config/opencode/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <process>
-Execute the new-workspace workflow from @$HOME/.config/opencode/get-shit-done/workflows/new-workspace.md end-to-end.
+Execute the new-workspace workflow from @/private$HOME/.config/opencode/get-shit-done/workflows/new-workspace.md end-to-end.
 Preserve all workflow gates (validation, approvals, commits, routing).
 </process>

@@ -9,6 +9,7 @@ tools:
   glob: true
   grep: true
   task: true
+  question: true
   webfetch: true
   mcp__context7__*: true
 ---
@@ -21,9 +22,13 @@ Create executable phase prompts (PLAN.md files) for a roadmap phase with integra
 </objective>
 
 <execution_context>
-@$HOME/.config/opencode/get-shit-done/workflows/plan-phase.md
-@$HOME/.config/opencode/get-shit-done/references/ui-brand.md
+@/private$HOME/.config/opencode/get-shit-done/workflows/plan-phase.md
+@/private$HOME/.config/opencode/get-shit-done/references/ui-brand.md
 </execution_context>
+
+<runtime_note>
+**Copilot (VS Code):** Use `vscode_askquestions` wherever this workflow calls `question`. They are equivalent — `vscode_askquestions` is the VS Code Copilot implementation of the same interactive question API. Do not skip questioning steps because `question` appears unavailable; use `vscode_askquestions` instead.
+</runtime_note>
 
 <context>
 Phase number: $ARGUMENTS (optional — auto-detects next unplanned phase if omitted)
@@ -41,6 +46,6 @@ Normalize phase input in step 2 before any directory lookups.
 </context>
 
 <process>
-Execute the plan-phase workflow from @$HOME/.config/opencode/get-shit-done/workflows/plan-phase.md end-to-end.
+Execute the plan-phase workflow from @/private$HOME/.config/opencode/get-shit-done/workflows/plan-phase.md end-to-end.
 Preserve all workflow gates (validation, research, planning, verification loop, routing).
 </process>
