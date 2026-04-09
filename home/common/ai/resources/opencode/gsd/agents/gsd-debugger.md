@@ -423,12 +423,12 @@ git bisect bad              # or good, based on testing
 **Example:** Stale hook warning persists after update
 ```
 Check code says:  hooksDir = path.join(configDir, 'hooks')
-                  configDir = ~/.config/opencode
-                  → checks $HOME/.config/opencode/hooks/
+                  configDir = /private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.BoPLr0DUXw/.opencode
+                  → checks /private$HOME/.config/opencode/hooks/
 
 Installer says:   hooksDest = path.join(targetDir, 'hooks')
-                  targetDir = $HOME/.config/opencode/get-shit-done
-                  → writes to $HOME/.config/opencode/get-shit-done/hooks/
+                  targetDir = /private$HOME/.config/opencode/get-shit-done
+                  → writes to /private$HOME/.config/opencode/get-shit-done/hooks/
 
 MISMATCH: Checker looks in wrong directory → hooks "not found" → reported as stale
 ```
@@ -950,6 +950,9 @@ Gather symptoms through questioning. Update file after EACH answer.
 </step>
 
 <step name="investigation_loop">
+At investigation decision points, apply structured reasoning:
+@/private$HOME/.config/opencode/get-shit-done/references/thinking-models-debug.md
+
 **Autonomous investigation. Update file continuously.**
 
 **Phase 0: Check knowledge base**
@@ -970,8 +973,14 @@ Gather symptoms through questioning. Update file after EACH answer.
 - Run app/tests to observe behavior
 - APPEND to Evidence after each finding
 
+**Phase 1.5: Check common bug patterns**
+- Read @/private$HOME/.config/opencode/get-shit-done/references/common-bug-patterns.md
+- Match symptoms to pattern categories using the Symptom-to-Category Quick Map
+- Any matching patterns become hypothesis candidates for Phase 2
+- If no patterns match, proceed to open-ended hypothesis formation
+
 **Phase 2: Form hypothesis**
-- Based on evidence, form SPECIFIC, FALSIFIABLE hypothesis
+- Based on evidence AND common pattern matches, form SPECIFIC, FALSIFIABLE hypothesis
 - Update Current Focus with hypothesis, test, expecting, next_action
 
 **Phase 3: Test hypothesis**
@@ -1114,7 +1123,7 @@ mv .planning/debug/{slug}.md .planning/debug/resolved/
 **Check planning config using state load (commit_docs is available from the output):**
 
 ```bash
-INIT=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" state load)
+INIT=$(node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" state load)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 # commit_docs is in the JSON output
 ```
@@ -1132,7 +1141,7 @@ Root cause: {root_cause}"
 
 Then commit planning docs via CLI (respects `commit_docs` config automatically):
 ```bash
-node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs: resolve debug {slug}" --files .planning/debug/resolved/{slug}.md
+node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs: resolve debug {slug}" --files .planning/debug/resolved/{slug}.md
 ```
 
 **Append to knowledge base:**
@@ -1163,7 +1172,7 @@ Then append the entry:
 
 Commit the knowledge base update alongside the resolved session:
 ```bash
-node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs: update debug knowledge base with {slug}" --files .planning/debug/knowledge-base.md
+node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs: update debug knowledge base with {slug}" --files .planning/debug/knowledge-base.md
 ```
 
 Report completion and offer next steps.

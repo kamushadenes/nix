@@ -65,7 +65,7 @@ Gap: Flow "View dashboard" broken at data fetch
 Find highest existing phase:
 ```bash
 # Get sorted phase list, extract last one
-HIGHEST=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" phases list --pick directories[-1])
+HIGHEST=$(node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" phases list --pick directories[-1])
 ```
 
 New phases continue from there:
@@ -146,7 +146,7 @@ mkdir -p ".planning/phases/{NN}-{name}"
 ## 9. Commit Roadmap and Requirements Update
 
 ```bash
-node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs(roadmap): add gap closure phases {N}-{M}" --files .planning/ROADMAP.md .planning/REQUIREMENTS.md
+node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs(roadmap): add gap closure phases {N}-{M}" --files .planning/ROADMAP.md .planning/REQUIREMENTS.md
 ```
 
 ## 10. Offer Next Steps
@@ -163,9 +163,9 @@ node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs(roadm
 
 **Plan first gap closure phase**
 
-`/gsd-plan-phase {N}`
+`/clear` then:
 
-<sub>`/clear` first → fresh context window</sub>
+`/gsd-plan-phase {N}`
 
 ---
 

@@ -10,9 +10,9 @@ Display comprehensive project statistics including phase progress, plan executio
 </objective>
 
 <execution_context>
-@$HOME/.claude/get-shit-done/workflows/stats.md
+@/private$HOME/.claude/get-shit-done/workflows/stats.md
 </execution_context>
 
 <process>
-Execute the stats workflow from @$HOME/.claude/get-shit-done/workflows/stats.md end-to-end.
+Execute the stats workflow from @/private$HOME/.claude/get-shit-done/workflows/stats.md end-to-end.
 </process>

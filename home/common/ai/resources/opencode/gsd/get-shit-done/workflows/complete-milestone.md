@@ -42,7 +42,7 @@ When a milestone completes:
 **Use `roadmap analyze` for comprehensive readiness check:**
 
 ```bash
-ROADMAP=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" roadmap analyze)
+ROADMAP=$(node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" roadmap analyze)
 ```
 
 This returns all phases with plan/summary counts and disk status. Use this to verify:
@@ -157,7 +157,7 @@ Extract one-liners from SUMMARY.md files using summary-extract:
 # For each phase in milestone, extract one-liner
 for summary in .planning/phases/*-*/*-SUMMARY.md; do
   [ -e "$summary" ] || continue
-  node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" summary-extract "$summary" --fields one_liner --pick one_liner
+  node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" summary-extract "$summary" --fields one_liner --pick one_liner
 done
 ```
 
@@ -370,7 +370,7 @@ Update `.planning/ROADMAP.md` — group completed milestone phases:
 **Delegate archival to gsd-tools:**
 
 ```bash
-ARCHIVE=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" milestone complete "v[X.Y]" --name "[Milestone Name]")
+ARCHIVE=$(node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" milestone complete "v[X.Y]" --name "[Milestone Name]")
 ```
 
 The CLI handles:
@@ -452,7 +452,7 @@ ls .planning/RETROSPECTIVE.md 2>/dev/null || true
 
 **If exists:** Read the file, append new milestone section before the "## Cross-Milestone Trends" section.
 
-**If doesn't exist:** Create from template at `$HOME/.config/opencode/get-shit-done/templates/retrospective.md`.
+**If doesn't exist:** Create from template at `/private$HOME/.config/opencode/get-shit-done/templates/retrospective.md`.
 
 **Gather retrospective data:**
 
@@ -497,7 +497,7 @@ If the "## Cross-Milestone Trends" section exists, update the tables with new da
 
 **Commit:**
 ```bash
-node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs: update retrospective for v${VERSION}" --files .planning/RETROSPECTIVE.md
+node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "docs: update retrospective for v${VERSION}" --files .planning/RETROSPECTIVE.md
 ```
 
 </step>
@@ -531,11 +531,20 @@ Check branching strategy and offer merge options.
 Use `init milestone-op` for context, or load config directly:
 
 ```bash
-INIT=$(node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" init execute-phase "1")
+INIT=$(node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" init execute-phase "1")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
 Extract `branching_strategy`, `phase_branch_template`, `milestone_branch_template`, and `commit_docs` from init JSON.
+
+Detect base branch:
+```bash
+BASE_BRANCH=$(node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" config-get git.base_branch 2>/dev/null || echo "")
+if [ -z "$BASE_BRANCH" ] || [ "$BASE_BRANCH" = "null" ]; then
+  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|^refs/remotes/origin/||')
+  BASE_BRANCH="${BASE_BRANCH:-main}"
+fi
+```
 
 **If "none":** Skip to git_tag.
 
@@ -575,7 +584,7 @@ question with options: Squash merge (Recommended), Merge with history, Delete wi
 
 ```bash
 CURRENT_BRANCH=$(git branch --show-current)
-git checkout main
+git checkout ${BASE_BRANCH}
 
 if [ "$BRANCHING_STRATEGY" = "phase" ]; then
   for branch in $PHASE_BRANCHES; do
@@ -604,7 +613,7 @@ git checkout "$CURRENT_BRANCH"
 
 ```bash
 CURRENT_BRANCH=$(git branch --show-current)
-git checkout main
+git checkout ${BASE_BRANCH}
 
 if [ "$BRANCHING_STRATEGY" = "phase" ]; then
   for branch in $PHASE_BRANCHES; do
@@ -680,7 +689,7 @@ git push origin v[X.Y]
 Commit milestone completion.
 
 ```bash
-node "$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "chore: complete v[X.Y] milestone" --files .planning/milestones/v[X.Y]-ROADMAP.md .planning/milestones/v[X.Y]-REQUIREMENTS.md .planning/milestones/v[X.Y]-MILESTONE-AUDIT.md .planning/MILESTONES.md .planning/PROJECT.md .planning/STATE.md
+node "/private$HOME/.config/opencode/get-shit-done/bin/gsd-tools.cjs" commit "chore: complete v[X.Y] milestone" --files .planning/milestones/v[X.Y]-ROADMAP.md .planning/milestones/v[X.Y]-REQUIREMENTS.md .planning/milestones/v[X.Y]-MILESTONE-AUDIT.md .planning/MILESTONES.md .planning/PROJECT.md .planning/STATE.md
 ```
 ```
 
@@ -710,9 +719,9 @@ Tag: v[X.Y]
 
 **Start Next Milestone** — questioning → research → requirements → roadmap
 
-`/gsd-new-milestone`
+`/clear` then:
 
-<sub>`/clear` first → fresh context window</sub>
+`/gsd-new-milestone`
 
 ---
 ```
