@@ -519,7 +519,7 @@ in
     # Markdownlint configuration
     ".claude/config/markdownlint.jsonc".source = "${resourcesDir}/config/markdownlint.jsonc";
 
-    # Note: Skills are deployed via orchestrator.nix to ~/.agents/skills/
+    # Note: Skills are deployed via orchestrator.nix to ~/.agents/skills/ and ~/.claude/skills/
     # Note: Agents are auto-discovered below via lib.mapAttrs'
   }
   // lib.mapAttrs' (name: content: {

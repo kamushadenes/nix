@@ -1,8 +1,8 @@
 # Agent Skills deployment
 #
-# Auto-discovers skills from resources/agents/skills/ and deploys
-# to ~/.agents/skills/ (agentskills.io standard).
-# Discovered by Claude Code, OpenCode, Cursor, Gemini CLI, and 30+ agents.
+# Auto-discovers skills from resources/agents/skills/ and deploys to:
+# - ~/.agents/skills/ (agentskills.io standard - OpenCode, Cursor, Gemini CLI, etc.)
+# - ~/.claude/skills/ (Claude Code native discovery)
 {
   config,
   lib,
@@ -69,7 +69,8 @@ let
     }) skillFiles;
 
   agentsSkillEntries = mkSkillEntries ".agents/skills";
+  claudeSkillEntries = mkSkillEntries ".claude/skills";
 in
 {
-  home.file = agentsSkillEntries;
+  home.file = agentsSkillEntries // claudeSkillEntries;
 }
