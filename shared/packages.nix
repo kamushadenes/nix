@@ -215,6 +215,9 @@ let
 
       dontUnpack = true;
 
+      nativeBuildInputs = lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
+      buildInputs = lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ];
+
       installPhase = ''
         mkdir -p $out/bin
         cp $src $out/bin/better-ccflare
