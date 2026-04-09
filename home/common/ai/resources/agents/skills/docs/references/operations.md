@@ -280,6 +280,25 @@ If migration fails:
 - [Issue description and workaround]
 ```
 
+## Diagrams
+
+Operations docs describe multi-step processes — these MUST include Mermaid
+diagrams. Add diagrams for:
+
+- **Deployment pipeline** — the CI/CD flow from commit to production:
+
+```mermaid
+flowchart LR
+    Push --> CI[CI Tests] --> Build[Build Image] --> Registry
+    Registry --> Staging[Deploy Staging] --> Smoke[Smoke Tests]
+    Smoke --> Prod[Deploy Production] --> Health[Health Check]
+```
+
+- **Environment promotion** — how changes flow across environments
+- **Incident response flow** — escalation paths, decision points
+- **Rollback procedure** — decision tree for when/how to roll back
+- **Service dependency graph** — what depends on what, failure blast radius
+
 ## Tips
 
 - Extract deployment steps from actual CI/CD configs and Dockerfiles
@@ -288,3 +307,4 @@ If migration fails:
   change
 - Always include rollback procedures — they're needed when things go wrong
 - Use consistent formatting: Symptoms → Diagnosis → Resolution → Prevention
+- Include Mermaid diagrams for every multi-step operational process

@@ -107,6 +107,30 @@ works. A reader who stops at any point should have gained something useful.
   architecture diagrams, data flows, and component relationships. Never use
   ASCII art for diagrams
 
+### Diagrams Are Mandatory for Complex Content
+
+Actively create Mermaid diagrams whenever a concept would be clearer visually
+than as prose. Don't wait to be asked — if a section describes a multi-step
+workflow, architecture, or data flow, it needs a diagram.
+
+**Always include a diagram for:**
+
+- **Architecture section** — component relationships, system layers, service
+  boundaries (use `graph TD/LR`)
+- **Data flows** — how requests, data, or events move through the system (use
+  `graph LR` or `sequenceDiagram`)
+- **Multi-step workflows** — CI/CD, deployment, build pipelines, dev workflows
+  (use `flowchart`)
+- **State transitions** — entity lifecycles, order flows, auth states (use
+  `stateDiagram-v2`)
+
+**Rules:**
+
+- One diagram per concept — don't overload a single diagram
+- Label edges — unlabeled arrows are ambiguous
+- Keep under ~15 nodes — split large diagrams
+- Precede every diagram with a sentence explaining what it shows
+
 ## MUST DO
 
 - Explore codebase before writing
@@ -116,6 +140,9 @@ works. A reader who stops at any point should have gained something useful.
 - Use actual file names, commands, and conventions
 - Include a Documentation section linking to docs/ or wiki when they exist
 - Write directly to `README.md` in project root
+- Include Mermaid diagrams for architecture, data flows, multi-step workflows,
+  and any other complex concept — diagrams are mandatory, not optional (see
+  "Diagrams Are Mandatory for Complex Content" above)
 
 ## MUST NOT
 

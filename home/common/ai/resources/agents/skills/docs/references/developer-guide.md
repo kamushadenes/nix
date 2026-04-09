@@ -182,6 +182,24 @@ concrete example from an existing file]
 - Update relevant docs when changing behavior
 ```
 
+## Diagrams
+
+Developer guides describe workflows and architecture — include Mermaid diagrams
+for:
+
+- **Development workflow** — branch → code → test → PR → merge flow:
+
+```mermaid
+flowchart LR
+    Branch[Create Branch] --> Code --> Test[Run Tests]
+    Test --> PR[Open PR] --> Review --> Merge
+```
+
+- **Project structure** — component relationships, module dependencies
+- **Request lifecycle** — how a request flows through the application layers
+- **Common task flows** — e.g., "adding a new endpoint" as a step-by-step
+  flowchart when the process spans multiple files/components
+
 ## Tips
 
 - Extract conventions from actual code, don't impose external standards
@@ -190,3 +208,4 @@ concrete example from an existing file]
 - Include the actual linter/formatter commands the project uses
 - Keep "Common Tasks" section practical — real steps developers need regularly
 - Test the Quick Start section on a clean checkout
+- Include Mermaid diagrams for development workflows and architecture

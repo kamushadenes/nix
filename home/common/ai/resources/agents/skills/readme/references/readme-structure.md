@@ -73,9 +73,11 @@ Configure the following variables:
 Go deep here. Include:
 
 - **Directory structure** with descriptions for each top-level directory
-- **Request lifecycle** or data flow diagram (mermaid)
+- **Request lifecycle** or data flow diagram (mermaid) — MANDATORY
 - **Key components** with brief explanations
 - **Database schema** for the most important tables/models
+- **Mermaid diagrams are required** — every Architecture section MUST include at
+  least one diagram. Add more when the system has multiple flows or layers
 
 ```markdown
 ## Architecture
