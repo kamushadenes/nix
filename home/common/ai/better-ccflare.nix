@@ -8,6 +8,7 @@
 let
   betterCcflareBin = "${packages.better-ccflare}/bin/better-ccflare";
   dataDir = "${config.home.homeDirectory}/.local/share/better-ccflare";
+  port = "8787";
 in
 {
   home.packages = [ packages.better-ccflare ];
@@ -25,6 +26,8 @@ in
       ProgramArguments = [
         betterCcflareBin
         "--serve"
+        "--port"
+        port
       ];
       RunAtLoad = true;
       KeepAlive = true;
@@ -46,7 +49,7 @@ in
     };
     Service = {
       Type = "simple";
-      ExecStart = "${betterCcflareBin} --serve";
+      ExecStart = "${betterCcflareBin} --serve --port ${port}";
       Restart = "on-failure";
       RestartSec = 5;
       Environment = [
