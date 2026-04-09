@@ -181,8 +181,10 @@ PROJECT BRIEF:
   + environment promotion flow"). Writing agents MUST include these diagrams.
 ```
 
-Delegate each page with
-`task(category="writing", load_skills=["docs"], run_in_background=true)`.
+**In Claude Code**: use the `doc-writer` agent for each page. **In other
+agents**: use `task(category="writing", load_skills=["docs"],
+run_in_background=true)` with the writing-agent.md instructions.
+
 Include the brief, **mode** (create/update/supplement), relevant source files,
 output path, and the specific reference template to follow. For update and
 supplement modes, include the existing file content. Fire all simultaneously.
@@ -196,49 +198,29 @@ codebase. This catches hallucinated commands, wrong paths, stale config keys,
 and invented behavior.
 
 **Create a todo item per doc page** for tracking. Then delegate one verification
-agent per page in parallel using the instructions in
-[references/verification-agent.md]:
+agent per page in parallel.
 
-```
-task(
-  category="quick",
-  load_skills=[],
-  run_in_background=true,
-  description="Verify <page-name> claims",
-  prompt="
-    Follow the verification workflow in references/verification-agent.md.
-    File to verify: <file-path>
-    Project brief: [include project brief]
-    Source directories: [list relevant source dirs]
-  "
-)
-```
+**In Claude Code**: use the `doc-verifier` agent for each page. **In other
+agents**: use `task(category="quick", load_skills=[],
+run_in_background=true)` with the verification-agent.md instructions.
 
-Fire all verification agents simultaneously. Collect all results. Mark each todo
-item complete as agents finish.
+Include the file path, project brief, and relevant source directories. Fire all
+verification agents simultaneously. Collect all results. Mark each todo item
+complete as agents finish.
 
 ### Step 6b: Fix Verified Failures
 
 If any verification agent reports incorrect claims that could not be
 auto-corrected, delegate fix tasks back to writing agents in **fix mode** (see
-[references/modes.md]):
+[references/modes.md]).
 
-```
-task(
-  category="writing",
-  load_skills=["docs"],
-  run_in_background=true,
-  description="Fix <page-name> failures",
-  prompt="
-    Follow references/writing-agent.md in fix mode.
-    File: <file-path>
-    Failures: [list of {line, claim, expected, actual} from verifier]
-  "
-)
-```
+**In Claude Code**: use the `doc-writer` agent with mode=fix. **In other
+agents**: use `task(category="writing", load_skills=["docs"],
+run_in_background=true)` with fix mode instructions.
 
-Skip this step if all claims were verified correct or auto-fixed by the
-verification agents.
+Include the file path and the failures list `{line, claim, expected, actual}`
+from the verifier report. Skip this step if all claims were verified correct or
+auto-fixed by the verification agents.
 
 ### Step 7: Verify Cross-Page Consistency
 
