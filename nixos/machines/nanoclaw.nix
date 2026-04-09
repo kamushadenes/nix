@@ -63,6 +63,9 @@ in
     autoPrune.enable = true;
   };
 
+  # Route Anthropic API calls through the local ccflare proxy
+  environment.variables.ANTHROPIC_BASE_URL = "http://localhost:8787";
+
   # System packages: Node.js, git (for cloning/updating nanoclaw), and build tools
   environment.systemPackages = with pkgs; [
     nodejs
@@ -146,6 +149,7 @@ in
 
     environment = {
       HOME = nanoclaw-home;
+      ANTHROPIC_BASE_URL = "http://localhost:8787";
       PATH = lib.mkForce (
         lib.makeBinPath [
           nodejs
