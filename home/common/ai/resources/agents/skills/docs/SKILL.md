@@ -168,6 +168,10 @@ PROJECT BRIEF:
 - Destination: repo docs/ | GitHub Wiki
 - All pages being generated (for cross-references)
 - Naming conventions
+- Diagram requirements: for each page, list the concepts that MUST have a
+  Mermaid diagram (e.g., "architecture page → system component diagram +
+  request flow sequence diagram"; "deployment page → CI/CD pipeline flowchart
+  + environment promotion flow"). Writing agents MUST include these diagrams.
 ```
 
 Delegate each page with
@@ -324,6 +328,41 @@ so the reader is never overwhelmed.
   architecture diagrams, data flows, and component relationships. Never use
   ASCII art for diagrams
 
+### Diagrams Are Mandatory for Complex Content
+
+Diagrams are not optional decoration — they are required whenever prose alone
+would force the reader to build a mental model from text. Actively look for
+opportunities to add them.
+
+**When to create a diagram:**
+
+- **Architecture / system design** — component relationships, service
+  boundaries, layer structure
+- **Multi-step workflows** — request lifecycle, CI/CD pipelines, deployment
+  processes, data processing pipelines, build chains
+- **Data flows** — how data moves between components, services, or systems
+- **State machines** — entities with distinct states and transitions (orders,
+  builds, deployments, auth flows)
+- **Decision trees** — branching logic, routing rules, conditional workflows
+- **Dependency graphs** — module dependencies, service dependencies, build order
+- **Sequence diagrams** — multi-party interactions (API calls, auth handshakes,
+  webhook flows)
+
+**Diagram types to use (Mermaid):**
+
+- `graph TD/LR` — architecture, component relationships, data flow
+- `sequenceDiagram` — multi-party interactions, API call chains
+- `stateDiagram-v2` — state machines, lifecycle flows
+- `flowchart` — decision trees, conditional workflows
+- `gitgraph` — branching strategies, release flows
+
+**Rules:**
+
+- One diagram per concept — don't cram multiple ideas into one diagram
+- Label edges — arrows without labels are ambiguous
+- Keep diagrams under ~15 nodes — split larger ones into focused sub-diagrams
+- Every diagram must have a preceding sentence explaining what it shows
+
 ## Output Locations
 
 ### Repository (default)
@@ -363,6 +402,11 @@ See [references/github-wiki.md].
 - In wiki mode: create/update repo-side files (CONTRIBUTING.md, CHANGELOG.md,
   ADRs) alongside wiki pages
 - Make each page extensive and thorough
+- Include Mermaid diagrams for any complex workflow, architecture, data flow,
+  state machine, or multi-step process — diagrams are mandatory, not optional
+  (see "Diagrams Are Mandatory for Complex Content" above)
+- Instruct writing agents to include diagrams in their page briefs — explicitly
+  list which concepts in each page warrant a diagram
 
 ## MUST NOT
 
