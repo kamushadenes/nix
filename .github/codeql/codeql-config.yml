@@ -1,0 +1,5 @@
+name: "CodeQL config"
+
+paths-ignore:
+  - home/common/ai/resources/claude-code/gsd
+  - home/common/ai/resources/opencode/gsd
