@@ -152,6 +152,24 @@ context. Be specific — reference actual components, metrics, or constraints.]
 | [003](003-rest-over-grpc.md)    | Use REST instead of gRPC           | Superseded by 007 | 2025-02-10 |
 ```
 
+## Content Discovery
+
+- **Components**: List top-level directories under `src/`, `lib/`, `internal/`,
+  `pkg/`, `app/` — each typically represents a component or module boundary
+- **Entry points**: Grep for `main`, `app.listen`, `createServer`,
+  `func main()`, `fn main()`, `if __name__` to find where the system starts
+- **Data flow**: Follow the call chain from entry point through 2-3 levels;
+  grep for middleware registration, router setup, event emitters, queue consumers
+- **Key abstractions**: Grep for `export class`, `export interface`,
+  `export type`, `trait `, `interface `, `abstract class` in source directories
+- **Dependencies between components**: Read import statements in each
+  component's entry file to map which components call which
+- **Framework signals**: Check for `next.config.*`, `vite.config.*`,
+  `webpack.config.*`, `angular.json`, `Cargo.toml` workspace members,
+  `go.work` files
+- **Database**: Check for `migrations/`, `prisma/schema.prisma`,
+  `drizzle.config.*`, `alembic/`, `sqlalchemy`, `ent/schema/`
+
 ## Tips
 
 - Extract architecture from actual code structure, don't invent it

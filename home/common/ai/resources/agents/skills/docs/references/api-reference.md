@@ -145,6 +145,23 @@ Organize the full document:
 6. **Webhooks** — Event types, payload format, verification (if applicable)
 7. **SDKs and Tools** — Official clients, Postman collections, OpenAPI spec link
 
+## Content Discovery
+
+- **Route files**: Check `src/routes/`, `src/api/`, `app/api/`, `pages/api/`,
+  `routes/`, `handlers/`, `controllers/` directories
+- **Endpoint definitions**: Grep for `router.get`, `router.post`, `app.get`,
+  `app.post`, `@Get`, `@Post`, `@app.route`, `http.HandleFunc`, `#[get`
+- **OpenAPI/Swagger specs**: Check for `openapi.yaml`, `openapi.json`,
+  `swagger.json`, `swagger.yaml`, `docs/openapi.*`
+- **Auth middleware**: Grep for `passport`, `jsonwebtoken`, `Authorization`,
+  `Bearer`, `apiKey`, `x-api-key`, `@auth`, `authenticate` in middleware files
+- **Request/response types**: Grep for `interface.*Request`, `interface.*Response`,
+  `type.*Payload`, Zod/Joi/Yup schema definitions near route files
+- **Error handling**: Grep for error handler middleware patterns, `errors.ts`,
+  `error-codes.*`, custom error classes
+- **Rate limiting**: Check dependencies for `express-rate-limit`,
+  `rate-limiter-flexible`, `@upstash/ratelimit`, `throttle`
+
 ## Tips
 
 - Extract endpoint definitions from route files, not from memory

@@ -45,20 +45,21 @@ Before writing, explore:
 5. **Infrastructure**: Dockerfile, CI/CD, deployment manifests, IaC
 6. **Database**: Schemas, migrations, ORM models
 7. **Tests**: Frameworks, fixtures, test utilities
+8. **Doc tooling**: Detect documentation frameworks (Docusaurus, VitePress,
+   MkDocs) — see [references/doc-tooling.md] for detection and adaptation rules
 
 ### Step 2: Audit Existing Documentation
 
-Compare every existing doc against the current codebase:
+Compare every existing doc against the current codebase and determine the
+**mode** for each document (see [references/modes.md] for full details):
 
+- **Missing?** → mode: `create`
+- **Has `<!-- generated-by: docs-skill -->` marker and is outdated?** → mode:
+  `update` (revise only inaccurate/missing sections)
+- **Hand-written (no marker) and missing sections?** → mode: `supplement`
+  (append only — never modify existing content)
 - **Current and complete?** → no changes needed
-- **Current but could be improved?** → flag: wording improvements only
-- **Outdated?** → flag for update: stale commands, wrong paths, changed config
-  keys, upgraded dependencies
-- **Obsolete?** → flag for removal: documents features, APIs, or components that
-  no longer exist in the codebase. Entire pages or sections that describe
-  removed functionality should be deleted, not left with a "this was removed"
-  note
-- **Missing?** → flag for creation
+- **Obsolete?** → flag for removal (requires user confirmation)
 
 Default mode is **update**, not rewrite. Preserve existing content, voice, and
 structure.
@@ -108,8 +109,10 @@ Match to the reference:
 | ------------------- | ------------------------------- |
 | API Reference       | [references/api-reference.md]   |
 | Architecture / ADRs | [references/architecture.md]    |
+| Configuration       | [references/configuration.md]   |
 | Developer Guide     | [references/developer-guide.md] |
 | Operations          | [references/operations.md]      |
+| Testing             | [references/testing.md]         |
 | Changelog           | [references/changelog.md]       |
 
 Split into multiple pages when content warrants it (e.g., API by domain,
@@ -122,14 +125,15 @@ Generate a full documentation suite. Present the plan for approval:
 ```
 Documentation Plan (repo):
 
- 1. Architecture Overview         → docs/architecture.md
- 2. API Reference — Users         → docs/api/users.md
- 3. API Reference — Resources     → docs/api/resources.md
- 4. Developer Guide               → docs/developer-guide.md
- 5. Contributing Guide            → CONTRIBUTING.md
- 6. Deployment Guide              → docs/deployment.md
- 7. Configuration Reference       → docs/configuration.md
- 8. Runbook                       → docs/runbook.md
+ 1. Architecture Overview         → docs/architecture.md        [create]
+ 2. API Reference — Users         → docs/api/users.md           [create]
+ 3. API Reference — Resources     → docs/api/resources.md       [create]
+ 4. Developer Guide               → docs/developer-guide.md     [create]
+ 5. Contributing Guide            → CONTRIBUTING.md             [supplement]
+ 6. Testing Guide                 → docs/testing.md             [create]
+ 7. Deployment Guide              → docs/deployment.md          [create]
+ 8. Configuration Reference       → docs/configuration.md       [create]
+ 9. Runbook                       → docs/runbook.md             [create]
 
 Final step: update README.md via `readme` skill.
 Proceed?
@@ -139,17 +143,18 @@ Proceed?
 Documentation Plan (wiki + repo):
 
 Wiki:
- 1. Architecture Overview         → wiki: Architecture
- 2. API Reference — Users         → wiki: API-Users
- 3. API Reference — Resources     → wiki: API-Resources
- 4. Developer Guide               → wiki: Developer-Guide
- 5. Deployment Guide              → wiki: Deployment
- 6. Configuration Reference       → wiki: Configuration-Reference
- 7. Runbook                       → wiki: Runbook
- 8. Home + Sidebar                → wiki: Home, _Sidebar
+ 1. Architecture Overview         → wiki: Architecture             [create]
+ 2. API Reference — Users         → wiki: API-Users                [create]
+ 3. API Reference — Resources     → wiki: API-Resources            [create]
+ 4. Developer Guide               → wiki: Developer-Guide          [create]
+ 5. Testing Guide                 → wiki: Testing                  [create]
+ 6. Deployment Guide              → wiki: Deployment               [create]
+ 7. Configuration Reference       → wiki: Configuration-Reference  [create]
+ 8. Runbook                       → wiki: Runbook                  [create]
+ 9. Home + Sidebar                → wiki: Home, _Sidebar
 
 Repo:
- 1. Contributing Guide            → CONTRIBUTING.md
+ 1. Contributing Guide            → CONTRIBUTING.md                [supplement]
  2. Changelog                     → CHANGELOG.md
  3. ADRs                          → docs/adr/
 
@@ -159,13 +164,15 @@ Proceed?
 
 ### Step 5: Write Pages in Parallel
 
-Prepare a shared brief for all agents:
+Prepare a shared brief for all writing agents (see [references/writing-agent.md]
+for full agent instructions):
 
 ```
 PROJECT BRIEF:
 - Project name, language/framework, repo URL
 - Key terminology with definitions
 - Destination: repo docs/ | GitHub Wiki
+- Doc tooling: [framework name or "none"] (see references/doc-tooling.md)
 - All pages being generated (for cross-references)
 - Naming conventions
 - Diagram requirements: for each page, list the concepts that MUST have a
@@ -176,8 +183,9 @@ PROJECT BRIEF:
 
 Delegate each page with
 `task(category="writing", load_skills=["docs"], run_in_background=true)`.
-Include the brief, relevant source files, output path, and the specific
-reference template to follow. Fire all simultaneously.
+Include the brief, **mode** (create/update/supplement), relevant source files,
+output path, and the specific reference template to follow. For update and
+supplement modes, include the existing file content. Fire all simultaneously.
 
 Collect all results before verification.
 
@@ -188,7 +196,8 @@ codebase. This catches hallucinated commands, wrong paths, stale config keys,
 and invented behavior.
 
 **Create a todo item per doc page** for tracking. Then delegate one verification
-agent per page in parallel:
+agent per page in parallel using the instructions in
+[references/verification-agent.md]:
 
 ```
 task(
@@ -197,27 +206,10 @@ task(
   run_in_background=true,
   description="Verify <page-name> claims",
   prompt="
-    TASK: Verify every factual statement in <file-path> against the codebase.
-    EXPECTED OUTCOME: All claims verified or fixed in-place.
-    REQUIRED TOOLS: Read, Grep, Glob, Edit
-    MUST DO:
-    - Read the doc file
-    - For EACH factual claim, verify it by searching the codebase:
-      • Commands and CLI flags → find the script/config that defines them
-      • File paths → confirm they exist
-      • Config keys/values → find the actual config definition
-      • API endpoints/signatures → find the handler/route
-      • Architecture claims → find the referenced modules/files
-      • Behavior descriptions → find the implementing code
-    - Fix incorrect statements in-place (edit the file)
-    - If a claim cannot be verified (no matching code), flag it with
-      a <!-- UNVERIFIED: reason --> HTML comment
-    - Report: number of claims checked, fixed, and unverifiable
-    MUST NOT:
-    - Rewrite prose or change style — only fix factual errors
-    - Remove content — only correct it
-    - Skip any verifiable claim
-    CONTEXT: [include project brief and relevant source directories]
+    Follow the verification workflow in references/verification-agent.md.
+    File to verify: <file-path>
+    Project brief: [include project brief]
+    Source directories: [list relevant source dirs]
   "
 )
 ```
@@ -225,8 +217,28 @@ task(
 Fire all verification agents simultaneously. Collect all results. Mark each todo
 item complete as agents finish.
 
-If any agent reports fixes, do a quick read of those files to confirm the fixes
-are coherent.
+### Step 6b: Fix Verified Failures
+
+If any verification agent reports incorrect claims that could not be
+auto-corrected, delegate fix tasks back to writing agents in **fix mode** (see
+[references/modes.md]):
+
+```
+task(
+  category="writing",
+  load_skills=["docs"],
+  run_in_background=true,
+  description="Fix <page-name> failures",
+  prompt="
+    Follow references/writing-agent.md in fix mode.
+    File: <file-path>
+    Failures: [list of {line, claim, expected, actual} from verifier]
+  "
+)
+```
+
+Skip this step if all claims were verified correct or auto-fixed by the
+verification agents.
 
 ### Step 7: Verify Cross-Page Consistency
 
@@ -371,9 +383,10 @@ opportunities to add them.
 | --------------- | ------------------------------------------------------------ |
 | API Reference   | `docs/api.md` or `docs/api/` (split by domain)               |
 | Architecture    | `docs/architecture.md` or `docs/adr/` for ADRs               |
+| Configuration   | `docs/configuration.md`                                      |
 | Developer Guide | `CONTRIBUTING.md` or `docs/developer-guide.md`               |
 | Operations      | `docs/deployment.md`, `docs/runbook.md`, `docs/migration.md` |
-| Configuration   | `docs/configuration.md`                                      |
+| Testing         | `docs/testing.md`                                            |
 | Changelog       | `CHANGELOG.md` (root)                                        |
 | Index           | `docs/README.md`                                             |
 
@@ -386,16 +399,27 @@ See [references/github-wiki.md].
 ## MUST DO
 
 - Explore codebase before writing
+- Detect doc tooling frameworks during exploration (see
+  [references/doc-tooling.md])
 - Audit existing docs — if they're accurate and complete, say so and stop
+- Determine the correct **mode** per document during audit (create, update,
+  supplement) — see [references/modes.md]
 - Flag obsolete pages/sections for removal and get user confirmation before
   deleting
 - After removals: clean up all cross-references and navigation that pointed to
   removed content
-- Get user approval on the documentation plan before writing
+- Get user approval on the documentation plan before writing (show mode per doc)
 - Delegate ALL file writes to agents — the orchestrator never writes files
-- Write pages in parallel using writing agents with a shared project brief
+- Include the **mode** and **doc tooling** in every writing agent delegation
+- Ensure writing agents add `<!-- generated-by: docs-skill -->` marker on
+  created documents (see [references/modes.md] for ownership tracking)
+- Use **supplement mode** for hand-written docs — append only, never overwrite
+- Write pages in parallel using writing agents with a shared project brief (see
+  [references/writing-agent.md])
 - After writing, verify every factual statement per page via parallel agents
-  (Step 6)
+  (Step 6) — see [references/verification-agent.md]
+- Delegate **fix mode** tasks for any verification failures that weren't
+  auto-corrected (Step 6b)
 - Create a todo per doc page for verification tracking
 - Verify cross-page consistency after statement verification (Step 7)
 - Always run the `readme` skill as the final step to update README.md
@@ -414,6 +438,7 @@ See [references/github-wiki.md].
   `task()`
 - Guess at configuration, commands, or architecture — verify from code
 - Rewrite docs that already accurately reflect the codebase
+- Modify hand-written docs beyond appending missing sections (supplement mode)
 - Delete pages or sections without user confirmation
 - Leave orphaned references to removed pages or sections
 - Include placeholder text
@@ -424,3 +449,5 @@ See [references/github-wiki.md].
 - Skip statement verification (Step 6) or consistency verification (Step 7)
 - Write pages sequentially when they can be parallelized
 - Skip verification todos — every page must have a tracked verification item
+- Omit the ownership marker on generated docs — it's required for mode
+  detection in future runs

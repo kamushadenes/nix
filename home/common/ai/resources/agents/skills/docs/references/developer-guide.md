@@ -182,6 +182,23 @@ concrete example from an existing file]
 - Update relevant docs when changing behavior
 ```
 
+## Content Discovery
+
+- **Build commands**: Read `package.json` scripts, `Makefile` targets,
+  `Taskfile.yml`, `justfile`, `build.gradle`, `pom.xml` build plugins
+- **Code style tools**: Check for `.eslintrc*`, `eslint.config.*`,
+  `.prettierrc*`, `biome.json`, `.editorconfig`, `rustfmt.toml`, `.golangci.yml`,
+  `ruff.toml`, `.flake8`, `pyproject.toml [tool.ruff]`
+- **Branch conventions**: Read `.github/PULL_REQUEST_TEMPLATE.md`,
+  `CONTRIBUTING.md` for branch naming rules; check recent git branches for
+  patterns
+- **PR process**: Read `.github/PULL_REQUEST_TEMPLATE.md` for checklist items;
+  check CI workflows for required checks
+- **Dev dependencies**: Read lock files and dependency manifests for
+  dev-specific tooling (test frameworks, linters, formatters)
+- **Dev environment**: Check for `.devcontainer/`, `nix develop`,
+  `docker-compose.dev.yml`, `.tool-versions` (asdf), `mise.toml`
+
 ## Diagrams
 
 Developer guides describe workflows and architecture — include Mermaid diagrams
