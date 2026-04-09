@@ -75,6 +75,7 @@ let
   # AI tools - Claude, orchestrator, etc.
   # Note: moltbot removed - now runs as system service on moltbot LXC
   ai = [
+    ../home/common/ai/better-ccflare.nix
     ../home/common/ai/claude-code.nix
     ../home/common/ai/codex-cli.nix
     ../home/common/ai/gemini-cli.nix
