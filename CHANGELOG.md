@@ -4,13 +4,44 @@ This changelog tracks major milestones and notable changes in this personal Nix
 flake configuration. Since this is a private infrastructure repository, it uses
 date-based sections rather than semantic versioning.
 
+## 2026-04
+
+### Added
+
+- better-ccflare background service with launchd (macOS) and systemd (Linux)
+  support.
+- RTK (Rust Token Killer) CLI proxy for token-optimized dev operations.
+- Web-ui-designer skill with Iniciador design system theme.
+- doc-writer and doc-verifier Claude Code agents for documentation generation.
+
+### Changed
+
+- Updated GSD framework from v1.29.0 to v1.34.2.
+- Made Mermaid diagrams mandatory in docs and readme skills.
+- Set Claude Code default permission mode to auto.
+- Deployed skills to ~/.claude/skills/ for Claude Code discovery.
+- Made web-ui-designer skill technology-agnostic.
+- Merged resolve-conversations and resolve-code-scanning into unified fix-pr
+  skill.
+- Added .context to global gitignore.
+
+### Fixed
+
+- RTK hash mismatch for v0.35.0 re-release.
+- Bash direnv hook moved from sessionVariablesExtra to profileExtra.
+
+### Removed
+
+- TDD Guard tool from nix config.
+- secrets-scanner Claude Code plugin.
+
 ## 2026-03
 
 ### Added
 
 - OpenCode AI IDE integration alongside Claude Code, Codex, and Gemini.
 - NanoClaw personal AI agent for WhatsApp and Telegram via Docker.
-- GSD (Get Stuff Done) framework for structured AI agent task management.
+- GSD (Get Shit Done) framework for structured AI agent task management.
 - Mutagen hub-and-spoke file synchronization with dedicated LXC hub.
 - Comprehensive project documentation suite and automated README generation.
 - Aikido security scanning and Playwriter MCP servers for AI agents.

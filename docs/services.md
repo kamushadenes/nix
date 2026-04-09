@@ -58,7 +58,7 @@ for the full persistence model.
 | Home Assistant | `haos`               | 8123       | No     | minimal     | `rebuild -vL haos`          |
 | Moltbot        | `moltbot`            | 18789      | No     | minimal     | `rebuild -vL moltbot`       |
 | NanoClaw       | `nanoclaw`           | -          | Yes    | headless    | `rebuild -vL nanoclaw`      |
-| Prometheus     | `prometheus`         | 9090, 9222 | No     | minimal     | `rebuild -vL prometheus`    |
+| Prometheus     | `prometheus`         | 9090, 9100, 9222 | No     | minimal     | `rebuild -vL prometheus`    |
 | Grafana        | `grafana`            | 3000       | No     | minimal     | `rebuild -vL grafana`       |
 | InfluxDB       | `influxdb`           | 8086       | No     | minimal     | `rebuild -vL influxdb`      |
 | Mutagen        | `mutagen`            | -          | No     | minimal     | `rebuild -vL mutagen`       |

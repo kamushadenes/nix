@@ -136,7 +136,12 @@ mkProxmoxHost =
       # Proxmox specific overrides
       ({ lib, ... }: {
         services.fail2ban.enable = lib.mkForce false;
+        services.nextdns.enable = lib.mkForce false;
         networking.firewall.enable = lib.mkForce false;
+        networking.nameservers = lib.mkForce [
+          "10.23.23.1"
+          "1.1.1.1"
+        ];
         nix.settings.sandbox = "relaxed";
       })
     ] ++ (if persistence then [

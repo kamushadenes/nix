@@ -37,36 +37,36 @@ platforms. They are located in the `home/common/` directory.
 The AI tools category manages the configuration for various AI coding assistants
 and their supporting infrastructure.
 
+- `better-ccflare.nix`: Runs the better-ccflare Claude API reverse proxy as a
+  background service. It configures a launchd agent on macOS and a systemd user
+  service on Linux, listening on port 8787.
 - `claude-code.nix`: Configures the Claude Code CLI with custom settings and
   integrated MCP servers. It uses the built-in home-manager module for settings
   and manages secrets via agenix.
-- `opencode.nix`: Sets up the OpenCode environment with shared MCP server
-  configurations. It handles secret substitution at activation time for secure
-  API access.
+- `claude-code-permissions.nix`: Defines the auto-approved tools for Claude Code
+  workflows. It organizes permissions by tool type to simplify maintenance and
+  security auditing.
 - `codex-cli.nix`: Configures the OpenAI Codex CLI with MCP servers from the
   shared configuration. It uses agenix to manage the TOML configuration file
   containing sensitive tokens.
 - `gemini-cli.nix`: Sets up the Google Gemini CLI with shared MCP
   configurations. It manages a JSON configuration file with secrets encrypted
   via agenix.
-- `mcp-servers.nix`: Provides a unified and normalized configuration for Model
-  Context Protocol servers. This module transforms a single definition into the
-  specific formats required by different AI tools.
-- `claude-code-permissions.nix`: Defines the auto-approved tools for Claude Code
-  workflows. It organizes permissions by tool type to simplify maintenance and
-  security auditing.
-- `orchestrator.nix`: Handles the deployment of agent skills to the standard
-  agentskills.io location. It auto-discovers skills from the resources directory
-  and makes them available to all supported agents.
 - `gsd-claude.nix`: Manages the Get Shit Done (GSD) framework files specifically
   for Claude Code. It deploys the framework to the local claude directory
   without requiring the npm installer.
 - `gsd-opencode.nix`: Manages the Get Shit Done (GSD) framework files for the
   OpenCode environment. It ensures the framework is correctly deployed to the
   opencode configuration directory.
-- `peon-ping.nix`: Provides voice notifications for AI coding agent events like
-  session starts and completions. It uses an LCARS sound pack and manages
-  installation via activation scripts.
+- `mcp-servers.nix`: Provides a unified and normalized configuration for Model
+  Context Protocol servers. This module transforms a single definition into the
+  specific formats required by different AI tools.
+- `opencode.nix`: Sets up the OpenCode environment with shared MCP server
+  configurations. It handles secret substitution at activation time for secure
+  API access.
+- `orchestrator.nix`: Handles the deployment of agent skills to the standard
+  agentskills.io location. It auto-discovers skills from the resources directory
+  and makes them available to all supported agents.
 
 ### Core (home/common/core/)
 
@@ -98,8 +98,8 @@ specialized development environments.
 - `go.nix`: Sets up a complete Go development environment. It includes the Go
   compiler, common tools, and a custom godoc-mcp server for AI-assisted
   documentation lookup.
-- `node.nix`: Configures Node.js and Bun runtimes. It includes a custom TDD
-  Guard tool for Linux and sets up common global packages.
+- `node.nix`: Configures Node.js and Bun runtimes. It sets up common global
+  packages and thin wrappers for tools like Playwriter.
 - `python.nix`: Provides a Python environment with essential development tools.
   It configures the Python interpreter and common libraries used across
   projects.
