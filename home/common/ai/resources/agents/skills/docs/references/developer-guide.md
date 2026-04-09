@@ -199,6 +199,7 @@ concrete example from an existing file]
 - **Dev environment**: Check for `.devcontainer/`, `nix develop`,
   `docker-compose.dev.yml`, `.tool-versions` (asdf), `mise.toml`
 
+
 ## Diagrams
 
 Developer guides describe workflows and architecture — include Mermaid diagrams
