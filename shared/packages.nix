@@ -183,6 +183,51 @@ let
       };
     };
 
+  # better-ccflare - Claude API reverse proxy with load balancing
+  # Pre-built binary from GitHub releases
+  better-ccflare =
+    let
+      version = "3.3.25";
+      sources = {
+        "aarch64-darwin" = {
+          url = "https://github.com/tombii/better-ccflare/releases/download/v${version}/better-ccflare-macos-arm64";
+          hash = "sha256-De3j+oakJLtYsp2AFle9BRQiB/ZJaF8YrBAV4LJFvAU=";
+        };
+        "x86_64-darwin" = {
+          url = "https://github.com/tombii/better-ccflare/releases/download/v${version}/better-ccflare-macos-x86_64";
+          hash = "sha256-UewWjgTLN6wfJLJ2Tnpu8TwoJt62S2Z55jtyGOyEKqg=";
+        };
+        "x86_64-linux" = {
+          url = "https://github.com/tombii/better-ccflare/releases/download/v${version}/better-ccflare-linux-amd64";
+          hash = "sha256-KflpY+w/3wOG4B97f+e7qTJjjmUiPMkHP1DjAY1mKnM=";
+        };
+        "aarch64-linux" = {
+          url = "https://github.com/tombii/better-ccflare/releases/download/v${version}/better-ccflare-linux-arm64";
+          hash = "sha256-/sURaiUmYWx9xdCAc7pQsVnjXYo8bS8FS/qS0XFJTFc=";
+        };
+      };
+      src = pkgs.fetchurl sources.${pkgs.stdenv.hostPlatform.system};
+    in
+    pkgs.stdenv.mkDerivation {
+      pname = "better-ccflare";
+      inherit version;
+      inherit src;
+
+      dontUnpack = true;
+
+      installPhase = ''
+        mkdir -p $out/bin
+        cp $src $out/bin/better-ccflare
+        chmod +x $out/bin/better-ccflare
+      '';
+
+      meta = {
+        description = "Claude API reverse proxy with load balancing";
+        homepage = "https://github.com/tombii/better-ccflare";
+        mainProgram = "better-ccflare";
+      };
+    };
+
   # Script to prepare a remote machine for this nix configuration
   # Copies age key, SSH key, creates nix.conf, clones repos, and provides activation instructions
   nix-remote-setup = pkgs.writeScriptBin "nix-remote-setup" ''
@@ -305,6 +350,7 @@ in
     worktrunk
     ccusage
     rtk
+    better-ccflare
     pve-exporter-go
     nix-remote-setup
     ;
