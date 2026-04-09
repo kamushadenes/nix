@@ -194,6 +194,50 @@ in
               }
             ];
           }
+          # GSD prompt injection guard
+          {
+            matcher = "Write|Edit";
+            hooks = [
+              {
+                type = "command";
+                command = "node ~/.claude/hooks/gsd-prompt-guard.js";
+                timeout = 5;
+              }
+            ];
+          }
+          # GSD read-before-edit guard
+          {
+            matcher = "Write|Edit";
+            hooks = [
+              {
+                type = "command";
+                command = "node ~/.claude/hooks/gsd-read-guard.js";
+                timeout = 5;
+              }
+            ];
+          }
+          # GSD workflow guard (opt-in via hooks.workflow_guard)
+          {
+            matcher = "Write|Edit";
+            hooks = [
+              {
+                type = "command";
+                command = "node ~/.claude/hooks/gsd-workflow-guard.js";
+                timeout = 5;
+              }
+            ];
+          }
+          # GSD commit validation
+          {
+            matcher = "Bash";
+            hooks = [
+              {
+                type = "command";
+                command = "bash ~/.claude/hooks/gsd-validate-commit.sh";
+                timeout = 5;
+              }
+            ];
+          }
         ];
 
         UserPromptSubmit = [ ];
@@ -220,6 +264,15 @@ in
               }
             ];
           }
+          # GSD session state orientation
+          {
+            hooks = [
+              {
+                type = "command";
+                command = "bash ~/.claude/hooks/gsd-session-state.sh";
+              }
+            ];
+          }
         ];
 
         # Run when Claude stops working
@@ -237,8 +290,30 @@ in
           }
         ];
 
-        # Run after file modifications - auto-formatting
+        # Run after file modifications
         PostToolUse = [
+          # GSD context window monitor
+          {
+            matcher = "Bash|Edit|Write|MultiEdit|Agent|Task";
+            hooks = [
+              {
+                type = "command";
+                command = "node ~/.claude/hooks/gsd-context-monitor.js";
+                timeout = 10;
+              }
+            ];
+          }
+          # GSD phase boundary detection
+          {
+            matcher = "Write|Edit";
+            hooks = [
+              {
+                type = "command";
+                command = "bash ~/.claude/hooks/gsd-phase-boundary.sh";
+                timeout = 5;
+              }
+            ];
+          }
           # Auto-format Python files
           {
             matcher = "Edit(*.py)|Write(*.py)|Update(*.py)";
@@ -325,6 +400,12 @@ in
             ];
           }
         ];
+      };
+
+      # GSD status line
+      statusLine = {
+        type = "command";
+        command = "node ~/.claude/hooks/gsd-statusline.js";
       };
 
       # Enabled plugins from various marketplaces

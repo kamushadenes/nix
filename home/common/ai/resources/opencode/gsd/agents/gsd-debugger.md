@@ -423,7 +423,7 @@ git bisect bad              # or good, based on testing
 **Example:** Stale hook warning persists after update
 ```
 Check code says:  hooksDir = path.join(configDir, 'hooks')
-                  configDir = /private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.BoPLr0DUXw/.opencode
+                  configDir = /private/var/folders/jl/yb1gyxfs0gx15sjsjp2zt5w40000gn/T/tmp.4qjpLHE2vz/.opencode
                   → checks /private$HOME/.config/opencode/hooks/
 
 Installer says:   hooksDest = path.join(targetDir, 'hooks')

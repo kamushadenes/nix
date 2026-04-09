@@ -1,0 +1,10 @@
+{
+  "permission": {
+    "read": {
+      "/private$HOME/.config/opencode/get-shit-done/*": "allow"
+    },
+    "external_directory": {
+      "/private$HOME/.config/opencode/get-shit-done/*": "allow"
+    }
+  }
+}
