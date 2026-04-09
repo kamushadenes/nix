@@ -280,6 +280,25 @@ If migration fails:
 - [Issue description and workaround]
 ```
 
+## Content Discovery
+
+- **Deployment targets**: Check for `Dockerfile`, `docker-compose.yml`,
+  `vercel.json`, `netlify.toml`, `fly.toml`, `railway.json`, `serverless.yml`,
+  `render.yaml`, `flake.nix`, `k8s/`, `terraform/`, `pulumi/`
+- **CI/CD pipeline**: Read `.github/workflows/*.yml`, `.gitlab-ci.yml`,
+  `Jenkinsfile`, `bitbucket-pipelines.yml` for deploy steps; extract triggers,
+  build commands, deploy commands
+- **Environment config**: Cross-reference `.env.example` required variables with
+  deployment context; check for platform-specific env config
+- **Monitoring**: Check dependencies for `@sentry/*`, `dd-trace`, `newrelic`,
+  `@opentelemetry/*`, `prom-client`; check for `sentry.config.*`,
+  `datadog.config.*` files
+- **Health endpoints**: Grep for `/health`, `/healthz`, `/ready`, `/readiness`,
+  `/liveness` in route files
+- **Rollback**: Check CI workflows for rollback steps; check deployment configs
+  for rollback commands
+
+
 ## Diagrams
 
 Operations docs describe multi-step processes — these MUST include Mermaid
