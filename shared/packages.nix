@@ -207,32 +207,33 @@ let
         };
       };
       src = pkgs.fetchurl sources.${pkgs.stdenv.hostPlatform.system};
-    in
-    pkgs.stdenv.mkDerivation {
-      pname = "better-ccflare";
-      inherit version;
-      inherit src;
-
-      # Bun single-file executable — patchelf corrupts the embedded app.
-      # Relies on nix-ld (programs.nix-ld.enable) on NixOS hosts.
-      dontUnpack = true;
-      dontPatchELF = true;
-      dontAutoPatchelf = true;
-      dontStrip = true;
-      dontFixup = true;
-
-      installPhase = ''
-        mkdir -p $out/bin
-        cp $src $out/bin/better-ccflare
-        chmod +x $out/bin/better-ccflare
-      '';
-
-      meta = {
-        description = "Claude API reverse proxy with load balancing";
-        homepage = "https://github.com/tombii/better-ccflare";
-        mainProgram = "better-ccflare";
+      unwrapped = pkgs.stdenv.mkDerivation {
+        pname = "better-ccflare-unwrapped";
+        inherit version;
+        inherit src;
+        dontUnpack = true;
+        dontPatchELF = true;
+        dontStrip = true;
+        dontFixup = true;
+        installPhase = ''
+          mkdir -p $out/bin
+          cp $src $out/bin/better-ccflare
+          chmod +x $out/bin/better-ccflare
+        '';
       };
-    };
+    in
+    # Bun single-file executable — patchelf corrupts the embedded app.
+    # On Linux, wrap with buildFHSEnv for a proper /lib64 linker.
+    # On Darwin, use the binary directly.
+    if pkgs.stdenv.isLinux then
+      pkgs.buildFHSEnv {
+        name = "better-ccflare";
+        inherit (unwrapped) meta;
+        targetPkgs = _: [ ];
+        runScript = "${unwrapped}/bin/better-ccflare";
+      }
+    else
+      unwrapped;
 
   # Script to prepare a remote machine for this nix configuration
   # Copies age key, SSH key, creates nix.conf, clones repos, and provides activation instructions
