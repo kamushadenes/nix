@@ -440,7 +440,7 @@ in
 
         # Third-party
         #"fullstack-dev-skills@fullstack-dev-skills" = true;
-        #"superpowers@superpowers-marketplace" = true;
+        "superpowers@superpowers-marketplace" = true;
         "claude-code-wakatime@wakatime" = true;
 
         # Safety Net (kenryu42/cc-marketplace) - blocks destructive git/fs commands
