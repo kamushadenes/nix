@@ -140,8 +140,9 @@ in
     serviceConfig = {
       Type = "simple";
       Restart = "always";
-      RestartSec = "5";
-      KillMode = "process";
+      RestartSec = "10";
+      KillMode = "mixed";
+      TimeoutStopSec = "15";
       WorkingDirectory = nanoclaw-app;
       StandardOutput = "append:${nanoclaw-app}/logs/nanoclaw.log";
       StandardError = "append:${nanoclaw-app}/logs/nanoclaw.error.log";
