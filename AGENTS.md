@@ -131,6 +131,12 @@ sudo nixos-rebuild switch --flake ~/.config/nix/config/ --impure
 darwin-rebuild switch --flake ~/.config/nix/config/ --impure
 ```
 
+**Prefer aether for LXC builds.** Aether has all secrets and a fast connection to the Proxmox hosts. When rebuilding LXC containers, prefer running the build on aether instead of locally:
+
+```bash
+ssh aether "cd ~/.config/nix/config && nh os switch --target-host root@<LXC_IP> -R '.?submodules=1#<host>' -- --impure"
+```
+
 **IMPORTANT: Cache timeout errors require rebuild retry.** If `rebuild` fails
 with:
 
