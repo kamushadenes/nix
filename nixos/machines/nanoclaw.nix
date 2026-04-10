@@ -135,6 +135,11 @@ in
 
     unitConfig = {
       ConditionPathExists = "${nanoclaw-app}/dist/index.js";
+      # Only run under the nanoclaw user — systemd.user.services installs
+      # globally to /etc/systemd/user/, so without this root's user session
+      # also starts the service, causing duplicate instances that kill each
+      # other's containers via cleanupOrphans.
+      ConditionUser = "nanoclaw";
     };
 
     serviceConfig = {
