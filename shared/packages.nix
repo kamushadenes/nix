@@ -213,10 +213,13 @@ let
       inherit version;
       inherit src;
 
+      # Bun single-file executable — patchelf corrupts the embedded app.
+      # Relies on nix-ld (programs.nix-ld.enable) on NixOS hosts.
       dontUnpack = true;
-
-      nativeBuildInputs = lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
-      buildInputs = lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ];
+      dontPatchELF = true;
+      dontAutoPatchelf = true;
+      dontStrip = true;
+      dontFixup = true;
 
       installPhase = ''
         mkdir -p $out/bin
