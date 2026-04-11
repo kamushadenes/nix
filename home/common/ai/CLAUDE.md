@@ -26,8 +26,9 @@ resources/
 │   └── plugins/         # OC-specific plugins
 ├── codex/               # OpenAI Codex-specific
 │   ├── agents/          # Codex agents (TOML format)
+│   ├── gsd/             # Get Shit Done framework
 │   ├── skills/          # Codex skills (invokable with $skill-name)
-│   └── scripts/hooks/   # Codex lifecycle hooks
+│   └── scripts/         # Hooks and update scripts
 └── gemini/              # Gemini CLI-specific
 ```
 
@@ -152,13 +153,14 @@ paths: **/*.tf
 
 ---
 
-### Commands (tool-specific)
+### Commands / Skills (tool-specific)
 
-Commands are slash commands. No cross-agent standard exists, so they live in
-tool-specific directories.
+Commands are slash commands. Codex uses skills (agentskills.io format) instead.
+All three tools have the same 16 commands/skills at parity.
 
 - Claude Code: `resources/claude-code/commands/`
 - OpenCode: `resources/opencode/commands/`
+- Codex: `resources/codex/skills/`
 
 ---
 
@@ -166,21 +168,20 @@ tool-specific directories.
 
 Agents are specialized subagents. They live in tool-specific directories.
 
-- Claude Code: `resources/claude-code/agents/`
-- OpenCode: `resources/opencode/agents/`
+- Claude Code: `resources/claude-code/agents/` (Markdown)
+- OpenCode: `resources/opencode/agents/` (Markdown)
+- Codex: `resources/codex/agents/` (TOML)
 
 ---
 
-### Hooks (`resources/claude-code/scripts/hooks/`)
+### Hooks (tool-specific)
 
-Hooks are Claude Code-specific scripts that run at lifecycle events.
+Lifecycle hooks that run at various points in the agent session.
 
-**Hook types:**
-
-- `PreToolUse/` — Before tool execution (can block)
-- `PostToolUse/` — After tool execution
-- `SessionStart/` — When a session begins
-- `Stop/` — When session ends
+- Claude Code: `resources/claude-code/scripts/hooks/` (PreToolUse, PostToolUse,
+  SessionStart, Stop, PostToolUseFailure, TaskCompleted)
+- Codex: `resources/codex/scripts/hooks/` (pre-tool-use, session-start, stop,
+  post-tool-use-failure, task-completed)
 
 ---
 
@@ -201,10 +202,13 @@ loaded) | | Skill SKILL.md | ~500 tokens | | References | ~300 tokens each |
 1. **Skills**: Auto-discovered from `resources/agents/skills/` by
    `orchestrator.nix`
 2. **Rules**: Auto-discovered from `resources/agents/rules/` by
-   `claude-code.nix` and `opencode.nix`
-3. **Commands, Agents**: Auto-discovered from tool-specific dirs by each tool's
-   `.nix` module
-4. **Hooks**: Register in `claude-code.nix` under the appropriate hook type
+   `claude-code.nix`, `opencode.nix`, and `codex-cli.nix`
+3. **Commands, Agents, Skills**: Auto-discovered from tool-specific dirs by each
+   tool's `.nix` module
+4. **Hooks**: Register in `claude-code.nix` or `codex-cli.nix` under the
+   appropriate hook type
+5. **GSD**: Managed by `gsd-claude.nix`, `gsd-opencode.nix`, `gsd-codex.nix` —
+   update via the tool-specific `gsd-update.sh` scripts
 
 New files must be committed before Nix can see them (flakes only track
 git-tracked files).
