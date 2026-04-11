@@ -225,7 +225,7 @@ rec {
       ) servers
     );
 
-  # Transform to Codex CLI format (TOML - uses mcp-remote for HTTP servers)
+  # Transform to Codex CLI format (TOML - native HTTP support with url + http_headers)
   toCodex =
     serverNames:
     lib.filterAttrs (n: _: builtins.elem n serverNames) (
@@ -233,21 +233,9 @@ rec {
         name: server:
         if server.transport == "http" then
           {
-            command = "npx";
-            args = [
-              "-y"
-              "mcp-remote"
-              server.url
-            ]
-            ++ lib.optionals (server ? headers) (
-              lib.flatten (
-                lib.mapAttrsToList (k: v: [
-                  "--header"
-                  "${k}:${v}"
-                ]) server.headers
-              )
-            );
+            url = server.url;
           }
+          // lib.optionalAttrs (server ? headers) { http_headers = server.headers; }
         else
           {
             command = server.command;
