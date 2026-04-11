@@ -80,6 +80,7 @@ let
     ../home/common/ai/codex-cli.nix
     ../home/common/ai/gemini-cli.nix
     ../home/common/ai/gsd-claude.nix
+    ../home/common/ai/gsd-codex.nix
     ../home/common/ai/gsd-opencode.nix
     ../home/common/ai/opencode.nix
     ../home/common/ai/orchestrator.nix

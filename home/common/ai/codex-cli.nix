@@ -8,6 +8,7 @@
 {
   config,
   lib,
+  packages,
   pkgs,
   pkgs-unstable,
   private,
@@ -134,6 +135,32 @@ let
   # Hooks configuration (JSON format at ~/.codex/hooks.json)
   hooksConfig = {
     hooks = {
+      PreToolUse = [
+        # RTK auto-rewrite: transparently prefix commands with rtk for token savings
+        {
+          matcher = "Bash";
+          hooks = [
+            {
+              type = "command";
+              command = "~/.codex/hooks/pre-tool-use/rtk-rewrite.sh";
+            }
+          ];
+        }
+      ];
+
+      SessionStart = [
+        # Devbox/direnv setup for web environments
+        {
+          matcher = "startup";
+          hooks = [
+            {
+              type = "command";
+              command = "~/.codex/hooks/session-start/devbox-setup.sh";
+            }
+          ];
+        }
+      ];
+
       Stop = [
         {
           hooks = [
@@ -142,6 +169,31 @@ let
               command = "~/.codex/hooks/stop-format-and-lint.sh";
               timeout = 60;
               statusMessage = "Formatting modified files";
+            }
+          ];
+        }
+      ];
+
+      PostToolUseFailure = [
+        # Suggest nix-shell for missing commands
+        {
+          matcher = "Bash";
+          hooks = [
+            {
+              type = "command";
+              command = "~/.codex/hooks/post-tool-use-failure/suggest-nix-shell.sh";
+              timeout = 10;
+            }
+          ];
+        }
+      ];
+
+      TaskCompleted = [
+        {
+          hooks = [
+            {
+              type = "command";
+              command = "~/.codex/hooks/task-completed/verify-completion.sh";
             }
           ];
         }
@@ -238,6 +290,7 @@ in
   home.packages = [
     pkgs-unstable.codex
     codexReview
+    packages.rtk # Matches the shared RTK rules in AGENTS.md.
     pkgs.nodePackages.prettier # Markdown/TypeScript formatting
     pkgs.ruff # Python formatting
   ];
@@ -275,9 +328,33 @@ in
     # Hooks configuration (JSON)
     ".codex/hooks.json".text = builtins.toJSON hooksConfig;
 
-    # Hook scripts
+    # Hook scripts - Stop
     ".codex/hooks/stop-format-and-lint.sh" = {
       source = "${resourcesDir}/scripts/hooks/stop-format-and-lint.sh";
+      executable = true;
+    };
+
+    # Hook scripts - PreToolUse
+    ".codex/hooks/pre-tool-use/rtk-rewrite.sh" = {
+      source = "${resourcesDir}/scripts/hooks/pre-tool-use/rtk-rewrite.sh";
+      executable = true;
+    };
+
+    # Hook scripts - SessionStart
+    ".codex/hooks/session-start/devbox-setup.sh" = {
+      source = "${resourcesDir}/scripts/hooks/session-start/devbox-setup.sh";
+      executable = true;
+    };
+
+    # Hook scripts - PostToolUseFailure
+    ".codex/hooks/post-tool-use-failure/suggest-nix-shell.sh" = {
+      source = "${resourcesDir}/scripts/hooks/post-tool-use-failure/suggest-nix-shell.sh";
+      executable = true;
+    };
+
+    # Hook scripts - TaskCompleted
+    ".codex/hooks/task-completed/verify-completion.sh" = {
+      source = "${resourcesDir}/scripts/hooks/task-completed/verify-completion.sh";
       executable = true;
     };
   }

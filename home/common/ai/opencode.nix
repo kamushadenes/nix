@@ -8,6 +8,7 @@
 {
   config,
   lib,
+  packages,
   pkgs,
   private,
   ...
@@ -148,79 +149,6 @@ let
         extensions = [ ".templ" ];
       };
     };
-    agents = {
-      sisyphus = {
-        model = "anthropic/claude-opus-4-6";
-        variant = "max";
-      };
-      hephaestus = {
-        model = "github-copilot/gpt-5.3-codex";
-        variant = "medium";
-      };
-      sisyphus-junior = {
-        model = "anthropic/claude-sonnet-4-6";
-      };
-      oracle = {
-        model = "github-copilot/gpt-5.4";
-        variant = "high";
-      };
-      librarian = {
-        model = "opencode/minimax-m2.5-free";
-      };
-      explore = {
-        model = "opencode/minimax-m2.5-free";
-      };
-      multimodal-looker = {
-        model = "github-copilot/gpt-5.4";
-        variant = "medium";
-      };
-      prometheus = {
-        model = "anthropic/claude-opus-4-6";
-        variant = "max";
-      };
-      metis = {
-        model = "anthropic/claude-opus-4-6";
-        variant = "max";
-      };
-      momus = {
-        model = "github-copilot/gpt-5.4";
-        variant = "xhigh";
-      };
-      atlas = {
-        model = "anthropic/claude-sonnet-4-6";
-      };
-    };
-    categories = {
-      visual-engineering = {
-        model = "google/gemini-3.1-pro";
-        variant = "high";
-      };
-      ultrabrain = {
-        model = "github-copilot/gpt-5.4";
-        variant = "xhigh";
-      };
-      deep = {
-        model = "github-copilot/gpt-5.3-codex";
-        variant = "medium";
-      };
-      artistry = {
-        model = "google/gemini-3.1-pro";
-        variant = "high";
-      };
-      quick = {
-        model = "github-copilot/gpt-5.4-mini";
-      };
-      unspecified-low = {
-        model = "anthropic/claude-sonnet-4-6";
-      };
-      unspecified-high = {
-        model = "anthropic/claude-opus-4-6";
-        variant = "max";
-      };
-      writing = {
-        model = "google/gemini-3-flash";
-      };
-    };
   };
 
   # Secrets configuration
@@ -235,7 +163,10 @@ in
   #############################################################################
 
   # Darwin uses homebrew (added in brew.nix), Linux uses nixpkgs
-  home.packages = lib.optionals (!pkgs.stdenv.isDarwin) [
+  home.packages = [
+    packages.rtk # Enables the bundled RTK OpenCode plugin.
+  ]
+  ++ lib.optionals (!pkgs.stdenv.isDarwin) [
     pkgs.opencode
   ];
 
