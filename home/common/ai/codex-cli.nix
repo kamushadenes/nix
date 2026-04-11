@@ -1,7 +1,10 @@
 # OpenAI Codex CLI configuration
 #
-# Configures Codex CLI with MCP servers from shared configuration.
+# Configures Codex CLI with MCP servers, agents, skills, hooks, and rules.
 # Uses agenix for secrets management with TOML config file.
+# AGENTS.md is generated from shared rules (resources/agents/rules/).
+# Custom agents are auto-discovered from resources/codex/agents/.
+# Skills are auto-discovered from resources/codex/skills/.
 {
   config,
   lib,
@@ -14,20 +17,135 @@ let
   # Import shared MCP server configuration (with pkgs for activation script)
   mcpServers = import ./mcp-servers.nix { inherit config lib pkgs; };
 
-  # MCP servers to include for Codex CLI
+  # MCP servers to include for Codex CLI (shared + codex-specific)
   enabledServers = [
+    # Shared with CC/OC
+    "slack"
+    "aikido"
     "deepwiki"
     "Ref"
+    "playwriter"
+    "firecrawl-mcp"
+    # Codex-specific
     "repomix"
     "godoc"
     "terraform"
+    # Private
+    "iniciador-vanta"
   ];
 
-  # MCP server configurations in Codex format
+  # Resource directories
+  resourcesDir = ./resources/codex;
+  sharedDir = ./resources/agents;
+  rulesDir = "${sharedDir}/rules";
+  agentsDir = "${resourcesDir}/agents";
+  skillsDir = "${resourcesDir}/skills";
+
+  # Auto-discover shared rule files for AGENTS.md generation
+  ruleFiles = builtins.attrNames (builtins.readDir rulesDir);
+  agentsMdContent = lib.concatMapStringsSep "\n\n" (name: builtins.readFile "${rulesDir}/${name}") (
+    builtins.sort (a: b: a < b) ruleFiles
+  );
+
+  # Auto-discover agent TOML files
+  discoverFiles =
+    dir: ext:
+    if builtins.pathExists dir then
+      lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ext name) (builtins.readDir dir)
+    else
+      { };
+
+  agentFiles = discoverFiles agentsDir ".toml";
+
+  # Auto-discover skill directories (each contains SKILL.md)
+  discoverDirs =
+    dir:
+    if builtins.pathExists dir then
+      lib.filterAttrs (name: type: type == "directory" && !lib.hasPrefix "_" name) (builtins.readDir dir)
+    else
+      { };
+
+  skillDirs = discoverDirs skillsDir;
+
+  # Recursively collect all files within a directory
+  collectFilesRecursive =
+    basePath: prefix:
+    let
+      entries = builtins.readDir basePath;
+    in
+    lib.foldl' (
+      acc: name:
+      let
+        fullPath = "${basePath}/${name}";
+        relPath = if prefix == "" then name else "${prefix}/${name}";
+        type = entries.${name};
+      in
+      if type == "directory" then
+        acc // (collectFilesRecursive fullPath relPath)
+      else
+        acc // { ${relPath} = fullPath; }
+    ) { } (builtins.attrNames entries);
+
+  # Collect all skill files for deployment
+  skillFiles = lib.foldl' (
+    acc: skillName:
+    let
+      skillPath = "${skillsDir}/${skillName}";
+      files = collectFilesRecursive skillPath "";
+    in
+    acc
+    // lib.mapAttrs' (relPath: srcPath: {
+      name = "${skillName}/${relPath}";
+      value = srcPath;
+    }) files
+  ) { } (builtins.attrNames skillDirs);
+
+  # Codex CLI configuration
   mcpConfig = {
     mcp_servers = mcpServers.toCodex enabledServers;
+
+    # Model configuration
+    model = "o3";
+    model_reasoning_effort = "high";
+
+    # Approval and sandbox policy (matches CC's bypassPermissions)
+    approval_policy = "never";
+    sandbox_mode = "workspace-write";
+
+    # Communication style
+    personality = "pragmatic";
+
+    # Web search
+    web_search = "live";
+
+    # Agent configuration
+    agents = {
+      max_threads = 6;
+      max_depth = 1;
+    };
+
+    # Feature flags
     features = {
+      codex_hooks = true;
       web_search_request = true;
+    };
+  };
+
+  # Hooks configuration (JSON format at ~/.codex/hooks.json)
+  hooksConfig = {
+    hooks = {
+      Stop = [
+        {
+          hooks = [
+            {
+              type = "command";
+              command = "~/.codex/hooks/stop-format-and-lint.sh";
+              timeout = 60;
+              statusMessage = "Formatting modified files";
+            }
+          ];
+        }
+      ];
     };
   };
 
@@ -120,20 +238,30 @@ in
   home.packages = [
     pkgs-unstable.codex
     codexReview
+    pkgs.nodePackages.prettier # Markdown/TypeScript formatting
+    pkgs.ruff # Python formatting
   ];
 
   #############################################################################
   # Agenix Secrets
   #############################################################################
 
-  age.secrets = mcpServers.mkAgenixSecrets {
-    prefix = "codex";
-    secretsDir = secretsDir;
-    inherit private;
-  };
+  age.secrets =
+    mcpServers.mkAgenixSecrets {
+      prefix = "codex";
+      secretsDir = secretsDir;
+      inherit private;
+    }
+    // {
+      # Iniciador Vanta credentials - needs file path, not substituted content
+      "codex-iniciador-vanta-credentials" = {
+        file = "${private}/home/common/ai/resources/claude/vanta-credentials.age";
+        path = "${secretsDir}/iniciador-vanta-credentials";
+      };
+    };
 
   #############################################################################
-  # Codex CLI Configuration Template
+  # Codex CLI Configuration, Agents, Skills, Hooks
   #############################################################################
 
   home.file = {
@@ -141,9 +269,35 @@ in
     ".codex/config.toml.template".source =
       mcpConfigToml.generate "codex-config-template.toml" mcpConfig;
 
-    # Global AGENTS.md - workflow instructions for Codex agents
-    ".codex/AGENTS.md".source = ./resources/codex/AGENTS.md;
-  };
+    # Global AGENTS.md - generated from shared rules
+    ".codex/AGENTS.md".text = agentsMdContent;
+
+    # Hooks configuration (JSON)
+    ".codex/hooks.json".text = builtins.toJSON hooksConfig;
+
+    # Hook scripts
+    ".codex/hooks/stop-format-and-lint.sh" = {
+      source = "${resourcesDir}/scripts/hooks/stop-format-and-lint.sh";
+      executable = true;
+    };
+  }
+  # Agents - auto-discovered TOML files from resources/codex/agents/
+  // lib.mapAttrs' (name: _: {
+    name = ".codex/agents/${name}";
+    value.source = "${agentsDir}/${name}";
+  }) agentFiles
+  # Skills - auto-discovered from resources/codex/skills/
+  // lib.mapAttrs' (name: sourcePath: {
+    name = ".codex/skills/${name}";
+    value =
+      if lib.hasSuffix ".py" name || lib.hasSuffix ".sh" name then
+        {
+          source = sourcePath;
+          executable = true;
+        }
+      else
+        { source = sourcePath; };
+  }) skillFiles;
 
   #############################################################################
   # Secret Substitution and Config Activation

@@ -25,18 +25,24 @@ resources/
 │   ├── commands/        # OC-specific slash commands
 │   └── plugins/         # OC-specific plugins
 ├── codex/               # OpenAI Codex-specific
+│   ├── agents/          # Codex agents (TOML format)
+│   ├── skills/          # Codex skills (invokable with $skill-name)
+│   └── scripts/hooks/   # Codex lifecycle hooks
 └── gemini/              # Gemini CLI-specific
 ```
 
 ### Deployment Paths
 
-| Resource      | Source                            | Deployed to                    |
-| ------------- | --------------------------------- | ------------------------------ |
-| Skills        | `resources/agents/skills/`        | `~/.agents/skills/`            |
-| Rules (CC)    | `resources/agents/rules/`         | `~/.claude/rules/`             |
-| Rules (OC)    | `resources/agents/rules/`         | `~/.config/opencode/rules/`    |
-| Commands (CC) | `resources/claude-code/commands/` | `~/.claude/commands/`          |
-| Commands (OC) | `resources/opencode/commands/`    | `~/.config/opencode/commands/` |
+| Resource        | Source                            | Deployed to                    |
+| --------------- | --------------------------------- | ------------------------------ |
+| Skills (shared) | `resources/agents/skills/`        | `~/.agents/skills/`            |
+| Rules (CC)      | `resources/agents/rules/`         | `~/.claude/rules/`             |
+| Rules (OC)      | `resources/agents/rules/`         | `~/.config/opencode/rules/`    |
+| Rules (Codex)   | `resources/agents/rules/`         | `~/.codex/AGENTS.md` (concat)  |
+| Commands (CC)   | `resources/claude-code/commands/` | `~/.claude/commands/`          |
+| Commands (OC)   | `resources/opencode/commands/`    | `~/.config/opencode/commands/` |
+| Agents (Codex)  | `resources/codex/agents/`         | `~/.codex/agents/`             |
+| Skills (Codex)  | `resources/codex/skills/`         | `~/.codex/skills/`             |
 
 ### Key Design Decisions
 
