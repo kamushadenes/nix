@@ -48,13 +48,6 @@ let
   agentFiles = discoverFiles agentsDir;
   commandFiles = discoverFiles commandsDir;
 
-  # Private provider configurations (internal endpoints, not in public repo)
-  privateProviders =
-    let
-      path = "${private}/home/common/ai/opencode-providers.nix";
-    in
-    if builtins.pathExists path then import path else { };
-
   # OpenCode config as Nix attrset
   opencodeConfig = {
     "$schema" = "https://opencode.ai/config.json";
@@ -123,7 +116,6 @@ let
         extensions = [ ".md" ];
       };
     };
-    provider = privateProviders;
     plugin = [
       "oh-my-opencode@3.13.1"
       "cc-safety-net"
