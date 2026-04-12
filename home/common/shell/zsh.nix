@@ -21,10 +21,12 @@
     # Use initContent with mkBefore/mkAfter for proper ordering
     initContent = lib.mkMerge [
       # Early init (replaces initExtraFirst)
-      (lib.mkIf pkgs.stdenv.isDarwin (lib.mkBefore ''
-        # Increase key timeout for escape sequences
-        KEYTIMEOUT=30
-      ''))
+      (lib.mkIf pkgs.stdenv.isDarwin (
+        lib.mkBefore ''
+          # Increase key timeout for escape sequences
+          KEYTIMEOUT=30
+        ''
+      ))
 
       # Functions from shell-common
       shellCommon.bashZsh.functions
@@ -37,6 +39,18 @@
 
         # Global Variables
         ${helpers.globalVariables.shell}
+      ''
+
+      # OTEL secrets (endpoint + headers from agenix)
+      ''
+        if [ -f "$HOME/.config/opencode/secrets/otel-endpoint" ]; then
+            export OPENCODE_OTLP_ENDPOINT="$(cat "$HOME/.config/opencode/secrets/otel-endpoint")"
+            export OTEL_EXPORTER_OTLP_ENDPOINT="$(cat "$HOME/.config/opencode/secrets/otel-endpoint")"
+        fi
+        if [ -f "$HOME/.config/opencode/secrets/otel-headers" ]; then
+            export OPENCODE_OTLP_HEADERS="$(cat "$HOME/.config/opencode/secrets/otel-headers")"
+            export OTEL_EXPORTER_OTLP_HEADERS="$(cat "$HOME/.config/opencode/secrets/otel-headers")"
+        fi
       ''
 
       # SSH key loading

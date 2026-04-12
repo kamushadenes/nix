@@ -124,6 +124,7 @@ let
       "opentmux"
       "opencode-vibeguard"
       "opencode-wakatime"
+      "@devtheops/opencode-plugin-otel"
     ];
   };
 
@@ -176,6 +177,16 @@ in
       "opencode-iniciador-vanta-credentials" = {
         file = "${private}/home/common/ai/resources/claude/vanta-credentials.age";
         path = "${secretsDir}/iniciador-vanta-credentials";
+      };
+
+      # OTEL telemetry secrets (endpoint + auth headers)
+      "opencode-otel-endpoint" = {
+        file = "${private}/home/common/ai/resources/claude/otel-endpoint.age";
+        path = "${secretsDir}/otel-endpoint";
+      };
+      "opencode-otel-headers" = {
+        file = "${private}/home/common/ai/resources/claude/otel-headers.age";
+        path = "${secretsDir}/otel-headers";
       };
     };
 

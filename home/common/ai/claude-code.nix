@@ -136,6 +136,16 @@ in
         file = "${private}/home/common/ai/resources/claude/anthropic-auth-token.age";
         path = "${secretsDir}/anthropic-auth-token";
       };
+
+      # OTEL telemetry secrets (shared with OpenCode)
+      "claude-otel-endpoint" = {
+        file = "${private}/home/common/ai/resources/claude/otel-endpoint.age";
+        path = "${secretsDir}/otel-endpoint";
+      };
+      "claude-otel-headers" = {
+        file = "${private}/home/common/ai/resources/claude/otel-headers.age";
+        path = "${secretsDir}/otel-headers";
+      };
     };
 
   #############################################################################

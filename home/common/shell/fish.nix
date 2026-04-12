@@ -95,6 +95,18 @@
           ${helpers.globalVariables.fishShell}
         ''
 
+        # OTEL secrets (endpoint + headers from agenix)
+        ''
+          if test -f ~/.config/opencode/secrets/otel-endpoint
+              set -x OPENCODE_OTLP_ENDPOINT (cat ~/.config/opencode/secrets/otel-endpoint)
+              set -x OTEL_EXPORTER_OTLP_ENDPOINT (cat ~/.config/opencode/secrets/otel-endpoint)
+          end
+          if test -f ~/.config/opencode/secrets/otel-headers
+              set -x OPENCODE_OTLP_HEADERS (cat ~/.config/opencode/secrets/otel-headers)
+              set -x OTEL_EXPORTER_OTLP_HEADERS (cat ~/.config/opencode/secrets/otel-headers)
+          end
+        ''
+
         # SSH key loading
         ''
           ${shellCommon.fish.sshKeyLoading}

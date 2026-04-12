@@ -111,6 +111,16 @@ let
 
       # Enable 1M context window for Anthropic models
       ANTHROPIC_ENABLE_1M_CONTEXT = "true";
+
+      # OpenTelemetry (shared between OpenCode and Claude Code)
+      OPENCODE_ENABLE_TELEMETRY = "1";
+      OPENCODE_METRIC_PREFIX = "claude_code.";
+
+      # Claude Code telemetry
+      CLAUDE_CODE_ENABLE_TELEMETRY = "1";
+      OTEL_METRICS_EXPORTER = "otlp";
+      OTEL_LOGS_EXPORTER = "otlp";
+      OTEL_EXPORTER_OTLP_PROTOCOL = "grpc";
     };
 
     launchctl = mkVarExports (
