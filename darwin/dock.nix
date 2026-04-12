@@ -27,6 +27,7 @@
           "/Applications/Fantastical.app"
           "/Applications/Ghostty.app"
           "/Applications/Conductor.app"
+          "/Applications/OpenChamber.app"
           "/Applications/Visual Studio Code.app"
           "/Applications/Spotify.app"
           "/System/Applications/App Store.app"
