@@ -3,6 +3,7 @@
 # Auto-discovers skills from resources/agents/skills/ and deploys to:
 # - ~/.agents/skills/ (agentskills.io standard - OpenCode, Cursor, Gemini CLI, etc.)
 # - ~/.claude/skills/ (Claude Code native discovery)
+# - ~/.codex/skills/ (Codex CLI native discovery)
 {
   config,
   lib,
@@ -70,7 +71,8 @@ let
 
   agentsSkillEntries = mkSkillEntries ".agents/skills";
   claudeSkillEntries = mkSkillEntries ".claude/skills";
+  codexSkillEntries = mkSkillEntries ".codex/skills";
 in
 {
-  home.file = agentsSkillEntries // claudeSkillEntries;
+  home.file = agentsSkillEntries // claudeSkillEntries // codexSkillEntries;
 }

@@ -419,31 +419,13 @@ in
       enabledPlugins = {
         # Official plugins (anthropics/claude-code-plugins)
         "gopls-lsp@claude-plugins-official" = true;
-        #"playwright@claude-plugins-official" = true;
         "typescript-lsp@claude-plugins-official" = true;
         "pyright-lsp@claude-plugins-official" = true;
         "ralph-loop@claude-plugins-official" = true;
         "hookify@claude-plugins-official" = true;
-        #"commit-commands@claude-plugins-official" = true;
-        #"security-guidance@claude-plugins-official" = true;
-        #"pr-review-toolkit@claude-plugins-official" = true;
-
-        # Claude Code Workflows
-        #"backend-api-security@claude-code-workflows" = true;
-        #"backend-development@claude-code-workflows" = true;
-        #"dependency-management@claude-code-workflows" = true;
-        #"full-stack-orchestration@claude-code-workflows" = true;
-        #"python-development@claude-code-workflows" = true;
-        #"security-scanning@claude-code-workflows" = true;
-        #"cloud-infrastructure@claude-code-workflows" = true;
-        #"cicd-automation@claude-code-workflows" = true;
 
         # Third-party
-        #"fullstack-dev-skills@fullstack-dev-skills" = true;
-        "superpowers@superpowers-marketplace" = true;
         "claude-code-wakatime@wakatime" = true;
-
-        # Safety Net (kenryu42/cc-marketplace) - blocks destructive git/fs commands
         "safety-net@cc-marketplace" = true;
       };
     };

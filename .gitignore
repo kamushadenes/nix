@@ -21,6 +21,10 @@ node_modules/
 *.sln
 *.sw?
 
+# Python bytecode
+__pycache__/
+*.pyc
+
 # OS specific
 .DS_Store
 result

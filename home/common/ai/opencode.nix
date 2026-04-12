@@ -124,7 +124,6 @@ let
       "opentmux"
       "opencode-vibeguard"
       "opencode-wakatime"
-      "opencode-claude-auth"
     ];
   };
 

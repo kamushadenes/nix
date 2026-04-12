@@ -363,6 +363,15 @@ in
     name = ".codex/agents/${name}";
     value.source = "${agentsDir}/${name}";
   }) agentFiles
+  # Agent references and templates (shared with CC/OC for parity)
+  // {
+    ".codex/agents/_references/code-smells-catalog.md".source =
+      ./resources/claude-code/agents/_references/code-smells-catalog.md;
+    ".codex/agents/_references/language-conventions.md".source =
+      ./resources/claude-code/agents/_references/language-conventions.md;
+    ".codex/agents/_templates/severity-levels.md".source =
+      ./resources/claude-code/agents/_templates/severity-levels.md;
+  }
   # Skills - auto-discovered from resources/codex/skills/
   // lib.mapAttrs' (name: sourcePath: {
     name = ".codex/skills/${name}";
