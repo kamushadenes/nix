@@ -130,7 +130,8 @@ let
 
   # oh-my-opencode plugin configuration (v3.13.1)
   # Agent models configured for available providers: github-copilot, opencode (zen),
-  # openai, opencode-go. Anthropic provider excluded — Claude accessed via copilot/zen.
+  # openai, opencode-go, google, ollama-cloud.
+  # Anthropic provider available but skipped — Claude accessed via copilot/zen.
   # Chains derived from: https://github.com/code-yeongyu/oh-my-openagent/blob/dev/docs/guide/installation.md#step-5-understand-your-model-setup
   omoConfig = {
     "$schema" =
@@ -142,6 +143,7 @@ let
         fallback_models = [
           "github-copilot/claude-opus-4.6"
           "opencode-go/kimi-k2.5"
+          "ollama-cloud/kimi-k2.5"
           {
             model = "openai/gpt-5.4";
             variant = "medium";
@@ -171,6 +173,7 @@ let
             variant = "high";
           }
           "opencode-go/glm-5"
+          "google/gemini-3.1-pro"
           "github-copilot/gemini-3.1-pro"
         ];
       };
@@ -194,6 +197,10 @@ let
         fallback_models = [
           "github-copilot/gpt-5.4"
           {
+            model = "google/gemini-3.1-pro";
+            variant = "high";
+          }
+          {
             model = "github-copilot/gemini-3.1-pro";
             variant = "high";
           }
@@ -206,6 +213,10 @@ let
         fallback_models = [
           "github-copilot/gpt-5.4"
           "opencode/claude-opus-4-6"
+          {
+            model = "google/gemini-3.1-pro";
+            variant = "high";
+          }
           {
             model = "github-copilot/gemini-3.1-pro";
             variant = "high";
