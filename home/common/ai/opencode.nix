@@ -322,7 +322,7 @@ in
     # TUI configuration (theme + keybinds aligned with Claude Code)
     ".config/opencode/tui.json".text = builtins.toJSON {
       "$schema" = "https://opencode.ai/tui.json";
-      theme = "catppuccin-macchiato";
+      theme = "conductor";
       keybinds = {
         # Align with Claude Code muscle memory
         editor_open = "ctrl+g"; # CC: ctrl+g opens external editor
@@ -338,6 +338,13 @@ in
       };
     };
 
+  }
+  # Themes - custom theme files
+  // {
+    ".config/opencode/themes" = {
+      source = ./resources/opencode/themes;
+      recursive = true;
+    };
   }
   # Rules - from shared resources/agents/ (all OC rules are now global)
   // lib.mapAttrs' (name: _: {
