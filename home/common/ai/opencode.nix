@@ -53,6 +53,11 @@ let
     "$schema" = "https://opencode.ai/config.json";
     model = "opencode/claude-opus-4-6";
     small_model = "opencode/minimax-m2.5-free";
+    provider = {
+      anthropic = {
+        baseUrl = "http://localhost:8787";
+      };
+    };
     instructions = [ "~/.config/opencode/rules/*.md" ];
     mcp = mcpServers.toOpenCode enabledServers;
     permission = {
@@ -129,9 +134,8 @@ let
   };
 
   # oh-my-opencode plugin configuration (v3.13.1)
-  # Agent models configured for available providers: github-copilot, opencode (zen),
-  # openai, opencode-go, google, ollama-cloud.
-  # Anthropic provider available but skipped — Claude accessed via copilot/zen.
+  # Agent models configured for available providers: anthropic, github-copilot,
+  # opencode (zen), openai, opencode-go, google, ollama-cloud.
   # Chains derived from: https://github.com/code-yeongyu/oh-my-openagent/blob/dev/docs/guide/installation.md#step-5-understand-your-model-setup
   omoConfig = {
     "$schema" =
@@ -139,7 +143,7 @@ let
     agents = {
       # ── Claude-optimized agents (prompts tuned for Claude-family models) ──
       sisyphus = {
-        model = "opencode/claude-opus-4-6";
+        model = "anthropic/claude-opus-4-6";
         fallback_models = [
           "github-copilot/claude-opus-4.6"
           "opencode-go/kimi-k2.5"
@@ -148,12 +152,12 @@ let
             model = "openai/gpt-5.4";
             variant = "medium";
           }
-          "opencode/glm-5"
-          "opencode/big-pickle"
+          "anthropic/glm-5"
+          "anthropic/big-pickle"
         ];
       };
       metis = {
-        model = "opencode/claude-opus-4-6";
+        model = "anthropic/claude-opus-4-6";
         fallback_models = [
           "github-copilot/claude-opus-4.6"
           {
@@ -165,7 +169,7 @@ let
       };
       # ── Dual-prompt agents (auto-switch between Claude/GPT prompts) ──
       prometheus = {
-        model = "opencode/claude-opus-4-6";
+        model = "anthropic/claude-opus-4-6";
         fallback_models = [
           "github-copilot/claude-opus-4.6"
           {
@@ -204,7 +208,7 @@ let
             model = "github-copilot/gemini-3.1-pro";
             variant = "high";
           }
-          "opencode/claude-opus-4-6"
+          "anthropic/claude-opus-4-6"
           "opencode-go/glm-5"
         ];
       };
@@ -212,7 +216,7 @@ let
         model = "openai/gpt-5.4";
         fallback_models = [
           "github-copilot/gpt-5.4"
-          "opencode/claude-opus-4-6"
+          "anthropic/claude-opus-4-6"
           {
             model = "google/gemini-3.1-pro";
             variant = "high";
@@ -229,25 +233,25 @@ let
         model = "github-copilot/grok-code-fast-1";
         fallback_models = [
           "opencode-go/minimax-m2.7-highspeed"
-          "opencode/minimax-m2.7"
-          "opencode/claude-haiku-4-5"
-          "opencode/gpt-5-nano"
+          "anthropic/minimax-m2.7"
+          "anthropic/claude-haiku-4-5"
+          "anthropic/gpt-5-nano"
         ];
       };
       librarian = {
         model = "opencode-go/minimax-m2.7";
         fallback_models = [
-          "opencode/minimax-m2.7-highspeed"
-          "opencode/claude-haiku-4-5"
-          "opencode/gpt-5-nano"
+          "anthropic/minimax-m2.7-highspeed"
+          "anthropic/claude-haiku-4-5"
+          "anthropic/gpt-5-nano"
         ];
       };
       "multimodal-looker" = {
         model = "openai/gpt-5.4";
         fallback_models = [
-          "opencode/gpt-5.4"
+          "anthropic/gpt-5.4"
           "opencode-go/kimi-k2.5"
-          "opencode/gpt-5-nano"
+          "anthropic/gpt-5-nano"
         ];
       };
     };
