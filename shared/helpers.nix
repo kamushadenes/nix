@@ -121,6 +121,11 @@ let
       OTEL_METRICS_EXPORTER = "otlp";
       OTEL_LOGS_EXPORTER = "otlp";
       OTEL_EXPORTER_OTLP_PROTOCOL = "grpc";
+
+      # Claude Code thinking configuration
+      CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING = "1";
+      MAX_THINKING_TOKENS = "128000";
+      CLAUDE_CODE_EFFORT_LEVEL = "max";
     };
 
     launchctl = mkVarExports (
