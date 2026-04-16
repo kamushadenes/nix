@@ -16,5 +16,5 @@ Send a PR approval request to the **#approve-please** Slack channel.
 1. **Check PR exists.** If the context above shows "no-pr", tell the user there's no open PR for this branch and stop.
 2. **Send the Slack message.** Use `mcp__claude_ai_Slack__slack_send_message` with:
    - `channel_id`: `C0ATG7LC1MJ`
-   - `message`: `:please-approve: <PR_URL>`
+   - `message`: `:please-approve: PR_URL` (replace PR_URL with the actual URL, do NOT wrap it in angle brackets)
 3. **Confirm** to the user with the PR title and link.
