@@ -5,9 +5,18 @@ description: Comprehensive code review using 9 specialized reviewer teammates
 
 Run a comprehensive deep review using an Agent Team of 9 specialized reviewers that can discuss and cross-reference findings. A suggestion-critic subagent validates results after.
 
+## Context
+
+- Current branch: !`git branch --show-current 2>/dev/null || echo "detached"`
+- Default branch: !`git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||' || echo "main"`
+- Uncommitted changes: !`git diff --stat HEAD 2>/dev/null | tail -1 || echo "none"`
+- Branch diff: !`git diff --stat $(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||' || echo "main")...HEAD 2>/dev/null | tail -1 || echo "none"`
+
 ## Steps
 
 1. **Ask the user what to review** using AskUserQuestion:
+
+   Use the pre-embedded context above to inform the user which scopes have changes. Skip scopes with "none".
 
    Options:
    - "Uncommitted changes" - Review only uncommitted changes (git diff)
@@ -18,8 +27,10 @@ Run a comprehensive deep review using an Agent Team of 9 specialized reviewers t
 
 2. **Gather review context based on scope:**
 
+   The branch name and default branch are already known from the context above — do not re-fetch them.
+
    - **Uncommitted**: `git diff HEAD` and `git diff --name-only HEAD`
-   - **Branch**: Determine base branch, `git diff ${base_branch}...HEAD` and changed files
+   - **Branch**: `git diff ${default_branch}...HEAD` and changed files (use default branch from context)
    - **Codebase**: Identify main source directories
 
    If no changes found, inform user and stop.
