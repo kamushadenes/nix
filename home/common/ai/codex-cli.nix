@@ -143,12 +143,25 @@ let
             {
               type = "command";
               command = "~/.codex/hooks/pre-tool-use/rtk-rewrite.sh";
+              statusMessage = "Optimizing command tokens...";
             }
           ];
         }
       ];
 
       SessionStart = [
+        # Caveman mode activation
+        {
+          matcher = "startup|resume";
+          hooks = [
+            {
+              type = "command";
+              command = "echo 'CAVEMAN MODE ACTIVE. Rules: Drop articles/filler/pleasantries/hedging. Fragments OK. Short synonyms. Pattern: [thing] [action] [reason]. [next step]. Not: Sure! I would be happy to help you with that. Yes: Bug in auth middleware. Fix: Code/commits/security: write normal. User says stop caveman or normal mode to deactivate.'";
+              timeout = 5;
+              statusMessage = "Loading caveman mode";
+            }
+          ];
+        }
         # Devbox/direnv setup for web environments
         {
           matcher = "startup";
@@ -156,6 +169,7 @@ let
             {
               type = "command";
               command = "~/.codex/hooks/session-start/devbox-setup.sh";
+              statusMessage = "Setting up devbox environment...";
             }
           ];
         }
@@ -183,6 +197,7 @@ let
               type = "command";
               command = "~/.codex/hooks/post-tool-use-failure/suggest-nix-shell.sh";
               timeout = 10;
+              statusMessage = "Suggesting nix-shell package...";
             }
           ];
         }
@@ -194,6 +209,7 @@ let
             {
               type = "command";
               command = "~/.codex/hooks/task-completed/verify-completion.sh";
+              statusMessage = "Verifying task completion...";
             }
           ];
         }

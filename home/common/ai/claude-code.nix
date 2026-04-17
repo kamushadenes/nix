@@ -201,6 +201,7 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/PreToolUse/rtk-rewrite.sh";
+                statusMessage = "Optimizing command tokens...";
               }
             ];
           }
@@ -212,6 +213,7 @@ in
                 type = "command";
                 command = "node ~/.claude/hooks/gsd-prompt-guard.js";
                 timeout = 5;
+                statusMessage = "Checking for prompt injection...";
               }
             ];
           }
@@ -223,6 +225,7 @@ in
                 type = "command";
                 command = "node ~/.claude/hooks/gsd-read-guard.js";
                 timeout = 5;
+                statusMessage = "Verifying file was read before edit...";
               }
             ];
           }
@@ -234,6 +237,7 @@ in
                 type = "command";
                 command = "node ~/.claude/hooks/gsd-workflow-guard.js";
                 timeout = 5;
+                statusMessage = "Checking workflow constraints...";
               }
             ];
           }
@@ -245,12 +249,25 @@ in
                 type = "command";
                 command = "bash ~/.claude/hooks/gsd-validate-commit.sh";
                 timeout = 5;
+                statusMessage = "Validating commit...";
               }
             ];
           }
         ];
 
-        UserPromptSubmit = [ ];
+        UserPromptSubmit = [
+          # Caveman mode tracker — updates flag file when user types /caveman commands
+          {
+            hooks = [
+              {
+                type = "command";
+                command = "node ~/.claude/hooks/caveman/caveman-mode-tracker.js";
+                timeout = 5;
+                statusMessage = "Tracking caveman mode...";
+              }
+            ];
+          }
+        ];
 
         # Run at session start/resume/clear
         SessionStart = [
@@ -261,6 +278,18 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/SessionStart/devbox-setup.sh";
+                statusMessage = "Setting up devbox environment...";
+              }
+            ];
+          }
+          # Caveman mode activation — loads caveman rules on session start
+          {
+            hooks = [
+              {
+                type = "command";
+                command = "node ~/.claude/hooks/caveman/caveman-activate.js";
+                timeout = 5;
+                statusMessage = "Loading caveman mode...";
               }
             ];
           }
@@ -271,6 +300,7 @@ in
               {
                 type = "command";
                 command = "node ~/.claude/hooks/gsd-check-update.js";
+                statusMessage = "Checking for GSD updates...";
               }
             ];
           }
@@ -280,6 +310,7 @@ in
               {
                 type = "command";
                 command = "bash ~/.claude/hooks/gsd-session-state.sh";
+                statusMessage = "Loading GSD session state...";
               }
             ];
           }
@@ -295,6 +326,7 @@ in
                 type = "command";
                 command = "~/.claude/hooks/Stop/post-lint.sh";
                 timeout = 60000;
+                statusMessage = "Linting modified files...";
               }
             ];
           }
@@ -310,6 +342,7 @@ in
                 type = "command";
                 command = "node ~/.claude/hooks/gsd-context-monitor.js";
                 timeout = 10;
+                statusMessage = "Monitoring context window...";
               }
             ];
           }
@@ -321,6 +354,7 @@ in
                 type = "command";
                 command = "bash ~/.claude/hooks/gsd-phase-boundary.sh";
                 timeout = 5;
+                statusMessage = "Checking phase boundaries...";
               }
             ];
           }
@@ -332,6 +366,7 @@ in
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-python.sh";
                 timeout = 15000;
+                statusMessage = "Formatting Python (ruff)...";
               }
             ];
           }
@@ -343,6 +378,7 @@ in
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-typescript.sh";
                 timeout = 15000;
+                statusMessage = "Formatting TypeScript (prettier)...";
               }
             ];
           }
@@ -354,6 +390,7 @@ in
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-nix.sh";
                 timeout = 10000;
+                statusMessage = "Formatting Nix (nixfmt)...";
               }
             ];
           }
@@ -365,6 +402,7 @@ in
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-markdown.sh";
                 timeout = 15000;
+                statusMessage = "Formatting Markdown (prettier)...";
               }
             ];
           }
@@ -376,6 +414,7 @@ in
                 type = "command";
                 command = "~/.claude/hooks/PostToolUse/format-go.sh";
                 timeout = 15000;
+                statusMessage = "Formatting Go (gofmt)...";
               }
             ];
           }
@@ -391,6 +430,7 @@ in
                 type = "command";
                 command = "~/.claude/hooks/PostToolUseFailure/suggest-nix-shell.sh";
                 timeout = 10000;
+                statusMessage = "Suggesting nix-shell package...";
               }
             ];
           }
@@ -406,6 +446,7 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/TaskCompleted/verify-completion.sh";
+                statusMessage = "Verifying task completion...";
               }
             ];
           }
