@@ -143,6 +143,7 @@ let
             {
               type = "command";
               command = "~/.codex/hooks/pre-tool-use/rtk-rewrite.sh";
+              statusMessage = "Optimizing command tokens...";
             }
           ];
         }
@@ -168,6 +169,7 @@ let
             {
               type = "command";
               command = "~/.codex/hooks/session-start/devbox-setup.sh";
+              statusMessage = "Setting up devbox environment...";
             }
           ];
         }
@@ -195,6 +197,7 @@ let
               type = "command";
               command = "~/.codex/hooks/post-tool-use-failure/suggest-nix-shell.sh";
               timeout = 10;
+              statusMessage = "Suggesting nix-shell package...";
             }
           ];
         }
@@ -206,6 +209,7 @@ let
             {
               type = "command";
               command = "~/.codex/hooks/task-completed/verify-completion.sh";
+              statusMessage = "Verifying task completion...";
             }
           ];
         }
