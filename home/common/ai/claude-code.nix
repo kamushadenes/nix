@@ -250,7 +250,19 @@ in
           }
         ];
 
-        UserPromptSubmit = [ ];
+        UserPromptSubmit = [
+          # Caveman mode tracker — updates flag file when user types /caveman commands
+          {
+            hooks = [
+              {
+                type = "command";
+                command = "node ~/.claude/hooks/caveman/caveman-mode-tracker.js";
+                timeout = 5;
+                statusMessage = "Tracking caveman mode...";
+              }
+            ];
+          }
+        ];
 
         # Run at session start/resume/clear
         SessionStart = [
@@ -261,6 +273,17 @@ in
               {
                 type = "command";
                 command = "~/.claude/hooks/SessionStart/devbox-setup.sh";
+              }
+            ];
+          }
+          # Caveman mode activation — loads caveman rules on session start
+          {
+            hooks = [
+              {
+                type = "command";
+                command = "node ~/.claude/hooks/caveman/caveman-activate.js";
+                timeout = 5;
+                statusMessage = "Loading caveman mode...";
               }
             ];
           }
