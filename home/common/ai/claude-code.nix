@@ -293,6 +293,17 @@ in
               }
             ];
           }
+          # Caveman mode activation — loads caveman rules on session start
+          {
+            hooks = [
+              {
+                type = "command";
+                command = "node ~/.claude/hooks/caveman/caveman-activate.js";
+                timeout = 5;
+                statusMessage = "Loading caveman mode...";
+              }
+            ];
+          }
           # GSD framework update check
           {
             matcher = "startup";
