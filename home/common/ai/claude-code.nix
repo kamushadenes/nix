@@ -476,6 +476,7 @@ in
       #   claude-plugins-official  -> anthropics/claude-code-plugins (built-in)
       #   claude-code-workflows    -> modelcontextprotocol/workflows
       #   agent-security           -> (third-party security plugins)
+      #   omc                      -> Yeachan-Heo/oh-my-claudecode
       #
       # Plugin format: "plugin-name@marketplace-name" = true|false
       enabledPlugins = {
@@ -489,6 +490,7 @@ in
         # Third-party
         "claude-code-wakatime@wakatime" = true;
         "safety-net@cc-marketplace" = true;
+        "oh-my-claudecode@omc" = true;
       };
     };
   };
