@@ -55,7 +55,9 @@ let
     small_model = "opencode/minimax-m2.5-free";
     provider = {
       anthropic = {
-        baseUrl = "http://localhost:8787";
+        options = {
+          baseURL = "http://localhost:8787";
+        };
       };
     };
     instructions = [ "~/.config/opencode/rules/*.md" ];
