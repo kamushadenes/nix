@@ -8,6 +8,10 @@ let
   ccs = pkgs.writeShellScriptBin "ccs" ''
     exec npx -y @kaitranntt/ccs@latest "$@"
   '';
+  # OMC - oh-my-claudecode: multi-agent orchestration for Claude Code
+  omc = pkgs.writeShellScriptBin "omc" ''
+    exec npx -y oh-my-claude-sisyphus@latest "$@"
+  '';
 in
 {
   home.packages = with pkgs;
@@ -18,6 +22,7 @@ in
       yarn-berry
       playwriter
       ccs
+      omc
     ];
 
 
