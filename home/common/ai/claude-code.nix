@@ -205,54 +205,6 @@ in
               }
             ];
           }
-          # GSD prompt injection guard
-          {
-            matcher = "Write|Edit";
-            hooks = [
-              {
-                type = "command";
-                command = "node ~/.claude/hooks/gsd-prompt-guard.js";
-                timeout = 5;
-                statusMessage = "Checking for prompt injection...";
-              }
-            ];
-          }
-          # GSD read-before-edit guard
-          {
-            matcher = "Write|Edit";
-            hooks = [
-              {
-                type = "command";
-                command = "node ~/.claude/hooks/gsd-read-guard.js";
-                timeout = 5;
-                statusMessage = "Verifying file was read before edit...";
-              }
-            ];
-          }
-          # GSD workflow guard (opt-in via hooks.workflow_guard)
-          {
-            matcher = "Write|Edit";
-            hooks = [
-              {
-                type = "command";
-                command = "node ~/.claude/hooks/gsd-workflow-guard.js";
-                timeout = 5;
-                statusMessage = "Checking workflow constraints...";
-              }
-            ];
-          }
-          # GSD commit validation
-          {
-            matcher = "Bash";
-            hooks = [
-              {
-                type = "command";
-                command = "bash ~/.claude/hooks/gsd-validate-commit.sh";
-                timeout = 5;
-                statusMessage = "Validating commit...";
-              }
-            ];
-          }
         ];
 
         UserPromptSubmit = [
@@ -293,38 +245,6 @@ in
               }
             ];
           }
-          # Caveman mode activation — loads caveman rules on session start
-          {
-            hooks = [
-              {
-                type = "command";
-                command = "node ~/.claude/hooks/caveman/caveman-activate.js";
-                timeout = 5;
-                statusMessage = "Loading caveman mode...";
-              }
-            ];
-          }
-          # GSD framework update check
-          {
-            matcher = "startup";
-            hooks = [
-              {
-                type = "command";
-                command = "node ~/.claude/hooks/gsd-check-update.js";
-                statusMessage = "Checking for GSD updates...";
-              }
-            ];
-          }
-          # GSD session state orientation
-          {
-            hooks = [
-              {
-                type = "command";
-                command = "bash ~/.claude/hooks/gsd-session-state.sh";
-                statusMessage = "Loading GSD session state...";
-              }
-            ];
-          }
         ];
 
         # Run when Claude stops working
@@ -345,30 +265,6 @@ in
 
         # Run after file modifications
         PostToolUse = [
-          # GSD context window monitor
-          {
-            matcher = "Bash|Edit|Write|MultiEdit|Agent|Task";
-            hooks = [
-              {
-                type = "command";
-                command = "node ~/.claude/hooks/gsd-context-monitor.js";
-                timeout = 10;
-                statusMessage = "Monitoring context window...";
-              }
-            ];
-          }
-          # GSD phase boundary detection
-          {
-            matcher = "Write|Edit";
-            hooks = [
-              {
-                type = "command";
-                command = "bash ~/.claude/hooks/gsd-phase-boundary.sh";
-                timeout = 5;
-                statusMessage = "Checking phase boundaries...";
-              }
-            ];
-          }
           # Auto-format Python files
           {
             matcher = "Edit(*.py)|Write(*.py)|Update(*.py)";
@@ -464,11 +360,14 @@ in
         ];
       };
 
-      # GSD status line
+      # OMC HUD status line (installed by omc setup)
       statusLine = {
         type = "command";
-        command = "node ~/.claude/hooks/gsd-statusline.js";
+        command = "node \${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hud/omc-hud.mjs";
       };
+
+      # OMC: skip permission prompt for dangerous mode (set by omc setup)
+      skipDangerousModePermissionPrompt = true;
 
       # Enabled plugins from various marketplaces
       #
