@@ -187,23 +187,23 @@ let
   # Pre-built binary from GitHub releases
   better-ccflare =
     let
-      version = "3.3.25";
+      version = "3.4.10";
       sources = {
         "aarch64-darwin" = {
           url = "https://github.com/tombii/better-ccflare/releases/download/v${version}/better-ccflare-macos-arm64";
-          hash = "sha256-De3j+oakJLtYsp2AFle9BRQiB/ZJaF8YrBAV4LJFvAU=";
+          hash = "sha256-811czfF8hK4YAhd4pDJ9cqvC3cbgguL5LMx/Y9O0T9A=";
         };
         "x86_64-darwin" = {
           url = "https://github.com/tombii/better-ccflare/releases/download/v${version}/better-ccflare-macos-x86_64";
-          hash = "sha256-UewWjgTLN6wfJLJ2Tnpu8TwoJt62S2Z55jtyGOyEKqg=";
+          hash = "sha256-o+VzuJ1omf94ClVdzcjFOautU5BUz/fLI8Na4T6mWzI=";
         };
         "x86_64-linux" = {
           url = "https://github.com/tombii/better-ccflare/releases/download/v${version}/better-ccflare-linux-amd64";
-          hash = "sha256-KflpY+w/3wOG4B97f+e7qTJjjmUiPMkHP1DjAY1mKnM=";
+          hash = "sha256-BITZo2C6n+mb5UOfk639mbKa/bNZlg2OIjM1IoamziI=";
         };
         "aarch64-linux" = {
           url = "https://github.com/tombii/better-ccflare/releases/download/v${version}/better-ccflare-linux-arm64";
-          hash = "sha256-/sURaiUmYWx9xdCAc7pQsVnjXYo8bS8FS/qS0XFJTFc=";
+          hash = "sha256-S5XCNgzHh2CO0Lyz6Rlm8qN8IfAC3JmWwdnKX5ur83I=";
         };
       };
       src = pkgs.fetchurl sources.${pkgs.stdenv.hostPlatform.system};
