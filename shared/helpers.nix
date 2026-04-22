@@ -126,6 +126,11 @@ let
       CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING = "1";
       MAX_THINKING_TOKENS = "128000";
       CLAUDE_CODE_EFFORT_LEVEL = "max";
+
+      # oh-my-claudecode centralized state directory
+      # Shares .omc state (wiki, notepad, project-memory, plans, sessions) across
+      # all linked worktrees of the same repo via git-common-dir project identifier.
+      OMC_STATE_DIR = "${config.xdg.dataHome}/omc";
     };
 
     launchctl = mkVarExports (
