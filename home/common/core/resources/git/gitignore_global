@@ -114,3 +114,6 @@ coverage-final.json
 
 # Claude worker orchestration files (parallel task execution)
 .orchestrator/
+
+# oh-my-claudecode state
+.omc/
