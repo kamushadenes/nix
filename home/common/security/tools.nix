@@ -12,6 +12,7 @@
     nuclei-templates
     rustscan
     tfsec
+    vt-cli
     pkgs-unstable.fleetctl
     pkgs-unstable.age
   ];
