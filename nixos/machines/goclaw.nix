@@ -48,13 +48,18 @@ in
     autoPrune.enable = true;
   };
 
-  # System packages: git (repo clone), docker-compose v2, build/crypto utilities
+  # System packages: git (repo clone), docker-compose v2, build/crypto utilities,
+  # cloud CLIs (gh, gcloud, aws, terraform) for agent workflows
   environment.systemPackages = with pkgs; [
     git
     docker-compose
     gnumake
     coreutils
     openssl
+    gh
+    google-cloud-sdk
+    awscli2
+    terraform
   ];
 
   # Oneshot service: clone repo and seed .env on first boot. Subsequent boots
