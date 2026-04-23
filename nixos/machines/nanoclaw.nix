@@ -66,9 +66,10 @@ in
   # Route Anthropic API calls through the local ccflare proxy
   environment.variables.ANTHROPIC_BASE_URL = "http://localhost:8787";
 
-  # System packages: Node.js, git (for cloning/updating nanoclaw), and build tools
+  # System packages: Node.js, pnpm, git (for cloning/updating nanoclaw), and build tools
   environment.systemPackages = with pkgs; [
     nodejs
+    nodePackages.pnpm
     git
     # Build dependencies for native Node.js modules (better-sqlite3)
     python3
