@@ -436,15 +436,14 @@
           extraPersistPaths = [ "/var/lib/moltbot" ];
         };
 
-        # NanoClaw (LXC) - Personal AI agent for WhatsApp/Telegram
-        # Uses headless role (not minimal) because NanoClaw requires Claude Code
-        # for setup (/setup, /add-whatsapp, /add-telegram) and ongoing customization
-        nanoclaw = mkProxmoxHost {
-          machine = "nanoclaw";
-          hardware = ./nixos/hardware/nanoclaw.nix;
+        # GoClaw (LXC) - Multi-tenant AI agent platform (Go + Postgres/pgvector)
+        # Uses headless role for the Docker Compose stack plus admin shell access
+        goclaw = mkProxmoxHost {
+          machine = "goclaw";
+          hardware = ./nixos/hardware/goclaw.nix;
           role = "headless";
           extraPersistPaths = [
-            "/var/lib/nanoclaw"
+            "/var/lib/goclaw"
             "/var/lib/docker"
           ];
         };
