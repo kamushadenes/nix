@@ -49,7 +49,8 @@ in
   };
 
   # System packages: git (repo clone), docker-compose v2, build/crypto utilities,
-  # cloud CLIs (gh, gcloud, aws, terraform) for agent workflows
+  # cloud CLIs (gh, gcloud, aws, terraform) for agent workflows, postgresql_18
+  # client tools (pg_dump/psql) matching the pgvector/pgvector:pg18 container
   environment.systemPackages = with pkgs; [
     git
     docker-compose
@@ -60,6 +61,7 @@ in
     google-cloud-sdk
     awscli2
     terraform
+    postgresql_18
   ];
 
   # Oneshot service: clone repo and seed .env on first boot. Subsequent boots
