@@ -1,5 +1,5 @@
-# Hardware configuration for nanoclaw LXC
-# Proxmox LXC container running NanoClaw (personal AI agent for WhatsApp/Telegram)
+# Hardware configuration for goclaw LXC
+# Proxmox LXC container running GoClaw (multi-tenant AI agent platform)
 {
   config,
   lib,
@@ -11,7 +11,7 @@
 {
   imports = [
     (modulesPath + "/virtualisation/proxmox-lxc.nix")
-    ../machines/nanoclaw.nix
+    ../machines/goclaw.nix
   ];
 
   boot.isContainer = true;
@@ -21,6 +21,6 @@
   systemd.services."autovt@".enable = false;
   systemd.services.console-getty.enable = true;
 
-  networking.hostName = "nanoclaw";
+  networking.hostName = "goclaw";
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }

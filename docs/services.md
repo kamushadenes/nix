@@ -32,7 +32,7 @@ for the full persistence model.
   - [WAHA](#waha)
   - [Home Assistant](#home-assistant)
   - [Moltbot](#moltbot)
-  - [NanoClaw](#nanoclaw)
+  - [GoClaw](#goclaw)
   - [Prometheus](#prometheus)
   - [Grafana](#grafana)
   - [InfluxDB](#influxdb)
@@ -57,7 +57,7 @@ for the full persistence model.
 | WAHA           | `waha`               | 3000       | Yes    | minimal     | `rebuild -vL waha`          |
 | Home Assistant | `haos`               | 8123       | No     | minimal     | `rebuild -vL haos`          |
 | Moltbot        | `moltbot`            | 18789      | No     | minimal     | `rebuild -vL moltbot`       |
-| NanoClaw       | `nanoclaw`           | -          | Yes    | headless    | `rebuild -vL nanoclaw`      |
+| GoClaw         | `goclaw`             | 18790      | Yes    | headless    | `rebuild -vL goclaw`        |
 | Prometheus     | `prometheus`         | 9090, 9100, 9222 | No     | minimal     | `rebuild -vL prometheus`    |
 | Grafana        | `grafana`            | 3000       | No     | minimal     | `rebuild -vL grafana`       |
 | InfluxDB       | `influxdb`           | 8086       | No     | minimal     | `rebuild -vL influxdb`      |
@@ -206,21 +206,27 @@ Telegram AI assistant gateway providing LLM capabilities to messaging apps.
 - **Key configuration**: Includes a CalDAV calendar skill. Workspace and
   configuration are stored in `/var/lib/moltbot`.
 
-### NanoClaw
+### GoClaw
 
-Personal AI agent that manages group sessions on WhatsApp and Telegram.
+Multi-tenant AI agent platform — Go gateway plus Postgres (pgvector) via Docker
+Compose.
 
-- **What it runs**: NanoClaw (Node.js)
-- **Port(s)**: None (Messaging based)
-- **Secrets**: `nanoclaw-anthropic-key` (agenix)
-- **Persistence**: `/var/lib/nanoclaw`, `/var/lib/docker`
-- **Docker**: Yes (spawns isolated agent containers)
-- **User**: `nanoclaw` (normal user with linger enabled)
+- **What it runs**: GoClaw (`ghcr.io/nextlevelbuilder/goclaw:latest`) +
+  `pgvector/pgvector:pg18`
+- **Port(s)**: 18790 (web dashboard + API)
+- **Secrets**: none in agenix; `.env` auto-generated on first boot via upstream
+  `prepare-env.sh` plus a random `POSTGRES_PASSWORD`. LLM provider keys are
+  configured through the web dashboard.
+- **Persistence**: `/var/lib/goclaw`, `/var/lib/docker`
+- **Docker**: Yes (compose stack for goclaw + postgres)
+- **User**: `goclaw` (normal user in the `docker` group)
 - **Dependencies**: None
-- **Deploy command**: `rebuild -vL nanoclaw`
-- **Health check**: `systemctl --user status nanoclaw`
-- **Key configuration**: Clones and builds from source on first boot. Uses
-  Docker to provide isolated filesystems for each agent session.
+- **Deploy command**: `rebuild -vL goclaw`
+- **Health check**: `systemctl status goclaw` /
+  `curl http://10.23.23.9:18790/health`
+- **Key configuration**: Clones `nextlevelbuilder/goclaw` to
+  `/var/lib/goclaw/app` on first boot, seeds `.env`, then systemd runs
+  `docker compose up -d --pull always` for the goclaw + postgres stack.
 
 ### Prometheus
 

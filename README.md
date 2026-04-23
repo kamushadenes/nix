@@ -59,7 +59,7 @@ Enjoy!
 | `waha`        | WAHA (Docker)            | WhatsApp HTTP API gateway               | `/var/lib/waha`, `/var/lib/docker`     |
 | `haos`        | Home Assistant           | Home automation (native NixOS service)  | `/var/lib/hass`                        |
 | `moltbot`     | Moltbot Gateway          | Telegram AI assistant                   | `/var/lib/moltbot`                     |
-| `nanoclaw`    | NanoClaw (Docker)        | Personal AI agent for WhatsApp/Telegram | `/var/lib/nanoclaw`, `/var/lib/docker` |
+| `goclaw`      | GoClaw (Docker Compose)  | Multi-tenant AI agent platform          | `/var/lib/goclaw`, `/var/lib/docker`   |
 | `prometheus`  | Prometheus               | Central metrics collection              | `/var/lib/prometheus2`                 |
 | `grafana`     | Grafana                  | Monitoring dashboards                   | `/var/lib/grafana`                     |
 | `influxdb`    | InfluxDB v2              | Time-series DB for Proxmox metrics      | `/var/lib/influxdb2`                   |

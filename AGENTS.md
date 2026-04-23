@@ -13,7 +13,7 @@ secrets management with age encryption.
 
 - Darwin: `studio`, `macbook-m3-pro`, `w-henrique` (all aarch64-darwin)
 - NixOS: `nixos`, `aether` (x86_64-linux)
-- Proxmox LXCs: `atuin`, `mqtt`, `cloudflared`, `moltbot`, `nanoclaw`
+- Proxmox LXCs: `atuin`, `mqtt`, `cloudflared`, `moltbot`, `goclaw`
   (x86_64-linux, minimal role)
 
 **Proxmox Hosts:**
@@ -48,40 +48,38 @@ rebuild -vL moltbot  # Build locally and deploy to LXC
 
 **Documentation:** https://docs.molt.bot/
 
-## NanoClaw (Personal AI Agent)
+## GoClaw (Multi-Tenant AI Agent Platform)
 
-NanoClaw is deployed as a Proxmox LXC container providing a personal AI agent
-for WhatsApp and Telegram via Claude agents in Docker containers.
+GoClaw is deployed as a Proxmox LXC container running the Go-based GoClaw
+gateway and Postgres (pgvector) via Docker Compose.
 
 **Configuration Files:**
 
-- **NixOS config:** `nixos/machines/nanoclaw.nix` - systemd service, Docker,
-  secrets
-- **Hardware config:** `nixos/hardware/nanoclaw.nix` - LXC boilerplate
-- **Secrets:** `private/nixos/secrets/nanoclaw/*.age` - API keys
+- **NixOS config:** `nixos/machines/goclaw.nix` - systemd units, Docker,
+  compose glue
+- **Hardware config:** `nixos/hardware/goclaw.nix` - LXC boilerplate
 
 **Key Locations on LXC:**
 
-- App: `/var/lib/nanoclaw/app` (git clone of qwibitai/nanoclaw)
-- Data: `/var/lib/nanoclaw` (SQLite DB, group memories, sessions)
-- Docker: agent containers spawned via Docker
+- App: `/var/lib/goclaw/app` (git clone of nextlevelbuilder/goclaw)
+- `.env`: `/var/lib/goclaw/app/.env` (auto-generated via upstream
+  `prepare-env.sh`; adds a random `POSTGRES_PASSWORD`)
+- Data: Docker volumes under `/var/lib/docker` (`goclaw-data`,
+  `goclaw-workspace`, `postgres-data`, `goclaw-skills`)
 
 **Deployment:**
 
 ```bash
-rebuild -vL nanoclaw  # Build locally and deploy to LXC
+rebuild -vL goclaw  # Build locally and deploy to LXC
 ```
 
 **Initial Setup (after first deploy):**
 
-```bash
-ssh nanoclaw
-sudo -u nanoclaw -i
-cd /var/lib/nanoclaw/app
-claude          # then run /setup, /add-whatsapp, /add-telegram
-```
+1. Wait for `goclaw-setup.service` and `goclaw.service` to come up
+2. Open http://10.23.23.9:18790 in a browser
+3. Follow the setup wizard to add LLM providers, agents, and channels
 
-**Documentation:** https://nanoclaw.dev/
+**Documentation:** https://docs.goclaw.sh/
 
 ## OpenChamber (Remote AI IDE)
 
