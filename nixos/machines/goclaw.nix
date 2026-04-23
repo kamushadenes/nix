@@ -23,7 +23,7 @@ let
   goclaw-home = "/var/lib/goclaw";
   goclaw-app = "${goclaw-home}/app";
   goclaw-repo = "https://github.com/nextlevelbuilder/goclaw.git";
-  composeArgs = "-f docker-compose.yml -f docker-compose.postgres.yml";
+  composeArgs = "-f docker-compose.yml -f docker-compose.postgres.yml -f docker-compose.claude-cli.yml";
 in
 {
   imports = [ "${private}/nixos/lxc-management.nix" ];
@@ -133,7 +133,9 @@ in
       User = "goclaw";
       Group = "goclaw";
       WorkingDirectory = goclaw-app;
-      ExecStart = "${pkgs.docker-compose}/bin/docker-compose ${composeArgs} up -d --pull always";
+      # --build is required because the claude-cli overlay flips the
+      # ENABLE_CLAUDE_CLI build arg, so the image must be built locally.
+      ExecStart = "${pkgs.docker-compose}/bin/docker-compose ${composeArgs} up -d --build";
       ExecStop = "${pkgs.docker-compose}/bin/docker-compose ${composeArgs} down";
     };
 
