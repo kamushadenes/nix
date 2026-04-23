@@ -113,9 +113,9 @@ in
       set -euo pipefail
 
       echo "Cloning NanoClaw v2..."
-      ${pkgs.git}/bin/git clone https://github.com/qwibitai/nanoclaw.git ${nanoclaw-app}
+      ${pkgs.git}/bin/git clone https://github.com/kamushadenes/nanoclaw.git ${nanoclaw-app}
       cd ${nanoclaw-app}
-      ${pkgs.git}/bin/git remote add origin-fork https://github.com/kamushadenes/nanoclaw.git
+      ${pkgs.git}/bin/git remote add upstream https://github.com/qwibitai/nanoclaw.git
 
       echo "Installing dependencies..."
       ${pkgs.nodePackages.pnpm}/bin/pnpm install --frozen-lockfile
