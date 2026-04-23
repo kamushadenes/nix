@@ -51,9 +51,7 @@ in
   # System packages: git (repo clone), docker-compose v2, build/crypto utilities,
   # cloud CLIs (gh, gcloud, aws, terraform) for agent workflows, postgresql_18
   # client tools (pg_dump/psql) matching the pgvector/pgvector:pg18 container,
-  # and a Python env with document/PDF/LLM libraries for agent scripts.
-  # poppler_utils provides the pdftoppm/pdftocairo binaries that pdf2image
-  # shells out to at runtime.
+  # and poppler_utils (pdftoppm/pdftocairo) that pdf2image shells out to.
   environment.systemPackages = with pkgs; [
     git
     docker-compose
@@ -66,7 +64,13 @@ in
     terraform
     postgresql_18
     poppler-utils
-    (python3.withPackages (ps: [
+  ];
+
+  # Python env with document/PDF/LLM libraries for agent scripts. Installed
+  # into root's home-manager profile with hiPrio so its `python3` wrapper wins
+  # over the python312 that the shared `dev` role module already provides.
+  home-manager.users.root.home.packages = [
+    (lib.hiPrio (pkgs.python3.withPackages (ps: [
       ps.defusedxml
       ps.lxml
       ps.pdfplumber
@@ -75,7 +79,7 @@ in
       ps.pillow
       ps.anthropic
       ps.openpyxl
-    ]))
+    ])))
   ];
 
   # Oneshot service: clone repo and seed .env on first boot. Subsequent boots
