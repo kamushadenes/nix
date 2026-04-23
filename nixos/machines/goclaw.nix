@@ -50,7 +50,10 @@ in
 
   # System packages: git (repo clone), docker-compose v2, build/crypto utilities,
   # cloud CLIs (gh, gcloud, aws, terraform) for agent workflows, postgresql_18
-  # client tools (pg_dump/psql) matching the pgvector/pgvector:pg18 container
+  # client tools (pg_dump/psql) matching the pgvector/pgvector:pg18 container,
+  # and a Python env with document/PDF/LLM libraries for agent scripts.
+  # poppler_utils provides the pdftoppm/pdftocairo binaries that pdf2image
+  # shells out to at runtime.
   environment.systemPackages = with pkgs; [
     git
     docker-compose
@@ -62,6 +65,17 @@ in
     awscli2
     terraform
     postgresql_18
+    poppler_utils
+    (python3.withPackages (ps: [
+      ps.defusedxml
+      ps.lxml
+      ps.pdfplumber
+      ps.pypdf
+      ps.pdf2image
+      ps.pillow
+      ps.anthropic
+      ps.openpyxl
+    ]))
   ];
 
   # Oneshot service: clone repo and seed .env on first boot. Subsequent boots
