@@ -1,19 +1,36 @@
 ---
 description:
   QA audit of a web app using Playwright — find all UI/UX bugs and save to
-  .sisyphus/qa-bugs.md
+  .omc/qa-bugs.md
 argument-hint: "<url> [focus-areas]"
 ---
 
 ## Your Task
 
 Act as a senior QA engineer. Open the web application using Playwright (the
-`playwriter` tool) and systematically find all UI/UX bugs.
+`playwriter` tool) and systematically find all UI/UX bugs. Persist findings to
+the shared OMC state directory so `/qa-fix` and other OMC workflows can resume
+from them.
 
 **Arguments:** $ARGUMENTS
 
 If no URL is provided, check for a running dev server (localhost:3000,
 localhost:8080, etc.) or ask the user.
+
+## OMC Integration
+
+- **State lives in `.omc/`** — the bug report goes to `.omc/qa-bugs.md`, and
+  any auxiliary notes to `.omc/qa/`. This is the same directory OMC uses for
+  plans, research, and session state, so `/oh-my-claudecode:autopilot`,
+  `/oh-my-claudecode:ralph`, and `/qa-fix` can read the report without extra
+  wiring.
+- **Delegate codebase lookups** to the `oh-my-claudecode:explore` agent when
+  you need to map a suspected root cause back to source files — don't read
+  dozens of files inline.
+- **Do NOT fix anything here.** This command is audit-only. Fixing is
+  `/qa-fix` (which delegates to `oh-my-claudecode:executor`).
+- **Cancellable** via `/oh-my-claudecode:cancel` — progress is preserved on
+  disk, so a later run can resume where this one stopped.
 
 ## What to Test
 
@@ -48,8 +65,11 @@ Focus on **functional UI bugs** — things that are broken, not style opinions:
    - Browser back/forward behavior
    - Drawer/modal open and dismiss flows
    - Page refresh on each major view
-5. **Verify findings** — re-test each bug to confirm it's real, not a Playwright
-   artifact. Use DOM inspection (`page.evaluate`) when uncertain.
+5. **Trace suspected root causes** — when a bug looks like it comes from a
+   specific file/component, delegate the codebase search to
+   `oh-my-claudecode:explore` rather than reading files inline.
+6. **Verify findings** — re-test each bug to confirm it's real, not a
+   Playwright artifact. Use DOM inspection (`page.evaluate`) when uncertain.
 
 ## Handling False Positives
 
@@ -63,7 +83,7 @@ Playwright snapshots can mislead. Before reporting a bug:
 
 ## Output Format
 
-Create `.sisyphus/qa-bugs.md` (mkdir -p .sisyphus first) with this structure:
+Create `.omc/qa-bugs.md` (`mkdir -p .omc` first) with this structure:
 
 ```markdown
 # {Project Name} UI Bug Report
@@ -125,7 +145,9 @@ confirmed bugs: {count}
 
 ## Important
 
-- **Do NOT fix any bugs.** Only document them.
+- **Do NOT fix any bugs.** Only document them. Fixing is `/qa-fix`.
+- **Write state under `.omc/`.** Never resurrect `.sisyphus/` — it is
+  deprecated.
 - **Be thorough.** Test every page and every interactive element you can find.
 - **Be honest about false positives.** Move withdrawn bugs to the withdrawn
   section with explanation rather than deleting them.
