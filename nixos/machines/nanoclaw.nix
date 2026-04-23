@@ -63,12 +63,12 @@ in
     autoPrune.enable = true;
   };
 
-  # Route Anthropic API calls through the local ccflare proxy
-  environment.variables.ANTHROPIC_BASE_URL = "http://localhost:8787";
+  # v2: OneCLI handles credentials — no proxy env needed
 
-  # System packages: Node.js, git (for cloning/updating nanoclaw), and build tools
+  # System packages: Node.js, pnpm, git, and build tools
   environment.systemPackages = with pkgs; [
     nodejs
+    nodePackages.pnpm
     git
     # Build dependencies for native Node.js modules (better-sqlite3)
     python3
@@ -101,6 +101,7 @@ in
 
     path = [
       nodejs
+      pkgs.nodePackages.pnpm
       pkgs.git
       pkgs.gnumake
       pkgs.gcc
@@ -111,19 +112,18 @@ in
     script = ''
       set -euo pipefail
 
-      echo "Cloning NanoClaw..."
-      ${pkgs.git}/bin/git clone https://github.com/kamushadenes/nanoclaw.git ${nanoclaw-app}
+      echo "Cloning NanoClaw v2..."
+      ${pkgs.git}/bin/git clone https://github.com/qwibitai/nanoclaw.git ${nanoclaw-app}
       cd ${nanoclaw-app}
-      ${pkgs.git}/bin/git remote add upstream https://github.com/qwibitai/nanoclaw.git
+      ${pkgs.git}/bin/git remote add origin-fork https://github.com/kamushadenes/nanoclaw.git
 
       echo "Installing dependencies..."
-      cd ${nanoclaw-app}
-      ${nodejs}/bin/npm install --no-audit --no-fund
+      ${pkgs.nodePackages.pnpm}/bin/pnpm install --frozen-lockfile
 
       echo "Building..."
-      ${nodejs}/bin/npm run build
+      ${pkgs.nodePackages.pnpm}/bin/pnpm run build
 
-      echo "NanoClaw setup complete"
+      echo "NanoClaw v2 setup complete"
     '';
   };
 
@@ -155,10 +155,10 @@ in
 
     environment = {
       HOME = nanoclaw-home;
-      ANTHROPIC_BASE_URL = "http://localhost:8787";
       PATH = lib.mkForce (
         lib.makeBinPath [
           nodejs
+          pkgs.nodePackages.pnpm
           pkgs.git
           pkgs.docker
           pkgs.bash
