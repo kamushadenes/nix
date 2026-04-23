@@ -1,13 +1,20 @@
 ---
 name: qa
-description: QA audit of a web app using Playwright -- find all UI/UX bugs and save to .sisyphus/qa-bugs.md. Use when the user asks for QA testing, UI bug hunting, or web app auditing. Provide the URL and optional focus areas in your instructions.
+description: QA audit of a web app using Playwright -- find all UI/UX bugs and save to .omc/qa-bugs.md so OMC workflows (`/qa-fix`, autopilot, ralph) can resume from the report. Use when the user asks for QA testing, UI bug hunting, or web app auditing. Provide the URL and optional focus areas in your instructions.
 ---
 
 # QA Audit Workflow
 
-Act as a senior QA engineer. Open the web application using Playwright and systematically find all UI/UX bugs.
+Act as a senior QA engineer. Open the web application using Playwright and systematically find all UI/UX bugs. Persist findings to the shared OMC state directory so `/qa-fix` and other OMC workflows can pick up where this run stopped.
 
 If no URL is provided, check for a running dev server (localhost:3000, localhost:8080, etc.) or ask the user.
+
+## OMC Integration
+
+- **State lives in `.omc/`** -- the bug report goes to `.omc/qa-bugs.md` (alongside OMC's plans, research, and session state). Never write to `.sisyphus/`; that path is deprecated.
+- **Delegate codebase lookups** to the `oh-my-claudecode:explore` agent when you need to map a suspected root cause back to source files -- don't read dozens of files inline.
+- **Do NOT fix anything here.** Audit only. Fixing is `/qa-fix`, which delegates to `oh-my-claudecode:executor`.
+- **Cancellable** via `/oh-my-claudecode:cancel` -- progress is preserved on disk.
 
 ## What to Test
 
@@ -36,7 +43,8 @@ Focus on **functional UI bugs** -- things that are broken, not style opinions:
    - Browser back/forward behavior
    - Drawer/modal open and dismiss flows
    - Page refresh on each major view
-5. **Verify findings** -- re-test each bug to confirm it's real, not a Playwright artifact. Use DOM inspection (`page.evaluate`) when uncertain.
+5. **Trace suspected root causes** -- when a bug looks like it comes from a specific file/component, delegate the codebase search to `oh-my-claudecode:explore` rather than reading files inline.
+6. **Verify findings** -- re-test each bug to confirm it's real, not a Playwright artifact. Use DOM inspection (`page.evaluate`) when uncertain.
 
 ## Handling False Positives
 
@@ -49,7 +57,7 @@ Before reporting a bug:
 
 ## Output Format
 
-Create `.sisyphus/qa-bugs.md` (mkdir -p .sisyphus first) with this structure:
+Create `.omc/qa-bugs.md` (`mkdir -p .omc` first) with this structure:
 
 ```markdown
 # {Project Name} UI Bug Report
@@ -113,7 +121,8 @@ Total confirmed bugs: {count}
 
 ## Important
 
-- **Do NOT fix any bugs.** Only document them.
+- **Do NOT fix any bugs.** Only document them. Fixing is `/qa-fix`.
+- **Write state under `.omc/`.** Never resurrect `.sisyphus/` -- it is deprecated.
 - **Be thorough.** Test every page and every interactive element you can find.
 - **Be honest about false positives.** Move withdrawn bugs to the withdrawn section with explanation rather than deleting them.
 - The withdrawn section is valuable -- it tells the fixer what was already checked and ruled out.
