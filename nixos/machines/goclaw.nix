@@ -65,7 +65,7 @@ in
     awscli2
     terraform
     postgresql_18
-    poppler_utils
+    poppler-utils
     (python3.withPackages (ps: [
       ps.defusedxml
       ps.lxml
