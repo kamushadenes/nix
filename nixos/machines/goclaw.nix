@@ -73,6 +73,10 @@ in
       User = "goclaw";
       Group = "goclaw";
       WorkingDirectory = goclaw-home;
+      # Fix ownership on fresh deploys — the bind-mounted persist dir is
+      # created root-owned before the goclaw user is provisioned, and
+      # tmpfiles.d can race with the mount on the activation pass.
+      ExecStartPre = "+${pkgs.coreutils}/bin/chown goclaw:goclaw ${goclaw-home}";
     };
 
     path = [
