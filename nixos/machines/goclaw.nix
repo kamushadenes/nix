@@ -73,6 +73,7 @@ in
     terraform
     postgresql_18
     poppler-utils
+    uv
     packages.clickup-cli
   ];
 
