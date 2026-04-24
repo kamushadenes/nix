@@ -43,6 +43,49 @@ let
         healthcheck:
           disable: true
   '';
+  # Google Calendar MCP as HTTP sidecar — GoClaw connects via streamable HTTP.
+  # OAuth credentials must be placed at /var/lib/goclaw/google-calendar-mcp/gcp-oauth.keys.json
+  # Initial auth: docker compose exec google-calendar-mcp npm run auth
+  # Account management: http://10.23.23.9:3000/accounts
+  goclaw-google-calendar-mcp = pkgs.writeText "docker-compose.google-calendar-mcp.yml" ''
+    services:
+      google-calendar-mcp:
+        build:
+          context: https://github.com/nspady/google-calendar-mcp.git
+        restart: unless-stopped
+        environment:
+          - TRANSPORT=http
+          - HOST=0.0.0.0
+          - PORT=3000
+        volumes:
+          - ${goclaw-home}/google-calendar-mcp/gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
+          - google-calendar-tokens:/home/nodejs/.config/google-calendar-mcp
+        ports:
+          - "3000:3000"
+          - "3500:3500"
+          - "3501:3501"
+          - "3502:3502"
+          - "3503:3503"
+          - "3504:3504"
+          - "3505:3505"
+        deploy:
+          resources:
+            limits:
+              memory: 512M
+              cpus: "1.0"
+        security_opt:
+          - no-new-privileges:true
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+          start_period: 40s
+
+    volumes:
+      google-calendar-tokens:
+        driver: local
+  '';
   composeArgs = lib.concatStringsSep " " [
     "-f docker-compose.yml"
     "-f docker-compose.postgres.yml"
@@ -54,6 +97,7 @@ let
     # "-f docker-compose.sandbox.yml"
     "-f docker-compose.redis.yml"
     "-f ${goclaw-docker-socket}"
+    "-f ${goclaw-google-calendar-mcp}"
     "-f ${goclaw-healthcheck-override}"
   ];
 in
@@ -209,10 +253,6 @@ in
         # agent-invoked wrappers (e.g. gcloud) can use docker-in-docker.
         ${pkgs.docker-compose}/bin/docker-compose ${composeArgs} exec -T -u root goclaw \
           sh -c 'addgroup -g 131 docker 2>/dev/null; addgroup goclaw docker 2>/dev/null; true'
-        # Install docker-cli so agent wrappers (gcloud) can use docker-in-docker.
-        # apk packages don't survive image rebuilds, so re-install on each start.
-        ${pkgs.docker-compose}/bin/docker-compose ${composeArgs} exec -T -u root goclaw \
-          sh -c 'apk add --no-cache docker-cli >/dev/null 2>&1 || true'
       '';
       ExecStop = "${pkgs.docker-compose}/bin/docker-compose ${composeArgs} down";
     };
@@ -228,6 +268,7 @@ in
   # Data directory (compose volumes live under /var/lib/docker)
   systemd.tmpfiles.rules = [
     "d ${goclaw-home} 0750 goclaw goclaw -"
+    "d ${goclaw-home}/google-calendar-mcp 0750 goclaw goclaw -"
   ];
 
   # SSH: allow root login for remote deployment (headless role doesn't import minimal.nix)
