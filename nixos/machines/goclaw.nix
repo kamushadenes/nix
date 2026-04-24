@@ -23,8 +23,9 @@
 let
   goclaw-home = "/var/lib/goclaw";
   goclaw-app = "${goclaw-home}/app";
-  # Fork with fix for nextlevelbuilder/goclaw#1029 (@ in WhatsApp LID breaks
-  # Docker container naming). Switch back to upstream after #1031 merges.
+  # Fork (dev branch) with fixes for sandbox @ naming (#1031), stateless cron
+  # reset (#1032), and credentialed CLI chain exec (#1033). Tracks dev branch
+  # for latest features. Switch back to upstream after PRs merge.
   goclaw-repo = "https://github.com/kamushadenes/goclaw.git";
   # Disable the baked-in healthcheck — flaky MCP servers cause health
   # timeouts that mark the container unhealthy and stall the dashboard.
@@ -202,7 +203,7 @@ in
       set -euo pipefail
 
       echo "Cloning GoClaw..."
-      ${pkgs.git}/bin/git clone -b main ${goclaw-repo} ${goclaw-app}
+      ${pkgs.git}/bin/git clone -b dev ${goclaw-repo} ${goclaw-app}
 
       echo "Generating .env via prepare-env.sh..."
       cd ${goclaw-app}
