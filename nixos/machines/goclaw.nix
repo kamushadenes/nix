@@ -23,18 +23,9 @@
 let
   goclaw-home = "/var/lib/goclaw";
   goclaw-app = "${goclaw-home}/app";
-  goclaw-repo = "https://github.com/nextlevelbuilder/goclaw.git";
-  # Mount Docker socket without enabling sandbox mode. The sandbox overlay
-  # also mounted this but is disabled due to nextlevelbuilder/goclaw#1029.
-  # Agent CLI wrappers (gcloud) need docker-in-docker access.
-  goclaw-docker-socket = pkgs.writeText "docker-compose.docker-socket.yml" ''
-    services:
-      goclaw:
-        volumes:
-          - /var/run/docker.sock:/var/run/docker.sock
-        group_add:
-          - "''${DOCKER_GID:-999}"
-  '';
+  # Fork with fix for nextlevelbuilder/goclaw#1029 (@ in WhatsApp LID breaks
+  # Docker container naming). Switch back to upstream after #1031 merges.
+  goclaw-repo = "https://github.com/kamushadenes/goclaw.git";
   # Disable the baked-in healthcheck — flaky MCP servers cause health
   # timeouts that mark the container unhealthy and stall the dashboard.
   goclaw-healthcheck-override = pkgs.writeText "docker-compose.healthcheck.yml" ''
@@ -43,17 +34,64 @@ let
         healthcheck:
           disable: true
   '';
+  # Override sandbox defaults: enable network (CLIs call external APIs)
+  # and use custom image with pre-installed CLIs.
+  goclaw-sandbox-overrides = pkgs.writeText "docker-compose.sandbox-overrides.yml" ''
+    services:
+      goclaw:
+        environment:
+          - GOCLAW_SANDBOX_NETWORK=true
+          - GOCLAW_SANDBOX_IMAGE=goclaw-sandbox:custom
+  '';
+  # Custom sandbox Dockerfile with CLIs pre-installed (gh, gcloud, vt, fleetctl).
+  goclaw-sandbox-dockerfile = pkgs.writeText "Dockerfile.sandbox.custom" ''
+    FROM debian:bookworm-slim
+
+    ENV DEBIAN_FRONTEND=noninteractive
+
+    RUN apt-get update \
+      && apt-get install -y --no-install-recommends \
+        bash ca-certificates curl git jq python3 python3-pip ripgrep \
+        gnupg unzip nodejs npm \
+      && rm -rf /var/lib/apt/lists/*
+
+    # GitHub CLI
+    RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+      && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        > /etc/apt/sources.list.d/github-cli.list \
+      && apt-get update && apt-get install -y --no-install-recommends gh \
+      && rm -rf /var/lib/apt/lists/*
+
+    # FleetCtl via npm
+    RUN npm install -g fleetctl && npm cache clean --force
+
+    # Google Cloud SDK (standalone tar, no apt repo needed)
+    RUN curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz \
+        | tar -xz -C /opt \
+      && /opt/google-cloud-sdk/install.sh --quiet --usage-reporting=false --path-update=false \
+      && ln -s /opt/google-cloud-sdk/bin/gcloud /usr/local/bin/gcloud
+
+    # VirusTotal CLI
+    RUN VT_VERSION=$(curl -fsSL https://api.github.com/repos/VirusTotal/vt-cli/releases/latest | jq -r .tag_name) \
+      && curl -fsSL "https://github.com/VirusTotal/vt-cli/releases/download/''${VT_VERSION}/Linux64.zip" -o /tmp/vt.zip \
+      && unzip -o /tmp/vt.zip -d /usr/local/bin/ && chmod +x /usr/local/bin/vt && rm /tmp/vt.zip
+
+    RUN useradd --create-home --shell /bin/bash sandbox
+    USER sandbox
+    WORKDIR /home/sandbox
+
+    CMD ["sleep", "infinity"]
+  '';
   composeArgs = lib.concatStringsSep " " [
     "-f docker-compose.yml"
     "-f docker-compose.postgres.yml"
     "-f docker-compose.claude-cli.yml"
     "-f docker-compose.browser.yml"
     "-f docker-compose.otel.yml"
-    # Sandbox disabled: WhatsApp LID chat IDs contain @ which breaks
-    # Docker container naming. Tracked in nextlevelbuilder/goclaw#1029.
-    # "-f docker-compose.sandbox.yml"
+    "-f docker-compose.sandbox.yml"
     "-f docker-compose.redis.yml"
-    "-f ${goclaw-docker-socket}"
+    "-f ${goclaw-sandbox-overrides}"
     "-f ${goclaw-healthcheck-override}"
   ];
 in
@@ -193,6 +231,16 @@ in
       User = "goclaw";
       Group = "goclaw";
       WorkingDirectory = goclaw-app;
+      # Build custom sandbox image with CLIs if not already present.
+      # +prefix runs as root — docker build needs socket access.
+      ExecStartPre =
+        "+"
+        + (pkgs.writeShellScript "goclaw-build-sandbox-image" ''
+          if ! ${pkgs.docker}/bin/docker image inspect goclaw-sandbox:custom >/dev/null 2>&1; then
+            echo "Building custom sandbox image..."
+            ${pkgs.docker}/bin/docker build -t goclaw-sandbox:custom -f ${goclaw-sandbox-dockerfile} ${goclaw-app}
+          fi
+        '');
       # --build is required because the claude-cli overlay flips the
       # ENABLE_CLAUDE_CLI build arg, so the image must be built locally.
       ExecStart = "${pkgs.docker-compose}/bin/docker-compose ${composeArgs} up -d --build";
