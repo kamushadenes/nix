@@ -24,17 +24,13 @@ let
   goclaw-home = "/var/lib/goclaw";
   goclaw-app = "${goclaw-home}/app";
   goclaw-repo = "https://github.com/nextlevelbuilder/goclaw.git";
-  # Override the baked-in healthcheck (5s timeout) so that slow MCP server
-  # init does not mark the container unhealthy and stall the dashboard.
+  # Disable the baked-in healthcheck — flaky MCP servers cause health
+  # timeouts that mark the container unhealthy and stall the dashboard.
   goclaw-healthcheck-override = pkgs.writeText "docker-compose.healthcheck.yml" ''
     services:
       goclaw:
         healthcheck:
-          test: ["CMD-SHELL", "wget -qO- http://localhost:18790/health || exit 1"]
-          interval: 30s
-          timeout: 120s
-          start_period: 120s
-          retries: 5
+          disable: true
   '';
   composeArgs = lib.concatStringsSep " " [
     "-f docker-compose.yml"
