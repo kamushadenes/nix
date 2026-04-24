@@ -209,10 +209,6 @@ in
         # agent-invoked wrappers (e.g. gcloud) can use docker-in-docker.
         ${pkgs.docker-compose}/bin/docker-compose ${composeArgs} exec -T -u root goclaw \
           sh -c 'addgroup -g 131 docker 2>/dev/null; addgroup goclaw docker 2>/dev/null; true'
-        # Install docker-cli so agent wrappers (gcloud) can use docker-in-docker.
-        # apk packages don't survive image rebuilds, so re-install on each start.
-        ${pkgs.docker-compose}/bin/docker-compose ${composeArgs} exec -T -u root goclaw \
-          sh -c 'apk add --no-cache docker-cli >/dev/null 2>&1 || true'
       '';
       ExecStop = "${pkgs.docker-compose}/bin/docker-compose ${composeArgs} down";
     };
