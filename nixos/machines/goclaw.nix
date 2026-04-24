@@ -75,7 +75,7 @@ let
     # ClickUp CLI (nicholasbester/clickup-cli) — installed at /app/data/.runtime/bin/
     # to match the Binary Path configured in GoClaw's Credentialed CLI settings
     RUN mkdir -p /app/data/.runtime/bin \
-      && curl -fsSL https://github.com/nicholasbester/clickup-cli/releases/latest/download/clickup-linux-x86_64.tar.gz \
+      && curl -fsSL https://github.com/nicholasbester/clickup-cli/releases/latest/download/clickup-linux-x86_64-musl.tar.gz \
         | tar -xz -C /app/data/.runtime/bin/ \
       && chmod +x /app/data/.runtime/bin/clickup
 
