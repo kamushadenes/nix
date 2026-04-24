@@ -63,8 +63,11 @@ let
       && apt-get update && apt-get install -y --no-install-recommends gh \
       && rm -rf /var/lib/apt/lists/*
 
-    # FleetCtl via npm
-    RUN npm install -g fleetctl && npm cache clean --force
+    # FleetCtl (fleetdm/fleet) — direct binary, npm wrapper broken for non-root
+    RUN FLEET_TAG=$(curl -fsSL https://api.github.com/repos/fleetdm/fleet/releases/latest | jq -r .tag_name) \
+      && curl -fsSL "https://github.com/fleetdm/fleet/releases/download/$FLEET_TAG/fleetctl_''${FLEET_TAG#fleet-}_linux_amd64.tar.gz" \
+        | tar -xz -C /usr/local/bin/ --strip-components=1 \
+      && chmod +x /usr/local/bin/fleetctl
 
     # Google Cloud SDK (standalone tar, no apt repo needed)
     RUN curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz \
