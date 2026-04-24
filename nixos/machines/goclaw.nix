@@ -53,14 +53,6 @@ let
         build:
           context: https://github.com/nspady/google-calendar-mcp.git
         restart: unless-stopped
-        # Upstream bug: stateless transport (sessionIdGenerator: void 0) only
-        # handles one request then throws. Patch to session mode on start.
-        command:
-          - sh
-          - -c
-          - |
-            sed -i 's/sessionIdGenerator: void 0/sessionIdGenerator: () => crypto.randomUUID()/' /app/build/index.js
-            exec node build/index.js
         environment:
           - TRANSPORT=http
           - HOST=0.0.0.0
