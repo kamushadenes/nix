@@ -91,6 +91,10 @@ let
     # Runtime bin dir in PATH for credentialed exec resolution
     ENV PATH="/app/data/.runtime/bin:$PATH"
 
+    # Symlink /app/workspace → /workspace so main container paths
+    # (e.g. /app/workspace/uhura/cron/system) resolve in sandbox.
+    RUN mkdir -p /app && ln -s /workspace /app/workspace
+
     RUN useradd --create-home --shell /bin/bash sandbox
     USER sandbox
     WORKDIR /home/sandbox
