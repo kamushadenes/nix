@@ -43,57 +43,6 @@ let
         healthcheck:
           disable: true
   '';
-  # Google Calendar MCP as HTTP sidecar — GoClaw connects via streamable HTTP.
-  # OAuth credentials must be placed at /var/lib/goclaw/google-calendar-mcp/gcp-oauth.keys.json
-  # Initial auth: docker compose exec google-calendar-mcp npm run auth
-  # Account management: http://10.23.23.9:3000/accounts
-  goclaw-google-calendar-mcp = pkgs.writeText "docker-compose.google-calendar-mcp.yml" ''
-    services:
-      google-calendar-mcp:
-        build:
-          context: https://github.com/nspady/google-calendar-mcp.git
-        restart: unless-stopped
-        # Upstream bug: stateless transport (sessionIdGenerator: void 0) only
-        # handles one request then throws. Patch to session mode on start.
-        command:
-          - sh
-          - -c
-          - |
-            sed -i 's/sessionIdGenerator: void 0/sessionIdGenerator: () => crypto.randomUUID()/' /app/build/index.js
-            exec node build/index.js
-        environment:
-          - TRANSPORT=http
-          - HOST=0.0.0.0
-          - PORT=29741
-        volumes:
-          - ${goclaw-home}/google-calendar-mcp/gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
-          - google-calendar-tokens:/home/nodejs/.config/google-calendar-mcp
-        ports:
-          - "29741:29741"
-          - "3500:3500"
-          - "3501:3501"
-          - "3502:3502"
-          - "3503:3503"
-          - "3504:3504"
-          - "3505:3505"
-        deploy:
-          resources:
-            limits:
-              memory: 512M
-              cpus: "1.0"
-        security_opt:
-          - no-new-privileges:true
-        healthcheck:
-          test: ["CMD-SHELL", "curl -f http://localhost:29741/health || exit 1"]
-          interval: 30s
-          timeout: 10s
-          retries: 3
-          start_period: 40s
-
-    volumes:
-      google-calendar-tokens:
-        driver: local
-  '';
   composeArgs = lib.concatStringsSep " " [
     "-f docker-compose.yml"
     "-f docker-compose.postgres.yml"
@@ -105,7 +54,6 @@ let
     # "-f docker-compose.sandbox.yml"
     "-f docker-compose.redis.yml"
     "-f ${goclaw-docker-socket}"
-    "-f ${goclaw-google-calendar-mcp}"
     "-f ${goclaw-healthcheck-override}"
   ];
 in
@@ -276,7 +224,6 @@ in
   # Data directory (compose volumes live under /var/lib/docker)
   systemd.tmpfiles.rules = [
     "d ${goclaw-home} 0750 goclaw goclaw -"
-    "d ${goclaw-home}/google-calendar-mcp 0750 goclaw goclaw -"
   ];
 
   # SSH: allow root login for remote deployment (headless role doesn't import minimal.nix)
