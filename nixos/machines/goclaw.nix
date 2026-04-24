@@ -23,7 +23,15 @@ let
   goclaw-home = "/var/lib/goclaw";
   goclaw-app = "${goclaw-home}/app";
   goclaw-repo = "https://github.com/nextlevelbuilder/goclaw.git";
-  composeArgs = "-f docker-compose.yml -f docker-compose.postgres.yml -f docker-compose.claude-cli.yml";
+  composeArgs = lib.concatStringsSep " " [
+    "-f docker-compose.yml"
+    "-f docker-compose.postgres.yml"
+    "-f docker-compose.claude-cli.yml"
+    "-f docker-compose.browser.yml"
+    "-f docker-compose.otel.yml"
+    "-f docker-compose.sandbox.yml"
+    "-f docker-compose.redis.yml"
+  ];
 in
 {
   imports = [ "${private}/nixos/lxc-management.nix" ];
@@ -161,6 +169,16 @@ in
       # --build is required because the claude-cli overlay flips the
       # ENABLE_CLAUDE_CLI build arg, so the image must be built locally.
       ExecStart = "${pkgs.docker-compose}/bin/docker-compose ${composeArgs} up -d --build";
+      # Fix /app/data/.runtime perms so goclaw user can write github-packages.json.tmp
+      # (upstream sets root:goclaw 0750 which blocks writes for github package installs)
+      ExecStartPost = pkgs.writeShellScript "goclaw-fix-runtime-perms" ''
+        for i in $(seq 1 30); do
+          ${pkgs.docker-compose}/bin/docker-compose ${composeArgs} exec -T goclaw true 2>/dev/null && break
+          sleep 2
+        done
+        ${pkgs.docker-compose}/bin/docker-compose ${composeArgs} exec -T -u root goclaw \
+          sh -c 'chmod 0770 /app/data/.runtime 2>/dev/null || true'
+      '';
       ExecStop = "${pkgs.docker-compose}/bin/docker-compose ${composeArgs} down";
     };
 
