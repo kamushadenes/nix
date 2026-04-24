@@ -191,6 +191,10 @@ in
         done
         ${pkgs.docker-compose}/bin/docker-compose ${composeArgs} exec -T -u root goclaw \
           sh -c 'chmod 0770 /app/data/.runtime 2>/dev/null || true'
+        # Add goclaw user to docker group (GID of /var/run/docker.sock) so
+        # agent-invoked wrappers (e.g. gcloud) can use docker-in-docker.
+        ${pkgs.docker-compose}/bin/docker-compose ${composeArgs} exec -T -u root goclaw \
+          sh -c 'addgroup -g 131 docker 2>/dev/null; addgroup goclaw docker 2>/dev/null; true'
       '';
       ExecStop = "${pkgs.docker-compose}/bin/docker-compose ${composeArgs} down";
     };
