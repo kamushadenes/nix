@@ -235,6 +235,35 @@ let
     else
       unwrapped;
 
+  # clickup-cli - Token-efficient ClickUp CLI for AI agents
+  # Pre-built binary from GitHub releases (not in nixpkgs)
+  clickup-cli = pkgs.stdenv.mkDerivation rec {
+    pname = "clickup-cli";
+    version = "0.9.1";
+
+    src = pkgs.fetchurl {
+      url = "https://github.com/nicholasbester/clickup-cli/releases/download/v${version}/clickup-linux-x86_64.tar.gz";
+      hash = "sha256-HXjbSqcfrt6tH+I+XGPu/lcJSJNPXkMiWgXKX4debNw=";
+    };
+
+    unpackPhase = ''
+      tar -xzf $src
+    '';
+
+    installPhase = ''
+      mkdir -p $out/bin
+      cp clickup $out/bin/clickup
+      chmod +x $out/bin/clickup
+    '';
+
+    meta = {
+      description = "Token-efficient ClickUp CLI for AI agents";
+      homepage = "https://clickup-cli.com";
+      mainProgram = "clickup";
+      platforms = [ "x86_64-linux" ];
+    };
+  };
+
   # Script to prepare a remote machine for this nix configuration
   # Copies age key, SSH key, creates nix.conf, clones repos, and provides activation instructions
   nix-remote-setup = pkgs.writeScriptBin "nix-remote-setup" ''
@@ -359,6 +388,7 @@ in
     rtk
     better-ccflare
     pve-exporter-go
+    clickup-cli
     nix-remote-setup
     ;
 }
