@@ -240,6 +240,9 @@ in
             echo "Building custom sandbox image..."
             ${pkgs.docker}/bin/docker build -t goclaw-sandbox:custom -f ${goclaw-sandbox-dockerfile} ${goclaw-app}
           fi
+          # docker build runs as root and creates ~/.docker/buildx/ root-owned.
+          # Chown so the goclaw user (ExecStart) can write buildx activity logs.
+          ${pkgs.coreutils}/bin/chown -R goclaw:goclaw ${goclaw-home}/.docker 2>/dev/null || true
         '');
       # --build is required because the claude-cli overlay flips the
       # ENABLE_CLAUDE_CLI build arg, so the image must be built locally.
