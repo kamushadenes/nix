@@ -179,6 +179,17 @@ in
       User = "goclaw";
       Group = "goclaw";
       WorkingDirectory = goclaw-app;
+      # Rebuild sandbox image if missing (e.g. after docker autoPrune).
+      # DOCKER_BUILDKIT=0 avoids D-Bus credential store errors in LXC.
+      ExecStartPre = pkgs.writeShellScript "goclaw-ensure-sandbox-image" ''
+        if ! ${pkgs.docker}/bin/docker image inspect goclaw-sandbox:bookworm-slim >/dev/null 2>&1; then
+          echo "Sandbox image missing, rebuilding..."
+          DOCKER_BUILDKIT=0 ${pkgs.docker}/bin/docker build \
+            -t goclaw-sandbox:bookworm-slim \
+            -f ${goclaw-app}/Dockerfile.sandbox \
+            ${goclaw-app}/
+        fi
+      '';
       # --build is required because the claude-cli overlay flips the
       # ENABLE_CLAUDE_CLI build arg, so the image must be built locally.
       ExecStart = "${pkgs.docker-compose}/bin/docker-compose ${composeArgs} up -d --build";
