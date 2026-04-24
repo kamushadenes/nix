@@ -24,6 +24,17 @@ let
   goclaw-home = "/var/lib/goclaw";
   goclaw-app = "${goclaw-home}/app";
   goclaw-repo = "https://github.com/nextlevelbuilder/goclaw.git";
+  # Mount Docker socket without enabling sandbox mode. The sandbox overlay
+  # also mounted this but is disabled due to nextlevelbuilder/goclaw#1029.
+  # Agent CLI wrappers (gcloud) need docker-in-docker access.
+  goclaw-docker-socket = pkgs.writeText "docker-compose.docker-socket.yml" ''
+    services:
+      goclaw:
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+        group_add:
+          - "''${DOCKER_GID:-999}"
+  '';
   # Disable the baked-in healthcheck — flaky MCP servers cause health
   # timeouts that mark the container unhealthy and stall the dashboard.
   goclaw-healthcheck-override = pkgs.writeText "docker-compose.healthcheck.yml" ''
@@ -42,6 +53,7 @@ let
     # Docker container naming. Tracked in nextlevelbuilder/goclaw#1029.
     # "-f docker-compose.sandbox.yml"
     "-f docker-compose.redis.yml"
+    "-f ${goclaw-docker-socket}"
     "-f ${goclaw-healthcheck-override}"
   ];
 in
