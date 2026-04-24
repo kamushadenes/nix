@@ -243,7 +243,7 @@ let
 
     src = pkgs.fetchurl {
       url = "https://github.com/nicholasbester/clickup-cli/releases/download/v${version}/clickup-linux-x86_64.tar.gz";
-      hash = "sha256-HXjbSqcfrt6tH+I+XGPu/lcJSJNPXkMiWgXKX4debNw=";
+      hash = "sha256-BpA9mIC97C2ammgpFdoSRVQnPXDOoTHtLmDHcpN/MRc=";
     };
 
     unpackPhase = ''
