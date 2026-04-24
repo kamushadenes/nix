@@ -53,10 +53,6 @@ let
         build:
           context: https://github.com/nspady/google-calendar-mcp.git
         restart: unless-stopped
-        # Share goclaw's network namespace — MCP available at localhost:29741
-        network_mode: "service:goclaw"
-        depends_on:
-          - goclaw
         # Upstream bug: stateless transport (sessionIdGenerator: void 0) only
         # handles one request then throws. Patch to session mode on start.
         command:
@@ -72,16 +68,6 @@ let
         volumes:
           - ${goclaw-home}/google-calendar-mcp/gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
           - google-calendar-tokens:/home/nodejs/.config/google-calendar-mcp
-        deploy:
-          resources:
-            limits:
-              memory: 512M
-              cpus: "1.0"
-        security_opt:
-          - no-new-privileges:true
-
-      # Expose calendar MCP + OAuth ports on goclaw's network
-      goclaw:
         ports:
           - "29741:29741"
           - "3500:3500"
@@ -90,6 +76,19 @@ let
           - "3503:3503"
           - "3504:3504"
           - "3505:3505"
+        deploy:
+          resources:
+            limits:
+              memory: 512M
+              cpus: "1.0"
+        security_opt:
+          - no-new-privileges:true
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://localhost:29741/health || exit 1"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+          start_period: 40s
 
     volumes:
       google-calendar-tokens:
