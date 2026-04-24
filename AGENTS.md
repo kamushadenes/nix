@@ -81,6 +81,44 @@ rebuild -vL goclaw  # Build locally and deploy to LXC
 
 **Documentation:** https://docs.goclaw.sh/
 
+### Adding a CLI Tool to GoClaw Sandbox
+
+GoClaw agents run commands inside Docker sandbox containers
+(`goclaw-sandbox:custom`), not the main container. For a credentialed CLI
+tool to work end-to-end, ALL of these must be satisfied:
+
+1. **Binary in sandbox image** — add install step to
+   `goclaw-sandbox-dockerfile` in `goclaw.nix`. The binary must exist at the
+   exact same absolute path as in the main container (credentialed exec
+   resolves the path in main, then runs it in sandbox).
+
+2. **Credentialed CLI config in dashboard** — Settings > CLI Tools: set Binary
+   Name, Binary Path, env vars (tokens), deny args, timeout.
+
+3. **Network enabled** — `GOCLAW_SANDBOX_NETWORK=true` (set in
+   `goclaw-sandbox-overrides` compose overlay). Without this, API calls from
+   sandbox fail.
+
+4. **Use static/musl binaries** — the sandbox is Debian bookworm-slim (GLIBC
+   2.36). Binaries compiled against newer glibc will fail. Prefer
+   musl-linked or statically compiled variants.
+
+5. **No npm wrapper packages** — npm packages that download the real binary on
+   first run (e.g. `fleetctl`) fail because the sandbox user is non-root and
+   the npm global dir is root-owned. Download the binary directly from GitHub
+   releases instead.
+
+6. **Path consistency** — if the dashboard Binary Path is
+   `/app/data/.runtime/bin/foo`, install the binary at that exact path in the
+   sandbox Dockerfile. If it's `/usr/bin/foo`, use apt. Mismatch causes
+   "binary path mismatch" error.
+
+7. **Rebuild sandbox image** — after changing the Dockerfile in nix, delete
+   the old image (`docker rmi goclaw-sandbox:custom`) and restart
+   `goclaw.service`. The `ExecStartPre` rebuilds it automatically.
+
+**Current sandbox CLIs:** `gh`, `clickup`, `gcloud`, `vt`, `fleetctl`
+
 ## OpenChamber (Remote AI IDE)
 
 OpenChamber runs as a Docker container on aether, providing a web-based OpenCode
