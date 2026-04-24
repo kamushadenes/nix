@@ -15,6 +15,7 @@
   config,
   lib,
   pkgs,
+  packages,
   private,
   ...
 }:
@@ -72,22 +73,25 @@ in
     terraform
     postgresql_18
     poppler-utils
+    packages.clickup-cli
   ];
 
   # Python env with document/PDF/LLM libraries for agent scripts. Installed
   # into root's home-manager profile with hiPrio so its `python3` wrapper wins
   # over the python312 that the shared `dev` role module already provides.
   home-manager.users.root.home.packages = [
-    (lib.hiPrio (pkgs.python3.withPackages (ps: [
-      ps.defusedxml
-      ps.lxml
-      ps.pdfplumber
-      ps.pypdf
-      ps.pdf2image
-      ps.pillow
-      ps.anthropic
-      ps.openpyxl
-    ])))
+    (lib.hiPrio (
+      pkgs.python3.withPackages (ps: [
+        ps.defusedxml
+        ps.lxml
+        ps.pdfplumber
+        ps.pypdf
+        ps.pdf2image
+        ps.pillow
+        ps.anthropic
+        ps.openpyxl
+      ])
+    ))
   ];
 
   # Oneshot service: clone repo and seed .env on first boot. Subsequent boots
