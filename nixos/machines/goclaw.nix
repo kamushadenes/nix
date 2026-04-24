@@ -72,10 +72,20 @@ let
       && /opt/google-cloud-sdk/install.sh --quiet --usage-reporting=false --path-update=false \
       && ln -s /opt/google-cloud-sdk/bin/gcloud /usr/local/bin/gcloud
 
+    # ClickUp CLI (nicholasbester/clickup-cli) — installed at /app/data/.runtime/bin/
+    # to match the Binary Path configured in GoClaw's Credentialed CLI settings
+    RUN mkdir -p /app/data/.runtime/bin \
+      && curl -fsSL https://github.com/nicholasbester/clickup-cli/releases/latest/download/clickup-linux-x86_64.tar.gz \
+        | tar -xz -C /app/data/.runtime/bin/ \
+      && chmod +x /app/data/.runtime/bin/clickup
+
     # VirusTotal CLI
     RUN VT_VERSION=$(curl -fsSL https://api.github.com/repos/VirusTotal/vt-cli/releases/latest | jq -r .tag_name) \
       && curl -fsSL "https://github.com/VirusTotal/vt-cli/releases/download/''${VT_VERSION}/Linux64.zip" -o /tmp/vt.zip \
       && unzip -o /tmp/vt.zip -d /usr/local/bin/ && chmod +x /usr/local/bin/vt && rm /tmp/vt.zip
+
+    # Runtime bin dir in PATH for credentialed exec resolution
+    ENV PATH="/app/data/.runtime/bin:$PATH"
 
     RUN useradd --create-home --shell /bin/bash sandbox
     USER sandbox
