@@ -53,7 +53,7 @@ let
     RUN apt-get update \
       && apt-get install -y --no-install-recommends \
         bash ca-certificates curl git jq python3 python3-pip ripgrep \
-        gnupg unzip nodejs npm \
+        gnupg unzip nodejs npm openssh-client \
       && rm -rf /var/lib/apt/lists/*
 
     # GitHub CLI
