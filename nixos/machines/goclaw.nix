@@ -353,7 +353,8 @@ in
         exit 0
       fi
 
-      cur_sha=$(sha256sum "$bin" | awk '{print $1}')
+      cur_sha=$(sha256sum "$bin")
+      cur_sha=''${cur_sha%% *}
       if [ "$cur_sha" = "$target_sha" ]; then
         echo "clickup already musl variant ($target_sha)"
       else
