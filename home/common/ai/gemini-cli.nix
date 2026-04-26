@@ -5,6 +5,7 @@
 {
   config,
   lib,
+  packages,
   pkgs,
   pkgs-unstable,
   private,
@@ -21,6 +22,7 @@ let
     "repomix"
     "godoc"
     "terraform"
+    "mempalace"
   ];
 
   # MCP server configurations in Gemini format
@@ -46,6 +48,7 @@ in
 
   home.packages = [
     pkgs-unstable.gemini-cli
+    packages.mempalace # Local-first AI memory palace (mempalace + mempalace-mcp)
   ];
 
   #############################################################################

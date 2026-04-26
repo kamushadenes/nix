@@ -96,6 +96,7 @@ let
     "playwriter"
     "firecrawl-mcp"
     "iniciador-vanta"
+    "mempalace"
   ];
 
 in
@@ -110,6 +111,7 @@ in
     ruff # Python formatting
     packages.ccusage # Claude Code usage analysis (avoids CPU-intensive npx calls)
     packages.rtk # Token-optimized CLI proxy (60-90% savings on dev commands)
+    packages.mempalace # Local-first AI memory palace (mempalace + mempalace-mcp)
     claudebox # Sandboxed Claude Code execution
   ];
 
@@ -258,6 +260,33 @@ in
                 command = "~/.claude/hooks/Stop/post-lint.sh";
                 timeout = 60000;
                 statusMessage = "Linting modified files...";
+              }
+            ];
+          }
+          # MemPalace auto-save: every N exchanges, save context to palace
+          {
+            matcher = "";
+            hooks = [
+              {
+                type = "command";
+                command = "${packages.mempalace}/bin/mempalace hook run --hook stop --harness claude-code";
+                timeout = 30000;
+                statusMessage = "MemPalace auto-save...";
+              }
+            ];
+          }
+        ];
+
+        # Run before context compaction — emergency save
+        PreCompact = [
+          {
+            matcher = "";
+            hooks = [
+              {
+                type = "command";
+                command = "${packages.mempalace}/bin/mempalace hook run --hook precompact --harness claude-code";
+                timeout = 30000;
+                statusMessage = "MemPalace pre-compact save...";
               }
             ];
           }

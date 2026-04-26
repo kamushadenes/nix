@@ -26,6 +26,7 @@ let
     "playwriter"
     "firecrawl-mcp"
     "iniciador-vanta"
+    "mempalace"
   ];
 
   # Resource directories
@@ -282,6 +283,7 @@ in
   # Darwin uses homebrew (added in brew.nix), Linux uses nixpkgs
   home.packages = [
     packages.rtk # Enables the bundled RTK OpenCode plugin.
+    packages.mempalace # Local-first AI memory palace (mempalace + mempalace-mcp)
   ]
   ++ lib.optionals (!pkgs.stdenv.isDarwin) [
     pkgs.opencode
