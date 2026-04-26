@@ -142,6 +142,13 @@ let
       };
     };
 
+    # MemPalace - Local-first AI memory palace (19 MCP tools)
+    mempalace = {
+      transport = "stdio";
+      command = "mempalace-mcp";
+      args = [ ];
+    };
+
     # Note: clickup and vanta moved to private/home/common/ai/mcp-servers-private.nix
     # as iniciador-clickup and iniciador-vanta (workspace-scoped)
   };
@@ -156,6 +163,7 @@ let
     "deepwiki"
     "Ref"
     "playwriter"
+    "mempalace"
   ];
 
   #############################################################################

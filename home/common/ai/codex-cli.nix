@@ -27,6 +27,7 @@ let
     "Ref"
     "playwriter"
     "firecrawl-mcp"
+    "mempalace"
     # Codex-specific
     "repomix"
     "godoc"
@@ -173,6 +174,18 @@ let
             }
           ];
         }
+        # MemPalace session start — load relevant memories
+        {
+          matcher = "*";
+          hooks = [
+            {
+              type = "command";
+              command = "${packages.mempalace}/bin/mempalace hook run --hook session-start --harness codex";
+              timeout = 30;
+              statusMessage = "MemPalace session start...";
+            }
+          ];
+        }
       ];
 
       Stop = [
@@ -183,6 +196,33 @@ let
               command = "~/.codex/hooks/stop-format-and-lint.sh";
               timeout = 60;
               statusMessage = "Formatting modified files";
+            }
+          ];
+        }
+        # MemPalace auto-save
+        {
+          matcher = "*";
+          hooks = [
+            {
+              type = "command";
+              command = "${packages.mempalace}/bin/mempalace hook run --hook stop --harness codex";
+              timeout = 30;
+              statusMessage = "MemPalace auto-save...";
+            }
+          ];
+        }
+      ];
+
+      PreCompact = [
+        # MemPalace emergency save before compaction
+        {
+          matcher = "*";
+          hooks = [
+            {
+              type = "command";
+              command = "${packages.mempalace}/bin/mempalace hook run --hook precompact --harness codex";
+              timeout = 30;
+              statusMessage = "MemPalace pre-compact save...";
             }
           ];
         }
@@ -307,6 +347,7 @@ in
     pkgs-unstable.codex
     codexReview
     packages.rtk # Matches the shared RTK rules in AGENTS.md.
+    packages.mempalace # Local-first AI memory palace (mempalace + mempalace-mcp)
     pkgs.nodePackages.prettier # Markdown/TypeScript formatting
     pkgs.ruff # Python formatting
   ];

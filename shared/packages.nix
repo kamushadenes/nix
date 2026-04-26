@@ -236,6 +236,36 @@ let
       unwrapped;
 
 
+  # mempalace - Local-first AI memory palace
+  # Python application from PyPI, depends on chromadb (vector store)
+  mempalace = pkgs.python3Packages.buildPythonApplication rec {
+    pname = "mempalace";
+    version = "3.3.3";
+    pyproject = true;
+
+    src = pkgs.fetchPypi {
+      inherit pname version;
+      hash = "sha256-ttMVcabQIb7kKOQBmO61xXQohfsXLSSDvbtjoaFFhIc=";
+    };
+
+    build-system = with pkgs.python3Packages; [ hatchling ];
+
+    dependencies = with pkgs.python3Packages; [
+      chromadb
+      pyyaml
+      tomli
+    ];
+
+    doCheck = false;
+
+    meta = {
+      description = "Local-first AI memory — mine projects and conversations into a searchable palace";
+      homepage = "https://github.com/MemPalace/mempalace";
+      license = lib.licenses.mit;
+      mainProgram = "mempalace";
+    };
+  };
+
   # Script to prepare a remote machine for this nix configuration
   # Copies age key, SSH key, creates nix.conf, clones repos, and provides activation instructions
   nix-remote-setup = pkgs.writeScriptBin "nix-remote-setup" ''
@@ -360,6 +390,7 @@ in
     rtk
     better-ccflare
     pve-exporter-go
+    mempalace
     nix-remote-setup
     ;
 }
