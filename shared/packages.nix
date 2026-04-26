@@ -250,6 +250,10 @@ let
 
     build-system = with pkgs.python3Packages; [ hatchling ];
 
+    # Wheel pins chromadb<2,>=1.5.4 but nixpkgs ships 1.3.5; API surface used
+    # by mempalace is stable across this range, so relax the lower bound.
+    pythonRelaxDeps = [ "chromadb" ];
+
     dependencies = with pkgs.python3Packages; [
       chromadb
       pyyaml
