@@ -23,6 +23,17 @@
 let
   goclaw-home = "/var/lib/goclaw";
   goclaw-app = "${goclaw-home}/app";
+  # Musl variant of clickup-cli. Goclaw's GitHub Packages installer (configured
+  # via the dashboard) downloads the glibc tar by default, which fails to link
+  # against the sandbox's bookworm-slim glibc. We overwrite the binary in the
+  # shared `app_goclaw-data` volume after install; the sandbox Dockerfile bake
+  # is masked by the volume mount so it cannot be the fix.
+  goclaw-clickup-version = "v0.9.1";
+  goclaw-clickup-musl-url = "https://github.com/nicholasbester/clickup-cli/releases/download/${goclaw-clickup-version}/clickup-linux-x86_64-musl.tar.gz";
+  goclaw-clickup-musl-tar-sha256 = "1569561aeb67eded9c2e8a93b2301ab7f7beaffdecb9684f8ff0a991c9c24684";
+  goclaw-clickup-musl-bin-sha256 = "da85b728b2dde96c8c708ca6801ac11d0ee169f55c3575b0c9e83df3ece89b83";
+  goclaw-clickup-musl-tar-bytes = 5421629;
+  goclaw-data-vol = "/var/lib/docker/volumes/app_goclaw-data/_data";
   # Fork (dev branch) with fixes for sandbox @ naming (#1031), stateless cron
   # reset (#1032), and credentialed CLI chain exec (#1033). Tracks dev branch
   # for latest features. Switch back to upstream after PRs merge.
@@ -43,6 +54,21 @@ let
         environment:
           - GOCLAW_SANDBOX_NETWORK=true
           - GOCLAW_SANDBOX_IMAGE=goclaw-sandbox:custom
+  '';
+  # Persist /app/.google_workspace_mcp/ across container recreations. Without
+  # this, the OAuth credential store (created by `uvx workspace-mcp` under the
+  # goclaw user) lives in the writable layer and is wiped every time
+  # docker compose --build recreates the container, forcing re-auth.
+  # Bind-mount instead of named volume so host-side tmpfiles can pre-create
+  # the dir with goclaw:goclaw (1000:1000) ownership — anonymous volumes
+  # bind-mounted to a path absent from the image come up root-owned and the
+  # non-root goclaw user inside the container cannot write to them.
+  goclaw-mcp-creds-host = "${goclaw-home}/mcp-creds/google_workspace_mcp";
+  goclaw-mcp-creds-override = pkgs.writeText "docker-compose.mcp-creds.yml" ''
+    services:
+      goclaw:
+        volumes:
+          - ${goclaw-mcp-creds-host}:/app/.google_workspace_mcp
   '';
   # Custom sandbox Dockerfile with CLIs pre-installed (gh, gcloud, vt, fleetctl).
   goclaw-sandbox-dockerfile = pkgs.writeText "Dockerfile.sandbox.custom" ''
@@ -76,12 +102,9 @@ let
       && /opt/google-cloud-sdk/install.sh --quiet --usage-reporting=false --path-update=false \
       && ln -s /opt/google-cloud-sdk/bin/gcloud /usr/local/bin/gcloud
 
-    # ClickUp CLI (nicholasbester/clickup-cli) — installed at /app/data/.runtime/bin/
-    # to match the Binary Path configured in GoClaw's Credentialed CLI settings
-    RUN mkdir -p /app/data/.runtime/bin \
-      && curl -fsSL https://github.com/nicholasbester/clickup-cli/releases/latest/download/clickup-linux-x86_64-musl.tar.gz \
-        | tar -xz -C /app/data/.runtime/bin/ \
-      && chmod +x /app/data/.runtime/bin/clickup
+    # ClickUp CLI install removed: /app/data is bind-mounted from the
+    # `app_goclaw-data` volume at runtime, masking anything baked here.
+    # The musl swap is handled by the host-side goclaw-clickup-musl.service.
 
     # VirusTotal CLI
     RUN VT_VERSION=$(curl -fsSL https://api.github.com/repos/VirusTotal/vt-cli/releases/latest | jq -r .tag_name) \
@@ -111,6 +134,7 @@ let
     "-f docker-compose.redis.yml"
     "-f ${goclaw-sandbox-overrides}"
     "-f ${goclaw-healthcheck-override}"
+    "-f ${goclaw-mcp-creds-override}"
   ];
 in
 {
@@ -290,9 +314,84 @@ in
     ];
   };
 
+  # Replace clickup with musl variant after goclaw installs the glibc default.
+  # Idempotent: skips when the binary already matches the pinned musl sha.
+  # Also rewrites github-packages.json so goclaw's verifier sees a consistent
+  # asset URL/sha pair and does not attempt to re-download the glibc tar.
+  systemd.services.goclaw-clickup-musl = {
+    description = "Replace goclaw clickup binary with musl variant";
+    after = [ "goclaw.service" ];
+    wants = [ "goclaw.service" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    path = [
+      pkgs.curl
+      pkgs.coreutils
+      pkgs.gnutar
+      pkgs.gzip
+      pkgs.jq
+    ];
+
+    script = ''
+      set -euo pipefail
+
+      bin=${goclaw-data-vol}/.runtime/bin/clickup
+      manifest=${goclaw-data-vol}/.runtime/github-packages.json
+      target_sha="${goclaw-clickup-musl-bin-sha256}"
+
+      for _ in $(seq 1 60); do
+        [ -f "$bin" ] && break
+        sleep 2
+      done
+      if [ ! -f "$bin" ]; then
+        echo "clickup not yet installed by goclaw; nothing to replace"
+        exit 0
+      fi
+
+      cur_sha=$(sha256sum "$bin" | awk '{print $1}')
+      if [ "$cur_sha" = "$target_sha" ]; then
+        echo "clickup already musl variant ($target_sha)"
+      else
+        tmp=$(mktemp -d)
+        trap 'rm -rf "$tmp"' EXIT
+        curl -fsSL "${goclaw-clickup-musl-url}" -o "$tmp/clickup.tar.gz"
+        tar -xzf "$tmp/clickup.tar.gz" -C "$tmp"
+        install -m 0755 -o 1000 -g 1000 "$tmp/clickup" "$bin"
+        echo "clickup replaced with musl variant"
+      fi
+
+      if [ -f "$manifest" ]; then
+        jq \
+          --arg url "${goclaw-clickup-musl-url}" \
+          --arg sha "${goclaw-clickup-musl-tar-sha256}" \
+          --arg name "clickup-linux-x86_64-musl.tar.gz" \
+          --argjson size ${toString goclaw-clickup-musl-tar-bytes} \
+          '(.packages[] | select(.name=="clickup")) |= (.asset_url=$url | .sha256=$sha | .asset_name=$name | .asset_size_bytes=$size)' \
+          "$manifest" > "$manifest.new"
+        if ! cmp -s "$manifest.new" "$manifest"; then
+          mv "$manifest.new" "$manifest"
+          chown 1000:1000 "$manifest"
+          chmod 0644 "$manifest"
+          echo "github-packages.json updated to musl asset"
+        else
+          rm -f "$manifest.new"
+        fi
+      fi
+    '';
+  };
+
   # Data directory (compose volumes live under /var/lib/docker)
   systemd.tmpfiles.rules = [
     "d ${goclaw-home} 0750 goclaw goclaw -"
+    # Persistent OAuth credential store for google_workspace_mcp; bind-mounted
+    # into the goclaw container at /app/.google_workspace_mcp.
+    "d ${goclaw-home}/mcp-creds 0750 goclaw goclaw -"
+    "d ${goclaw-mcp-creds-host} 0750 goclaw goclaw -"
   ];
 
   # SSH: allow root login for remote deployment (headless role doesn't import minimal.nix)
