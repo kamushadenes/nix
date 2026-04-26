@@ -344,6 +344,14 @@
           machine = "w-henrique.hyades.io";
           role = "workstation";
         };
+        macbook-pro = mkDarwinHost {
+          machine = "macbook-pro.hyades.io";
+          role = "workstation";
+        };
+        "macbook pro" = mkDarwinHost {
+          machine = "macbook-pro.hyades.io";
+          role = "workstation";
+        };
       };
 
       nixosConfigurations = {

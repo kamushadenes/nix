@@ -13,15 +13,15 @@
     knownGroups = [ "brewers" ];
     users = lib.mkMerge [
       {
-        homebrew = {
-          uid = 555;
-          gid = 555;
-          name = "homebrew";
-          home = "/opt/homebrew";
-          shell = pkgs.zsh;
-          createHome = false;
-          isHidden = true;
-        };
+       homebrew = {
+         uid = 555;
+         gid = 555;
+         name = "homebrew";
+         home = "/opt/homebrew";
+         shell = pkgs.zsh;
+         createHome = false;
+         isHidden = true;
+       };
         kamushadenes = {
           name = "kamushadenes";
           home = "/Users/kamushadenes";
