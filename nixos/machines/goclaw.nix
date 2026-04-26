@@ -70,6 +70,16 @@ let
         volumes:
           - ${goclaw-mcp-creds-host}:/app/.google_workspace_mcp
   '';
+  # Expose google_workspace_mcp OAuth callback ports. workspace-mcp binds
+  # 48888/48889 (one per configured tenant: iniciador, hadenes) only while an
+  # OAuth flow is active; the publish is harmless when the listener is absent.
+  goclaw-mcp-ports-override = pkgs.writeText "docker-compose.mcp-ports.yml" ''
+    services:
+      goclaw:
+        ports:
+          - "48888:48888"
+          - "48889:48889"
+  '';
   # Custom sandbox Dockerfile with CLIs pre-installed (gh, gcloud, vt, fleetctl).
   goclaw-sandbox-dockerfile = pkgs.writeText "Dockerfile.sandbox.custom" ''
     FROM debian:bookworm-slim
@@ -135,6 +145,7 @@ let
     "-f ${goclaw-sandbox-overrides}"
     "-f ${goclaw-healthcheck-override}"
     "-f ${goclaw-mcp-creds-override}"
+    "-f ${goclaw-mcp-ports-override}"
   ];
 in
 {
