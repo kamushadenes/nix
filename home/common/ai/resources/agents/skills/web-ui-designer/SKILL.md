@@ -34,13 +34,7 @@ Before building, determine the rendering approach:
 
 ## Project Theme
 
-If the project belongs to a known product, load its theme reference **before** designing anything. The theme overrides the generic tokens below — use the theme's colors, typography, spacing, and components as the source of truth.
-
-| Project | Theme Reference | Detection |
-|-|-|-|
-| Iniciador | [references/iniciador-theme.md](references/iniciador-theme.md) | Repo org is `Iniciador/` or `Iniciador-de-Pagamentos/`, or `ini-` CSS tokens present, or user mentions Iniciador |
-
-When a theme is loaded, skip the generic "Define Tokens First" section below — the theme already provides the complete token set.
+If the project belongs to a known product with a dedicated design-system skill installed alongside this one, prefer that skill's tokens, typography, spacing, and components as the source of truth instead of the generic tokens below.
 
 ## Design System Foundation
 
