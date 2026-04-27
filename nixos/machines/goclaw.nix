@@ -284,8 +284,8 @@ in
       User = "goclaw";
       Group = "goclaw";
       WorkingDirectory = goclaw-app;
-      # Build custom sandbox image with CLIs if not already present.
-      # +prefix runs as root — docker build needs socket access.
+      # Build custom sandbox image and reap orphan sandbox containers.
+      # +prefix runs as root — docker build/rm need socket access.
       ExecStartPre =
         "+"
         + (pkgs.writeShellScript "goclaw-build-sandbox-image" ''
@@ -296,6 +296,18 @@ in
           # docker build runs as root and creates ~/.docker/buildx/ root-owned.
           # Chown so the goclaw user (ExecStart) can write buildx activity logs.
           ${pkgs.coreutils}/bin/chown -R goclaw:goclaw ${goclaw-home}/.docker 2>/dev/null || true
+          # Reap orphan sandbox containers from prior goclaw process. Upstream
+          # sandbox manager keeps an in-memory map only; on restart, deterministic-
+          # named containers (agent/session scope) collide with the existing ones
+          # and `docker run --name X` fails with "Conflict. The container name is
+          # already in use". Pruning in upstream walks the in-memory map only,
+          # so orphans are never reclaimed. Nuking them here is safe — the new
+          # goclaw process will recreate them on demand.
+          orphans=$(${pkgs.docker}/bin/docker ps -aq --filter label=goclaw.sandbox=true)
+          if [ -n "$orphans" ]; then
+            echo "Reaping $(echo "$orphans" | wc -l) orphan sandbox container(s)..."
+            echo "$orphans" | ${pkgs.findutils}/bin/xargs ${pkgs.docker}/bin/docker rm -f >/dev/null 2>&1 || true
+          fi
         '');
       # --build is required because the claude-cli overlay flips the
       # ENABLE_CLAUDE_CLI build arg, so the image must be built locally.
