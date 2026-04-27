@@ -96,7 +96,7 @@ let
     "playwriter"
     "firecrawl-mcp"
     "iniciador-vanta"
-    "mempalace"
+    # mempalace MCP comes from mempalace@mempalace plugin (see enabledPlugins)
   ];
 
 in
@@ -405,6 +405,7 @@ in
       #   claude-code-workflows    -> modelcontextprotocol/workflows
       #   agent-security           -> (third-party security plugins)
       #   omc                      -> Yeachan-Heo/oh-my-claudecode
+      #   mempalace                -> MemPalace/mempalace
       #
       # Plugin format: "plugin-name@marketplace-name" = true|false
       enabledPlugins = {
@@ -419,6 +420,7 @@ in
         "claude-code-wakatime@wakatime" = true;
         "safety-net@cc-marketplace" = true;
         "oh-my-claudecode@omc" = true;
+        "mempalace@mempalace" = true;
       };
     };
   };
