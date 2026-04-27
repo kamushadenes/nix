@@ -33,6 +33,15 @@ let
   goclaw-clickup-musl-tar-sha256 = "1569561aeb67eded9c2e8a93b2301ab7f7beaffdecb9684f8ff0a991c9c24684";
   goclaw-clickup-musl-bin-sha256 = "da85b728b2dde96c8c708ca6801ac11d0ee169f55c3575b0c9e83df3ece89b83";
   goclaw-clickup-musl-tar-bytes = 5421629;
+  # Pinned google-cloud-sdk install. The default `gcloud` shim in the goclaw
+  # image is a docker-run wrapper that breaks in the sandbox (no docker
+  # socket). We replace it with the real SDK extracted into the shared
+  # `app_goclaw-data` volume so main and sandbox both run the same binary
+  # at the same path. Alpine compatibility relies on `gcompat` and the
+  # system python3 (CLOUDSDK_PYTHON) — bundled CPython is glibc-only.
+  goclaw-gcloud-version = "565.0.0";
+  goclaw-gcloud-url = "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${goclaw-gcloud-version}-linux-x86_64.tar.gz";
+  goclaw-gcloud-tar-sha256 = "733e3640b5892baecd997474cb1b2cfe80204b6584c64166c3d78bae3f1108c3";
   goclaw-data-vol = "/var/lib/docker/volumes/app_goclaw-data/_data";
   # Fork (dev branch) with fixes for sandbox @ naming (#1031), stateless cron
   # reset (#1032), and credentialed CLI chain exec (#1033). Tracks dev branch
@@ -80,54 +89,46 @@ let
           - "48888:48888"
           - "48889:48889"
   '';
-  # Custom sandbox Dockerfile with CLIs pre-installed (gh, gcloud, vt, fleetctl).
+  # Custom sandbox Dockerfile with CLIs pre-installed (gh, gcloud, vt, fleetctl,
+  # agent-slack). Alpine base matches the main goclaw container (musl) so
+  # binaries shared via the `app_goclaw-data` volume mount link consistently
+  # against the same libc — no glibc/musl divergence between host and sandbox.
   goclaw-sandbox-dockerfile = pkgs.writeText "Dockerfile.sandbox.custom" ''
-    FROM debian:bookworm-slim
+    FROM alpine:3.23
 
-    ENV DEBIAN_FRONTEND=noninteractive
+    # Core tooling. github-cli lives in community repo (enabled by default).
+    # gcompat provides glibc symbols for binaries built against glibc (e.g. vt
+    # from the volume). Matches the main goclaw container's compat layer.
+    RUN apk add --no-cache \
+        bash ca-certificates curl git jq python3 py3-pip ripgrep \
+        gnupg unzip nodejs npm openssh-client-default \
+        github-cli shadow gcompat
 
-    RUN apt-get update \
-      && apt-get install -y --no-install-recommends \
-        bash ca-certificates curl git jq python3 python3-pip ripgrep \
-        gnupg unzip nodejs npm openssh-client \
-      && rm -rf /var/lib/apt/lists/*
-
-    # GitHub CLI
-    RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-        | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-      && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-        > /etc/apt/sources.list.d/github-cli.list \
-      && apt-get update && apt-get install -y --no-install-recommends gh \
-      && rm -rf /var/lib/apt/lists/*
-
-    # FleetCtl (fleetdm/fleet) — direct binary, npm wrapper broken for non-root
+    # FleetCtl (fleetdm/fleet) — Go static binary, works on musl
     RUN FLEET_TAG=$(curl -fsSL https://api.github.com/repos/fleetdm/fleet/releases/latest | jq -r .tag_name) \
       && curl -fsSL "https://github.com/fleetdm/fleet/releases/download/$FLEET_TAG/fleetctl_''${FLEET_TAG#fleet-}_linux_amd64.tar.gz" \
         | tar -xz -C /usr/local/bin/ --strip-components=1 \
       && chmod +x /usr/local/bin/fleetctl
 
-    # Google Cloud SDK (standalone tar, no apt repo needed)
-    RUN curl -fsSL https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz \
-        | tar -xz -C /opt \
-      && /opt/google-cloud-sdk/install.sh --quiet --usage-reporting=false --path-update=false \
-      && ln -s /opt/google-cloud-sdk/bin/gcloud /usr/local/bin/gcloud
+    # ClickUp / VirusTotal (vt) / vanta-cli / rtk / gcloud bake removed:
+    # those binaries live in /app/data/.runtime/bin in the main container's
+    # `app_goclaw-data` volume, which is bind-mounted into every sandbox
+    # container (read-only). Now that the sandbox base matches main's libc,
+    # the volume binaries link cleanly in the sandbox — no redundant bake.
+    # Host-side services replace two of these with sandbox-friendly variants:
+    #   - goclaw-clickup-musl.service swaps the glibc clickup tar for musl.
+    #   - goclaw-gcloud-real.service swaps the docker-run wrapper for the
+    #     real Google Cloud SDK so the sandbox (which has no docker socket)
+    #     can run `gcloud` directly.
 
-    # ClickUp CLI install removed: /app/data is bind-mounted from the
-    # `app_goclaw-data` volume at runtime, masking anything baked here.
-    # The musl swap is handled by the host-side goclaw-clickup-musl.service.
-
-    # VirusTotal CLI
-    RUN VT_VERSION=$(curl -fsSL https://api.github.com/repos/VirusTotal/vt-cli/releases/latest | jq -r .tag_name) \
-      && curl -fsSL "https://github.com/VirusTotal/vt-cli/releases/download/''${VT_VERSION}/Linux64.zip" -o /tmp/vt.zip \
-      && unzip -o /tmp/vt.zip -d /usr/local/bin/ && chmod +x /usr/local/bin/vt && rm /tmp/vt.zip
-
-    # agent-slack (Slack automation CLI, Bun-compiled standalone binary)
+    # agent-slack (Slack automation CLI, Bun-compiled). Use musl variant
+    # to match Alpine libc.
     RUN AS_VERSION=$(curl -fsSL https://api.github.com/repos/stablyai/agent-slack/releases/latest | jq -r .tag_name) \
-      && curl -fsSL "https://github.com/stablyai/agent-slack/releases/download/''${AS_VERSION}/agent-slack-linux-x64" \
+      && curl -fsSL "https://github.com/stablyai/agent-slack/releases/download/''${AS_VERSION}/agent-slack-linux-x64-musl" \
         -o /usr/local/bin/agent-slack \
       && curl -fsSL "https://github.com/stablyai/agent-slack/releases/download/''${AS_VERSION}/checksums-sha256.txt" \
         -o /tmp/agent-slack-sums.txt \
-      && expected=$(awk '$2 == "agent-slack-linux-x64" {print $1; exit}' /tmp/agent-slack-sums.txt) \
+      && expected=$(awk '$2 == "agent-slack-linux-x64-musl" {print $1; exit}' /tmp/agent-slack-sums.txt) \
       && echo "$expected  /usr/local/bin/agent-slack" | sha256sum -c - \
       && chmod +x /usr/local/bin/agent-slack \
       && rm /tmp/agent-slack-sums.txt
@@ -139,9 +140,17 @@ let
     # (e.g. /app/workspace/uhura/cron/system) resolve in sandbox.
     RUN mkdir -p /app && ln -s /workspace /app/workspace
 
-    RUN useradd --create-home --shell /bin/bash sandbox
+    # `shadow` provides useradd; bash is installed above. Goclaw spawns
+    # sandbox containers with read-only rootfs — only /tmp, /var/tmp and
+    # /workspace are writable. Point both the passwd entry and $HOME at
+    # /tmp so CLIs that read from `os/user.Current()` (e.g. fleetctl
+    # writing ~/.goquery) and CLIs that read $HOME (e.g. gcloud writing
+    # ~/.config) both land on tmpfs instead of crashing with "Read-only
+    # file system". State is ephemeral, which matches the sandbox model.
+    RUN useradd --shell /bin/bash --home-dir /tmp sandbox
     USER sandbox
-    WORKDIR /home/sandbox
+    ENV HOME=/tmp
+    WORKDIR /tmp
 
     CMD ["sleep", "infinity"]
   '';
@@ -300,9 +309,26 @@ in
       ExecStartPre =
         "+"
         + (pkgs.writeShellScript "goclaw-build-sandbox-image" ''
-          if ! ${pkgs.docker}/bin/docker image inspect goclaw-sandbox:custom >/dev/null 2>&1; then
-            echo "Building custom sandbox image..."
-            ${pkgs.docker}/bin/docker build -t goclaw-sandbox:custom -f ${goclaw-sandbox-dockerfile} ${goclaw-app}
+          # Rebuild whenever the Dockerfile content changes. The nix store path
+          # of goclaw-sandbox-dockerfile is content-addressed, so we stamp it
+          # as a label on the image and compare on every start. This avoids
+          # the prior bug where docker image inspect would skip rebuilds even
+          # after the Dockerfile changed (e.g. new CLIs added).
+          dockerfile="${goclaw-sandbox-dockerfile}"
+          want_hash=$(${pkgs.coreutils}/bin/sha256sum "$dockerfile" | ${pkgs.coreutils}/bin/cut -d' ' -f1)
+          have_hash=$(${pkgs.docker}/bin/docker image inspect goclaw-sandbox:custom \
+            --format '{{ index .Config.Labels "dockerfile.sha256" }}' 2>/dev/null || true)
+          if [ "$want_hash" != "$have_hash" ]; then
+            echo "Building custom sandbox image (dockerfile sha256=$want_hash)..."
+            # DOCKER_BUILDKIT=0 falls back to the legacy builder. Buildkit on
+            # this LXC fails to resolve the image registry credentials store
+            # (no DBus secret service available); the legacy builder reads
+            # /root/.docker/config.json directly and works headlessly.
+            DOCKER_BUILDKIT=0 ${pkgs.docker}/bin/docker build \
+              --label "dockerfile.sha256=$want_hash" \
+              -t goclaw-sandbox:custom \
+              -f "$dockerfile" \
+              ${goclaw-app}
           fi
           # docker build runs as root and creates ~/.docker/buildx/ root-owned.
           # Chown so the goclaw user (ExecStart) can write buildx activity logs.
@@ -416,6 +442,83 @@ in
         else
           rm -f "$manifest.new"
         fi
+      fi
+    '';
+  };
+
+  # Replace goclaw's docker-run gcloud wrapper with the real Google Cloud SDK.
+  # The default wrapper at /app/data/.runtime/bin/gcloud spawns the gcloud
+  # docker image — fine in the main container (which has /var/run/docker.sock)
+  # but broken inside sandboxes (no docker socket, by design). Extract the
+  # real SDK into the shared volume and replace the wrapper with a thin shim
+  # that uses Alpine's system python (CLOUDSDK_PYTHON). gcompat in both
+  # containers handles glibc-linked SDK helpers. Idempotent: skips when the
+  # SDK directory already reports the pinned version.
+  systemd.services.goclaw-gcloud-real = {
+    description = "Replace goclaw gcloud docker-wrapper with real SDK";
+    after = [ "goclaw.service" ];
+    wants = [ "goclaw.service" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    path = [
+      pkgs.curl
+      pkgs.coreutils
+      pkgs.gnutar
+      pkgs.gzip
+    ];
+
+    script = ''
+      set -euo pipefail
+
+      sdk_dir=${goclaw-data-vol}/.runtime/google-cloud-sdk
+      shim=${goclaw-data-vol}/.runtime/bin/gcloud
+      target_version="${goclaw-gcloud-version}"
+
+      for _ in $(seq 1 60); do
+        [ -d "${goclaw-data-vol}/.runtime/bin" ] && break
+        sleep 2
+      done
+      if [ ! -d "${goclaw-data-vol}/.runtime/bin" ]; then
+        echo ".runtime/bin not present yet; nothing to do"
+        exit 0
+      fi
+
+      current_version=""
+      [ -f "$sdk_dir/VERSION" ] && current_version=$(cat "$sdk_dir/VERSION")
+      if [ "$current_version" != "$target_version" ]; then
+        echo "Installing google-cloud-sdk $target_version (current: ''${current_version:-none})..."
+        tmp=$(mktemp -d)
+        trap 'rm -rf "$tmp"' EXIT
+        curl -fsSL "${goclaw-gcloud-url}" -o "$tmp/sdk.tar.gz"
+        echo "${goclaw-gcloud-tar-sha256}  $tmp/sdk.tar.gz" | sha256sum -c -
+        rm -rf "$sdk_dir"
+        mkdir -p "$sdk_dir"
+        tar -xzf "$tmp/sdk.tar.gz" -C "$sdk_dir" --strip-components=1
+        echo "$target_version" > "$sdk_dir/VERSION"
+        chown -R 1000:1000 "$sdk_dir"
+        echo "google-cloud-sdk installed at $target_version"
+      else
+        echo "google-cloud-sdk already at $target_version"
+      fi
+
+      shim_content='#!/bin/sh
+exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bin/gcloud "$@"'
+      desired_sha=$(printf '%s\n' "$shim_content" | sha256sum | cut -d' ' -f1)
+      current_sha=""
+      [ -f "$shim" ] && current_sha=$(sha256sum "$shim" | cut -d' ' -f1)
+      if [ "$desired_sha" != "$current_sha" ]; then
+        printf '%s\n' "$shim_content" > "$shim.new"
+        chmod 0755 "$shim.new"
+        chown 1000:1000 "$shim.new"
+        mv "$shim.new" "$shim"
+        echo "gcloud shim updated"
+      else
+        echo "gcloud shim already up to date"
       fi
     '';
   };
