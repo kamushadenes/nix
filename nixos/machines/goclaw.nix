@@ -140,10 +140,17 @@ let
     # (e.g. /app/workspace/uhura/cron/system) resolve in sandbox.
     RUN mkdir -p /app && ln -s /workspace /app/workspace
 
-    # `shadow` provides useradd; bash is installed above
-    RUN useradd --create-home --shell /bin/bash sandbox
+    # `shadow` provides useradd; bash is installed above. Goclaw spawns
+    # sandbox containers with read-only rootfs — only /tmp, /var/tmp and
+    # /workspace are writable. Point both the passwd entry and $HOME at
+    # /tmp so CLIs that read from `os/user.Current()` (e.g. fleetctl
+    # writing ~/.goquery) and CLIs that read $HOME (e.g. gcloud writing
+    # ~/.config) both land on tmpfs instead of crashing with "Read-only
+    # file system". State is ephemeral, which matches the sandbox model.
+    RUN useradd --shell /bin/bash --home-dir /tmp sandbox
     USER sandbox
-    WORKDIR /home/sandbox
+    ENV HOME=/tmp
+    WORKDIR /tmp
 
     CMD ["sleep", "infinity"]
   '';
