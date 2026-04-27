@@ -117,7 +117,7 @@ tool to work end-to-end, ALL of these must be satisfied:
    the old image (`docker rmi goclaw-sandbox:custom`) and restart
    `goclaw.service`. The `ExecStartPre` rebuilds it automatically.
 
-**Current sandbox CLIs:** `gh`, `clickup`, `gcloud`, `vt`, `fleetctl`
+**Current sandbox CLIs:** `gh`, `clickup`, `gcloud`, `vt`, `fleetctl`, `agent-slack`
 
 ## OpenChamber (Remote AI IDE)
 

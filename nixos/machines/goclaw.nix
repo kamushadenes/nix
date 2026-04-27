@@ -121,6 +121,17 @@ let
       && curl -fsSL "https://github.com/VirusTotal/vt-cli/releases/download/''${VT_VERSION}/Linux64.zip" -o /tmp/vt.zip \
       && unzip -o /tmp/vt.zip -d /usr/local/bin/ && chmod +x /usr/local/bin/vt && rm /tmp/vt.zip
 
+    # agent-slack (Slack automation CLI, Bun-compiled standalone binary)
+    RUN AS_VERSION=$(curl -fsSL https://api.github.com/repos/stablyai/agent-slack/releases/latest | jq -r .tag_name) \
+      && curl -fsSL "https://github.com/stablyai/agent-slack/releases/download/''${AS_VERSION}/agent-slack-linux-x64" \
+        -o /usr/local/bin/agent-slack \
+      && curl -fsSL "https://github.com/stablyai/agent-slack/releases/download/''${AS_VERSION}/checksums-sha256.txt" \
+        -o /tmp/agent-slack-sums.txt \
+      && expected=$(awk '$2 == "agent-slack-linux-x64" {print $1; exit}' /tmp/agent-slack-sums.txt) \
+      && echo "$expected  /usr/local/bin/agent-slack" | sha256sum -c - \
+      && chmod +x /usr/local/bin/agent-slack \
+      && rm /tmp/agent-slack-sums.txt
+
     # Runtime bin dir in PATH for credentialed exec resolution
     ENV PATH="/app/data/.runtime/bin:$PATH"
 
