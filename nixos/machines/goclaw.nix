@@ -587,7 +587,9 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       current_sha=""
       [ -f "$dest" ] && current_sha=$(sha256sum "$dest" | cut -d' ' -f1)
       if [ "$desired_sha" != "$current_sha" ]; then
-        install -m 0644 -o 1000 -g 1000 "$src" "$dest"
+        # 0600 required by fleetctl; sandbox rootfs is read-only so
+        # `fleetctl` cannot self-chmod after the fact.
+        install -m 0600 -o 1000 -g 1000 "$src" "$dest"
         echo "fleetctl config materialized at $dest"
       else
         echo "fleetctl config already up to date"
