@@ -89,10 +89,13 @@ let
           - "48888:48888"
           - "48889:48889"
   '';
-  # Custom sandbox Dockerfile with CLIs pre-installed (gh, gcloud, vt, fleetctl,
-  # agent-slack). Alpine base matches the main goclaw container (musl) so
-  # binaries shared via the `app_goclaw-data` volume mount link consistently
-  # against the same libc — no glibc/musl divergence between host and sandbox.
+  # Custom sandbox Dockerfile. Alpine base matches the main goclaw container
+  # (musl) so binaries shared via the `app_goclaw-data` volume mount link
+  # consistently against the same libc — no glibc/musl divergence between
+  # host and sandbox. The image only bakes core tooling (bash, git, jq,
+  # python3, node, etc.) plus the apk `github-cli` package; every other
+  # CLI (gcloud, vt, clickup, vanta-cli, rtk, fleetctl, agent-slack, …)
+  # ships through the shared volume from goclaw's dashboard installer.
   goclaw-sandbox-dockerfile = pkgs.writeText "Dockerfile.sandbox.custom" ''
     FROM alpine:3.23
 
@@ -104,37 +107,27 @@ let
         gnupg unzip nodejs npm openssh-client-default \
         github-cli shadow gcompat
 
-    # FleetCtl (fleetdm/fleet) — Go static binary, works on musl
-    RUN FLEET_TAG=$(curl -fsSL https://api.github.com/repos/fleetdm/fleet/releases/latest | jq -r .tag_name) \
-      && curl -fsSL "https://github.com/fleetdm/fleet/releases/download/$FLEET_TAG/fleetctl_''${FLEET_TAG#fleet-}_linux_amd64.tar.gz" \
-        | tar -xz -C /usr/local/bin/ --strip-components=1 \
-      && chmod +x /usr/local/bin/fleetctl
+    # No CLI bakes beyond `gh` (the apk package above): every other CLI
+    # we run in the sandbox is delivered through the `app_goclaw-data`
+    # volume mounted at /app/data, populated by the goclaw dashboard's
+    # CLI Tools installer (Node Packages → /app/data/.runtime/npm-global,
+    # GitHub Binaries → /app/data/.runtime/bin). Now that the sandbox base
+    # matches main's libc and `HOME=/tmp` lets non-root npm wrappers write
+    # their per-user state to tmpfs, those volume binaries run cleanly —
+    # baking duplicates them and ages out independently.
+    #
+    # Host-side services patch two volume binaries that goclaw's installer
+    # ships in a sandbox-incompatible form:
+    #   - goclaw-clickup-musl.service swaps the glibc clickup tar for the
+    #     musl variant.
+    #   - goclaw-gcloud-real.service replaces the default docker-run gcloud
+    #     wrapper with the real Google Cloud SDK so the sandbox (which has
+    #     no docker socket) can run `gcloud` directly.
 
-    # ClickUp / VirusTotal (vt) / vanta-cli / rtk / gcloud bake removed:
-    # those binaries live in /app/data/.runtime/bin in the main container's
-    # `app_goclaw-data` volume, which is bind-mounted into every sandbox
-    # container (read-only). Now that the sandbox base matches main's libc,
-    # the volume binaries link cleanly in the sandbox — no redundant bake.
-    # Host-side services replace two of these with sandbox-friendly variants:
-    #   - goclaw-clickup-musl.service swaps the glibc clickup tar for musl.
-    #   - goclaw-gcloud-real.service swaps the docker-run wrapper for the
-    #     real Google Cloud SDK so the sandbox (which has no docker socket)
-    #     can run `gcloud` directly.
-
-    # agent-slack (Slack automation CLI, Bun-compiled). Use musl variant
-    # to match Alpine libc.
-    RUN AS_VERSION=$(curl -fsSL https://api.github.com/repos/stablyai/agent-slack/releases/latest | jq -r .tag_name) \
-      && curl -fsSL "https://github.com/stablyai/agent-slack/releases/download/''${AS_VERSION}/agent-slack-linux-x64-musl" \
-        -o /usr/local/bin/agent-slack \
-      && curl -fsSL "https://github.com/stablyai/agent-slack/releases/download/''${AS_VERSION}/checksums-sha256.txt" \
-        -o /tmp/agent-slack-sums.txt \
-      && expected=$(awk '$2 == "agent-slack-linux-x64-musl" {print $1; exit}' /tmp/agent-slack-sums.txt) \
-      && echo "$expected  /usr/local/bin/agent-slack" | sha256sum -c - \
-      && chmod +x /usr/local/bin/agent-slack \
-      && rm /tmp/agent-slack-sums.txt
-
-    # Runtime bin dir in PATH for credentialed exec resolution
-    ENV PATH="/app/data/.runtime/bin:$PATH"
+    # Runtime bin dirs in PATH for credentialed exec resolution. Both
+    # /app/data/.runtime/bin (GitHub Binaries) and the npm-global bin dir
+    # (Node Packages) come from the shared volume.
+    ENV PATH="/app/data/.runtime/bin:/app/data/.runtime/npm-global/bin:$PATH"
 
     # Symlink /app/workspace → /workspace so main container paths
     # (e.g. /app/workspace/uhura/cron/system) resolve in sandbox.
