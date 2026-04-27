@@ -516,6 +516,87 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
     '';
   };
 
+  # fleetctl bootstrap wrapper. fleetctl reads its server address and auth
+  # token from a config file (~/.fleet/config) and only honours $CONFIG /
+  # $CONTEXT / $DEBUG / $EMAIL / $PASSWORD as env vars — not $FLEET_URL or
+  # $FLEET_TOKEN. Goclaw's CLI Tool credential injection therefore can't
+  # configure fleetctl directly. This service drops a thin shell wrapper at
+  # /app/data/.runtime/bin/fleetctl-wrap that, on each invocation, calls
+  # `fleetctl config set --address $FLEETCTL_ADDRESS --token $FLEETCTL_TOKEN`
+  # against a per-process tmpfs config file before exec'ing the real
+  # fleetctl binary the goclaw dashboard already installed. The dashboard's
+  # CLI Tool entry should set binary_path to fleetctl-wrap and inject
+  # FLEETCTL_ADDRESS / FLEETCTL_TOKEN (optionally FLEETCTL_EMAIL /
+  # FLEETCTL_PASSWORD for password login). Idempotent on the wrapper hash.
+  systemd.services.goclaw-fleetctl-wrap = {
+    description = "Install goclaw fleetctl bootstrap wrapper";
+    after = [ "goclaw.service" ];
+    wants = [ "goclaw.service" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    path = [
+      pkgs.coreutils
+    ];
+
+    script = ''
+      set -euo pipefail
+
+      wrap=${goclaw-data-vol}/.runtime/bin/fleetctl-wrap
+
+      for _ in $(seq 1 60); do
+        [ -d "${goclaw-data-vol}/.runtime/bin" ] && break
+        sleep 2
+      done
+      if [ ! -d "${goclaw-data-vol}/.runtime/bin" ]; then
+        echo ".runtime/bin not present yet; nothing to do"
+        exit 0
+      fi
+
+      desired_content='#!/bin/sh
+# Bootstrap fleetctl config from goclaw-injected env vars, then exec the
+# real fleetctl binary. Managed by goclaw-fleetctl-wrap.service.
+set -eu
+real=/app/data/.runtime/bin/fleetctl
+config_dir="''${HOME:-/tmp}/.fleet"
+config_file="$config_dir/config"
+
+if [ ! -s "$config_file" ] && [ -n "''${FLEETCTL_ADDRESS:-}" ]; then
+  mkdir -p "$config_dir"
+  "$real" config set --address "$FLEETCTL_ADDRESS" --context default >/dev/null 2>&1 || true
+  if [ -n "''${FLEETCTL_TLS_SKIP_VERIFY:-}" ]; then
+    "$real" config set --tls-skip-verify "$FLEETCTL_TLS_SKIP_VERIFY" --context default >/dev/null 2>&1 || true
+  fi
+  if [ -n "''${FLEETCTL_TOKEN:-}" ]; then
+    "$real" config set --token "$FLEETCTL_TOKEN" --context default >/dev/null 2>&1 || true
+  fi
+fi
+
+if [ -z "''${FLEETCTL_TOKEN:-}" ] && [ -n "''${FLEETCTL_EMAIL:-}" ] && [ -n "''${FLEETCTL_PASSWORD:-}" ]; then
+  EMAIL="$FLEETCTL_EMAIL" PASSWORD="$FLEETCTL_PASSWORD" "$real" login >/dev/null 2>&1 || true
+fi
+
+exec "$real" "$@"
+'
+      desired_sha=$(printf '%s' "$desired_content" | sha256sum | cut -d' ' -f1)
+      current_sha=""
+      [ -f "$wrap" ] && current_sha=$(sha256sum "$wrap" | cut -d' ' -f1)
+      if [ "$desired_sha" != "$current_sha" ]; then
+        printf '%s' "$desired_content" > "$wrap.new"
+        chmod 0755 "$wrap.new"
+        chown 1000:1000 "$wrap.new"
+        mv "$wrap.new" "$wrap"
+        echo "fleetctl wrapper updated"
+      else
+        echo "fleetctl wrapper already up to date"
+      fi
+    '';
+  };
+
   # Data directory (compose volumes live under /var/lib/docker)
   systemd.tmpfiles.rules = [
     "d ${goclaw-home} 0750 goclaw goclaw -"
