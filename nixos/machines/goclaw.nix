@@ -167,6 +167,16 @@ in
   # Agenix identity paths for secret decryption
   age.identityPaths = [ "/nix/persist/etc/ssh/ssh_host_ed25519_key" ];
 
+  # Encrypted fleetctl config (YAML) — populated by goclaw-fleetctl-config.service
+  # into the shared volume so the sandbox sees it via $CONFIG.
+  age.secrets."goclaw-fleetctl-config" = {
+    file = "${private}/nixos/secrets/goclaw/fleetctl-config.age";
+    # Default decrypt path /run/agenix/goclaw-fleetctl-config; readable by root.
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+
   # Create goclaw user — needs docker group for running the compose stack
   users.users.goclaw = {
     isNormalUser = true;
@@ -516,22 +526,27 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
     '';
   };
 
-  # fleetctl bootstrap wrapper. fleetctl reads its server address and auth
-  # token from a config file (~/.fleet/config) and only honours $CONFIG /
-  # $CONTEXT / $DEBUG / $EMAIL / $PASSWORD as env vars — not $FLEET_URL or
-  # $FLEET_TOKEN. Goclaw's CLI Tool credential injection therefore can't
-  # configure fleetctl directly. This service drops a thin shell wrapper at
-  # /app/data/.runtime/bin/fleetctl-wrap that, on each invocation, calls
-  # `fleetctl config set --address $FLEETCTL_ADDRESS --token $FLEETCTL_TOKEN`
-  # against a per-process tmpfs config file before exec'ing the real
-  # fleetctl binary the goclaw dashboard already installed. The dashboard's
-  # CLI Tool entry should set binary_path to fleetctl-wrap and inject
-  # FLEETCTL_ADDRESS / FLEETCTL_TOKEN (optionally FLEETCTL_EMAIL /
-  # FLEETCTL_PASSWORD for password login). Idempotent on the wrapper hash.
-  systemd.services.goclaw-fleetctl-wrap = {
-    description = "Install goclaw fleetctl bootstrap wrapper";
-    after = [ "goclaw.service" ];
-    wants = [ "goclaw.service" ];
+  # fleetctl config materializer. fleetctl reads server address and auth
+  # token exclusively from a YAML config file. The only env it honours
+  # are $CONFIG (config file path), $CONTEXT, $DEBUG, $EMAIL, $PASSWORD —
+  # never $FLEET_URL or $FLEET_TOKEN — so goclaw's CLI Tool credential
+  # injection can't configure it directly. Instead, decrypt the agenix
+  # secret containing the full fleetctl config YAML and drop it into the
+  # shared volume at a path the sandbox sees read-only via /app/data.
+  # The dashboard's fleetctl CLI Tool entry should set binary_path to
+  # /app/data/.runtime/bin/fleetctl (the real binary) and inject
+  # CONFIG=/app/data/.runtime/fleet/config; the sandbox tmpfs $HOME stays
+  # untouched. Idempotent on file sha.
+  systemd.services.goclaw-fleetctl-config = {
+    description = "Materialize fleetctl config into goclaw shared volume";
+    after = [
+      "goclaw.service"
+      "agenix.service"
+    ];
+    wants = [
+      "goclaw.service"
+      "agenix.service"
+    ];
     wantedBy = [ "multi-user.target" ];
 
     serviceConfig = {
@@ -546,53 +561,36 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
     script = ''
       set -euo pipefail
 
-      wrap=${goclaw-data-vol}/.runtime/bin/fleetctl-wrap
+      src=${config.age.secrets."goclaw-fleetctl-config".path}
+      dest_dir=${goclaw-data-vol}/.runtime/fleet
+      dest=$dest_dir/config
 
       for _ in $(seq 1 60); do
-        [ -d "${goclaw-data-vol}/.runtime/bin" ] && break
+        [ -d "${goclaw-data-vol}/.runtime" ] && break
         sleep 2
       done
-      if [ ! -d "${goclaw-data-vol}/.runtime/bin" ]; then
-        echo ".runtime/bin not present yet; nothing to do"
+      if [ ! -d "${goclaw-data-vol}/.runtime" ]; then
+        echo ".runtime not present yet; nothing to do"
         exit 0
       fi
 
-      desired_content='#!/bin/sh
-# Bootstrap fleetctl config from goclaw-injected env vars, then exec the
-# real fleetctl binary. Managed by goclaw-fleetctl-wrap.service.
-set -eu
-real=/app/data/.runtime/bin/fleetctl
-config_dir="''${HOME:-/tmp}/.fleet"
-config_file="$config_dir/config"
+      if [ ! -s "$src" ]; then
+        echo "agenix secret $src missing or empty; skipping"
+        exit 0
+      fi
 
-if [ ! -s "$config_file" ] && [ -n "''${FLEETCTL_ADDRESS:-}" ]; then
-  mkdir -p "$config_dir"
-  "$real" config set --address "$FLEETCTL_ADDRESS" --context default >/dev/null 2>&1 || true
-  if [ -n "''${FLEETCTL_TLS_SKIP_VERIFY:-}" ]; then
-    "$real" config set --tls-skip-verify "$FLEETCTL_TLS_SKIP_VERIFY" --context default >/dev/null 2>&1 || true
-  fi
-  if [ -n "''${FLEETCTL_TOKEN:-}" ]; then
-    "$real" config set --token "$FLEETCTL_TOKEN" --context default >/dev/null 2>&1 || true
-  fi
-fi
+      mkdir -p "$dest_dir"
+      chown 1000:1000 "$dest_dir"
+      chmod 0750 "$dest_dir"
 
-if [ -z "''${FLEETCTL_TOKEN:-}" ] && [ -n "''${FLEETCTL_EMAIL:-}" ] && [ -n "''${FLEETCTL_PASSWORD:-}" ]; then
-  EMAIL="$FLEETCTL_EMAIL" PASSWORD="$FLEETCTL_PASSWORD" "$real" login >/dev/null 2>&1 || true
-fi
-
-exec "$real" "$@"
-'
-      desired_sha=$(printf '%s' "$desired_content" | sha256sum | cut -d' ' -f1)
+      desired_sha=$(sha256sum "$src" | cut -d' ' -f1)
       current_sha=""
-      [ -f "$wrap" ] && current_sha=$(sha256sum "$wrap" | cut -d' ' -f1)
+      [ -f "$dest" ] && current_sha=$(sha256sum "$dest" | cut -d' ' -f1)
       if [ "$desired_sha" != "$current_sha" ]; then
-        printf '%s' "$desired_content" > "$wrap.new"
-        chmod 0755 "$wrap.new"
-        chown 1000:1000 "$wrap.new"
-        mv "$wrap.new" "$wrap"
-        echo "fleetctl wrapper updated"
+        install -m 0644 -o 1000 -g 1000 "$src" "$dest"
+        echo "fleetctl config materialized at $dest"
       else
-        echo "fleetctl wrapper already up to date"
+        echo "fleetctl config already up to date"
       fi
     '';
   };
