@@ -183,6 +183,33 @@ in
     group = "root";
   };
 
+  # Encrypted himalaya config TOML covering Fastmail + the two Gmail
+  # accounts (Hadenes, Iniciador) via app passwords. Materialized into
+  # the shared volume by goclaw-cli-secrets.service so the sandbox can
+  # point HIMALAYA_CONFIG at it.
+  age.secrets."goclaw-himalaya-config" = {
+    file = "${private}/nixos/secrets/goclaw/himalaya-config.age";
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+
+  # Encrypted gam7 service-account JSON keys per tenant. Service-account
+  # auth means gam7 mints JWTs per call; no refresh-token cache to write
+  # back, which sidesteps the read-only sandbox volume problem.
+  age.secrets."goclaw-gam7-hadenes-sa" = {
+    file = "${private}/nixos/secrets/goclaw/gam7-hadenes-sa.age";
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+  age.secrets."goclaw-gam7-iniciador-sa" = {
+    file = "${private}/nixos/secrets/goclaw/gam7-iniciador-sa.age";
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+
   # Create goclaw user — needs docker group for running the compose stack
   users.users.goclaw = {
     isNormalUser = true;
@@ -608,6 +635,94 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       else
         echo "fleetctl config already up to date"
       fi
+    '';
+  };
+
+  # himalaya + gam7 credential materializer. Same pattern as
+  # goclaw-fleetctl-config: decrypt agenix-managed source files and copy
+  # them into the shared volume at well-known paths the dashboard CLI
+  # Tool entries point at via env (HIMALAYA_CONFIG, GAM_CONFIG_DIR).
+  # Idempotent on per-file sha; re-runs on .age content change via
+  # restartTriggers since the unit is oneshot+RemainAfterExit.
+  systemd.services.goclaw-cli-secrets = {
+    description = "Materialize himalaya + gam7 secrets into goclaw shared volume";
+    after = [
+      "goclaw.service"
+      "agenix.service"
+    ];
+    wants = [
+      "goclaw.service"
+      "agenix.service"
+    ];
+    wantedBy = [ "multi-user.target" ];
+
+    restartTriggers = [
+      config.age.secrets."goclaw-himalaya-config".file
+      config.age.secrets."goclaw-gam7-hadenes-sa".file
+      config.age.secrets."goclaw-gam7-iniciador-sa".file
+    ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    path = [
+      pkgs.coreutils
+    ];
+
+    script = ''
+      set -euo pipefail
+
+      himalaya_src=${config.age.secrets."goclaw-himalaya-config".path}
+      himalaya_dest_dir=${goclaw-data-vol}/.runtime/himalaya
+      himalaya_dest=$himalaya_dest_dir/config.toml
+
+      gam_hadenes_src=${config.age.secrets."goclaw-gam7-hadenes-sa".path}
+      gam_hadenes_dest_dir=${goclaw-data-vol}/.runtime/gam7/hadenes
+      gam_hadenes_dest=$gam_hadenes_dest_dir/oauth2service.json
+
+      gam_iniciador_src=${config.age.secrets."goclaw-gam7-iniciador-sa".path}
+      gam_iniciador_dest_dir=${goclaw-data-vol}/.runtime/gam7/iniciador
+      gam_iniciador_dest=$gam_iniciador_dest_dir/oauth2service.json
+
+      for _ in $(seq 1 60); do
+        [ -d "${goclaw-data-vol}/.runtime" ] && break
+        sleep 2
+      done
+      if [ ! -d "${goclaw-data-vol}/.runtime" ]; then
+        echo ".runtime not present yet; nothing to do"
+        exit 0
+      fi
+
+      materialize() {
+        src=$1; dest_dir=$2; dest=$3; label=$4
+        if [ ! -s "$src" ]; then
+          echo "agenix secret $src missing or empty; skipping $label"
+          return 0
+        fi
+        mkdir -p "$dest_dir"
+        chown 1000:1000 "$dest_dir"
+        chmod 0750 "$dest_dir"
+        desired_sha=$(sha256sum "$src" | cut -d' ' -f1)
+        current_sha=""
+        [ -f "$dest" ] && current_sha=$(sha256sum "$dest" | cut -d' ' -f1)
+        if [ "$desired_sha" != "$current_sha" ]; then
+          install -m 0600 -o 1000 -g 1000 "$src" "$dest"
+          echo "$label materialized at $dest"
+        else
+          echo "$label already up to date"
+        fi
+      }
+
+      materialize "$himalaya_src"     "$himalaya_dest_dir"     "$himalaya_dest"     "himalaya config"
+      materialize "$gam_hadenes_src"  "$gam_hadenes_dest_dir"  "$gam_hadenes_dest"  "gam7 hadenes SA"
+      materialize "$gam_iniciador_src" "$gam_iniciador_dest_dir" "$gam_iniciador_dest" "gam7 iniciador SA"
+
+      # Parent /app/data/.runtime/gam7 dir owner/perm so dashboard listings
+      # see consistent ownership.
+      gam_root=${goclaw-data-vol}/.runtime/gam7
+      [ -d "$gam_root" ] && chown 1000:1000 "$gam_root" && chmod 0750 "$gam_root"
     '';
   };
 
