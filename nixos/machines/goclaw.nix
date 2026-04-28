@@ -259,6 +259,25 @@ in
     group = "root";
   };
 
+  # gcalcli per-tenant OAuth credential files (google.oauth2.credentials
+  # JSON: refresh_token + client_id + client_secret + scopes).
+  # Materialized into the shared volume and copied to /tmp by the
+  # gcalcli-<tenant> wrappers at runtime — gcalcli writes refreshed
+  # access tokens into config_folder/oauth, so the volume copy stays
+  # static and the writable copy lives on tmpfs per spawn.
+  age.secrets."goclaw-gcalcli-hadenes-oauth" = {
+    file = "${private}/nixos/secrets/goclaw/gcalcli-hadenes-oauth.age";
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+  age.secrets."goclaw-gcalcli-iniciador-oauth" = {
+    file = "${private}/nixos/secrets/goclaw/gcalcli-iniciador-oauth.age";
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+
   # Create goclaw user — needs docker group for running the compose stack
   users.users.goclaw = {
     isNormalUser = true;
@@ -922,6 +941,113 @@ exec /app/data/.runtime/gam/gam "$@"'
       else
         echo "gam wrapper already up to date"
       fi
+    '';
+  };
+
+  # gcalcli per-tenant install. gcalcli (pip-installed by the dashboard
+  # into /app/data/.runtime/pip) has no native multi-account support,
+  # so we ship two wrappers — gcalcli-hadenes / gcalcli-iniciador —
+  # that point gcalcli at a per-tenant config folder via
+  # --config-folder. The agenix-encrypted oauth credential files live
+  # in /app/data/.runtime/gcalcli/<tenant>/oauth (read-only) and the
+  # wrappers copy them to /tmp/gcalcli/<tenant>/oauth so gcalcli can
+  # rotate the cached access_token (refresh_token stays the same).
+  systemd.services.goclaw-gcalcli-bin = {
+    description = "Install gcalcli per-tenant wrappers + oauth credentials";
+    after = [
+      "goclaw.service"
+      "agenix.service"
+    ];
+    wants = [
+      "goclaw.service"
+      "agenix.service"
+    ];
+    wantedBy = [ "multi-user.target" ];
+
+    restartTriggers = [
+      config.age.secrets."goclaw-gcalcli-hadenes-oauth".file
+      config.age.secrets."goclaw-gcalcli-iniciador-oauth".file
+    ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    path = [
+      pkgs.coreutils
+    ];
+
+    script = ''
+      set -euo pipefail
+
+      vol_dir=${goclaw-data-vol}/.runtime/gcalcli
+      bin_dir=${goclaw-data-vol}/.runtime/bin
+
+      for _ in $(seq 1 60); do
+        [ -d "$bin_dir" ] && break
+        sleep 2
+      done
+      if [ ! -d "$bin_dir" ]; then
+        echo ".runtime/bin not present yet; nothing to do"
+        exit 0
+      fi
+
+      mkdir -p "$vol_dir"
+      chown 1000:1000 "$vol_dir"
+      chmod 0750 "$vol_dir"
+
+      materialize_oauth() {
+        tenant=$1; src=$2
+        dst_dir="$vol_dir/$tenant"
+        dst="$dst_dir/oauth"
+        if [ ! -s "$src" ]; then
+          echo "agenix secret $src missing or empty; skipping gcalcli $tenant"
+          return 0
+        fi
+        mkdir -p "$dst_dir"
+        chown 1000:1000 "$dst_dir"
+        chmod 0750 "$dst_dir"
+        desired=$(sha256sum "$src" | cut -d' ' -f1)
+        current=""
+        [ -f "$dst" ] && current=$(sha256sum "$dst" | cut -d' ' -f1)
+        if [ "$desired" != "$current" ]; then
+          install -m 0600 -o 1000 -g 1000 "$src" "$dst"
+          echo "gcalcli $tenant oauth materialized"
+        else
+          echo "gcalcli $tenant oauth already up to date"
+        fi
+      }
+
+      materialize_oauth "hadenes"   ${config.age.secrets."goclaw-gcalcli-hadenes-oauth".path}
+      materialize_oauth "iniciador" ${config.age.secrets."goclaw-gcalcli-iniciador-oauth".path}
+
+      install_wrapper() {
+        tenant=$1
+        wrap_path="$bin_dir/gcalcli-$tenant"
+        wrap_content="#!/bin/sh
+src=/app/data/.runtime/gcalcli/$tenant
+dst=/tmp/gcalcli/$tenant
+mkdir -p \"\$dst\"
+cp -f \"\$src/oauth\" \"\$dst/oauth\"
+chmod 0600 \"\$dst/oauth\"
+exec python3 -m gcalcli.cli --config-folder \"\$dst\" \"\$@\""
+        desired=$(printf '%s\n' "$wrap_content" | sha256sum | cut -d' ' -f1)
+        current=""
+        [ -f "$wrap_path" ] && current=$(sha256sum "$wrap_path" | cut -d' ' -f1)
+        if [ "$desired" != "$current" ]; then
+          printf '%s\n' "$wrap_content" > "$wrap_path.new"
+          chmod 0755 "$wrap_path.new"
+          chown 1000:1000 "$wrap_path.new"
+          mv "$wrap_path.new" "$wrap_path"
+          echo "gcalcli-$tenant wrapper updated"
+        else
+          echo "gcalcli-$tenant wrapper already up to date"
+        fi
+      }
+
+      install_wrapper hadenes
+      install_wrapper iniciador
     '';
   };
 
