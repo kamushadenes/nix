@@ -205,6 +205,15 @@ in
     group = "root";
   };
 
+  # gam7 main config (gam.cfg) for the Iniciador tenant — paths, domain,
+  # admin_email defaults. Sandbox uses GAMCFGDIR=/app/data/.runtime/gam7/iniciador.
+  age.secrets."goclaw-gam7-iniciador-cfg" = {
+    file = "${private}/nixos/secrets/goclaw/gam7-iniciador-cfg.age";
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+
   # Create goclaw user — needs docker group for running the compose stack
   users.users.goclaw = {
     isNormalUser = true;
@@ -654,6 +663,7 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
     restartTriggers = [
       config.age.secrets."goclaw-himalaya-config".file
       config.age.secrets."goclaw-gam7-iniciador-sa".file
+      config.age.secrets."goclaw-gam7-iniciador-cfg".file
     ];
 
     serviceConfig = {
@@ -675,6 +685,9 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       gam_iniciador_src=${config.age.secrets."goclaw-gam7-iniciador-sa".path}
       gam_iniciador_dest_dir=${goclaw-data-vol}/.runtime/gam7/iniciador
       gam_iniciador_dest=$gam_iniciador_dest_dir/oauth2service.json
+
+      gam_iniciador_cfg_src=${config.age.secrets."goclaw-gam7-iniciador-cfg".path}
+      gam_iniciador_cfg_dest=$gam_iniciador_dest_dir/gam.cfg
 
       for _ in $(seq 1 60); do
         [ -d "${goclaw-data-vol}/.runtime" ] && break
@@ -705,8 +718,9 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
         fi
       }
 
-      materialize "$himalaya_src"      "$himalaya_dest_dir"      "$himalaya_dest"      "himalaya config"
-      materialize "$gam_iniciador_src" "$gam_iniciador_dest_dir" "$gam_iniciador_dest" "gam7 iniciador SA"
+      materialize "$himalaya_src"          "$himalaya_dest_dir"      "$himalaya_dest"          "himalaya config"
+      materialize "$gam_iniciador_src"     "$gam_iniciador_dest_dir" "$gam_iniciador_dest"     "gam7 iniciador SA"
+      materialize "$gam_iniciador_cfg_src" "$gam_iniciador_dest_dir" "$gam_iniciador_cfg_dest" "gam7 iniciador cfg"
 
       # Parent /app/data/.runtime/gam7 dir owner/perm so dashboard listings
       # see consistent ownership.
