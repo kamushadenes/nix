@@ -43,6 +43,27 @@ let
   goclaw-gcloud-url = "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${goclaw-gcloud-version}-linux-x86_64.tar.gz";
   goclaw-gcloud-tar-sha256 = "733e3640b5892baecd997474cb1b2cfe80204b6584c64166c3d78bae3f1108c3";
   goclaw-data-vol = "/var/lib/docker/volumes/app_goclaw-data/_data";
+
+  # Upstream himalaya v1.2.0 release binaries are built without the
+  # `oauth2` cargo feature, so they cannot speak XOAUTH2 to Gmail. Override
+  # the nixpkgs derivation to enable it. `oauth2` transitively pulls in
+  # `keyring`, which is harmless for us because the materialized TOML
+  # never requests keyring lookups (all secrets resolve via `*.cmd =
+  # "printenv ..."`). The resulting binary is glibc-linked but runs in the
+  # Alpine sandbox via gcompat — same compat the sandbox already uses for
+  # `vt`.
+  himalaya-oauth2 = pkgs.himalaya.override {
+    buildNoDefaultFeatures = true;
+    buildFeatures = [
+      "imap"
+      "smtp"
+      "sendmail"
+      "maildir"
+      "wizard"
+      "pgp-commands"
+      "oauth2"
+    ];
+  };
   # Fork (dev branch) with fixes for sandbox @ naming (#1031), stateless cron
   # reset (#1032), and credentialed CLI chain exec (#1033). Tracks dev branch
   # for latest features. Switch back to upstream after PRs merge.
@@ -726,6 +747,56 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       # see consistent ownership.
       gam_root=${goclaw-data-vol}/.runtime/gam7
       [ -d "$gam_root" ] && chown 1000:1000 "$gam_root" && chmod 0750 "$gam_root"
+    '';
+  };
+
+  # Replace the dashboard-installed himalaya binary with our oauth2-enabled
+  # build (himalaya-oauth2, defined in `let`). Goclaw dashboard's
+  # GitHub Binaries entry for himalaya should be removed so its verifier
+  # does not reconcile our binary back to the upstream tar; this service
+  # is then the sole source of truth. Idempotent on the binary's sha and
+  # re-runs whenever the derivation store path changes.
+  systemd.services.goclaw-himalaya-bin = {
+    description = "Install oauth2-enabled himalaya into goclaw shared volume";
+    after = [ "goclaw.service" ];
+    wants = [ "goclaw.service" ];
+    wantedBy = [ "multi-user.target" ];
+
+    restartTriggers = [ himalaya-oauth2 ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    path = [
+      pkgs.coreutils
+    ];
+
+    script = ''
+      set -euo pipefail
+
+      bin=${goclaw-data-vol}/.runtime/bin/himalaya
+      src=${himalaya-oauth2}/bin/himalaya
+
+      for _ in $(seq 1 60); do
+        [ -d "${goclaw-data-vol}/.runtime/bin" ] && break
+        sleep 2
+      done
+      if [ ! -d "${goclaw-data-vol}/.runtime/bin" ]; then
+        echo ".runtime/bin not present yet; nothing to do"
+        exit 0
+      fi
+
+      desired=$(sha256sum "$src" | cut -d' ' -f1)
+      current=""
+      [ -f "$bin" ] && current=$(sha256sum "$bin" | cut -d' ' -f1)
+      if [ "$desired" != "$current" ]; then
+        install -m 0755 -o 1000 -g 1000 "$src" "$bin"
+        echo "himalaya replaced with oauth2-enabled build (sha=$desired)"
+      else
+        echo "himalaya already at oauth2-enabled build"
+      fi
     '';
   };
 
