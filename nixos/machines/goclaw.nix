@@ -42,18 +42,19 @@ let
   goclaw-gcloud-version = "565.0.0";
   goclaw-gcloud-url = "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${goclaw-gcloud-version}-linux-x86_64.tar.gz";
   goclaw-gcloud-tar-sha256 = "733e3640b5892baecd997474cb1b2cfe80204b6584c64166c3d78bae3f1108c3";
-  # GAM-team/GAM (gam7) — pyinstaller-frozen Python binary. The "legacy"
-  # variant uses staticx, which extracts the bundled binary to /tmp at
-  # runtime and execs it; the sandbox mounts /tmp `noexec`, so that
-  # variant fails with `Failed to execv() /tmp/staticx-XXX/gam:
-  # Permission denied`. The "glibc2.35" variant is a direct binary (no
-  # staticx wrapper) and runs in our Alpine sandbox via gcompat. The pip
-  # "gam" package installs no binary, so the dashboard's Pip Packages
-  # flow doesn't help here; we fetch the upstream tarball directly into
-  # the shared volume.
+  # GAM-team/GAM (gam7) — pyinstaller-frozen Python binary. The
+  # "glibc2.35" variant ships a partial set of vendored libs
+  # (libpython3.14, libssl, etc.) that conflict with Alpine's
+  # musl/gcompat at relocation time (`crc32_z`, `preadv64v2` and
+  # similar symbols missing). The "legacy" variant uses staticx, which
+  # extracts the entire bundle to /tmp and execs it from there —
+  # cleaner because it ships its own glibc and has no host-libc
+  # dependencies. To make that variant work in our sandbox we drop
+  # `noexec` from the tmpfs mount via GOCLAW_SANDBOX_TMP_EXEC=true
+  # (requires the goclaw fork's AllowTmpExec patch).
   goclaw-gam-version = "7.42.00";
-  goclaw-gam-url = "https://github.com/GAM-team/GAM/releases/download/v${goclaw-gam-version}/gam-${goclaw-gam-version}-linux-x86_64-glibc2.35.tar.xz";
-  goclaw-gam-tar-sha256 = "6379fb4070f4b45b6323a49d31a71311f3846ea2984253c30b960351d13550e2";
+  goclaw-gam-url = "https://github.com/GAM-team/GAM/releases/download/v${goclaw-gam-version}/gam-${goclaw-gam-version}-linux-x86_64-legacy.tar.xz";
+  goclaw-gam-tar-sha256 = "bb912086c49f9421b24ee885263b4361327716ed4c9e049512a5022e5a63d6a8";
   goclaw-data-vol = "/var/lib/docker/volumes/app_goclaw-data/_data";
 
   # Upstream himalaya v1.2.0 release binaries are built without the
@@ -101,6 +102,11 @@ let
         environment:
           - GOCLAW_SANDBOX_NETWORK=true
           - GOCLAW_SANDBOX_IMAGE=goclaw-sandbox:custom
+          # Drop `noexec` from sandbox tmpfs mounts so staticx-wrapped
+          # CLIs (e.g. gam7 legacy variant) can extract+exec from /tmp.
+          # Requires the goclaw fork's AllowTmpExec patch on the dev
+          # branch. nosuid + nodev still enforced.
+          - GOCLAW_SANDBOX_TMP_EXEC=true
   '';
   # Persist /app/.google_workspace_mcp/ across container recreations. Without
   # this, the OAuth credential store (created by `uvx workspace-mcp` under the
@@ -877,14 +883,12 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
         echo "gam7 already at ${goclaw-gam-version}"
       fi
 
-      # Drop the bundled libz.so.1 — gam7's vendored copy lacks
-      # crc32_z (zlib < 1.2.9) and breaks against the newer zlib
-      # symbols the binary actually calls inside the sandbox. Letting
-      # the dynamic loader find Alpine's /usr/lib/libz.so.1 (zlib 1.3+,
-      # which has crc32_z) resolves the relocation error. Run
-      # unconditionally so existing installs get patched without a
-      # version pin bump.
-      rm -f "$gam_dir/lib/libz.so.1"
+      # Defensive cleanup: legacy (staticx) variant ships only the
+      # monolithic gam binary, no vendored lib/. If a previous deploy
+      # left a glibc2.35-style lib/ directory behind, remove its
+      # libz.so.1 so the dynamic loader doesn't resolve to it after
+      # we switch tar layouts.
+      rm -f "$gam_dir/lib/libz.so.1" 2>/dev/null || true
 
       # Wrapper at /app/data/.runtime/bin/gam — keeps argv[0] dirname
       # pointing at the real binary so gam can find sibling files
