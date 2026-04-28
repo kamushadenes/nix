@@ -270,6 +270,17 @@ in
     group = "root";
   };
 
+  # gam7 OAuth client_secrets.json — registered Google API client
+  # (id + secret + redirect URIs). gam needs it alongside oauth2.txt
+  # to refresh user-OAuth access tokens. Without it gam returns
+  # "API access Denied" because the refresh request has no client.
+  age.secrets."goclaw-gam7-iniciador-client-secrets" = {
+    file = "${private}/nixos/secrets/goclaw/gam7-iniciador-client-secrets.age";
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+
   # gcalcli per-tenant OAuth credential files (google.oauth2.credentials
   # JSON: refresh_token + client_id + client_secret + scopes).
   # Materialized into the shared volume and copied to /tmp by the
@@ -740,6 +751,7 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       config.age.secrets."goclaw-gam7-iniciador-sa".file
       config.age.secrets."goclaw-gam7-iniciador-cfg".file
       config.age.secrets."goclaw-gam7-iniciador-oauth2".file
+      config.age.secrets."goclaw-gam7-iniciador-client-secrets".file
     ];
 
     serviceConfig = {
@@ -767,6 +779,9 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
 
       gam_iniciador_oauth2_src=${config.age.secrets."goclaw-gam7-iniciador-oauth2".path}
       gam_iniciador_oauth2_dest=$gam_iniciador_dest_dir/oauth2.txt
+
+      gam_iniciador_cs_src=${config.age.secrets."goclaw-gam7-iniciador-client-secrets".path}
+      gam_iniciador_cs_dest=$gam_iniciador_dest_dir/client_secrets.json
 
       for _ in $(seq 1 60); do
         [ -d "${goclaw-data-vol}/.runtime" ] && break
@@ -801,6 +816,7 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       materialize "$gam_iniciador_src"        "$gam_iniciador_dest_dir" "$gam_iniciador_dest"        "gam7 iniciador SA"
       materialize "$gam_iniciador_cfg_src"    "$gam_iniciador_dest_dir" "$gam_iniciador_cfg_dest"    "gam7 iniciador cfg"
       materialize "$gam_iniciador_oauth2_src" "$gam_iniciador_dest_dir" "$gam_iniciador_oauth2_dest" "gam7 iniciador oauth2"
+      materialize "$gam_iniciador_cs_src"     "$gam_iniciador_dest_dir" "$gam_iniciador_cs_dest"     "gam7 iniciador client_secrets"
 
       # Parent /app/data/.runtime/gam7 dir owner/perm so dashboard listings
       # see consistent ownership.
@@ -946,6 +962,10 @@ chmod 0600 "$dst/oauth2service.json"
 if [ -f "$src/oauth2.txt" ]; then
   cp -f "$src/oauth2.txt" "$dst/oauth2.txt"
   chmod 0600 "$dst/oauth2.txt"
+fi
+if [ -f "$src/client_secrets.json" ]; then
+  cp -f "$src/client_secrets.json" "$dst/client_secrets.json"
+  chmod 0600 "$dst/client_secrets.json"
 fi
 export GAMCFGDIR="$dst"
 exec /app/data/.runtime/gam/gam "$@"'
