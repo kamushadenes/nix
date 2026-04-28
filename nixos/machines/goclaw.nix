@@ -194,15 +194,10 @@ in
     group = "root";
   };
 
-  # Encrypted gam7 service-account JSON keys per tenant. Service-account
-  # auth means gam7 mints JWTs per call; no refresh-token cache to write
-  # back, which sidesteps the read-only sandbox volume problem.
-  age.secrets."goclaw-gam7-hadenes-sa" = {
-    file = "${private}/nixos/secrets/goclaw/gam7-hadenes-sa.age";
-    mode = "0400";
-    owner = "root";
-    group = "root";
-  };
+  # Encrypted gam7 service-account JSON key (Iniciador tenant only).
+  # Service-account auth means gam7 mints JWTs per call; no refresh-token
+  # cache to write back, which sidesteps the read-only sandbox volume
+  # problem.
   age.secrets."goclaw-gam7-iniciador-sa" = {
     file = "${private}/nixos/secrets/goclaw/gam7-iniciador-sa.age";
     mode = "0400";
@@ -658,7 +653,6 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
 
     restartTriggers = [
       config.age.secrets."goclaw-himalaya-config".file
-      config.age.secrets."goclaw-gam7-hadenes-sa".file
       config.age.secrets."goclaw-gam7-iniciador-sa".file
     ];
 
@@ -677,10 +671,6 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       himalaya_src=${config.age.secrets."goclaw-himalaya-config".path}
       himalaya_dest_dir=${goclaw-data-vol}/.runtime/himalaya
       himalaya_dest=$himalaya_dest_dir/config.toml
-
-      gam_hadenes_src=${config.age.secrets."goclaw-gam7-hadenes-sa".path}
-      gam_hadenes_dest_dir=${goclaw-data-vol}/.runtime/gam7/hadenes
-      gam_hadenes_dest=$gam_hadenes_dest_dir/oauth2service.json
 
       gam_iniciador_src=${config.age.secrets."goclaw-gam7-iniciador-sa".path}
       gam_iniciador_dest_dir=${goclaw-data-vol}/.runtime/gam7/iniciador
@@ -715,8 +705,7 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
         fi
       }
 
-      materialize "$himalaya_src"     "$himalaya_dest_dir"     "$himalaya_dest"     "himalaya config"
-      materialize "$gam_hadenes_src"  "$gam_hadenes_dest_dir"  "$gam_hadenes_dest"  "gam7 hadenes SA"
+      materialize "$himalaya_src"      "$himalaya_dest_dir"      "$himalaya_dest"      "himalaya config"
       materialize "$gam_iniciador_src" "$gam_iniciador_dest_dir" "$gam_iniciador_dest" "gam7 iniciador SA"
 
       # Parent /app/data/.runtime/gam7 dir owner/perm so dashboard listings
