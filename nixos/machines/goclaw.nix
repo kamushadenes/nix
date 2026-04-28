@@ -259,6 +259,17 @@ in
     group = "root";
   };
 
+  # gam7 OAuth user-token cache (oauth2.txt). gam7 emits it via
+  # `gam oauth create` after a browser consent flow; we materialize it
+  # alongside oauth2service.json so gam runs that hit user-OAuth code
+  # paths (rather than pure SA) find the cached refresh_token.
+  age.secrets."goclaw-gam7-iniciador-oauth2" = {
+    file = "${private}/nixos/secrets/goclaw/gam7-iniciador-oauth2.age";
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+
   # gcalcli per-tenant OAuth credential files (google.oauth2.credentials
   # JSON: refresh_token + client_id + client_secret + scopes).
   # Materialized into the shared volume and copied to /tmp by the
@@ -728,6 +739,7 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       config.age.secrets."goclaw-himalaya-config".file
       config.age.secrets."goclaw-gam7-iniciador-sa".file
       config.age.secrets."goclaw-gam7-iniciador-cfg".file
+      config.age.secrets."goclaw-gam7-iniciador-oauth2".file
     ];
 
     serviceConfig = {
@@ -752,6 +764,9 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
 
       gam_iniciador_cfg_src=${config.age.secrets."goclaw-gam7-iniciador-cfg".path}
       gam_iniciador_cfg_dest=$gam_iniciador_dest_dir/gam.cfg
+
+      gam_iniciador_oauth2_src=${config.age.secrets."goclaw-gam7-iniciador-oauth2".path}
+      gam_iniciador_oauth2_dest=$gam_iniciador_dest_dir/oauth2.txt
 
       for _ in $(seq 1 60); do
         [ -d "${goclaw-data-vol}/.runtime" ] && break
@@ -783,8 +798,9 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       }
 
       materialize "$himalaya_src"          "$himalaya_dest_dir"      "$himalaya_dest"          "himalaya config"
-      materialize "$gam_iniciador_src"     "$gam_iniciador_dest_dir" "$gam_iniciador_dest"     "gam7 iniciador SA"
-      materialize "$gam_iniciador_cfg_src" "$gam_iniciador_dest_dir" "$gam_iniciador_cfg_dest" "gam7 iniciador cfg"
+      materialize "$gam_iniciador_src"        "$gam_iniciador_dest_dir" "$gam_iniciador_dest"        "gam7 iniciador SA"
+      materialize "$gam_iniciador_cfg_src"    "$gam_iniciador_dest_dir" "$gam_iniciador_cfg_dest"    "gam7 iniciador cfg"
+      materialize "$gam_iniciador_oauth2_src" "$gam_iniciador_dest_dir" "$gam_iniciador_oauth2_dest" "gam7 iniciador oauth2"
 
       # Parent /app/data/.runtime/gam7 dir owner/perm so dashboard listings
       # see consistent ownership.
@@ -927,6 +943,10 @@ mkdir -p "$dst" /tmp/gam7/cache /tmp/gam7/drive
 cp -f "$src/gam.cfg" "$dst/gam.cfg"
 cp -f "$src/oauth2service.json" "$dst/oauth2service.json"
 chmod 0600 "$dst/oauth2service.json"
+if [ -f "$src/oauth2.txt" ]; then
+  cp -f "$src/oauth2.txt" "$dst/oauth2.txt"
+  chmod 0600 "$dst/oauth2.txt"
+fi
 export GAMCFGDIR="$dst"
 exec /app/data/.runtime/gam/gam "$@"'
       desired_sha=$(printf '%s\n' "$wrap_content" | sha256sum | cut -d' ' -f1)
