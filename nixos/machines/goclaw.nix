@@ -549,6 +549,14 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
     ];
     wantedBy = [ "multi-user.target" ];
 
+    # Re-run when the encrypted source changes. The service is
+    # oneshot+RemainAfterExit, so without this it stays "active" across
+    # rebuilds and never re-copies new agenix output to the volume after
+    # the secret is edited.
+    restartTriggers = [
+      config.age.secrets."goclaw-fleetctl-config".file
+    ];
+
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
