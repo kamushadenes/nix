@@ -1025,13 +1025,22 @@ exec /app/data/.runtime/gam/gam "$@"'
       install_wrapper() {
         tenant=$1
         wrap_path="$bin_dir/gcalcli-$tenant"
+        # gcalcli ignores --config-folder for oauth storage; it always
+        # uses platformdirs.user_data_path('gcalcli'), which on Linux
+        # resolves to \$HOME/.local/share/gcalcli/oauth. Override HOME
+        # to a per-tenant /tmp dir so the two wrappers don't fight over
+        # the same on-disk oauth file. Materialized read-only oauth
+        # from the volume is copied into the per-tenant data dir on
+        # each invocation; gcalcli rotates the cached access_token in
+        # place there (refresh_token stays).
         wrap_content="#!/bin/sh
-src=/app/data/.runtime/gcalcli/$tenant
-dst=/tmp/gcalcli/$tenant
-mkdir -p \"\$dst\"
-cp -f \"\$src/oauth\" \"\$dst/oauth\"
-chmod 0600 \"\$dst/oauth\"
-exec python3 -m gcalcli.cli --config-folder \"\$dst\" \"\$@\""
+home=/tmp/gcalcli-$tenant
+data_dir=\$home/.local/share/gcalcli
+mkdir -p \"\$data_dir\"
+cp -f /app/data/.runtime/gcalcli/$tenant/oauth \"\$data_dir/oauth\"
+chmod 0600 \"\$data_dir/oauth\"
+export HOME=\"\$home\"
+exec python3 -m gcalcli.cli \"\$@\""
         desired=$(printf '%s\n' "$wrap_content" | sha256sum | cut -d' ' -f1)
         current=""
         [ -f "$wrap_path" ] && current=$(sha256sum "$wrap_path" | cut -d' ' -f1)
