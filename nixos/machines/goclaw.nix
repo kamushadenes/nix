@@ -42,6 +42,14 @@ let
   goclaw-gcloud-version = "565.0.0";
   goclaw-gcloud-url = "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${goclaw-gcloud-version}-linux-x86_64.tar.gz";
   goclaw-gcloud-tar-sha256 = "733e3640b5892baecd997474cb1b2cfe80204b6584c64166c3d78bae3f1108c3";
+  # GAM-team/GAM (gam7) — pyinstaller-frozen Python binary. The "legacy"
+  # variant targets the oldest glibc and runs in our Alpine sandbox via
+  # gcompat. The pip "gam" package installs no binary, so the dashboard's
+  # Pip Packages flow doesn't help here; we fetch the upstream tarball
+  # directly into the shared volume.
+  goclaw-gam-version = "7.42.00";
+  goclaw-gam-url = "https://github.com/GAM-team/GAM/releases/download/v${goclaw-gam-version}/gam-${goclaw-gam-version}-linux-x86_64-legacy.tar.xz";
+  goclaw-gam-tar-sha256 = "bb912086c49f9421b24ee885263b4361327716ed4c9e049512a5022e5a63d6a8";
   goclaw-data-vol = "/var/lib/docker/volumes/app_goclaw-data/_data";
 
   # Upstream himalaya v1.2.0 release binaries are built without the
@@ -796,6 +804,86 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
         echo "himalaya replaced with oauth2-enabled build (sha=$desired)"
       else
         echo "himalaya already at oauth2-enabled build"
+      fi
+    '';
+  };
+
+  # Install gam7 (GAM-team/GAM) into the shared volume. The pip "gam"
+  # package on PyPI ships no binary, so the dashboard's Pip Packages
+  # flow leaves /app/data/.runtime/bin/gam absent. Fetch the upstream
+  # PyInstaller-frozen tarball ("legacy" target = oldest glibc, runs
+  # under gcompat in our Alpine sandbox) and drop a small wrapper at
+  # /app/data/.runtime/bin/gam that execs the real binary so PATH
+  # resolution picks it up. Idempotent on the pinned tar sha.
+  systemd.services.goclaw-gam-bin = {
+    description = "Install gam7 (GAM-team/GAM) binary into goclaw shared volume";
+    after = [ "goclaw.service" ];
+    wants = [ "goclaw.service" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    path = [
+      pkgs.curl
+      pkgs.coreutils
+      pkgs.gnutar
+      pkgs.xz
+    ];
+
+    script = ''
+      set -euo pipefail
+
+      gam_dir=${goclaw-data-vol}/.runtime/gam
+      gam_real=$gam_dir/gam
+      gam_wrap=${goclaw-data-vol}/.runtime/bin/gam
+      target_sha="${goclaw-gam-tar-sha256}"
+
+      for _ in $(seq 1 60); do
+        [ -d "${goclaw-data-vol}/.runtime/bin" ] && break
+        sleep 2
+      done
+      if [ ! -d "${goclaw-data-vol}/.runtime/bin" ]; then
+        echo ".runtime/bin not present yet; nothing to do"
+        exit 0
+      fi
+
+      current_sha=""
+      [ -f "$gam_dir/.installed-sha" ] && current_sha=$(cat "$gam_dir/.installed-sha")
+      if [ "$current_sha" != "$target_sha" ]; then
+        echo "Installing gam7 ${goclaw-gam-version} (current sha: ''${current_sha:-none})..."
+        tmp=$(mktemp -d)
+        trap 'rm -rf "$tmp"' EXIT
+        curl -fsSL "${goclaw-gam-url}" -o "$tmp/gam.tar.xz"
+        echo "$target_sha  $tmp/gam.tar.xz" | sha256sum -c -
+        rm -rf "$gam_dir"
+        mkdir -p "$gam_dir"
+        tar -xJf "$tmp/gam.tar.xz" -C "$gam_dir" --strip-components=1
+        echo "$target_sha" > "$gam_dir/.installed-sha"
+        chown -R 1000:1000 "$gam_dir"
+        echo "gam7 installed at $gam_real"
+      else
+        echo "gam7 already at ${goclaw-gam-version}"
+      fi
+
+      # Wrapper at /app/data/.runtime/bin/gam — keeps argv[0] dirname
+      # pointing at the real binary so gam can find sibling files
+      # (cacerts.pem, GamCommands.txt) without symlink resolution surprises.
+      wrap_content='#!/bin/sh
+exec /app/data/.runtime/gam/gam "$@"'
+      desired_sha=$(printf '%s\n' "$wrap_content" | sha256sum | cut -d' ' -f1)
+      current_wrap_sha=""
+      [ -f "$gam_wrap" ] && current_wrap_sha=$(sha256sum "$gam_wrap" | cut -d' ' -f1)
+      if [ "$desired_sha" != "$current_wrap_sha" ]; then
+        printf '%s\n' "$wrap_content" > "$gam_wrap.new"
+        chmod 0755 "$gam_wrap.new"
+        chown 1000:1000 "$gam_wrap.new"
+        mv "$gam_wrap.new" "$gam_wrap"
+        echo "gam wrapper updated"
+      else
+        echo "gam wrapper already up to date"
       fi
     '';
   };
