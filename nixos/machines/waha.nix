@@ -52,10 +52,12 @@
     '';
   };
 
-  # Make container service depend on image pull
+  # Make container service depend on image pull (weak dep so a transient
+  # pull failure on cold boot does not leave docker-waha stuck inactive
+  # — image is cached after first pull, so docker-waha can start anyway).
   systemd.services.docker-waha = {
     after = [ "waha-image-pull.service" ];
-    requires = [ "waha-image-pull.service" ];
+    wants = [ "waha-image-pull.service" ];
   };
 
   # WAHA container
