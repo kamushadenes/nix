@@ -893,8 +893,13 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
 
       # Wrapper at /app/data/.runtime/bin/gam — keeps argv[0] dirname
       # pointing at the real binary so gam can find sibling files
-      # (cacerts.pem, GamCommands.txt) without symlink resolution surprises.
+      # (cacerts.pem, GamCommands.txt) without symlink resolution
+      # surprises. Also pre-creates the cache + drive dirs on every
+      # invocation: gam.cfg points cache_dir/drive_dir at /tmp/gam7/*
+      # (sandbox /tmp is tmpfs, ephemeral per spawn → dirs do not
+      # exist by default and gam errors when it tries to write).
       wrap_content='#!/bin/sh
+mkdir -p /tmp/gam7/cache /tmp/gam7/drive
 exec /app/data/.runtime/gam/gam "$@"'
       desired_sha=$(printf '%s\n' "$wrap_content" | sha256sum | cut -d' ' -f1)
       current_wrap_sha=""
