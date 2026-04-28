@@ -129,6 +129,12 @@ let
     # (Node Packages) come from the shared volume.
     ENV PATH="/app/data/.runtime/bin:/app/data/.runtime/npm-global/bin:$PATH"
 
+    # Pip packages installed by goclaw dashboard ("Pip Packages" section)
+    # land in the shared volume at /app/data/.runtime/pip — expose them on
+    # PYTHONPATH so any python script in the sandbox imports them without
+    # extra flags.
+    ENV PYTHONPATH="/app/data/.runtime/pip"
+
     # Symlink /app/workspace → /workspace so main container paths
     # (e.g. /app/workspace/uhura/cron/system) resolve in sandbox.
     RUN mkdir -p /app && ln -s /workspace /app/workspace
