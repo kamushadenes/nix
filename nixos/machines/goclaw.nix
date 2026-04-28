@@ -61,10 +61,15 @@ let
   # the nixpkgs derivation to enable it. `oauth2` transitively pulls in
   # `keyring`, which is harmless for us because the materialized TOML
   # never requests keyring lookups (all secrets resolve via `*.cmd =
-  # "printenv ..."`). The resulting binary is glibc-linked but runs in the
-  # Alpine sandbox via gcompat — same compat the sandbox already uses for
-  # `vt`.
-  himalaya-oauth2 = pkgs.himalaya.override {
+  # "printenv ..."`).
+  #
+  # Use `pkgsStatic` so the resulting binary is a fully static-musl ELF:
+  # no /nix/store interp path baked in (a vanilla nixpkgs build's rpath
+  # references a glibc store path the sandbox cannot reach), and no
+  # reliance on Alpine's gcompat for missing glibc symbols
+  # (gcompat lacks `__register_atfork`, `__res_init`, etc., which the
+  # standard build pulls in via libc.so.6).
+  himalaya-oauth2 = pkgs.pkgsStatic.himalaya.override {
     buildNoDefaultFeatures = true;
     buildFeatures = [
       "imap"
@@ -871,6 +876,15 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       else
         echo "gam7 already at ${goclaw-gam-version}"
       fi
+
+      # Drop the bundled libz.so.1 — gam7's vendored copy lacks
+      # crc32_z (zlib < 1.2.9) and breaks against the newer zlib
+      # symbols the binary actually calls inside the sandbox. Letting
+      # the dynamic loader find Alpine's /usr/lib/libz.so.1 (zlib 1.3+,
+      # which has crc32_z) resolves the relocation error. Run
+      # unconditionally so existing installs get patched without a
+      # version pin bump.
+      rm -f "$gam_dir/lib/libz.so.1"
 
       # Wrapper at /app/data/.runtime/bin/gam — keeps argv[0] dirname
       # pointing at the real binary so gam can find sibling files
