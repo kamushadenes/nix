@@ -15,6 +15,7 @@
   config,
   lib,
   pkgs,
+  pkgs-unstable,
   packages,
   private,
   ...
@@ -70,7 +71,7 @@ let
   # reliance on Alpine's gcompat for missing glibc symbols
   # (gcompat lacks `__register_atfork`, `__res_init`, etc., which the
   # standard build pulls in via libc.so.6).
-  himalaya-oauth2 = pkgs.pkgsStatic.himalaya.override {
+  himalaya-oauth2 = pkgs-unstable.pkgsStatic.himalaya.override {
     buildNoDefaultFeatures = true;
     buildFeatures = [
       "imap"
