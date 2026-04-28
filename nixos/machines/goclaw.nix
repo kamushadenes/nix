@@ -891,15 +891,24 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       # we switch tar layouts.
       rm -f "$gam_dir/lib/libz.so.1" 2>/dev/null || true
 
-      # Wrapper at /app/data/.runtime/bin/gam — keeps argv[0] dirname
-      # pointing at the real binary so gam can find sibling files
-      # (cacerts.pem, GamCommands.txt) without symlink resolution
-      # surprises. Also pre-creates the cache + drive dirs on every
-      # invocation: gam.cfg points cache_dir/drive_dir at /tmp/gam7/*
-      # (sandbox /tmp is tmpfs, ephemeral per spawn → dirs do not
-      # exist by default and gam errors when it tries to write).
+      # Wrapper at /app/data/.runtime/bin/gam. gam7 demands read+write
+      # access to oauth2service.json + oauth2.txt and writable cache
+      # dirs, but the agenix-materialized config + SA JSON live on
+      # /app/data which is mounted read-only in the sandbox. The
+      # wrapper copies both files into /tmp/gam7/iniciador (tmpfs,
+      # writable) on every invocation, mkdirs the cache + drive
+      # scratch dirs, and points gam at the writable copy via
+      # GAMCFGDIR. State is ephemeral per sandbox spawn — fits gam's
+      # service-account flow which mints JWTs per call without
+      # needing persistent oauth2.txt across runs.
       wrap_content='#!/bin/sh
-mkdir -p /tmp/gam7/cache /tmp/gam7/drive
+src=/app/data/.runtime/gam7/iniciador
+dst=/tmp/gam7/iniciador
+mkdir -p "$dst" /tmp/gam7/cache /tmp/gam7/drive
+cp -f "$src/gam.cfg" "$dst/gam.cfg"
+cp -f "$src/oauth2service.json" "$dst/oauth2service.json"
+chmod 0600 "$dst/oauth2service.json"
+export GAMCFGDIR="$dst"
 exec /app/data/.runtime/gam/gam "$@"'
       desired_sha=$(printf '%s\n' "$wrap_content" | sha256sum | cut -d' ' -f1)
       current_wrap_sha=""
