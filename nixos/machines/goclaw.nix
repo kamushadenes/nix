@@ -43,13 +43,17 @@ let
   goclaw-gcloud-url = "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${goclaw-gcloud-version}-linux-x86_64.tar.gz";
   goclaw-gcloud-tar-sha256 = "733e3640b5892baecd997474cb1b2cfe80204b6584c64166c3d78bae3f1108c3";
   # GAM-team/GAM (gam7) — pyinstaller-frozen Python binary. The "legacy"
-  # variant targets the oldest glibc and runs in our Alpine sandbox via
-  # gcompat. The pip "gam" package installs no binary, so the dashboard's
-  # Pip Packages flow doesn't help here; we fetch the upstream tarball
-  # directly into the shared volume.
+  # variant uses staticx, which extracts the bundled binary to /tmp at
+  # runtime and execs it; the sandbox mounts /tmp `noexec`, so that
+  # variant fails with `Failed to execv() /tmp/staticx-XXX/gam:
+  # Permission denied`. The "glibc2.35" variant is a direct binary (no
+  # staticx wrapper) and runs in our Alpine sandbox via gcompat. The pip
+  # "gam" package installs no binary, so the dashboard's Pip Packages
+  # flow doesn't help here; we fetch the upstream tarball directly into
+  # the shared volume.
   goclaw-gam-version = "7.42.00";
-  goclaw-gam-url = "https://github.com/GAM-team/GAM/releases/download/v${goclaw-gam-version}/gam-${goclaw-gam-version}-linux-x86_64-legacy.tar.xz";
-  goclaw-gam-tar-sha256 = "bb912086c49f9421b24ee885263b4361327716ed4c9e049512a5022e5a63d6a8";
+  goclaw-gam-url = "https://github.com/GAM-team/GAM/releases/download/v${goclaw-gam-version}/gam-${goclaw-gam-version}-linux-x86_64-glibc2.35.tar.xz";
+  goclaw-gam-tar-sha256 = "6379fb4070f4b45b6323a49d31a71311f3846ea2984253c30b960351d13550e2";
   goclaw-data-vol = "/var/lib/docker/volumes/app_goclaw-data/_data";
 
   # Upstream himalaya v1.2.0 release binaries are built without the
