@@ -184,6 +184,15 @@ let
     # (e.g. /app/workspace/uhura/cron/system) resolve in sandbox.
     RUN mkdir -p /app && ln -s /workspace /app/workspace
 
+    # SSH key + system ssh_config baked from the build context (see
+    # goclaw-sandbox-build-context script). Path is /etc/goclaw-ssh/...
+    # so it does NOT match the always-on /app/data shell deny pattern.
+    # Key is decrypted from agenix at boot and staged into the build
+    # context; ssh_config is generated inline alongside it.
+    RUN mkdir -p /etc/goclaw-ssh
+    COPY --chown=1000:1000 --chmod=0400 sandbox-id_ed25519 /etc/goclaw-ssh/id_ed25519
+    COPY --chown=root:root  --chmod=0644 sandbox-ssh-config /etc/ssh/ssh_config
+
     # `shadow` provides useradd; bash is installed above. Goclaw spawns
     # sandbox containers with read-only rootfs — only /tmp, /var/tmp and
     # /workspace are writable. Point both the passwd entry and $HOME at
@@ -295,6 +304,18 @@ in
   };
   age.secrets."goclaw-gcalcli-iniciador-oauth" = {
     file = "${private}/nixos/secrets/goclaw/gcalcli-iniciador-oauth.age";
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+
+  # SSH private key baked into the sandbox image at /etc/goclaw-ssh/id_ed25519.
+  # Sandbox containers only mount app_goclaw-data:/app/data:ro, and that path
+  # is always-on path-denied (cmd/gateway_setup.go DenyPaths). Per-agent
+  # shell_deny_groups can opt out of the network_recon ssh-egress regex but
+  # cannot override the path deny. Image is built locally and never pushed.
+  age.secrets."goclaw-sandbox-ssh-key" = {
+    file = "${private}/nixos/secrets/goclaw/sandbox-ssh-key.age";
     mode = "0400";
     owner = "root";
     group = "root";
@@ -422,6 +443,14 @@ in
     requires = [ "docker.service" ];
     wantedBy = [ "multi-user.target" ];
 
+    # Re-run when the sandbox SSH key rotates so the image rebuild
+    # ExecStartPre picks up the new key. The unit is oneshot +
+    # RemainAfterExit, which would otherwise stay "active" across
+    # rebuilds and skip the rebuild check.
+    restartTriggers = [
+      config.age.secrets."goclaw-sandbox-ssh-key".file
+    ];
+
     unitConfig.ConditionPathExists = "${goclaw-app}/docker-compose.yml";
 
     serviceConfig = {
@@ -435,17 +464,44 @@ in
       ExecStartPre =
         "+"
         + (pkgs.writeShellScript "goclaw-build-sandbox-image" ''
-          # Rebuild whenever the Dockerfile content changes. The nix store path
-          # of goclaw-sandbox-dockerfile is content-addressed, so we stamp it
-          # as a label on the image and compare on every start. This avoids
-          # the prior bug where docker image inspect would skip rebuilds even
-          # after the Dockerfile changed (e.g. new CLIs added).
+          # Rebuild whenever the Dockerfile, SSH key, or ssh_config content
+          # changes. The build hash now covers all three so the image is
+          # regenerated on key rotation as well as Dockerfile edits.
           dockerfile="${goclaw-sandbox-dockerfile}"
-          want_hash=$(${pkgs.coreutils}/bin/sha256sum "$dockerfile" | ${pkgs.coreutils}/bin/cut -d' ' -f1)
+          ssh_key=${config.age.secrets."goclaw-sandbox-ssh-key".path}
+          build_dir=${goclaw-home}/sandbox-build
+
+          ${pkgs.coreutils}/bin/install -d -m 0700 -o root -g root "$build_dir"
+
+          # Stage the SSH key (decrypted plaintext). Build context owns
+          # the file briefly; image bake fixes ownership to uid 1000 so the
+          # sandbox user can read it without world-permissive perms.
+          ${pkgs.coreutils}/bin/install -m 0400 -o root -g root \
+            "$ssh_key" "$build_dir/sandbox-id_ed25519"
+
+          # Stage the system ssh_config so plain `ssh root@10.23.5.x`
+          # resolves IdentityFile + User without -i/-l flags.
+          ${pkgs.coreutils}/bin/cat > "$build_dir/sandbox-ssh-config" <<'EOF'
+          Host pve1 pve2 pve3 10.23.5.10 10.23.5.11 10.23.5.12
+              User root
+              IdentityFile /etc/goclaw-ssh/id_ed25519
+              StrictHostKeyChecking accept-new
+              UserKnownHostsFile /tmp/.ssh-known-hosts
+          EOF
+          ${pkgs.coreutils}/bin/chmod 0644 "$build_dir/sandbox-ssh-config"
+
+          # Copy the Dockerfile into the build context.
+          ${pkgs.coreutils}/bin/install -m 0644 "$dockerfile" "$build_dir/Dockerfile"
+
+          want_hash=$(${pkgs.coreutils}/bin/cat \
+            "$build_dir/Dockerfile" \
+            "$build_dir/sandbox-ssh-config" \
+            "$build_dir/sandbox-id_ed25519" \
+            | ${pkgs.coreutils}/bin/sha256sum | ${pkgs.coreutils}/bin/cut -d' ' -f1)
           have_hash=$(${pkgs.docker}/bin/docker image inspect goclaw-sandbox:custom \
             --format '{{ index .Config.Labels "dockerfile.sha256" }}' 2>/dev/null || true)
           if [ "$want_hash" != "$have_hash" ]; then
-            echo "Building custom sandbox image (dockerfile sha256=$want_hash)..."
+            echo "Building custom sandbox image (build hash=$want_hash)..."
             # DOCKER_BUILDKIT=0 falls back to the legacy builder. Buildkit on
             # this LXC fails to resolve the image registry credentials store
             # (no DBus secret service available); the legacy builder reads
@@ -453,8 +509,8 @@ in
             DOCKER_BUILDKIT=0 ${pkgs.docker}/bin/docker build \
               --label "dockerfile.sha256=$want_hash" \
               -t goclaw-sandbox:custom \
-              -f "$dockerfile" \
-              ${goclaw-app}
+              -f "$build_dir/Dockerfile" \
+              "$build_dir"
           fi
           # docker build runs as root and creates ~/.docker/buildx/ root-owned.
           # Chown so the goclaw user (ExecStart) can write buildx activity logs.
