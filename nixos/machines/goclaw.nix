@@ -187,7 +187,14 @@ let
   # in the writable layer by default and would be wiped on every
   # `docker compose --build`. Bind-mount host dirs so `granola auth` only has
   # to run once per token rotation.
-  goclaw-granola-creds-host = "${goclaw-home}/granola-creds";
+  # NOT nested under ${goclaw-home}: the host's `goclaw` user is uid 1001
+  # while the container's `goclaw` user is uid 1000. Hosting the bind-mount
+  # source under /var/lib/goclaw (owned by host uid 1001) and chowning the
+  # leaf to uid 1000 trips systemd-tmpfiles' "unsafe path transition"
+  # check, leaving the leaf root-owned and unwritable from the container.
+  # Keep it at the top level so the leaf can be uid 1000:1000 without
+  # touching parent ownership.
+  goclaw-granola-creds-host = "/var/lib/goclaw-granola-creds";
   goclaw-granola-creds-override = pkgs.writeText "docker-compose.granola-creds.yml" ''
     services:
       goclaw:
@@ -1291,13 +1298,15 @@ exec python3 -m gcalcli.cli \"\$@\""
     # into the goclaw container at /app/.google_workspace_mcp.
     "d ${goclaw-home}/mcp-creds 0750 goclaw goclaw -"
     "d ${goclaw-mcp-creds-host} 0750 goclaw goclaw -"
-    # granola-cli + mcporter persistent state. Owner = host goclaw user
-    # (matches /var/lib/goclaw parent + the existing mcp-creds pattern).
-    # Container's goclaw user resolves writes via Docker bind-mount uid
-    # mapping the same way workspace_mcp's credentials/logs subtree does.
-    "d ${goclaw-granola-creds-host} 0750 goclaw goclaw -"
-    "d ${goclaw-granola-creds-host}/mcporter 0750 goclaw goclaw -"
-    "d ${goclaw-granola-creds-host}/granola-cli 0750 goclaw goclaw -"
+    # granola-cli + mcporter persistent state. Owner is raw uid/gid 1000
+    # so it maps to the goclaw user *inside* the container (the host's
+    # goclaw user is uid 1001 — different from the container's). Path is
+    # kept outside /var/lib/goclaw to avoid systemd-tmpfiles' unsafe-path-
+    # transition refusal between a parent owned by host-goclaw (1001) and
+    # a leaf owned by container-goclaw (1000).
+    "d ${goclaw-granola-creds-host} 0750 1000 1000 -"
+    "d ${goclaw-granola-creds-host}/mcporter 0750 1000 1000 -"
+    "d ${goclaw-granola-creds-host}/granola-cli 0750 1000 1000 -"
   ];
 
   # SSH: allow root login for remote deployment (headless role doesn't import minimal.nix)
