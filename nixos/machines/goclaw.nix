@@ -56,6 +56,17 @@ let
   goclaw-gam-version = "7.42.00";
   goclaw-gam-url = "https://github.com/GAM-team/GAM/releases/download/v${goclaw-gam-version}/gam-${goclaw-gam-version}-linux-x86_64-legacy.tar.xz";
   goclaw-gam-tar-sha256 = "bb912086c49f9421b24ee885263b4361327716ed4c9e049512a5022e5a63d6a8";
+  # granola-cli (joelhooks/granola-cli) — Bun-compiled CLI for Granola
+  # meeting notes. Upstream releases the macOS/glibc-Linux binaries only;
+  # the goclaw sandbox is Alpine (musl) so we maintain a fork that
+  # rebuilds with `bun build --target=bun-linux-x64-musl` and publishes
+  # the musl tar as a release asset. mcporter (the OAuth + MCP transport
+  # binary granola depends on) ships via the dashboard's Node Packages
+  # installer; nothing extra to manage host-side for it.
+  goclaw-granola-version = "v0.1.0-musl1";
+  goclaw-granola-url = "https://github.com/kamushadenes/granola-cli/releases/download/${goclaw-granola-version}/granola-linux-x64-musl.tar.gz";
+  goclaw-granola-tar-sha256 = "7455f23a6f3aeebfbdaf9858a9fea55f28eec1814b46c2408800f387101d1519";
+  goclaw-granola-bin-sha256 = "ce4d7338d0e8a600f1bd4e4564ec9defe7875468835cbe06a5192604cc396225";
   goclaw-data-vol = "/var/lib/docker/volumes/app_goclaw-data/_data";
 
   # Upstream himalaya v1.2.0 release binaries are built without the
@@ -170,6 +181,29 @@ let
           - "48888:48888"
           - "48889:48889"
   '';
+  # Persist granola-cli + mcporter OAuth state across container recreations.
+  # mcporter caches OAuth tokens at `~/.mcporter/credentials.json` and granola
+  # writes a per-user mcporter.json under `~/.config/granola-cli/`. Both live
+  # in the writable layer by default and would be wiped on every
+  # `docker compose --build`. Bind-mount host dirs so `granola auth` only has
+  # to run once per token rotation.
+  # NOT nested under ${goclaw-home}: the host's `goclaw` user is uid 1001
+  # while the container's `goclaw` user is uid 1000. Hosting the bind-mount
+  # source under /var/lib/goclaw (owned by host uid 1001) and chowning the
+  # leaf to uid 1000 trips systemd-tmpfiles' "unsafe path transition"
+  # check, leaving the leaf root-owned and unwritable from the container.
+  # Keep it at the top level so the leaf can be uid 1000:1000 without
+  # touching parent ownership.
+  goclaw-granola-creds-host = "/var/lib/goclaw-granola-creds";
+  goclaw-granola-creds-override = pkgs.writeText "docker-compose.granola-creds.yml" ''
+    services:
+      goclaw:
+        volumes:
+          - ${goclaw-granola-creds-host}/mcporter:/app/.mcporter
+          - ${goclaw-granola-creds-host}/granola-cli:/app/.config/granola-cli
+        ports:
+          - "61200:61200"
+  '';
   # Custom sandbox Dockerfile. Alpine base matches the main goclaw container
   # (musl) so binaries shared via the `app_goclaw-data` volume mount link
   # consistently against the same libc — no glibc/musl divergence between
@@ -259,6 +293,7 @@ let
     "-f ${goclaw-healthcheck-override}"
     "-f ${goclaw-mcp-creds-override}"
     "-f ${goclaw-mcp-ports-override}"
+    "-f ${goclaw-granola-creds-override}"
   ];
 in
 {
@@ -1080,6 +1115,66 @@ exec /app/data/.runtime/gam/gam "$@"'
     '';
   };
 
+  # granola-cli install. Bun-compiled binary; the upstream releases ship
+  # only macOS/glibc-Linux variants, so this fetches the musl rebuild from
+  # the kamushadenes/granola-cli fork (same source, rebuilt with
+  # `bun build --target=bun-linux-x64-musl`). Drops the binary at
+  # /app/data/.runtime/bin/granola so it resolves through the existing
+  # PATH in both main and sandbox containers. mcporter (npm) is installed
+  # by the dashboard's Node Packages flow and lands on PATH at
+  # /app/data/.runtime/npm-global/bin/mcporter — granola spawns it as a
+  # child process. Idempotent on the pinned binary sha.
+  systemd.services.goclaw-granola-bin = {
+    description = "Install granola-cli (musl rebuild) into goclaw shared volume";
+    after = [ "goclaw.service" ];
+    wants = [ "goclaw.service" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    path = [
+      pkgs.curl
+      pkgs.coreutils
+      pkgs.gnutar
+      pkgs.gzip
+    ];
+
+    script = ''
+      set -euo pipefail
+
+      bin=${goclaw-data-vol}/.runtime/bin/granola
+      target_sha="${goclaw-granola-bin-sha256}"
+
+      for _ in $(seq 1 60); do
+        [ -d "${goclaw-data-vol}/.runtime/bin" ] && break
+        sleep 2
+      done
+      if [ ! -d "${goclaw-data-vol}/.runtime/bin" ]; then
+        echo ".runtime/bin not present yet; nothing to do"
+        exit 0
+      fi
+
+      current_sha=""
+      [ -f "$bin" ] && current_sha=$(sha256sum "$bin" | cut -d' ' -f1)
+      if [ "$current_sha" = "$target_sha" ]; then
+        echo "granola already at pinned musl build ($target_sha)"
+        exit 0
+      fi
+
+      echo "Installing granola-cli ${goclaw-granola-version} (current sha: ''${current_sha:-none})..."
+      tmp=$(mktemp -d)
+      trap 'rm -rf "$tmp"' EXIT
+      curl -fsSL "${goclaw-granola-url}" -o "$tmp/granola.tar.gz"
+      echo "${goclaw-granola-tar-sha256}  $tmp/granola.tar.gz" | sha256sum -c -
+      tar -xzf "$tmp/granola.tar.gz" -C "$tmp"
+      install -m 0755 -o 1000 -g 1000 "$tmp/granola" "$bin"
+      echo "granola installed at $bin"
+    '';
+  };
+
   # gcalcli per-tenant install. gcalcli (pip-installed by the dashboard
   # into /app/data/.runtime/pip) has no native multi-account support,
   # so we ship two wrappers — gcalcli-hadenes / gcalcli-iniciador —
@@ -1203,6 +1298,15 @@ exec python3 -m gcalcli.cli \"\$@\""
     # into the goclaw container at /app/.google_workspace_mcp.
     "d ${goclaw-home}/mcp-creds 0750 goclaw goclaw -"
     "d ${goclaw-mcp-creds-host} 0750 goclaw goclaw -"
+    # granola-cli + mcporter persistent state. Owner is raw uid/gid 1000
+    # so it maps to the goclaw user *inside* the container (the host's
+    # goclaw user is uid 1001 — different from the container's). Path is
+    # kept outside /var/lib/goclaw to avoid systemd-tmpfiles' unsafe-path-
+    # transition refusal between a parent owned by host-goclaw (1001) and
+    # a leaf owned by container-goclaw (1000).
+    "d ${goclaw-granola-creds-host} 0750 1000 1000 -"
+    "d ${goclaw-granola-creds-host}/mcporter 0750 1000 1000 -"
+    "d ${goclaw-granola-creds-host}/granola-cli 0750 1000 1000 -"
   ];
 
   # SSH: allow root login for remote deployment (headless role doesn't import minimal.nix)
