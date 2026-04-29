@@ -97,6 +97,32 @@ let
   '';
   # Override sandbox defaults: enable network (CLIs call external APIs)
   # and use custom image with pre-installed CLIs.
+  #
+  # Also patches three runtime limits that broke S3 backups:
+  #
+  #   1. cap_add: KILL — upstream base compose drops ALL caps and re-adds
+  #      only SETUID/SETGID/CHOWN (+ NET_BIND_SERVICE in sandbox.yml). With
+  #      no CAP_KILL, tini PID 1 (root) cannot forward signals to the
+  #      goclaw process (uid 1000) because Linux requires CAP_KILL when
+  #      sender uid != receiver uid. Any catchable signal to PID 1 (Docker
+  #      stop, compose recreate) then triggers
+  #      `[FATAL tini (1)] Unexpected error when forwarding signal:
+  #      'Operation not permitted'` and the container restart-loops.
+  #
+  #   2. memory: 4G — upstream caps the container at 1 GiB. The S3 backup
+  #      handler buffers the entire pg_dump output in memory
+  #      (internal/backup/backup.go: `var dbBuf bytes.Buffer`). With
+  #      /app/data ≈ 1.3 GB the SQL dump exceeds 1 GiB and the cgroup
+  #      OOM-kills goclaw mid-backup. Bumping to 4 GiB gives headroom
+  #      until upstream switches to a streaming pg_dump → tar pipeline.
+  #
+  #   3. tmpfs /tmp size=2g — upstream caps /tmp at 256 MiB. Backups land
+  #      at `os.CreateTemp("", "goclaw-backup-*.tar.gz")` which writes to
+  #      /tmp, so the archive itself blows out the tmpfs once DB+files
+  #      cross 256 MiB. `!override` is required because compose merges
+  #      `tmpfs:` lists by concatenation — duplicate /tmp entries error.
+  #      nosuid is preserved; noexec dropped to match the existing
+  #      sandbox tmpfs exec policy.
   goclaw-sandbox-overrides = pkgs.writeText "docker-compose.sandbox-overrides.yml" ''
     services:
       goclaw:
@@ -108,6 +134,16 @@ let
           # Requires the goclaw fork's AllowTmpExec patch on the dev
           # branch. nosuid + nodev still enforced.
           - GOCLAW_SANDBOX_TMP_EXEC=true
+        cap_add:
+          - KILL
+        tmpfs: !override
+          - /tmp:rw,nosuid,size=2g
+        deploy:
+          resources:
+            limits:
+              memory: 4G
+              cpus: '2.0'
+              pids: 200
   '';
   # Persist /app/.google_workspace_mcp/ across container recreations. Without
   # this, the OAuth credential store (created by `uvx workspace-mcp` under the
