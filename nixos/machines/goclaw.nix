@@ -1291,11 +1291,13 @@ exec python3 -m gcalcli.cli \"\$@\""
     # into the goclaw container at /app/.google_workspace_mcp.
     "d ${goclaw-home}/mcp-creds 0750 goclaw goclaw -"
     "d ${goclaw-mcp-creds-host} 0750 goclaw goclaw -"
-    # granola-cli + mcporter persistent state. uid/gid 1000 matches the
-    # goclaw user inside the container so the bind-mounts are writable.
-    "d ${goclaw-granola-creds-host} 0750 1000 1000 -"
-    "d ${goclaw-granola-creds-host}/mcporter 0750 1000 1000 -"
-    "d ${goclaw-granola-creds-host}/granola-cli 0750 1000 1000 -"
+    # granola-cli + mcporter persistent state. Owner = host goclaw user
+    # (matches /var/lib/goclaw parent + the existing mcp-creds pattern).
+    # Container's goclaw user resolves writes via Docker bind-mount uid
+    # mapping the same way workspace_mcp's credentials/logs subtree does.
+    "d ${goclaw-granola-creds-host} 0750 goclaw goclaw -"
+    "d ${goclaw-granola-creds-host}/mcporter 0750 goclaw goclaw -"
+    "d ${goclaw-granola-creds-host}/granola-cli 0750 goclaw goclaw -"
   ];
 
   # SSH: allow root login for remote deployment (headless role doesn't import minimal.nix)
