@@ -225,9 +225,13 @@ let
     # so it does NOT match the always-on /app/data shell deny pattern.
     # Key is decrypted from agenix at boot and staged into the build
     # context; ssh_config is generated inline alongside it.
+    # Legacy docker builder doesn't support --chmod on COPY, so chmod
+    # in a follow-on RUN. BuildKit is disabled here because the LXC
+    # has no DBus secret service for credential helpers.
     RUN mkdir -p /etc/goclaw-ssh
-    COPY --chown=1000:1000 --chmod=0400 sandbox-id_ed25519 /etc/goclaw-ssh/id_ed25519
-    COPY --chown=root:root  --chmod=0644 sandbox-ssh-config /etc/ssh/ssh_config
+    COPY --chown=1000:1000 sandbox-id_ed25519 /etc/goclaw-ssh/id_ed25519
+    COPY --chown=root:root sandbox-ssh-config /etc/ssh/ssh_config
+    RUN chmod 0400 /etc/goclaw-ssh/id_ed25519 && chmod 0644 /etc/ssh/ssh_config
 
     # `shadow` provides useradd; bash is installed above. Goclaw spawns
     # sandbox containers with read-only rootfs — only /tmp, /var/tmp and
