@@ -384,6 +384,22 @@ in
     group = "root";
   };
 
+  # gcloud service-account JSON (Iniciador tenant). Materialized into the
+  # shared volume at /app/data/.runtime/gcloud/iniciador/sa.json by
+  # goclaw-cli-secrets.service. The dashboard's secure_cli encrypted_env
+  # for the `gcloud` binary points GOOGLE_APPLICATION_CREDENTIALS at this
+  # path. Storing the JSON inline in encrypted_env was a no-op because
+  # gcloud + google-auth read that variable as a filesystem path, not as
+  # inline JSON (open("{\"type\":...}") -> ENOENT). Sandbox containers
+  # mount /app/data read-only; that's fine here — the SDK only reads the
+  # SA JSON, never writes back.
+  age.secrets."goclaw-gcloud-iniciador-sa" = {
+    file = "${private}/nixos/secrets/goclaw/gcloud-iniciador-sa.age";
+    mode = "0400";
+    owner = "root";
+    group = "root";
+  };
+
   # SSH private key baked into the sandbox image at /etc/goclaw-ssh/id_ed25519.
   # Sandbox containers only mount app_goclaw-data:/app/data:ro, and that path
   # is always-on path-denied (cmd/gateway_setup.go DenyPaths). Per-agent
@@ -866,7 +882,7 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
   # Idempotent on per-file sha; re-runs on .age content change via
   # restartTriggers since the unit is oneshot+RemainAfterExit.
   systemd.services.goclaw-cli-secrets = {
-    description = "Materialize himalaya + gam7 secrets into goclaw shared volume";
+    description = "Materialize himalaya + gam7 + gcloud secrets into goclaw shared volume";
     after = [
       "goclaw.service"
       "agenix.service"
@@ -883,6 +899,7 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       config.age.secrets."goclaw-gam7-iniciador-cfg".file
       config.age.secrets."goclaw-gam7-iniciador-oauth2".file
       config.age.secrets."goclaw-gam7-iniciador-client-secrets".file
+      config.age.secrets."goclaw-gcloud-iniciador-sa".file
     ];
 
     serviceConfig = {
@@ -913,6 +930,10 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
 
       gam_iniciador_cs_src=${config.age.secrets."goclaw-gam7-iniciador-client-secrets".path}
       gam_iniciador_cs_dest=$gam_iniciador_dest_dir/client_secrets.json
+
+      gcloud_iniciador_src=${config.age.secrets."goclaw-gcloud-iniciador-sa".path}
+      gcloud_iniciador_dest_dir=${goclaw-data-vol}/.runtime/gcloud/iniciador
+      gcloud_iniciador_dest=$gcloud_iniciador_dest_dir/sa.json
 
       for _ in $(seq 1 60); do
         [ -d "${goclaw-data-vol}/.runtime" ] && break
@@ -948,6 +969,7 @@ exec env CLOUDSDK_PYTHON=/usr/bin/python3 /app/data/.runtime/google-cloud-sdk/bi
       materialize "$gam_iniciador_cfg_src"    "$gam_iniciador_dest_dir" "$gam_iniciador_cfg_dest"    "gam7 iniciador cfg"
       materialize "$gam_iniciador_oauth2_src" "$gam_iniciador_dest_dir" "$gam_iniciador_oauth2_dest" "gam7 iniciador oauth2"
       materialize "$gam_iniciador_cs_src"     "$gam_iniciador_dest_dir" "$gam_iniciador_cs_dest"     "gam7 iniciador client_secrets"
+      materialize "$gcloud_iniciador_src"     "$gcloud_iniciador_dest_dir" "$gcloud_iniciador_dest" "gcloud iniciador SA"
 
       # Parent /app/data/.runtime/gam7 dir owner/perm so dashboard listings
       # see consistent ownership.
