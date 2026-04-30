@@ -204,6 +204,36 @@ let
         ports:
           - "61200:61200"
   '';
+  # Reap orphaned sandbox containers on every goclaw container start.
+  # Upstream's DockerManager keeps an in-memory map only; on restart
+  # (`systemctl restart goclaw`, `docker restart app-goclaw-1`, host reboot,
+  # compose recreate) the map empties but deterministic-named containers
+  # (e.g. goclaw-sbx-agent-picard-picard-telegram-group--5167211537) survive.
+  # Next `docker run --name X` then fails with `Conflict. The container name
+  # "X" is already in use`, surfacing to the agent as
+  # `credentialed exec requires sandbox but sandbox is unavailable`.
+  # The systemd ExecStartPre reaper only fires on systemctl-level starts, not
+  # on `docker restart`. This entrypoint wrapper runs INSIDE the goclaw
+  # container so it covers every restart path uniformly. docker.sock is
+  # already bind-mounted (DooD), and the wrapper runs as root before the
+  # entrypoint drops to the goclaw user.
+  goclaw-sandbox-reap-override = pkgs.writeText "docker-compose.sandbox-reap.yml" ''
+    services:
+      goclaw:
+        entrypoint:
+          - /bin/sh
+          - -c
+          - |
+            if [ -S /var/run/docker.sock ] && command -v docker >/dev/null 2>&1; then
+              orphans=$$(docker ps -aq --filter label=goclaw.sandbox=true 2>/dev/null || true)
+              if [ -n "$$orphans" ]; then
+                echo "[goclaw-reap] removing $$(echo "$$orphans" | wc -l) orphan sandbox container(s)"
+                echo "$$orphans" | xargs -r docker rm -f >/dev/null 2>&1 || true
+              fi
+            fi
+            exec /app/docker-entrypoint.sh "$$@"
+          - "reap-wrapper"
+  '';
   # Custom sandbox Dockerfile. Alpine base matches the main goclaw container
   # (musl) so binaries shared via the `app_goclaw-data` volume mount link
   # consistently against the same libc — no glibc/musl divergence between
@@ -294,6 +324,7 @@ let
     "-f ${goclaw-mcp-creds-override}"
     "-f ${goclaw-mcp-ports-override}"
     "-f ${goclaw-granola-creds-override}"
+    "-f ${goclaw-sandbox-reap-override}"
   ];
 in
 {
