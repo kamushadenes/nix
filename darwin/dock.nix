@@ -20,7 +20,7 @@
         wvous-br-corner = 13;
 
         persistent-apps = [
-          "/Applications/Zen.app"
+          "/Applications/Orion.app"
           "/Applications/Canary Mail.app"
           "/Applications/Slack.app"
           "/System/Applications/Notes.app"
