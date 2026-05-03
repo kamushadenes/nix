@@ -91,6 +91,7 @@ in
       environment = {
         SEL_SYNC_ACCESS = "all";
         REGEX_FILTER_ACCESS = "all";
+        MAX_ADDONS = "30";
       };
     };
   };
