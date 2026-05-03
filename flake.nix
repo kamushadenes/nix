@@ -456,6 +456,19 @@
           ];
         };
 
+        # AIOStreams (LXC) - Stremio addon aggregator
+        # Single Docker container behind nginx + Let's Encrypt (Cloudflare DNS-01)
+        aiostreams = mkProxmoxHost {
+          machine = "aiostreams";
+          hardware = ./nixos/hardware/aiostreams.nix;
+          role = "minimal";
+          extraPersistPaths = [
+            "/var/lib/aiostreams"
+            "/var/lib/docker"
+            "/var/lib/acme"
+          ];
+        };
+
         # Prometheus server (LXC) - central metrics collection
         prometheus = mkProxmoxHost {
           machine = "prometheus";
