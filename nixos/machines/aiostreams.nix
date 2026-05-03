@@ -88,6 +88,10 @@ in
         "/var/lib/aiostreams/data:/app/data"
       ];
       environmentFiles = [ "/run/agenix/aiostreams-env" ];
+      environment = {
+        SEL_SYNC_ACCESS = "all";
+        REGEX_FILTER_ACCESS = "all";
+      };
     };
   };
 
