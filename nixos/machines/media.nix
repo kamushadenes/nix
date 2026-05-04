@@ -310,7 +310,9 @@ in
         # Upstream publishes only :latest; pin by digest.
         image = "ghcr.io/nzbdav-dev/nzbdav@sha256:7da6f28000d6145f69981066d8a3cc5d855756bfc66498df87a89c967a423020";
         autoStart = true;
-        ports = [ "127.0.0.1:8090:8080" ];
+        # NzbDAV: frontend on 3000 (web UI), backend on 8080 (WebDAV mount target).
+        # Caddy fronts the UI on https; *arrs hit the WebDAV via backend port.
+        ports = [ "127.0.0.1:8090:3000" "127.0.0.1:8091:8080" ];
         environmentFiles = [
           "/run/agenix/usenet-eweka"
           "/run/agenix/usenet-newshosting"
