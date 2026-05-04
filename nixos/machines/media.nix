@@ -124,33 +124,6 @@ in
     ];
   };
 
-  # :rshared host-side preparation. Without this, container :rshared is no-op.
-  # Idempotent: each step guards against re-applying on systemd reload.
-  systemd.services.make-rshared-mounts = {
-    description = "Make /storage, /mnt/realdebrid, /mnt/nzbdav rshared";
-    wantedBy = [ "docker.service" ];
-    before = [ "docker.service" ];
-    after = [ "storage.mount" "local-fs.target" ];
-    unitConfig = {
-      RequiresMountsFor = [ "/storage" "/mnt/realdebrid" "/mnt/nzbdav" ];
-    };
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = pkgs.writeShellScript "make-rshared" ''
-        set -euo pipefail
-        ${pkgs.util-linux}/bin/findmnt -no PROPAGATION /storage | grep -q shared || \
-          ${pkgs.util-linux}/bin/mount --make-rshared /storage
-        for dir in /mnt/realdebrid /mnt/nzbdav; do
-          ${pkgs.util-linux}/bin/mountpoint -q "$dir" || \
-            ${pkgs.util-linux}/bin/mount --bind "$dir" "$dir"
-          ${pkgs.util-linux}/bin/findmnt -no PROPAGATION "$dir" | grep -q shared || \
-            ${pkgs.util-linux}/bin/mount --make-rshared "$dir"
-        done
-      '';
-    };
-  };
-
   # Caddy with native ACME via Cloudflare DNS-01. Sole ACME runner for the
   # media LXC. Plugin hash captured via Phase 0.8 procedure (lib.fakeHash trick).
   services.caddy = {
@@ -184,12 +157,6 @@ in
       };
   };
 
-  systemd.services.caddy = {
-    serviceConfig = {
-      EnvironmentFile = config.age.secrets."caddy-cloudflare-token".path;
-    };
-  };
-
   users.users.caddy.extraGroups = [ "acme" ];
 
   # Docker daemon
@@ -202,24 +169,62 @@ in
     };
   };
 
-  # User-defined network so containers can address each other by name.
-  systemd.services.docker-network-media = {
-    description = "Create media docker network";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "docker.service" ];
-    requires = [ "docker.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "${pkgs.docker}/bin/docker network create --driver bridge ${mediaNet} || true";
-      ExecStop  = "${pkgs.docker}/bin/docker network rm ${mediaNet} || true";
-    };
-  };
-
-  # systemd ordering:
-  #   1. Every container waits on docker-network-media.service.
-  #   2. Zilean depends on its dedicated postgres being up first.
+  # All systemd.services definitions merged into a single attribute to avoid
+  # NixOS module-system "attribute already defined" conflicts. Order:
+  #   1. make-rshared-mounts: host-side mount --make-rshared on /storage and
+  #      /mnt/{realdebrid,nzbdav} before docker.service. Idempotent.
+  #   2. caddy: EnvironmentFile = caddy-cloudflare-token (Caddy native ACME
+  #      DNS-01 plugin reads CF_API_TOKEN from this).
+  #   3. docker-network-media: create the user-defined `media` Docker network
+  #      so containers resolve each other by name.
+  #   4. docker-${name} (every oci-container): after=docker-network-media.service.
+  #   5. docker-zilean: also after=docker-zilean-postgres.service.
   systemd.services = lib.mkMerge [
+    {
+      make-rshared-mounts = {
+        description = "Make /storage, /mnt/realdebrid, /mnt/nzbdav rshared";
+        wantedBy = [ "docker.service" ];
+        before = [ "docker.service" ];
+        after = [ "storage.mount" "local-fs.target" ];
+        unitConfig = {
+          RequiresMountsFor = [ "/storage" "/mnt/realdebrid" "/mnt/nzbdav" ];
+        };
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = pkgs.writeShellScript "make-rshared" ''
+            set -euo pipefail
+            ${pkgs.util-linux}/bin/findmnt -no PROPAGATION /storage | grep -q shared || \
+              ${pkgs.util-linux}/bin/mount --make-rshared /storage
+            for dir in /mnt/realdebrid /mnt/nzbdav; do
+              ${pkgs.util-linux}/bin/mountpoint -q "$dir" || \
+                ${pkgs.util-linux}/bin/mount --bind "$dir" "$dir"
+              ${pkgs.util-linux}/bin/findmnt -no PROPAGATION "$dir" | grep -q shared || \
+                ${pkgs.util-linux}/bin/mount --make-rshared "$dir"
+            done
+          '';
+        };
+      };
+
+      caddy = {
+        serviceConfig = {
+          EnvironmentFile = config.age.secrets."caddy-cloudflare-token".path;
+        };
+      };
+
+      docker-network-media = {
+        description = "Create media docker network";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "docker.service" ];
+        requires = [ "docker.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${pkgs.docker}/bin/docker network create --driver bridge ${mediaNet} || true";
+          ExecStop  = "${pkgs.docker}/bin/docker network rm ${mediaNet} || true";
+        };
+      };
+    }
     (lib.genAttrs (map (n: "docker-${n}") containerNames) (_: {
       after = [ "docker-network-media.service" ];
       requires = [ "docker-network-media.service" ];
