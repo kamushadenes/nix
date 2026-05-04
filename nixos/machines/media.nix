@@ -14,7 +14,7 @@
 #        - private/nixos/secrets/lxc-management/secrets.nix (lxc-management.pem recipients)
 #   3. Re-encrypt: `cd private/nixos/secrets/<dir> && agenix -r` for each touched dir
 #   4. `rebuild -vL media` (or `ssh aether '...' nh os switch`)
-{ config, lib, pkgs, pkgs-unstable, private, ... }:
+{ config, lib, pkgs, private, ... }:
 
 let
   mkEmail = user: domain: "${user}@${domain}";
@@ -53,11 +53,6 @@ in
 
   age.secrets = {
     "cloudflare-dns-token".file = "${private}/nixos/secrets/cloudflare/cloudflare-dns-token.age";
-    "caddy-cloudflare-token" = {
-      file = "${private}/nixos/secrets/media/caddy-cloudflare-token.age";
-      path = "/run/agenix/caddy-cloudflare-token";
-      mode = "0400";
-    };
     "realdebrid-api-key" = {
       file = "${private}/nixos/secrets/media/realdebrid-api-key.age";
       path = "/run/agenix/realdebrid-api-key";
@@ -100,12 +95,30 @@ in
     };
   };
 
-  # ACME ownership decision: SINGLE runner — Caddy native via cloudflare DNS
-  # plugin. NixOS `security.acme` block is intentionally OMITTED to avoid two
-  # lego clients racing on the same `_acme-challenge.hyades.io` TXT record and
-  # double-counting against Let's Encrypt's "duplicate certificate per
-  # identical SAN set" weekly limit. Caddy stores its cert and account state
-  # under `/var/lib/caddy/.local/share/caddy/`, persisted via `extraPersistPaths`.
+  # ACME ownership decision: SINGLE runner — NixOS `security.acme` (lego)
+  # owns the wildcard `*.hyades.io` cert via Cloudflare DNS-01. Caddy
+  # consumes the issued cert via explicit `tls <fullchain> <key>` directive
+  # in each vhost. Renewal -> Caddy reload coupling: `reloadServices = [
+  # "caddy.service" ]` on the cert.
+  #
+  # Why not Caddy-native ACME plugin: pkgs.caddy.withPlugins requires building
+  # Caddy from source against a Go toolchain that nixpkgs (both 25.11 and
+  # unstable as of 2026-05) lags behind, so the build fails with
+  # "go.mod requires go >= X.Y.Z (running go X.Y.Y)". NixOS security.acme is
+  # already in production for aiostreams.nix and works.
+  security.acme = {
+    acceptTerms = true;
+    defaults = {
+      email = mkEmail "kamus" "hadenes.io";
+      dnsProvider = "cloudflare";
+      environmentFile = config.age.secrets."cloudflare-dns-token".path;
+    };
+    certs."hyades.io" = {
+      domain = "hyades.io";
+      extraDomainNames = [ "*.hyades.io" ];
+      reloadServices = [ "caddy.service" ];
+    };
+  };
 
   # NFS mount — eager, _netdev, nofail; Docker waits for it explicitly.
   services.rpcbind.enable = true;
@@ -124,25 +137,17 @@ in
     ];
   };
 
-  # Caddy with native ACME via Cloudflare DNS-01. Sole ACME runner for the
-  # media LXC. Plugin hash captured via Phase 0.8 procedure (lib.fakeHash trick).
+  # Caddy reads the wildcard cert issued by NixOS security.acme above.
   services.caddy = {
     enable = true;
-    # Use pkgs-unstable: Caddy 2.11.2 requires Go 1.25.8; nixpkgs-25.11-darwin
-    # ships Go 1.25.7. Unstable is current with the Go release.
-    package = pkgs-unstable.caddy.withPlugins {
-      plugins = [ "github.com/caddy-dns/cloudflare@v0.2.1" ];
-      hash = "sha256-hEIqK6F+9OCcd4JueVSidfUgQsVPWo0/imciD1UnqRo=";
-    };
     globalConfig = ''
       auto_https disable_redirects
     '';
     virtualHosts =
       let
+        certDir = "/var/lib/acme/hyades.io";
         mkProxy = port: ''
-          tls {
-            dns cloudflare {env.CF_API_TOKEN}
-          }
+          tls ${certDir}/fullchain.pem ${certDir}/key.pem
           reverse_proxy 127.0.0.1:${toString port}
         '';
       in {
@@ -205,12 +210,6 @@ in
                 ${pkgs.util-linux}/bin/mount --make-rshared "$dir"
             done
           '';
-        };
-      };
-
-      caddy = {
-        serviceConfig = {
-          EnvironmentFile = config.age.secrets."caddy-cloudflare-token".path;
         };
       };
 

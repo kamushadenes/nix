@@ -17,8 +17,11 @@
 #        - private/nixos/secrets/lxc-management/secrets.nix
 #   3. Re-encrypt: agenix -r in each touched dir
 #   4. `rebuild -vL stremthru`
-{ config, lib, pkgs, pkgs-unstable, private, ... }:
+{ config, lib, pkgs, private, ... }:
 
+let
+  mkEmail = user: domain: "${user}@${domain}";
+in
 {
   imports = [ "${private}/nixos/lxc-management.nix" ];
 
@@ -26,11 +29,6 @@
 
   age.secrets = {
     "cloudflare-dns-token".file = "${private}/nixos/secrets/cloudflare/cloudflare-dns-token.age";
-    "caddy-cloudflare-token" = {
-      file = "${private}/nixos/secrets/stremthru/caddy-cloudflare-token.age";
-      path = "/run/agenix/caddy-cloudflare-token";
-      mode = "0400";
-    };
     "stremthru-env" = {
       file = "${private}/nixos/secrets/stremthru/stremthru-env.age";
       path = "/run/agenix/stremthru-env";
@@ -38,29 +36,31 @@
     };
   };
 
-  # Caddy native ACME (Cloudflare DNS-01) — per-host cert, NOT wildcard.
+  # Per-host ACME cert via NixOS security.acme + Cloudflare DNS-01.
+  # Caddy consumes /var/lib/acme/stremthru.hyades.io/* via reloadServices.
+  security.acme = {
+    acceptTerms = true;
+    defaults = {
+      email = mkEmail "kamus" "hadenes.io";
+      dnsProvider = "cloudflare";
+      environmentFile = config.age.secrets."cloudflare-dns-token".path;
+    };
+    certs."stremthru.hyades.io" = {
+      reloadServices = [ "caddy.service" ];
+    };
+  };
+
+  users.users.caddy.extraGroups = [ "acme" ];
+
   services.caddy = {
     enable = true;
-    # Use pkgs-unstable: Caddy 2.11.2 requires Go 1.25.8; 25.11-darwin has 1.25.7.
-    package = pkgs-unstable.caddy.withPlugins {
-      plugins = [ "github.com/caddy-dns/cloudflare@v0.2.1" ];
-      hash = "sha256-hEIqK6F+9OCcd4JueVSidfUgQsVPWo0/imciD1UnqRo=";
-    };
     globalConfig = ''
       auto_https disable_redirects
     '';
     virtualHosts."stremthru.hyades.io".extraConfig = ''
-      tls {
-        dns cloudflare {env.CF_API_TOKEN}
-      }
+      tls /var/lib/acme/stremthru.hyades.io/fullchain.pem /var/lib/acme/stremthru.hyades.io/key.pem
       reverse_proxy 127.0.0.1:8080
     '';
-  };
-
-  systemd.services.caddy = {
-    serviceConfig = {
-      EnvironmentFile = config.age.secrets."caddy-cloudflare-token".path;
-    };
   };
 
   virtualisation.docker = {

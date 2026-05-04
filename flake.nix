@@ -494,7 +494,7 @@
           extraPersistPaths = [
             "/var/lib/media"
             "/var/lib/docker"
-            "/var/lib/caddy"
+            "/var/lib/acme"
           ];
         };
 
@@ -507,7 +507,7 @@
           extraPersistPaths = [
             "/var/lib/stremthru"
             "/var/lib/docker"
-            "/var/lib/caddy"
+            "/var/lib/acme"
           ];
         };
 
