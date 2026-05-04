@@ -361,7 +361,7 @@ in
         # /dev/dri NOT mounted — HW transcode is phase 2.
       };
       profilarr = {
-        image = "santiagosayshey/profilarr:1.1.4";
+        image = "santiagosayshey/profilarr:v1.1.4";
         autoStart = true;
         ports = [ "127.0.0.1:6868:6868" ];
         volumes = [ "/var/lib/media/profilarr:/config" ];
