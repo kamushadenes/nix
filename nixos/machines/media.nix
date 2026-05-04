@@ -221,8 +221,13 @@ in
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
-          ExecStart = "${pkgs.docker}/bin/docker network create --driver bridge ${mediaNet} || true";
-          ExecStop  = "${pkgs.docker}/bin/docker network rm ${mediaNet} || true";
+          ExecStart = pkgs.writeShellScript "docker-network-media-create" ''
+            ${pkgs.docker}/bin/docker network inspect ${mediaNet} >/dev/null 2>&1 || \
+              ${pkgs.docker}/bin/docker network create --driver bridge ${mediaNet}
+          '';
+          ExecStop = pkgs.writeShellScript "docker-network-media-stop" ''
+            ${pkgs.docker}/bin/docker network rm ${mediaNet} || true
+          '';
         };
       };
     }
