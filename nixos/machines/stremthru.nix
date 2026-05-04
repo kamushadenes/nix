@@ -71,7 +71,7 @@ in
   virtualisation.oci-containers = {
     backend = "docker";
     containers.stremthru = {
-      image = "muniftanjim/stremthru:0.84.5";
+      image = "muniftanjim/stremthru:0.101.0";
       autoStart = true;
       ports = [ "127.0.0.1:8080:8080" ];
       extraOptions = [ "--dns=10.23.23.1" "--dns=1.1.1.1" ];
