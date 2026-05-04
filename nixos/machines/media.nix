@@ -243,24 +243,75 @@ in
         requires = [ "docker-zilean-postgres.service" "docker-network-media.service" ];
       };
     }
-    # Cascade restart on Decypharr FUSE remount: containers reading /mnt/realdebrid
-    # via :rshared bind hold stale FUSE handles after Decypharr restart ("Socket
-    # not connected"). bindsTo+partOf restarts them automatically.
+    # Decypharr no longer manages the FUSE mount itself — rclone runs on the
+    # LXC host (rclone-decypharr-mount.service) and mounts Decypharr's WebDAV
+    # at /mnt/realdebrid. *arrs and jellyfin must wait for that mount to exist
+    # before they start, otherwise their :rshared bind sees an empty directory.
+    # rclone in turn waits for docker-decypharr (so the WebDAV endpoint is up).
     {
+      "rclone-decypharr-mount" = {
+        description = "rclone WebDAV mount of Decypharr → /mnt/realdebrid";
+        after = [ "docker-decypharr.service" ];
+        requires = [ "docker-decypharr.service" ];
+        wantedBy = [ "multi-user.target" ];
+        path = [ pkgs.rclone pkgs.curl pkgs.fuse ];
+        serviceConfig = {
+          Type = "exec";
+          Restart = "on-failure";
+          RestartSec = "5s";
+          ExecStartPre = pkgs.writeShellScript "rclone-decypharr-wait" ''
+            set -euo pipefail
+            for _ in $(${pkgs.coreutils}/bin/seq 1 60); do
+              if ${pkgs.curl}/bin/curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:8282/; then
+                exit 0
+              fi
+              ${pkgs.coreutils}/bin/sleep 1
+            done
+            echo "Decypharr WebDAV did not come up within 60s" >&2
+            exit 1
+          '';
+          ExecStart = pkgs.writeShellScript "rclone-decypharr-mount" ''
+            exec ${pkgs.rclone}/bin/rclone mount decypharr: /mnt/realdebrid \
+              --config=/etc/rclone-decypharr/rclone.conf \
+              --allow-other \
+              --uid=1000 --gid=1000 --umask=022 \
+              --dir-cache-time=10s --poll-interval=10s \
+              --vfs-cache-mode=full --vfs-cache-max-size=4G --vfs-cache-max-age=24h \
+              --vfs-read-chunk-size=32M --vfs-read-chunk-size-limit=1G \
+              --buffer-size=32M --transfers=10 \
+              --rc --rc-addr=127.0.0.1:5572 --rc-no-auth \
+              --log-level=INFO
+          '';
+          ExecStartPost = pkgs.writeShellScript "rclone-decypharr-mount-rshared" ''
+            set -euo pipefail
+            for _ in $(${pkgs.coreutils}/bin/seq 1 30); do
+              if ${pkgs.util-linux}/bin/mountpoint -q /mnt/realdebrid; then
+                ${pkgs.util-linux}/bin/mount --make-rshared /mnt/realdebrid
+                exit 0
+              fi
+              ${pkgs.coreutils}/bin/sleep 1
+            done
+            echo "rclone mount did not appear within 30s" >&2
+            exit 1
+          '';
+          ExecStop = "${pkgs.fuse}/bin/fusermount -uz /mnt/realdebrid";
+        };
+      };
       "docker-radarr" = {
-        bindsTo = [ "docker-decypharr.service" ];
-        partOf = [ "docker-decypharr.service" ];
-        after = [ "docker-decypharr.service" "docker-network-media.service" ];
+        after = [ "rclone-decypharr-mount.service" "docker-network-media.service" ];
+        requires = [ "rclone-decypharr-mount.service" ];
       };
       "docker-sonarr" = {
-        bindsTo = [ "docker-decypharr.service" ];
-        partOf = [ "docker-decypharr.service" ];
-        after = [ "docker-decypharr.service" "docker-network-media.service" ];
+        after = [ "rclone-decypharr-mount.service" "docker-network-media.service" ];
+        requires = [ "rclone-decypharr-mount.service" ];
+      };
+      "docker-bazarr" = {
+        after = [ "rclone-decypharr-mount.service" "docker-network-media.service" ];
+        requires = [ "rclone-decypharr-mount.service" ];
       };
       "docker-jellyfin" = {
-        bindsTo = [ "docker-decypharr.service" ];
-        partOf = [ "docker-decypharr.service" ];
-        after = [ "docker-decypharr.service" "docker-network-media.service" ];
+        after = [ "rclone-decypharr-mount.service" "docker-network-media.service" ];
+        requires = [ "rclone-decypharr-mount.service" ];
       };
     }
   ];
@@ -309,6 +360,10 @@ in
         extraOptions = baseExtraOpts ++ [ "--memory=512m" "--cpus=1.0" ];
       };
       decypharr = {
+        # external_rclone mode: rclone runs on the LXC host
+        # (rclone-decypharr-mount.service) and mounts Decypharr's WebDAV
+        # at /mnt/realdebrid. Decypharr only serves WebDAV + writes symlinks
+        # in /mnt/decypharr-dl, so no FUSE access needed inside the container.
         image = "ghcr.io/sirrobot01/decypharr:v2.2";
         autoStart = true;
         ports = [ "127.0.0.1:8282:8282" ];
@@ -318,13 +373,9 @@ in
         ];
         volumes = [
           "/var/lib/media/decypharr:/app"
-          "/mnt/realdebrid:/mnt/realdebrid:rshared"
           "/mnt/decypharr-dl:/mnt/decypharr-dl:rshared"
         ];
         extraOptions = baseExtraOpts ++ [
-          "--cap-add=SYS_ADMIN"
-          "--device=/dev/fuse"
-          "--security-opt=apparmor:unconfined"
           "--memory=2g"
           "--cpus=2.0"
         ];
@@ -436,6 +487,17 @@ in
     "d /mnt/nzbdav 0755 1000 1000 -"
     "d /mnt/decypharr-dl 0755 1000 1000 -"
   ];
+
+  # rclone WebDAV remote pointing at Decypharr's built-in WebDAV server.
+  # Decypharr runs with use_auth=false (LAN-only behind Caddy + Tailscale),
+  # so no credentials are required. The mount is consumed by
+  # rclone-decypharr-mount.service.
+  environment.etc."rclone-decypharr/rclone.conf".text = ''
+    [decypharr]
+    type = webdav
+    url = http://127.0.0.1:8282/webdav
+    vendor = other
+  '';
 
   networking.firewall.allowedTCPPorts = [ 443 ];
   networking.networkmanager.enable = lib.mkForce false;
