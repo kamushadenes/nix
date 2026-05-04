@@ -44,6 +44,7 @@ let
     "/storage:/storage:rshared"
     "/mnt/realdebrid:/mnt/realdebrid:rshared"
     "/mnt/nzbdav:/mnt/nzbdav:rshared"
+    "/mnt/decypharr-dl:/mnt/decypharr-dl:rshared"
   ];
 in
 {
@@ -190,12 +191,12 @@ in
   systemd.services = lib.mkMerge [
     {
       make-rshared-mounts = {
-        description = "Make /storage, /mnt/realdebrid, /mnt/nzbdav rshared";
+        description = "Make /storage, /mnt/realdebrid, /mnt/nzbdav, /mnt/decypharr-dl rshared";
         wantedBy = [ "docker.service" ];
         before = [ "docker.service" ];
         after = [ "storage.mount" "local-fs.target" ];
         unitConfig = {
-          RequiresMountsFor = [ "/storage" "/mnt/realdebrid" "/mnt/nzbdav" ];
+          RequiresMountsFor = [ "/storage" "/mnt/realdebrid" "/mnt/nzbdav" "/mnt/decypharr-dl" ];
         };
         serviceConfig = {
           Type = "oneshot";
@@ -204,7 +205,7 @@ in
             set -euo pipefail
             ${pkgs.util-linux}/bin/findmnt -no PROPAGATION /storage | grep -q shared || \
               ${pkgs.util-linux}/bin/mount --make-rshared /storage
-            for dir in /mnt/realdebrid /mnt/nzbdav; do
+            for dir in /mnt/realdebrid /mnt/nzbdav /mnt/decypharr-dl; do
               ${pkgs.util-linux}/bin/mountpoint -q "$dir" || \
                 ${pkgs.util-linux}/bin/mount --bind "$dir" "$dir"
               ${pkgs.util-linux}/bin/findmnt -no PROPAGATION "$dir" | grep -q shared || \
@@ -240,6 +241,26 @@ in
       "docker-zilean" = {
         after = [ "docker-zilean-postgres.service" "docker-network-media.service" ];
         requires = [ "docker-zilean-postgres.service" "docker-network-media.service" ];
+      };
+    }
+    # Cascade restart on Decypharr FUSE remount: containers reading /mnt/realdebrid
+    # via :rshared bind hold stale FUSE handles after Decypharr restart ("Socket
+    # not connected"). bindsTo+partOf restarts them automatically.
+    {
+      "docker-radarr" = {
+        bindsTo = [ "docker-decypharr.service" ];
+        partOf = [ "docker-decypharr.service" ];
+        after = [ "docker-decypharr.service" "docker-network-media.service" ];
+      };
+      "docker-sonarr" = {
+        bindsTo = [ "docker-decypharr.service" ];
+        partOf = [ "docker-decypharr.service" ];
+        after = [ "docker-decypharr.service" "docker-network-media.service" ];
+      };
+      "docker-jellyfin" = {
+        bindsTo = [ "docker-decypharr.service" ];
+        partOf = [ "docker-decypharr.service" ];
+        after = [ "docker-decypharr.service" "docker-network-media.service" ];
       };
     }
   ];
@@ -298,6 +319,7 @@ in
         volumes = [
           "/var/lib/media/decypharr:/app"
           "/mnt/realdebrid:/mnt/realdebrid:rshared"
+          "/mnt/decypharr-dl:/mnt/decypharr-dl:rshared"
         ];
         extraOptions = baseExtraOpts ++ [
           "--cap-add=SYS_ADMIN"
@@ -410,6 +432,7 @@ in
     "d /var/lib/media/posterizarr/assets 0755 1000 1000 -"
     "d /mnt/realdebrid 0755 1000 1000 -"
     "d /mnt/nzbdav 0755 1000 1000 -"
+    "d /mnt/decypharr-dl 0755 1000 1000 -"
   ];
 
   networking.firewall.allowedTCPPorts = [ 443 ];
