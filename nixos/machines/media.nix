@@ -191,12 +191,14 @@ in
   systemd.services = lib.mkMerge [
     {
       make-rshared-mounts = {
-        description = "Make /storage, /mnt/realdebrid, /mnt/nzbdav, /mnt/decypharr-dl rshared";
+        # /mnt/realdebrid is intentionally NOT pre-bound here: rclone-decypharr-mount
+        # creates its own FUSE mount there and sets rshared in its ExecStartPost.
+        description = "Make /storage, /mnt/nzbdav, /mnt/decypharr-dl rshared";
         wantedBy = [ "docker.service" ];
         before = [ "docker.service" ];
         after = [ "storage.mount" "local-fs.target" ];
         unitConfig = {
-          RequiresMountsFor = [ "/storage" "/mnt/realdebrid" "/mnt/nzbdav" "/mnt/decypharr-dl" ];
+          RequiresMountsFor = [ "/storage" "/mnt/nzbdav" "/mnt/decypharr-dl" ];
         };
         serviceConfig = {
           Type = "oneshot";
@@ -205,7 +207,7 @@ in
             set -euo pipefail
             ${pkgs.util-linux}/bin/findmnt -no PROPAGATION /storage | grep -q shared || \
               ${pkgs.util-linux}/bin/mount --make-rshared /storage
-            for dir in /mnt/realdebrid /mnt/nzbdav /mnt/decypharr-dl; do
+            for dir in /mnt/nzbdav /mnt/decypharr-dl; do
               ${pkgs.util-linux}/bin/mountpoint -q "$dir" || \
                 ${pkgs.util-linux}/bin/mount --bind "$dir" "$dir"
               ${pkgs.util-linux}/bin/findmnt -no PROPAGATION "$dir" | grep -q shared || \
