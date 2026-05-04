@@ -386,4 +386,8 @@ in
 
   networking.firewall.allowedTCPPorts = [ 443 ];
   networking.networkmanager.enable = lib.mkForce false;
+
+  # role="headless" pulls in security.nix which sets PermitRootLogin = "no".
+  # Override to allow root key auth (mirrors goclaw.nix:1366 pattern).
+  services.openssh.settings.PermitRootLogin = lib.mkForce "prohibit-password";
 }
