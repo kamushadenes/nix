@@ -161,6 +161,7 @@ in
         "nzbdav.hyades.io".extraConfig      = mkProxy 8090;
         "profilarr.hyades.io".extraConfig   = mkProxy 6868;
         "zilean.hyades.io".extraConfig      = mkProxy 8182;
+        "posterizarr.hyades.io".extraConfig = mkProxy 8484;
       };
   };
 
@@ -375,6 +376,7 @@ in
       posterizarr = {
         image = "ghcr.io/fscorrupt/posterizarr:2.2.40";
         autoStart = true;
+        ports = [ "127.0.0.1:8484:8000" ];
         environment = {
           TZ = "America/Sao_Paulo";
           PUID = "1000";
