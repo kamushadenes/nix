@@ -443,4 +443,48 @@ in
   # role="headless" pulls in security.nix which sets PermitRootLogin = "no".
   # Override to allow root key auth (mirrors goclaw.nix:1366 pattern).
   services.openssh.settings.PermitRootLogin = lib.mkForce "prohibit-password";
+
+  # promote-movie: convert a streamed Decypharr symlink into a real on-disk
+  # file so seeking is instant. Reads bytes through the FUSE mount, atomically
+  # swaps the symlink for the materialized file, then triggers a Radarr rescan
+  # so metadata stays in sync.
+  environment.systemPackages = [
+    (pkgs.writeShellScriptBin "promote-movie" ''
+      set -euo pipefail
+      if [ $# -lt 1 ]; then
+        echo "usage: promote-movie <path-or-title>" >&2
+        exit 1
+      fi
+      input="$1"
+      if [ -e "$input" ]; then
+        target="$input"
+      else
+        target=$(${pkgs.findutils}/bin/find /storage -maxdepth 4 \( -iname "*$input*.mkv" -o -iname "*$input*.mp4" -o -iname "*$input*.m4v" \) 2>/dev/null | ${pkgs.coreutils}/bin/head -1 || true)
+        if [ -z "$target" ]; then
+          echo "no file found matching: $input" >&2
+          exit 1
+        fi
+        echo "found: $target"
+      fi
+      if [ ! -L "$target" ] && [ -f "$target" ]; then
+        echo "already a real file, nothing to promote"
+        exit 0
+      fi
+      src=$(${pkgs.coreutils}/bin/readlink -f "$target")
+      size=$(${pkgs.coreutils}/bin/stat -c %s "$src" 2>/dev/null || echo 0)
+      echo "size: $(${pkgs.coreutils}/bin/numfmt --to=iec --suffix=B "$size")"
+      echo "promoting: $target"
+      echo "from:      $src"
+      tmp="$target.promote.tmp"
+      ${pkgs.coreutils}/bin/cp -L "$target" "$tmp"
+      ${pkgs.coreutils}/bin/mv "$tmp" "$target"
+      echo "done — file is now real on disk"
+      key=$(${pkgs.gnugrep}/bin/grep -oP "(?<=<ApiKey>)[^<]+" /var/lib/media/radarr/config.xml 2>/dev/null || true)
+      if [ -n "$key" ]; then
+        echo "triggering Radarr rescan…"
+        ${pkgs.curl}/bin/curl -fsS -X POST -H "X-Api-Key: $key" -H "Content-Type: application/json" \
+          "http://localhost:7878/api/v3/command" -d "{\"name\":\"RescanMovie\"}" >/dev/null && echo "rescan queued"
+      fi
+    '')
+  ];
 }
