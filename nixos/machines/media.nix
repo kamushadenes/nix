@@ -377,16 +377,16 @@ in
         image = "ghcr.io/fscorrupt/posterizarr:2.2.40";
         autoStart = true;
         ports = [ "127.0.0.1:8484:8000" ];
-        environment = {
-          TZ = "America/Sao_Paulo";
-          PUID = "1000";
-          PGID = "1000";
-        };
+        environment = { TZ = "America/Sao_Paulo"; };
         volumes = [
           "/var/lib/media/posterizarr:/config"
           "/var/lib/media/posterizarr/assets:/assets"
         ];
-        extraOptions = baseExtraOpts ++ [ "--memory=1g" "--cpus=1.0" ];
+        extraOptions = baseExtraOpts ++ [
+          "--user=1000:1000"
+          "--memory=1g"
+          "--cpus=1.0"
+        ];
       };
     };
   };
