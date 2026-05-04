@@ -17,7 +17,7 @@
 #        - private/nixos/secrets/lxc-management/secrets.nix
 #   3. Re-encrypt: agenix -r in each touched dir
 #   4. `rebuild -vL stremthru`
-{ config, lib, pkgs, private, ... }:
+{ config, lib, pkgs, pkgs-unstable, private, ... }:
 
 {
   imports = [ "${private}/nixos/lxc-management.nix" ];
@@ -41,9 +41,10 @@
   # Caddy native ACME (Cloudflare DNS-01) — per-host cert, NOT wildcard.
   services.caddy = {
     enable = true;
-    package = pkgs.caddy.withPlugins {
+    # Use pkgs-unstable: Caddy 2.11.2 requires Go 1.25.8; 25.11-darwin has 1.25.7.
+    package = pkgs-unstable.caddy.withPlugins {
       plugins = [ "github.com/caddy-dns/cloudflare@v0.2.1" ];
-      hash = "sha256-Pzfdwq6GGUarf9jWpjuHEk3hjhftGZb0SJPqEOErZSg=";
+      hash = "sha256-hEIqK6F+9OCcd4JueVSidfUgQsVPWo0/imciD1UnqRo=";
     };
     globalConfig = ''
       auto_https disable_redirects

@@ -14,7 +14,7 @@
 #        - private/nixos/secrets/lxc-management/secrets.nix (lxc-management.pem recipients)
 #   3. Re-encrypt: `cd private/nixos/secrets/<dir> && agenix -r` for each touched dir
 #   4. `rebuild -vL media` (or `ssh aether '...' nh os switch`)
-{ config, lib, pkgs, private, ... }:
+{ config, lib, pkgs, pkgs-unstable, private, ... }:
 
 let
   mkEmail = user: domain: "${user}@${domain}";
@@ -128,9 +128,11 @@ in
   # media LXC. Plugin hash captured via Phase 0.8 procedure (lib.fakeHash trick).
   services.caddy = {
     enable = true;
-    package = pkgs.caddy.withPlugins {
+    # Use pkgs-unstable: Caddy 2.11.2 requires Go 1.25.8; nixpkgs-25.11-darwin
+    # ships Go 1.25.7. Unstable is current with the Go release.
+    package = pkgs-unstable.caddy.withPlugins {
       plugins = [ "github.com/caddy-dns/cloudflare@v0.2.1" ];
-      hash = "sha256-Pzfdwq6GGUarf9jWpjuHEk3hjhftGZb0SJPqEOErZSg=";
+      hash = "sha256-hEIqK6F+9OCcd4JueVSidfUgQsVPWo0/imciD1UnqRo=";
     };
     globalConfig = ''
       auto_https disable_redirects
