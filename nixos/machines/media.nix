@@ -275,12 +275,14 @@ in
           ExecStart = pkgs.writeShellScript "rclone-decypharr-mount" ''
             exec ${pkgs.rclone}/bin/rclone mount decypharr: /mnt/realdebrid \
               --config=/etc/rclone-decypharr/rclone.conf \
+              --cache-dir=/var/cache/rclone-decypharr \
               --allow-other \
               --uid=1000 --gid=1000 --umask=022 \
               --dir-cache-time=10s --poll-interval=10s \
-              --vfs-cache-mode=full --vfs-cache-max-size=4G --vfs-cache-max-age=24h \
-              --vfs-read-chunk-size=32M --vfs-read-chunk-size-limit=1G \
-              --buffer-size=32M --transfers=10 \
+              --vfs-cache-mode=full --vfs-cache-max-size=32G --vfs-cache-max-age=72h \
+              --vfs-read-chunk-size=64M --vfs-read-chunk-size-limit=2G \
+              --vfs-read-ahead=256M \
+              --buffer-size=64M --transfers=16 \
               --rc --rc-addr=0.0.0.0:5572 --rc-no-auth \
               --log-level=INFO
           '';
@@ -488,6 +490,7 @@ in
     "d /mnt/realdebrid 0755 1000 1000 -"
     "d /mnt/nzbdav 0755 1000 1000 -"
     "d /mnt/decypharr-dl 0755 1000 1000 -"
+    "d /var/cache/rclone-decypharr 0755 root root -"
   ];
 
   # rclone WebDAV remote pointing at Decypharr's built-in WebDAV server.
