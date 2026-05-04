@@ -281,7 +281,7 @@ in
               --vfs-cache-mode=full --vfs-cache-max-size=4G --vfs-cache-max-age=24h \
               --vfs-read-chunk-size=32M --vfs-read-chunk-size-limit=1G \
               --buffer-size=32M --transfers=10 \
-              --rc --rc-addr=127.0.0.1:5572 --rc-no-auth \
+              --rc --rc-addr=0.0.0.0:5572 --rc-no-auth \
               --log-level=INFO
           '';
           ExecStartPost = pkgs.writeShellScript "rclone-decypharr-mount-rshared" ''
