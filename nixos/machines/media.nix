@@ -373,9 +373,13 @@ in
       # and applies via Jellyfin API. Runs scheduled scans (cron-driven inside
       # container). Config + assets persist in /var/lib/media/posterizarr.
       posterizarr = {
-        image = "ghcr.io/fscorrupt/posterizarr:1.10.7";
+        image = "ghcr.io/fscorrupt/posterizarr:2.2.40";
         autoStart = true;
-        environment = { TZ = "America/Sao_Paulo"; };
+        environment = {
+          TZ = "America/Sao_Paulo";
+          PUID = "1000";
+          PGID = "1000";
+        };
         volumes = [
           "/var/lib/media/posterizarr:/config"
           "/var/lib/media/posterizarr/assets:/assets"
