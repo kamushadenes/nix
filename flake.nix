@@ -482,6 +482,35 @@
           ];
         };
 
+        # Media stack (LXC, privileged) - mono container running prowlarr,
+        # sonarr, radarr, bazarr, jellyseerr, decypharr, nzbdav, zilean+pg,
+        # jellyfin, profilarr, caddy. NFS-mounts /storage from TrueNAS.
+        # Wildcard *.hyades.io ACME via Caddy native (Cloudflare DNS-01).
+        # Plan: .omc/plans/media-stack.md
+        media = mkProxmoxHost {
+          machine = "media";
+          hardware = ./nixos/hardware/media.nix;
+          role = "headless";
+          extraPersistPaths = [
+            "/var/lib/media"
+            "/var/lib/docker"
+            "/var/lib/caddy"
+          ];
+        };
+
+        # StremThru (LXC, unprivileged) - Stremio addon proxy / RD bridge.
+        # Per-host cert stremthru.hyades.io (NOT wildcard).
+        stremthru = mkProxmoxHost {
+          machine = "stremthru";
+          hardware = ./nixos/hardware/stremthru.nix;
+          role = "minimal";
+          extraPersistPaths = [
+            "/var/lib/stremthru"
+            "/var/lib/docker"
+            "/var/lib/caddy"
+          ];
+        };
+
         # Prometheus server (LXC) - central metrics collection
         prometheus = mkProxmoxHost {
           machine = "prometheus";
