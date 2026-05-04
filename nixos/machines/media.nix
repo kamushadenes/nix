@@ -310,7 +310,7 @@ in
         # Upstream publishes only :latest; pin by digest.
         image = "ghcr.io/nzbdav-dev/nzbdav@sha256:7da6f28000d6145f69981066d8a3cc5d855756bfc66498df87a89c967a423020";
         autoStart = true;
-        ports = [ "127.0.0.1:8090:8090" ];
+        ports = [ "127.0.0.1:8090:8080" ];
         environmentFiles = [
           "/run/agenix/usenet-eweka"
           "/run/agenix/usenet-newshosting"
