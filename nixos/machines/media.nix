@@ -31,7 +31,7 @@ let
   containerNames = [
     "prowlarr" "sonarr" "radarr" "bazarr" "jellyseerr"
     "decypharr" "nzbdav" "zilean-postgres" "zilean"
-    "jellyfin" "profilarr" "recyclarr"
+    "jellyfin" "profilarr"
   ];
 
   baseExtraOpts = [ "--network=${mediaNet}" ];
@@ -369,14 +369,6 @@ in
         volumes = [ "/var/lib/media/profilarr:/config" ];
         extraOptions = baseExtraOpts ++ [ "--memory=512m" "--cpus=1.0" ];
       };
-      recyclarr = {
-        image = "ghcr.io/recyclarr/recyclarr:7.4.1";
-        autoStart = true;
-        cmd = [ "daemon" "--user" "1000:1000" ];
-        environment = { TZ = "America/Sao_Paulo"; };
-        volumes = [ "/var/lib/media/recyclarr:/config" ];
-        extraOptions = baseExtraOpts ++ [ "--memory=512m" "--cpus=1.0" ];
-      };
     };
   };
 
@@ -395,7 +387,6 @@ in
     "d /var/lib/media/jellyfin/config 0755 1000 1000 -"
     "d /var/lib/media/jellyfin/cache 0755 1000 1000 -"
     "d /var/lib/media/profilarr 0755 1000 1000 -"
-    "d /var/lib/media/recyclarr 0755 1000 1000 -"
     "d /mnt/realdebrid 0755 1000 1000 -"
     "d /mnt/nzbdav 0755 1000 1000 -"
   ];
