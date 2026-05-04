@@ -247,7 +247,7 @@ in
     backend = "docker";
     containers = {
       prowlarr = {
-        image = "lscr.io/linuxserver/prowlarr:1.39.2";
+        image = "lscr.io/linuxserver/prowlarr:1.30.2";
         autoStart = true;
         ports = [ "127.0.0.1:9696:9696" ];
         environment = arrEnv;
