@@ -381,6 +381,8 @@ in
           "/var/lib/media/jellyfin/config:/config"
           "/var/lib/media/jellyfin/cache:/cache"
           "/storage:/storage:ro"
+          "/mnt/realdebrid:/mnt/realdebrid:rshared"
+          "/mnt/decypharr-dl:/mnt/decypharr-dl:rshared"
         ];
         extraOptions = baseExtraOpts ++ [ "--memory=4g" "--cpus=4.0" ];
         # /dev/dri NOT mounted — HW transcode is phase 2.
