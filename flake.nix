@@ -469,6 +469,19 @@
           ];
         };
 
+        # Stremio Server (LXC) - Stremio streaming server
+        # Single Docker container behind nginx + Let's Encrypt (Cloudflare DNS-01)
+        stremio = mkProxmoxHost {
+          machine = "stremio";
+          hardware = ./nixos/hardware/stremio.nix;
+          role = "minimal";
+          extraPersistPaths = [
+            "/var/lib/stremio"
+            "/var/lib/docker"
+            "/var/lib/acme"
+          ];
+        };
+
         # Prometheus server (LXC) - central metrics collection
         prometheus = mkProxmoxHost {
           machine = "prometheus";
