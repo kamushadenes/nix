@@ -30,7 +30,7 @@ let
 
   containerNames = [
     "prowlarr" "sonarr" "radarr" "bazarr" "jellyseerr"
-    "decypharr" "nzbdav" "zilean-postgres" "zilean"
+    "decypharr" "zilean-postgres" "zilean"
     "jellyfin" "profilarr" "posterizarr"
   ];
 
@@ -43,7 +43,6 @@ let
   arrVolumes = [
     "/storage:/storage:rshared"
     "/mnt/realdebrid:/mnt/realdebrid:rshared"
-    "/mnt/nzbdav:/mnt/nzbdav:rshared"
     "/mnt/decypharr-dl:/mnt/decypharr-dl:rshared"
   ];
 in
@@ -159,7 +158,6 @@ in
         "prowlarr.hyades.io".extraConfig    = mkProxy 9696;
         "bazarr.hyades.io".extraConfig      = mkProxy 6767;
         "decypharr.hyades.io".extraConfig   = mkProxy 8282;
-        "nzbdav.hyades.io".extraConfig      = mkProxy 8090;
         "profilarr.hyades.io".extraConfig   = mkProxy 6868;
         "zilean.hyades.io".extraConfig      = mkProxy 8182;
         "posterizarr.hyades.io".extraConfig = mkProxy 8484;
@@ -181,7 +179,7 @@ in
   # All systemd.services definitions merged into a single attribute to avoid
   # NixOS module-system "attribute already defined" conflicts. Order:
   #   1. make-rshared-mounts: host-side mount --make-rshared on /storage and
-  #      /mnt/{realdebrid,nzbdav} before docker.service. Idempotent.
+  #      /mnt/decypharr-dl before docker.service. Idempotent.
   #   2. caddy: EnvironmentFile = caddy-cloudflare-token (Caddy native ACME
   #      DNS-01 plugin reads CF_API_TOKEN from this).
   #   3. docker-network-media: create the user-defined `media` Docker network
@@ -193,12 +191,12 @@ in
       make-rshared-mounts = {
         # /mnt/realdebrid is intentionally NOT pre-bound here: rclone-decypharr-mount
         # creates its own FUSE mount there and sets rshared in its ExecStartPost.
-        description = "Make /storage, /mnt/nzbdav, /mnt/decypharr-dl rshared";
+        description = "Make /storage, /mnt/decypharr-dl rshared";
         wantedBy = [ "docker.service" ];
         before = [ "docker.service" ];
         after = [ "storage.mount" "local-fs.target" ];
         unitConfig = {
-          RequiresMountsFor = [ "/storage" "/mnt/nzbdav" "/mnt/decypharr-dl" ];
+          RequiresMountsFor = [ "/storage" "/mnt/decypharr-dl" ];
         };
         serviceConfig = {
           Type = "oneshot";
@@ -207,7 +205,7 @@ in
             set -euo pipefail
             ${pkgs.util-linux}/bin/findmnt -no PROPAGATION /storage | grep -q shared || \
               ${pkgs.util-linux}/bin/mount --make-rshared /storage
-            for dir in /mnt/nzbdav /mnt/decypharr-dl; do
+            for dir in /mnt/decypharr-dl; do
               ${pkgs.util-linux}/bin/mountpoint -q "$dir" || \
                 ${pkgs.util-linux}/bin/mount --bind "$dir" "$dir"
               ${pkgs.util-linux}/bin/findmnt -no PROPAGATION "$dir" | grep -q shared || \
@@ -384,30 +382,6 @@ in
           "--cpus=2.0"
         ];
       };
-      nzbdav = {
-        # Upstream publishes only :latest; pin by digest.
-        image = "ghcr.io/nzbdav-dev/nzbdav@sha256:7da6f28000d6145f69981066d8a3cc5d855756bfc66498df87a89c967a423020";
-        autoStart = true;
-        # NzbDAV: frontend on 3000 (web UI), backend on 8080 (WebDAV mount target).
-        # Caddy fronts the UI on https; *arrs hit the WebDAV via backend port.
-        ports = [ "127.0.0.1:8090:3000" "127.0.0.1:8091:8080" ];
-        environmentFiles = [
-          "/run/agenix/usenet-eweka"
-          "/run/agenix/usenet-newshosting"
-          "/run/agenix/usenet-easynews"
-        ];
-        volumes = [
-          "/var/lib/media/nzbdav:/config"
-          "/mnt/nzbdav:/mnt/nzbdav:rshared"
-        ];
-        extraOptions = baseExtraOpts ++ [
-          "--cap-add=SYS_ADMIN"
-          "--device=/dev/fuse"
-          "--security-opt=apparmor:unconfined"
-          "--memory=2g"
-          "--cpus=2.0"
-        ];
-      };
       zilean-postgres = {
         image = "postgres:16.6";
         autoStart = true;
@@ -479,7 +453,6 @@ in
     "d /var/lib/media/bazarr 0755 1000 1000 -"
     "d /var/lib/media/jellyseerr 0755 1000 1000 -"
     "d /var/lib/media/decypharr 0755 1000 1000 -"
-    "d /var/lib/media/nzbdav 0755 1000 1000 -"
     "d /var/lib/media/zilean-pg 0700 999 999 -"
     "d /var/lib/media/jellyfin 0755 1000 1000 -"
     "d /var/lib/media/jellyfin/config 0755 1000 1000 -"
@@ -488,7 +461,6 @@ in
     "d /var/lib/media/posterizarr 0755 1000 1000 -"
     "d /var/lib/media/posterizarr/assets 0755 1000 1000 -"
     "d /mnt/realdebrid 0755 1000 1000 -"
-    "d /mnt/nzbdav 0755 1000 1000 -"
     "d /mnt/decypharr-dl 0755 1000 1000 -"
     "d /var/cache/rclone-decypharr 0755 root root -"
   ];
