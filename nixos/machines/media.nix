@@ -245,9 +245,10 @@ in
     }
     # Decypharr no longer manages the FUSE mount itself — rclone runs on the
     # LXC host (rclone-decypharr-mount.service) and mounts Decypharr's WebDAV
-    # at /mnt/realdebrid. *arrs and jellyfin must wait for that mount to exist
-    # before they start, otherwise their :rshared bind sees an empty directory.
-    # rclone in turn waits for docker-decypharr (so the WebDAV endpoint is up).
+    # at /mnt/realdebrid. *arrs only express a soft preference (`wants`) so a
+    # stuck or restarting rclone does not cascade-stop the rest of the stack;
+    # they will simply see an empty /mnt/realdebrid until rclone catches up.
+    # rclone in turn waits for docker-decypharr so the WebDAV endpoint is up.
     {
       "rclone-decypharr-mount" = {
         description = "rclone WebDAV mount of Decypharr → /mnt/realdebrid";
@@ -301,19 +302,19 @@ in
       };
       "docker-radarr" = {
         after = [ "rclone-decypharr-mount.service" "docker-network-media.service" ];
-        requires = [ "rclone-decypharr-mount.service" ];
+        wants = [ "rclone-decypharr-mount.service" ];
       };
       "docker-sonarr" = {
         after = [ "rclone-decypharr-mount.service" "docker-network-media.service" ];
-        requires = [ "rclone-decypharr-mount.service" ];
+        wants = [ "rclone-decypharr-mount.service" ];
       };
       "docker-bazarr" = {
         after = [ "rclone-decypharr-mount.service" "docker-network-media.service" ];
-        requires = [ "rclone-decypharr-mount.service" ];
+        wants = [ "rclone-decypharr-mount.service" ];
       };
       "docker-jellyfin" = {
         after = [ "rclone-decypharr-mount.service" "docker-network-media.service" ];
-        requires = [ "rclone-decypharr-mount.service" ];
+        wants = [ "rclone-decypharr-mount.service" ];
       };
     }
   ];
